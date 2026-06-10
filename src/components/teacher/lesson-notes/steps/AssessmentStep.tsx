@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Plus, X, CheckCircle, Home, ClipboardCheck } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,11 @@ import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
 import type { AssessmentSectionGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import { summarizeAssessmentForAI } from "@/lib/lesson-notes/ai-context";
 import type { LessonNoteFormData } from "@/types/lesson-notes";
+import {
+  containsHtmlMarkup,
+  sanitizePlainInputField,
+  sanitizeRichTextField,
+} from "@/lib/lesson-notes/plain-text-content";
 
 type AssessmentStepProps = {
   formData: LessonNoteFormData;
@@ -61,6 +67,41 @@ export function AssessmentStep({ formData, onUpdate, aiContext }: AssessmentStep
     });
   };
 
+  React.useEffect(() => {
+    const nextChecks = (assessment.inClassChecks || []).map((check) =>
+      sanitizePlainInputField(check)
+    );
+    const nextExitTicket = sanitizePlainInputField(assessment.exitTicket);
+    const nextHomework = sanitizeRichTextField(assessment.homework);
+    const nextLearner = sanitizeRichTextField(reflections.learner);
+    const nextTeacher = sanitizeRichTextField(reflections.teacher);
+    const nextLink = sanitizePlainInputField(reflections.nextLessonLink);
+
+    const checksChanged = nextChecks.some(
+      (check, index) => check !== (assessment.inClassChecks || [])[index]
+    );
+    const hasHtml =
+      checksChanged ||
+      (containsHtmlMarkup(assessment.exitTicket) && nextExitTicket !== assessment.exitTicket) ||
+      (containsHtmlMarkup(assessment.homework) && nextHomework !== assessment.homework) ||
+      (containsHtmlMarkup(reflections.learner) && nextLearner !== reflections.learner) ||
+      (containsHtmlMarkup(reflections.teacher) && nextTeacher !== reflections.teacher) ||
+      (containsHtmlMarkup(reflections.nextLessonLink) && nextLink !== reflections.nextLessonLink);
+
+    if (!hasHtml) return;
+
+    updateAssessment({
+      inClassChecks: checksChanged ? nextChecks : assessment.inClassChecks,
+      exitTicket: nextExitTicket,
+      homework: nextHomework,
+    });
+    updateReflections({
+      learner: nextLearner,
+      teacher: nextTeacher,
+      nextLessonLink: nextLink,
+    });
+  }, [assessment, reflections]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -84,29 +125,31 @@ export function AssessmentStep({ formData, onUpdate, aiContext }: AssessmentStep
           const generated = data as AssessmentSectionGenerated;
           updateAssessment({
             inClassChecks: Array.isArray(generated.inClassChecks)
-              ? generated.inClassChecks.filter((item): item is string => typeof item === "string")
+              ? generated.inClassChecks
+                  .filter((item): item is string => typeof item === "string")
+                  .map((item) => sanitizePlainInputField(item))
               : assessment.inClassChecks,
             exitTicket:
               typeof generated.exitTicket === "string"
-                ? generated.exitTicket
+                ? sanitizePlainInputField(generated.exitTicket)
                 : assessment.exitTicket,
             homework:
               typeof generated.homework === "string"
-                ? generated.homework
+                ? sanitizeRichTextField(generated.homework)
                 : assessment.homework,
           });
           updateReflections({
             learner:
               typeof generated.learnerReflection === "string"
-                ? generated.learnerReflection
+                ? sanitizeRichTextField(generated.learnerReflection)
                 : reflections.learner,
             teacher:
               typeof generated.teacherReflection === "string"
-                ? generated.teacherReflection
+                ? sanitizeRichTextField(generated.teacherReflection)
                 : reflections.teacher,
             nextLessonLink:
               typeof generated.nextLessonLink === "string"
-                ? generated.nextLessonLink
+                ? sanitizePlainInputField(generated.nextLessonLink)
                 : reflections.nextLessonLink,
           });
         }}

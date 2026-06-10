@@ -2,9 +2,6 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Clock, Loader2, Save } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -17,12 +14,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useBusyToast } from "@/hooks/useBusyToast";
-
-const ContactHoursSchema = z.object({
-  contactHoursPerWeek: z.number().min(0).max(40),
-});
-
-type ContactHoursFormInput = z.infer<typeof ContactHoursSchema>;
+import {
+  formatHoursMinutes,
+  hoursMinutesToDecimal,
+  splitDecimalHours,
+} from "@/lib/time/format-duration";
 
 type AssignSubjectScheduleModalProps = {
   open: boolean;
@@ -48,27 +44,24 @@ export function AssignSubjectScheduleModal({
 }: AssignSubjectScheduleModalProps) {
   const queryClient = useQueryClient();
   const busy = useBusyToast();
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<ContactHoursFormInput>({
-    resolver: zodResolver(ContactHoursSchema),
-    defaultValues: { contactHoursPerWeek: initialContactHours },
-  });
+  const [hours, setHours] = React.useState(0);
+  const [minutes, setMinutes] = React.useState(0);
+  const [inputError, setInputError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (open) reset({ contactHoursPerWeek: initialContactHours });
-  }, [initialContactHours, open, reset]);
+    if (!open) return;
+    const split = splitDecimalHours(initialContactHours);
+    setHours(split.hours);
+    setMinutes(split.minutes);
+    setInputError(null);
+  }, [initialContactHours, open]);
 
   const updateMutation = useMutation({
-    mutationFn: async (data: ContactHoursFormInput) => {
+    mutationFn: async (contactHoursPerWeek: number) => {
       const res = await fetch(`/api/admin/teacher-assignments/${assignmentId}/schedule`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contactHoursPerWeek: data.contactHoursPerWeek }),
+        body: JSON.stringify({ contactHoursPerWeek }),
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
@@ -87,13 +80,29 @@ export function AssignSubjectScheduleModal({
     },
   });
 
-  const onSubmit = handleSubmit(async (data) => {
-    await busy.promise(updateMutation.mutateAsync(data), {
+  const isSubmitting = updateMutation.isPending;
+
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextHours = Number.isFinite(hours) ? Math.max(0, Math.floor(hours)) : 0;
+    const nextMinutes = Number.isFinite(minutes) ? Math.max(0, Math.floor(minutes)) : 0;
+
+    if (nextMinutes > 59) {
+      setInputError("Minutes must be between 0 and 59.");
+      return;
+    }
+    if (nextHours > 40 || (nextHours === 40 && nextMinutes > 0)) {
+      setInputError("Contact hours cannot be more than 40 hours per week.");
+      return;
+    }
+
+    setInputError(null);
+    await busy.promise(updateMutation.mutateAsync(hoursMinutesToDecimal(nextHours, nextMinutes)), {
       loading: "Updating contact hours...",
       success: "Contact hours updated",
       error: (e: Error) => e.message || "Failed to update contact hours",
     });
-  });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,28 +132,55 @@ export function AssignSubjectScheduleModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contactHours" className="text-sm font-semibold text-white">
+            <Label htmlFor="contactHoursHours" className="text-sm font-semibold text-white">
               Contact Hours Per Week
             </Label>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="contactHoursHours"
+                  type="number"
+                  min="0"
+                  max="40"
+                  step="1"
+                  value={hours}
+                  onChange={(event) => setHours(Number(event.target.value))}
+                  className="w-24 border-white/10 bg-white/5 text-white"
+                />
+                <span className="text-sm text-white/60">hours</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="contactHoursMinutes"
+                  type="number"
+                  min="0"
+                  max="59"
+                  step="5"
+                  value={minutes}
+                  onChange={(event) => setMinutes(Number(event.target.value))}
+                  className="w-24 border-white/10 bg-white/5 text-white"
+                />
+                <span className="text-sm text-white/60">minutes</span>
+              </div>
+            </div>
+            <p className="text-xs text-white/45">
+              This will save as {formatHoursMinutes(hoursMinutesToDecimal(hours, minutes))} per week.
+            </p>
+            {inputError ? (
+              <p className="text-xs text-rose-300">{inputError}</p>
+            ) : (
+              <p className="text-xs text-white/45">
+                Example: 3 hours 20 minutes means five 40-minute lessons per week.
+              </p>
+            )}
+            <div className="hidden">
               <Input
                 id="contactHours"
                 type="number"
-                min="0"
-                max="40"
-                step="0.25"
-                {...register("contactHoursPerWeek", { valueAsNumber: true })}
-                className="w-36 border-white/10 bg-white/5 text-white"
+                value={hoursMinutesToDecimal(hours, minutes)}
+                readOnly
               />
-              <span className="text-sm text-white/60">hours</span>
             </div>
-            {errors.contactHoursPerWeek ? (
-              <p className="text-xs text-rose-300">{errors.contactHoursPerWeek.message}</p>
-            ) : (
-              <p className="text-xs text-white/45">
-                Example: 4.5 means four and a half hours of scheduled teaching in this class per week.
-              </p>
-            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
@@ -170,4 +206,3 @@ export function AssignSubjectScheduleModal({
     </Dialog>
   );
 }
-

@@ -9,7 +9,6 @@ import {
   CreateInvoiceInput,
   InvoiceLineItemInput,
 } from "@/schemas/invoice";
-import { useBusyToast } from "@/hooks/useBusyToast";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFeeStructures } from "@/hooks/admin/useFeeStructures";
 import { Input } from "@/components/ui/input";
@@ -29,11 +28,17 @@ import { InstallmentScheduleConfig } from "@/components/admin/fees/InstallmentSc
 import { StudentAvatarStatus } from "@/components/admin/students/StudentAvatarStatus";
 import { premiumMenuContent, premiumMenuItem } from "@/components/ui/premium";
 import { cn } from "@/lib/utils";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type Props = {
   onClose: () => void;
   onSubmit: (payload: CreateInvoiceInput) => Promise<void>;
   isLoading?: boolean;
+  mode?: "create" | "edit";
+  initialValues?: CreateInvoiceInput;
+  initialStudent?: any;
+  lockStudentAndPeriod?: boolean;
+  submitLabel?: string;
 };
 
 const STEPS = [
@@ -69,12 +74,69 @@ function formatLocalDate(date: Date | null): string | null {
   return `${year}-${month}-${day}`;
 }
 
+function parseDateOnly(value?: string | Date | null): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+
+  const dateOnly = parseLocalDate(value);
+  if (dateOnly) return dateOnly;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function findInstallmentPeriodWarnings(
+  items: CreateInvoiceInput["lineItems"],
+  periodEndDate: Date | null,
+  fallbackStartDate?: string | null
+): string[] {
+  if (!periodEndDate) return [];
+  const periodEndTime = periodEndDate.getTime();
+
+  return items.flatMap((item, itemIndex) => {
+    const installmentCount = Number(item.numberOfInstallments || 0);
+    if (!item.allowsInstallments || installmentCount < 2) {
+      return [];
+    }
+
+    const configuredSchedule = Array.isArray(item.installmentSchedule)
+      ? item.installmentSchedule
+      : [];
+    const schedule =
+      configuredSchedule.length > 0
+        ? configuredSchedule
+        : Array.from({ length: installmentCount }, (_, installmentIndex) => {
+            const dueDate = parseDateOnly(fallbackStartDate) ?? new Date();
+            dueDate.setDate(dueDate.getDate() + installmentIndex * 30);
+            return {
+              installmentNumber: installmentIndex + 1,
+              dueDate: formatLocalDate(dueDate),
+            };
+          });
+
+    return schedule.flatMap((installment, installmentIndex) => {
+      const dueDate = parseDateOnly(installment?.dueDate);
+      if (!dueDate || dueDate.getTime() <= periodEndTime) return [];
+
+      const itemName = item.name?.trim() || `Line item ${itemIndex + 1}`;
+      return `${itemName}, installment ${installment.installmentNumber || installmentIndex + 1}`;
+    });
+  });
+}
+
 export default function CreateInvoiceModal({
   onClose,
   onSubmit,
   isLoading,
+  mode = "create",
+  initialValues,
+  initialStudent = null,
+  lockStudentAndPeriod = false,
+  submitLabel,
 }: Props) {
-  const busy = useBusyToast();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [periods, setPeriods] = React.useState<any[]>([]);
   const [currentPeriod, setCurrentPeriod] = React.useState<any>(null);
@@ -82,7 +144,8 @@ export default function CreateInvoiceModal({
   const [studentSearchQuery, setStudentSearchQuery] = React.useState("");
   const [studentSearchResults, setStudentSearchResults] = React.useState<any[]>([]);
   const [studentSearchLoading, setStudentSearchLoading] = React.useState(false);
-  const [selectedStudent, setSelectedStudent] = React.useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = React.useState<any>(initialStudent);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const debouncedStudentSearch = useDebouncedValue(studentSearchQuery, 350);
   const { data: feeStructuresData } = useFeeStructures({ isActive: true });
@@ -158,7 +221,7 @@ export default function CreateInvoiceModal({
     formState: { errors, isSubmitting },
   } = useForm<CreateInvoiceInput>({
     resolver: zodResolver(CreateInvoiceSchema),
-    defaultValues: {
+    defaultValues: initialValues ?? {
       studentId: "",
       academicPeriodId: "",
       lineItems: [
@@ -182,7 +245,28 @@ export default function CreateInvoiceModal({
 
   const studentId = watch("studentId");
   const academicPeriodId = watch("academicPeriodId");
+  const dueDate = watch("dueDate");
   const lineItems = watch("lineItems");
+  const selectedPeriod = React.useMemo(
+    () =>
+      [currentPeriod, ...pastPeriods].find(
+        (period: any) => period?._id === academicPeriodId
+      ) || null,
+    [academicPeriodId, currentPeriod, pastPeriods]
+  );
+  const selectedPeriodEndDate = React.useMemo(
+    () => parseDateOnly(selectedPeriod?.endDate),
+    [selectedPeriod]
+  );
+  const installmentPeriodWarnings = React.useMemo(
+    () =>
+      findInstallmentPeriodWarnings(
+        lineItems,
+        selectedPeriodEndDate,
+        dueDate || selectedPeriod?.endDate || null
+      ),
+    [dueDate, lineItems, selectedPeriod?.endDate, selectedPeriodEndDate]
+  );
 
   const currentStepData = STEPS[currentStep - 1];
   const isFirstStep = currentStep === 1;
@@ -192,16 +276,49 @@ export default function CreateInvoiceModal({
 
   async function internalSubmit(values: CreateInvoiceInput) {
     try {
+      const warnings = findInstallmentPeriodWarnings(
+        values.lineItems,
+        selectedPeriodEndDate,
+        values.dueDate || selectedPeriod?.endDate || null
+      );
+      if (warnings.length > 0) {
+        const decision = await confirm({
+          title: "Installment schedule cannot be issued",
+          description: `The generated installment schedule would go beyond the selected academic period end date. Review these items before creating the bill: ${warnings.join(", ")}.`,
+          confirmLabel: "Review Installments",
+          cancelLabel: "Stay Here",
+          intent: "warning",
+          zIndexClass: "z-[80]",
+        });
+        if (decision === "confirm") {
+          setCurrentStep(2);
+        }
+        return;
+      }
       await onSubmit(values);
       onClose();
     } catch (e: unknown) {
-      console.error("Invoice creation error:", e);
+      console.error("Bill creation error:", e);
     }
   }
 
   async function handleNext() {
     const fieldsToValidate = currentStepData.fields;
     const isValid = await trigger([...fieldsToValidate] as (keyof CreateInvoiceInput)[]);
+    if (isValid && currentStep === 2 && installmentPeriodWarnings.length > 0) {
+      const decision = await confirm({
+        title: "Installment schedule needs attention",
+        description: `The generated installment schedule would go beyond the selected academic period end date. Review these items before continuing: ${installmentPeriodWarnings.join(", ")}.`,
+        confirmLabel: "Review Installments",
+        cancelLabel: "Stay Here",
+        intent: "warning",
+        zIndexClass: "z-[80]",
+      });
+      if (decision === "confirm") {
+        setCurrentStep(2);
+      }
+      return;
+    }
     if (isValid) {
       setCurrentStep((s) => Math.min(s + 1, STEPS.length));
     }
@@ -247,6 +364,7 @@ export default function CreateInvoiceModal({
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
@@ -280,7 +398,7 @@ export default function CreateInvoiceModal({
           {currentStep === 1 && (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
-                Invoice Details
+                Bill Details
               </h2>
 
               {/* Student Selection with Search */}
@@ -328,7 +446,10 @@ export default function CreateInvoiceModal({
                           setSelectedStudent(null);
                           setValue("studentId", "");
                         }}
-                        className="text-white/60 hover:text-white"
+                        className={cn(
+                          "text-white/60 hover:text-white",
+                          lockStudentAndPeriod && "hidden"
+                        )}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -419,7 +540,10 @@ export default function CreateInvoiceModal({
                       variant="ghost"
                       size="sm"
                       onClick={() => setValue("academicPeriodId", "")}
-                      className="text-xs text-white/60 hover:text-white h-auto py-1"
+                      className={cn(
+                        "text-xs text-white/60 hover:text-white h-auto py-1",
+                        lockStudentAndPeriod && "hidden"
+                      )}
                     >
                       Clear
                     </Button>
@@ -432,6 +556,22 @@ export default function CreateInvoiceModal({
                   render={({ field }) => {
                     const isCurrentPeriodSelected = field.value === currentPeriod?._id;
                     const isPastPeriodSelected = field.value && field.value !== currentPeriod?._id;
+                    const lockedPeriod = periods.find((p: any) => p._id === field.value);
+
+                    if (lockStudentAndPeriod) {
+                      return (
+                        <div className="rounded-lg border border-brand/30 bg-brand/10 p-3">
+                          <p className="text-sm font-semibold text-brand">
+                            {lockedPeriod
+                              ? `${lockedPeriod.yearLabel} • ${lockedPeriod.term}`
+                              : "Selected period"}
+                          </p>
+                          <p className="mt-1 text-xs text-brand/80">
+                            Student and period stay fixed while editing a draft bill.
+                          </p>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div className="space-y-3">
@@ -790,6 +930,7 @@ export default function CreateInvoiceModal({
                               totalAmount={watch(`lineItems.${index}.amount`) || 0}
                               numberOfInstallments={watch(`lineItems.${index}.numberOfInstallments`) || 2}
                               startDate={watch("dueDate") || undefined}
+                              maxDueDate={selectedPeriodEndDate}
                             />
                           )}
                       </motion.div>
@@ -803,6 +944,21 @@ export default function CreateInvoiceModal({
                   {errors.lineItems.message || "Please fix line item errors"}
                 </div>
               )}
+
+              {installmentPeriodWarnings.length > 0 && selectedPeriodEndDate ? (
+                <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-amber-100">
+                  <p className="font-semibold">Installment dates need attention</p>
+                  <p className="mt-1 text-xs text-amber-100/80">
+                    Installment due dates must fall on or before{" "}
+                    {selectedPeriodEndDate.toLocaleDateString()} for the selected academic period.
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs">
+                    {installmentPeriodWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="pt-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
@@ -919,7 +1075,7 @@ export default function CreateInvoiceModal({
             className="bg-brand hover:bg-brand/90 text-white"
           >
             <Check className="h-4 w-4 mr-2" />
-            Create Invoice
+            {submitLabel || (mode === "edit" ? "Save Draft Bill" : "Create Bill")}
           </Button>
         ) : (
           <Button
@@ -933,5 +1089,7 @@ export default function CreateInvoiceModal({
         )}
       </div>
     </form>
+    {confirmationDialog}
+    </>
   );
 }

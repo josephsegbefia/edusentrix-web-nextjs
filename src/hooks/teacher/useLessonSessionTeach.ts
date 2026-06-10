@@ -1,13 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SessionTeachContextResponse } from "@/types/teaching-deck";
 
-export function useLessonSessionTeach(sessionId: string | null) {
+export function useLessonSessionTeach(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   return useQuery<SessionTeachContextResponse>({
-    queryKey: ["lesson-session-teach", sessionId],
+    queryKey: ["lesson-session-teach", sessionId, classGroupId ?? null],
     queryFn: async () => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/teach`, {
-        cache: "no-store",
-      });
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}/teach${qs ? `?${qs}` : ""}`,
+        { cache: "no-store" },
+      );
       const json = (await res.json().catch(() => null)) as SessionTeachContextResponse | null;
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to load teaching mode");
@@ -19,13 +26,20 @@ export function useLessonSessionTeach(sessionId: string | null) {
   });
 }
 
-export function useStartLessonTeach(sessionId: string | null) {
+export function useStartLessonTeach(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/teach/start`, {
-        method: "POST",
-      });
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}/teach/start${qs ? `?${qs}` : ""}`,
+        { method: "POST" },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to start teaching");
@@ -39,13 +53,20 @@ export function useStartLessonTeach(sessionId: string | null) {
   });
 }
 
-export function useEndLessonTeach(sessionId: string | null) {
+export function useEndLessonTeach(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/teach/end`, {
-        method: "POST",
-      });
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}/teach/end${qs ? `?${qs}` : ""}`,
+        { method: "POST" },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to end teaching");

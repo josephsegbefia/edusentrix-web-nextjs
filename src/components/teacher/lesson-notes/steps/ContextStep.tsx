@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Clock, BookOpen } from "lucide-react";
+import { Calendar, Clock, BookOpen, Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/premium-select";
 import { TemplatePicker } from "../TemplatePicker";
 import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
-import type { LessonNoteFormData, LessonNoteTemplateType } from "@/types/lesson-notes";
+import type {
+  LessonNoteFormData,
+  LessonNotePeriodPlanningContext,
+  LessonNoteTemplateType,
+} from "@/types/lesson-notes";
 import type { ClassOption } from "../LessonNoteWizard";
 import type { RefinedContextGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import type { CurriculumCode } from "@/constants/curriculum-profiles";
@@ -27,14 +31,15 @@ type ContextStepProps = {
   onTemplateChange: (templateType: LessonNoteTemplateType) => void;
   curriculumCode?: CurriculumCode;
   aiContext: LessonNoteAIContext;
+  periodPlanningContext?: LessonNotePeriodPlanningContext | null;
 };
 
 const DURATION_OPTIONS = [
-  { value: "30", label: "30 minutes" },
-  { value: "35", label: "35 minutes" },
-  { value: "40", label: "40 minutes" },
-  { value: "45", label: "45 minutes" },
-  { value: "60", label: "60 minutes" },
+  { value: "30", label: "30 minutes (one period)" },
+  { value: "35", label: "35 minutes (one period)" },
+  { value: "40", label: "40 minutes (one period)" },
+  { value: "45", label: "45 minutes (one period)" },
+  { value: "60", label: "60 minutes (double period)" },
   { value: "90", label: "90 minutes" },
   { value: "120", label: "120 minutes" },
 ];
@@ -48,6 +53,67 @@ function formatDateLabel(value?: Date | null) {
   });
 }
 
+function formatDateRangeLabel(start?: Date | null, end?: Date | null) {
+  const startLabel = formatDateLabel(start);
+  const endLabel = formatDateLabel(end);
+  if (startLabel && endLabel) return `${startLabel} – ${endLabel}`;
+  return startLabel || endLabel;
+}
+
+function SchemeWeekPlanningCallout({
+  formData,
+  periodPlanningContext,
+  subjectName,
+}: {
+  formData: LessonNoteFormData;
+  periodPlanningContext?: LessonNotePeriodPlanningContext | null;
+  subjectName?: string;
+}) {
+  const isSchemeLinked = Boolean(formData.schemeId || (formData.schemeItemIds?.length ?? 0) > 0);
+  if (!isSchemeLinked) return null;
+
+  const weekRange = formatDateRangeLabel(formData.weekOf, formData.weekEndingDate);
+  const periodMinutes = formData.durationMinutes ?? periodPlanningContext?.typicalPeriodMinutes ?? 40;
+  const periodsThisWeek = periodPlanningContext?.periodsThisWeek;
+  const subjectLabel = subjectName?.trim() || "this subject";
+
+  let timetableLine = "";
+  if (periodPlanningContext?.hasPublishedTimetable && typeof periodsThisWeek === "number") {
+    if (periodsThisWeek === 0) {
+      timetableLine =
+        "No published timetable periods were found for this class and subject in the scheme week.";
+    } else if (periodsThisWeek === 1) {
+      timetableLine = `Your timetable shows 1 ${subjectLabel} period (${periodMinutes} min) in this scheme week.`;
+    } else {
+      timetableLine = `Your timetable shows ${periodsThisWeek} ${subjectLabel} periods (${periodMinutes} min each) in this scheme week.`;
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-50/90">
+      <div className="flex items-start gap-2.5">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-200" />
+        <div className="space-y-1.5">
+          <p className="font-medium text-sky-100">Scheme week vs. one period</p>
+          <p className="text-xs leading-relaxed text-sky-100/75">
+            The linked scheme row covers the teaching week
+            {weekRange ? ` (${weekRange})` : ""}. <span className="text-sky-50">Period length</span>{" "}
+            is how long <span className="text-sky-50">one</span> lesson delivery lasts — not the total
+            time for the whole week.
+          </p>
+          {timetableLine ? (
+            <p className="text-xs leading-relaxed text-sky-100/75">{timetableLine}</p>
+          ) : null}
+          <p className="text-xs leading-relaxed text-sky-100/65">
+            After this note is approved, you can split it across your timetable periods when creating
+            weekly lessons.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ContextStep({
   formData,
   classOptions,
@@ -55,12 +121,12 @@ export function ContextStep({
   onTemplateChange,
   curriculumCode = "ghana_nacca",
   aiContext,
+  periodPlanningContext,
 }: ContextStepProps) {
-  // Get subjects for selected class
   const selectedClass = classOptions.find((c) => c.id === formData.classGroupId);
   const subjects = selectedClass?.subjects || [];
+  const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
 
-  // When class changes, reset subject if not available
   React.useEffect(() => {
     if (formData.subjectId && !subjects.some((s) => s.id === formData.subjectId)) {
       onUpdate({ subjectId: subjects[0]?.id || undefined });
@@ -69,7 +135,6 @@ export function ContextStep({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-lg font-semibold text-white">Lesson Context</h2>
         <p className="text-sm text-white/60">
@@ -77,7 +142,6 @@ export function ContextStep({
         </p>
       </div>
 
-      {/* Class & Subject */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label className="text-white/70">Class *</Label>
@@ -120,14 +184,19 @@ export function ContextStep({
 
       <LessonNoteSchemeLinkPanel formData={formData} onUpdate={onUpdate} />
 
+      <SchemeWeekPlanningCallout
+        formData={formData}
+        periodPlanningContext={periodPlanningContext}
+        subjectName={selectedSubject?.name}
+      />
+
       {formData.weekEndingDate ? (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          <span className="font-medium">Scheme week ending:</span>{" "}
-          {formatDateLabel(formData.weekEndingDate)}
+          <span className="font-medium">Scheme teaching week:</span>{" "}
+          {formatDateRangeLabel(formData.weekOf, formData.weekEndingDate)}
         </div>
       ) : null}
 
-      {/* Topic */}
       <div className="space-y-2">
         <Label className="text-white/70">Topic *</Label>
         <Input
@@ -148,7 +217,7 @@ export function ContextStep({
         existingContent={[
           formData.topic && `Topic: ${formData.topic}`,
           formData.references[0] && `Reference: ${formData.references[0]}`,
-          formData.durationMinutes && `Duration: ${formData.durationMinutes} minutes`,
+          formData.durationMinutes && `Period length: ${formData.durationMinutes} minutes`,
         ]
           .filter(Boolean)
           .join("\n")}
@@ -173,7 +242,6 @@ export function ContextStep({
         }}
       />
 
-      {/* Week & Date */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label className="flex items-center gap-2 text-white/70">
@@ -184,19 +252,24 @@ export function ContextStep({
             value={formData.weekOf}
             onChange={(date) => onUpdate({ weekOf: date || new Date() })}
           />
+          <p className="text-xs text-white/40">
+            {formData.schemeId || (formData.schemeItemIds?.length ?? 0) > 0
+              ? "Start of the teaching week this scheme row belongs to."
+              : "The week this lesson note applies to."}
+          </p>
         </div>
 
         <div className="space-y-2">
           <Label className="flex items-center gap-2 text-white/70">
             <Clock className="h-4 w-4" />
-            Duration
+            Period length
           </Label>
           <PremiumSelect
             value={formData.durationMinutes?.toString() || "40"}
             onValueChange={(value) => onUpdate({ durationMinutes: parseInt(value, 10) })}
           >
             <PremiumSelectTrigger>
-              <PremiumSelectValue placeholder="Duration" />
+              <PremiumSelectValue placeholder="Period length" />
             </PremiumSelectTrigger>
             <PremiumSelectContent>
               {DURATION_OPTIONS.map((option) => (
@@ -206,10 +279,15 @@ export function ContextStep({
               ))}
             </PremiumSelectContent>
           </PremiumSelect>
+          <p className="text-xs text-white/40">
+            Length of one teaching period this plan is written for — not total time for the week.
+            {periodPlanningContext?.typicalPeriodMinutes
+              ? ` Your school timetable uses ${periodPlanningContext.typicalPeriodMinutes}-minute periods.`
+              : " Most schools use 40-minute periods."}
+          </p>
         </div>
       </div>
 
-      {/* Template Selection */}
       <div className="space-y-3">
         <Label className="flex items-center gap-2 text-white/70">
           <BookOpen className="h-4 w-4" />
@@ -222,7 +300,6 @@ export function ContextStep({
         />
       </div>
 
-      {/* References (optional) */}
       <div className="space-y-2">
         <Label className="text-white/70">Reference (textbook, page)</Label>
         <Input

@@ -9,7 +9,6 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { User } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -28,6 +27,11 @@ import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
+import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
+import {
+  formatGuardianDto,
+  getGuardianSiblingCandidates,
+} from "@/lib/guardians/guardian-linking";
 
 const CreateGuardianSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -48,6 +52,26 @@ const CreateGuardianSchema = z.object({
   ]),
   occupation: z.string().optional().nullable(),
   photoUrl: z.string().url().optional().nullable(),
+  isPrimary: z.boolean().default(false),
+});
+
+const LinkExistingGuardianSchema = z.object({
+  mode: z.literal("link_existing"),
+  userId: z.string().length(24),
+  relationship: z.enum([
+    "mother",
+    "father",
+    "guardian",
+    "step_mother",
+    "step_father",
+    "grandmother",
+    "grandfather",
+    "aunt",
+    "uncle",
+    "other",
+  ]),
+  occupation: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
   isPrimary: z.boolean().default(false),
 });
 
@@ -162,6 +186,162 @@ export async function POST(
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
 
     const body = await req.json();
+    if (body?.mode === "link_existing") {
+      const validated = LinkExistingGuardianSchema.parse(body);
+      const studentIdObj = new mongoose.Types.ObjectId(id);
+      const parentUserId = new mongoose.Types.ObjectId(validated.userId);
+
+      const [student, parentUser] = await Promise.all([
+        Student.findOne({
+          _id: studentIdObj,
+          schoolId: schoolIdObj,
+        })
+          .select("_id firstName lastName")
+          .lean(),
+        User.findById(parentUserId)
+          .select("_id email phone avatarUrl clerkUserId firstName lastName name")
+          .lean(),
+      ]);
+
+      if (!student) {
+        return NextResponse.json(
+          { success: false, error: "Student not found" },
+          { status: 404 }
+        );
+      }
+      if (!parentUser?.email) {
+        return NextResponse.json(
+          { success: false, error: "Parent user not found" },
+          { status: 404 }
+        );
+      }
+
+      const existingGuardian = await Guardian.findOne({
+        studentId: studentIdObj,
+        userId: parentUserId,
+      })
+        .select("_id")
+        .lean();
+
+      if (existingGuardian) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "This parent is already linked to this student",
+          },
+          { status: 409 }
+        );
+      }
+
+      if (validated.isPrimary) {
+        await Guardian.updateMany(
+          { studentId: studentIdObj, isPrimary: true },
+          { $set: { isPrimary: false } }
+        );
+      }
+
+      await ensureMembershipForUser({
+        userId: parentUserId,
+        schoolId: schoolIdObj,
+        role: "parent",
+        status: "active",
+      });
+
+      const guardian = await Guardian.create({
+        studentId: studentIdObj,
+        userId: parentUserId,
+        relationship: validated.relationship,
+        occupation: validated.occupation?.trim() || null,
+        isPrimary: validated.isPrimary,
+        phone: validated.phone?.trim() || (parentUser as any).phone || null,
+        email: String((parentUser as any).email).toLowerCase().trim(),
+        photoUrl: (parentUser as any).avatarUrl || null,
+      });
+
+      try {
+        await writeRetryableAuditEvent({
+          actionCode: "guardian.linked_existing",
+          scopeType: "school",
+          scopeId: String(schoolIdObj),
+          result: "succeeded",
+          target: {
+            targetEntityType: "Guardian",
+            targetEntityId: guardian._id,
+            secondaryEntityType: "Student",
+            secondaryEntityId: studentIdObj,
+          },
+          context: buildSchoolUserAuditContext(req, {
+            userId: new mongoose.Types.ObjectId(String(userId)),
+            schoolId: schoolIdObj,
+            actorRole: "school_admin",
+            idempotencyKey: resolveAuditIdempotencyKey(
+              req,
+              `guardian.linked_existing:${String(guardian._id)}`
+            ),
+          }),
+          payload: {
+            metadata: {
+              relationship: validated.relationship,
+              isPrimary: validated.isPrimary,
+              parentUserId: String(parentUserId),
+            },
+          },
+          streamKey: `school:${String(schoolIdObj)}:identity`,
+        });
+      } catch (auditErr) {
+        console.error("guardian.linked_existing audit failed:", auditErr);
+      }
+
+      await recordActivity({
+        schoolId: schoolIdObj,
+        userId: new mongoose.Types.ObjectId(userId),
+        type: "guardian.created",
+        entityType: "student",
+        entityId: String(studentIdObj),
+        description: `Linked existing parent to ${(student as any).firstName} ${(student as any).lastName}`,
+        ...delegationAuditFields({
+          isDelegatedActor: !authCtx.isSchoolAdmin,
+          activeDelegationId: authCtx.activeDelegationId,
+          module: "students",
+          action: "guardian.linked_existing",
+        }),
+        metadata: {
+          guardianId: String(guardian._id),
+          studentId: String(studentIdObj),
+          parentUserId: String(parentUserId),
+          relationship: validated.relationship,
+          isPrimary: validated.isPrimary,
+        },
+      });
+
+      const createdGuardian = await Guardian.findById(guardian._id)
+        .populate("userId", "name firstName lastName email avatarUrl clerkUserId")
+        .lean();
+
+      if (!createdGuardian) {
+        return NextResponse.json(
+          { success: false, error: "Guardian not found after link" },
+          { status: 404 }
+        );
+      }
+
+      const siblingCandidates = await getGuardianSiblingCandidates({
+        schoolId: schoolIdObj,
+        studentId: studentIdObj,
+        userId: parentUserId,
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          guardian: formatGuardianDto(
+            createdGuardian as Parameters<typeof formatGuardianDto>[0]
+          ),
+          siblingCandidates,
+        },
+      });
+    }
+
     const validated = CreateGuardianSchema.parse(body);
 
     // Verify student belongs to admin's school
@@ -180,14 +360,6 @@ export async function POST(
     const studentIdObj = new mongoose.Types.ObjectId(id);
 
     const lookupEmail = validated.email.toLowerCase().trim();
-
-    const parentUserRaw = await User.findOne({
-      email: lookupEmail,
-      schoolId: schoolIdObj,
-    }).lean();
-    const parentUser = Array.isArray(parentUserRaw)
-      ? parentUserRaw[0] || null
-      : parentUserRaw;
 
     const emailLower = lookupEmail;
 
@@ -279,63 +451,32 @@ export async function POST(
       }
     };
 
-    if (parentUser) {
-      // User exists - verify they have parent role or update role
-      userIdObj =
-        parentUser._id instanceof mongoose.Types.ObjectId
-          ? parentUser._id
-          : new mongoose.Types.ObjectId(String(parentUser._id));
+    const parentUser = await ensureCanonicalUserForEmail({
+      email: emailLower,
+      firstName: validated.firstName.trim(),
+      lastName: validated.lastName.trim(),
+      phone: validated.phone?.trim() || undefined,
+      avatarUrl: validated.photoUrl || undefined,
+      role: "parent",
+      schoolId: schoolIdObj,
+      pendingOnboarding: false,
+    });
 
-      // Update role to parent if not already set
-      if (parentUser.role !== "parent") {
-        await User.updateOne(
-          { _id: userIdObj },
-          { $set: { role: "parent" } }
-        );
-      }
+    userIdObj =
+      parentUser._id instanceof mongoose.Types.ObjectId
+        ? parentUser._id
+        : new mongoose.Types.ObjectId(String(parentUser._id));
 
-      // Update user info if provided
-      const updateData: any = {};
-      if (validated.firstName) updateData.firstName = validated.firstName.trim();
-      if (validated.lastName) updateData.lastName = validated.lastName.trim();
-      if (validated.phone) updateData.phone = validated.phone.trim();
-      if (validated.photoUrl) updateData.avatarUrl = validated.photoUrl;
+    await ensureMembershipForUser({
+      userId: userIdObj,
+      schoolId: schoolIdObj,
+      role: "parent",
+      status: "active",
+    });
 
-      if (Object.keys(updateData).length > 0) {
-        await User.updateOne({ _id: userIdObj }, { $set: updateData });
-      }
-
-      // If this account has not been linked to Clerk yet, send an invite.
-      if (!parentUser.clerkUserId) {
-        await inviteParentIfNeeded(userIdObj);
-      }
-    } else {
-      // Create new user
-      const newUser = new User({
-        email: emailLower,
-        firstName: validated.firstName.trim(),
-        lastName: validated.lastName.trim(),
-        phone: validated.phone?.trim() || undefined,
-        avatarUrl: validated.photoUrl || undefined,
-        role: "parent",
-        schoolId: schoolIdObj,
-      });
-
-      await newUser.save();
-      userIdObj =
-        newUser._id instanceof mongoose.Types.ObjectId
-          ? newUser._id
-          : new mongoose.Types.ObjectId(String(newUser._id));
-
+    if (!parentUser.clerkUserId) {
       await inviteParentIfNeeded(userIdObj);
     }
-
-    // Ensure UserMembership exists
-    await UserMembership.findOneAndUpdate(
-      { userId: userIdObj, schoolId: schoolIdObj },
-      { $addToSet: { roles: "parent" }, $set: { status: "active" } },
-      { upsert: true }
-    );
 
     // Handle primary guardian - unset others if this is primary
     if (validated.isPrimary) {

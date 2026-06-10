@@ -49,6 +49,13 @@ export function gateTeacherApiAccess(roles: MembershipRole[]): GateSuccess | Gat
   return { ok: true };
 }
 
+export function gateStudentApiAccess(roles: MembershipRole[]): GateSuccess | GateFailure {
+  if (!roles.includes("student")) {
+    return { ok: false, status: 403, error: "Student role required" };
+  }
+  return { ok: true };
+}
+
 /**
  * Allows the school admin and any teacher delegated as `admissions_officer`.
  * See docs/ADMISSIONS_DEVELOPMENT_SPEC.md §4.

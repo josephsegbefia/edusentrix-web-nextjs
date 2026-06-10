@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CompactRichText } from "@/components/ui/rich-text-editor";
+import { CompactRichText, extractPlainText } from "@/components/ui/rich-text-editor";
 import { cn } from "@/lib/utils";
 import type {
   LessonNoteFormData,
@@ -16,6 +16,11 @@ import type {
   NaCCAPlenary,
 } from "@/types/lesson-notes";
 import { isNaCCA3PhaseBody, DEFAULT_NACCA_BODY, COMMON_TLMS } from "@/types/lesson-notes";
+import {
+  containsHtmlMarkup,
+  sanitizePlainInputField,
+  sanitizeRichTextField,
+} from "@/lib/lesson-notes/plain-text-content";
 
 type NaCCA3PhaseEditorProps = {
   formData: LessonNoteFormData;
@@ -102,6 +107,62 @@ export function NaCCA3PhaseEditor({ formData, onUpdate }: NaCCA3PhaseEditorProps
     });
   };
 
+  React.useEffect(() => {
+    const starterUpdates: Partial<NaCCAStarter> = {};
+    const mainUpdates: Partial<NaCCAMain> = {};
+    const plenaryUpdates: Partial<NaCCAPlenary> = {};
+
+    const maybeRich = (
+      current: string | undefined,
+      target: Partial<Record<string, string>>,
+      key: string
+    ) => {
+      if (!containsHtmlMarkup(current)) return;
+      target[key] = sanitizeRichTextField(current);
+    };
+
+    const maybePlain = (
+      current: string | undefined,
+      target: Partial<Record<string, string>>,
+      key: string
+    ) => {
+      if (!containsHtmlMarkup(current)) return;
+      target[key] = sanitizePlainInputField(current);
+    };
+
+    maybeRich(body.starter?.activities, starterUpdates, "activities");
+    maybeRich(body.starter?.rpkPrompt, starterUpdates, "rpkPrompt");
+    maybeRich(body.starter?.engagementHook, starterUpdates, "engagementHook");
+
+    maybeRich(body.main?.teacherActivities, mainUpdates, "teacherActivities");
+    maybeRich(body.main?.learnerActivities, mainUpdates, "learnerActivities");
+    maybeRich(body.main?.embeddedAssessment, mainUpdates, "embeddedAssessment");
+    maybeRich(body.main?.differentiation, mainUpdates, "differentiation");
+
+    maybeRich(body.plenary?.summaryPoints, plenaryUpdates, "summaryPoints");
+    maybeRich(body.plenary?.learnerReflection, plenaryUpdates, "learnerReflection");
+    maybeRich(body.plenary?.teacherReflection, plenaryUpdates, "teacherReflection");
+    maybePlain(body.plenary?.exitTicket, plenaryUpdates, "exitTicket");
+    maybePlain(body.plenary?.homework, plenaryUpdates, "homework");
+    maybePlain(body.plenary?.classworkAssignment, plenaryUpdates, "classworkAssignment");
+
+    if (
+      Object.keys(starterUpdates).length === 0 &&
+      Object.keys(mainUpdates).length === 0 &&
+      Object.keys(plenaryUpdates).length === 0
+    ) {
+      return;
+    }
+
+    updateBody({
+      ...(Object.keys(starterUpdates).length ? { starter: { ...body.starter, ...starterUpdates } } : {}),
+      ...(Object.keys(mainUpdates).length ? { main: { ...body.main, ...mainUpdates } } : {}),
+      ...(Object.keys(plenaryUpdates).length
+        ? { plenary: { ...body.plenary, ...plenaryUpdates } }
+        : {}),
+    });
+  }, [body]);
+
   // Calculate total time
   const totalTime =
     (body.starter?.timeMins || 0) +
@@ -123,7 +184,7 @@ export function NaCCA3PhaseEditor({ formData, onUpdate }: NaCCA3PhaseEditorProps
           <span className="text-white/70">{totalTime} min</span>
           {formData.durationMinutes && totalTime !== formData.durationMinutes && (
             <span className="text-amber-400/80">
-              ({formData.durationMinutes} planned)
+              (period length: {formData.durationMinutes} min)
             </span>
           )}
         </div>
@@ -359,6 +420,18 @@ export function NaCCA3PhaseEditor({ formData, onUpdate }: NaCCA3PhaseEditorProps
   );
 }
 
+function parseResourcesList(raw: string): string[] {
+  const plain = extractPlainText(raw);
+  return plain
+    .split(/[,;\n]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function formatResourcesList(items: string[]): string {
+  return items.join(", ");
+}
+
 // ============================================================================
 // Resources Used Section Component
 // ============================================================================
@@ -374,11 +447,18 @@ function ResourcesUsedSection({
 }) {
   const [customResource, setCustomResource] = React.useState("");
 
-  // Parse current resources (stored as comma-separated string)
-  const selectedResources = React.useMemo(() => {
-    if (!currentResources) return [];
-    return currentResources.split(",").map((r) => r.trim()).filter(Boolean);
-  }, [currentResources]);
+  const selectedResources = React.useMemo(
+    () => parseResourcesList(currentResources),
+    [currentResources]
+  );
+
+  React.useEffect(() => {
+    if (!/<[a-z][\s\S]*>/i.test(currentResources)) return;
+    const cleaned = formatResourcesList(parseResourcesList(currentResources));
+    if (cleaned && cleaned !== currentResources) {
+      onUpdate(cleaned);
+    }
+  }, [currentResources, onUpdate]);
 
   // Combine TLMs from form data with common TLMs for quick selection
   const availableTlms = React.useMemo(() => {
@@ -389,16 +469,16 @@ function ResourcesUsedSection({
 
   const toggleResource = (resource: string) => {
     if (selectedResources.includes(resource)) {
-      onUpdate(selectedResources.filter((r) => r !== resource).join(", "));
+      onUpdate(formatResourcesList(selectedResources.filter((r) => r !== resource)));
     } else {
-      onUpdate([...selectedResources, resource].join(", "));
+      onUpdate(formatResourcesList([...selectedResources, resource]));
     }
   };
 
   const addCustomResource = () => {
     if (!customResource.trim()) return;
     if (!selectedResources.includes(customResource.trim())) {
-      onUpdate([...selectedResources, customResource.trim()].join(", "));
+      onUpdate(formatResourcesList([...selectedResources, customResource.trim()]));
     }
     setCustomResource("");
   };

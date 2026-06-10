@@ -173,9 +173,9 @@ export default function InvoicesPage() {
     const result = (await busy.promise(
       createInvoice.mutateAsync(fixedPayload),
       {
-        loading: "Creating invoice...",
-        success: "Invoice created successfully",
-        error: "Failed to create invoice",
+        loading: "Creating bill...",
+        success: "Bill created successfully",
+        error: "Failed to create bill",
       }
     )) as unknown as { invoice: { _id: string } };
     setShowCreateModal(false);
@@ -187,12 +187,12 @@ export default function InvoicesPage() {
     return (
       <div className="space-y-6 p-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-white">Invoices</h1>
-          <p className="text-muted-foreground">Manage student invoices</p>
+          <h1 className="text-3xl font-bold mb-2 text-white">Bills</h1>
+          <p className="text-muted-foreground">Manage student bills</p>
         </div>
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <CardContent className="pt-6">
-            <p className="text-destructive">Failed to load invoices</p>
+            <p className="text-destructive">Failed to load bills</p>
           </CardContent>
         </Card>
       </div>
@@ -244,11 +244,11 @@ export default function InvoicesPage() {
       const result = (await busy.promise(
         bulkIssueInvoices.mutateAsync(selectedIds),
         {
-          loading: `Issuing ${selectedIds.length} invoice${
+          loading: `Issuing ${selectedIds.length} bill${
             selectedIds.length !== 1 ? "s" : ""
           }...`,
-          success: `Successfully issued invoices`,
-          error: "Failed to issue some invoices",
+          success: `Successfully issued bills`,
+          error: "Failed to issue some bills",
         }
       )) as unknown as {
         results: {
@@ -257,7 +257,7 @@ export default function InvoicesPage() {
         };
       };
       if (result.results.failed.length > 0) {
-        console.warn("Some invoices failed to issue:", result.results.failed);
+        console.warn("Some bills failed to issue:", result.results.failed);
       }
       setSelectedIds([]);
     } catch (error) {
@@ -271,11 +271,11 @@ export default function InvoicesPage() {
       const result = (await busy.promise(
         bulkCancelInvoices.mutateAsync(selectedIds),
         {
-          loading: `Cancelling ${selectedIds.length} invoice${
+          loading: `Withdrawing ${selectedIds.length} bill${
             selectedIds.length !== 1 ? "s" : ""
           }...`,
-          success: `Successfully cancelled invoices`,
-          error: "Failed to cancel some invoices",
+          success: `Successfully withdrew bills`,
+          error: "Failed to withdraw some bills",
         }
       )) as unknown as {
         results: {
@@ -284,7 +284,7 @@ export default function InvoicesPage() {
         };
       };
       if (result.results.failed.length > 0) {
-        console.warn("Some invoices failed to cancel:", result.results.failed);
+        console.warn("Some bills failed to withdraw:", result.results.failed);
       }
       setSelectedIds([]);
     } catch (error) {
@@ -296,11 +296,11 @@ export default function InvoicesPage() {
     if (selectedIds.length === 0) return;
     try {
       await busy.promise(bulkExportInvoices.mutateAsync(selectedIds), {
-        loading: `Exporting ${selectedIds.length} invoice${
+        loading: `Exporting ${selectedIds.length} bill${
           selectedIds.length !== 1 ? "s" : ""
         }...`,
-        success: "Invoices exported successfully",
-        error: "Failed to export invoices",
+        success: "Bills exported successfully",
+        error: "Failed to export bills",
       });
     } catch (error) {
       // Error already handled by busy toast
@@ -324,15 +324,15 @@ export default function InvoicesPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Finance
             </p>
-            <h1 className="text-3xl font-bold text-white">Invoices</h1>
-            <p className="text-muted-foreground">Manage student invoices</p>
+            <h1 className="text-3xl font-bold text-white">Bills</h1>
+            <p className="text-muted-foreground">Manage student bills</p>
           </div>
         </div>
         <Button
           onClick={() => {
             if (isInvoiceCreationBlocked) {
               busy.error(
-                blockedMessage || "Cannot create invoices without an active academic period"
+                blockedMessage || "Cannot create bills without an active academic period"
               );
               return;
             }
@@ -344,7 +344,7 @@ export default function InvoicesPage() {
           )}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
-          Create Invoice
+          Create Bill
         </Button>
       </div>
 
@@ -366,7 +366,7 @@ export default function InvoicesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by invoice number or student name..."
+                  placeholder="Search by bill number or student name..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 border-white/10 bg-white/5 text-white placeholder:text-white/40"
@@ -381,14 +381,14 @@ export default function InvoicesPage() {
         </CardContent>
       </Card>
 
-      {/* Invoices List */}
+      {/* Bills List */}
       <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-purple-500/5 via-purple-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10">
-          <CardTitle className="text-white">Invoices</CardTitle>
+          <CardTitle className="text-white">Bills</CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
           {isLoading ? (
@@ -399,7 +399,7 @@ export default function InvoicesPage() {
             </div>
           ) : filteredInvoices.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              No invoices found
+              No bills found
             </p>
           ) : (
             <>
@@ -415,7 +415,7 @@ export default function InvoicesPage() {
                   className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
                 />
                 <label className="text-sm text-white/80 cursor-pointer">
-                  Select all ({filteredInvoices.length} invoice
+                  Select all ({filteredInvoices.length} bill
                   {filteredInvoices.length !== 1 ? "s" : ""})
                 </label>
               </div>
@@ -523,11 +523,11 @@ export default function InvoicesPage() {
         />
       )}
 
-      {/* Create Invoice Modal */}
+      {/* Create Bill Modal */}
       <ResponsiveModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title="Create Invoice"
+        title="Create Bill"
         widthClass="max-w-4xl"
       >
         <CreateInvoiceModal

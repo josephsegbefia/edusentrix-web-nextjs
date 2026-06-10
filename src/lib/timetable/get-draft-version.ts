@@ -11,6 +11,20 @@ function isDuplicateKeyError(error: unknown): boolean {
   );
 }
 
+function slotPeriodKey(slot: {
+  classGroupId: Types.ObjectId;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}): string {
+  return [
+    String(slot.classGroupId),
+    String(slot.dayOfWeek),
+    slot.startTime,
+    slot.endTime,
+  ].join("|");
+}
+
 async function copyPublishedSlotsIntoDraft(args: {
   schoolId: Types.ObjectId;
   academicPeriodId: Types.ObjectId;
@@ -48,30 +62,61 @@ async function copyPublishedSlotsIntoDraft(args: {
 
   if (!publishedSlots.length) return 0;
 
-  await TimetableSlot.insertMany(
-    publishedSlots.map((slot) => ({
-      schoolId: slot.schoolId,
-      academicPeriodId: slot.academicPeriodId,
-      versionId: args.draftVersionId,
-      classGroupId: slot.classGroupId,
-      gradeId: slot.gradeId,
-      subjectId: slot.subjectId,
-      subjectOfferingId: slot.subjectOfferingId ?? null,
-      teacherId: slot.teacherId ?? null,
-      roomId: slot.roomId ?? null,
-      dayOfWeek: slot.dayOfWeek,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      classroomLabel: slot.classroomLabel,
-      source: "manual",
-      legacyAssignmentId: slot.legacyAssignmentId ?? null,
-      createdBy: args.actorId,
-      updatedBy: args.actorId,
-    })),
-    { ordered: false }
+  const uniqueSourceSlots = Array.from(
+    publishedSlots
+      .reduce((map, slot) => {
+        const key = slotPeriodKey(slot);
+        if (!map.has(key)) map.set(key, slot);
+        return map;
+      }, new Map<string, (typeof publishedSlots)[number]>())
+      .values()
   );
 
-  return publishedSlots.length;
+  const writes = uniqueSourceSlots.map((slot) => ({
+    updateOne: {
+      filter: {
+        schoolId: args.schoolId,
+        academicPeriodId: args.academicPeriodId,
+        versionId: args.draftVersionId,
+        classGroupId: slot.classGroupId,
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      },
+      update: {
+        $setOnInsert: {
+          schoolId: slot.schoolId,
+          academicPeriodId: slot.academicPeriodId,
+          versionId: args.draftVersionId,
+          classGroupId: slot.classGroupId,
+          gradeId: slot.gradeId,
+          subjectId: slot.subjectId,
+          subjectOfferingId: slot.subjectOfferingId ?? null,
+          teacherId: slot.teacherId ?? null,
+          roomId: slot.roomId ?? null,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          classroomLabel: slot.classroomLabel,
+          source: "manual",
+          legacyAssignmentId: slot.legacyAssignmentId ?? null,
+          createdBy: args.actorId,
+          updatedBy: args.actorId,
+        },
+      },
+      upsert: true,
+    },
+  }));
+
+  if (writes.length) {
+    try {
+      await TimetableSlot.bulkWrite(writes, { ordered: false });
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+    }
+  }
+
+  return uniqueSourceSlots.length;
 }
 
 /**

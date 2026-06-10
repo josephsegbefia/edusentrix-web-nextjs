@@ -68,11 +68,23 @@ export async function GET(req: Request) {
       orClauses.push({ _id: { $in: completedSessionIds } });
     }
 
-    const sessionQuery = {
+    const sharedSessionIds = (await LessonDelivery.distinct("sessionId", {
       schoolId: context.schoolId,
       classGroupId: student.classGroupId,
+    })) as mongoose.Types.ObjectId[];
+
+    const sessionQuery = {
+      schoolId: context.schoolId,
       status: { $ne: "archived" as const },
-      $or: orClauses,
+      $and: [
+        {
+          $or: [
+            { classGroupId: student.classGroupId },
+            ...(sharedSessionIds.length > 0 ? [{ _id: { $in: sharedSessionIds } }] : []),
+          ],
+        },
+        { $or: orClauses },
+      ],
     };
 
     const [total, sessions] = await Promise.all([
@@ -82,7 +94,7 @@ export async function GET(req: Request) {
         .skip(offset)
         .limit(limit)
         .select(
-          "_id title subjectOfferingId scheduledDate studentVisibility status createdAt"
+          "_id title subjectOfferingId scheduledDate studentVisibility status createdAt boardNotes notebookNotesPublished",
         )
         .lean<Pick<ILessonSession, "_id" | "title" | "subjectOfferingId" | "scheduledDate" | "studentVisibility" | "status" | "createdAt">[]>(),
     ]);
@@ -135,6 +147,8 @@ export async function GET(req: Request) {
       scheduledDate: s.scheduledDate ? new Date(s.scheduledDate).toISOString().slice(0, 10) : null,
       studentVisibility: s.studentVisibility,
       studied: progressBySessionId.get(String(s._id)) === "completed",
+      hasNotebookNotes: Boolean(s.boardNotes?.contentHtml?.trim()),
+      notebookNotesPublished: Boolean(s.notebookNotesPublished),
     }));
 
     return Response.json({

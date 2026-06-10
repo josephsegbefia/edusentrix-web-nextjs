@@ -147,6 +147,7 @@ export type ClassFeesAnalytics = {
   summary: {
     studentCount: number;
     invoiceCount: number;
+    draftInvoiceCount: number;
     totalBilledMinor: number;
     totalPaidMinor: number;
     totalOutstandingMinor: number;

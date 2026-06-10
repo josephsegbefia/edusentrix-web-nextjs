@@ -10,8 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ComingSoonPanel } from "@/components/ui/coming-soon-panel";
 import { useParentDashboard } from "@/hooks/parent";
+import { RoleWeekDayTimetable } from "@/components/timetable/RoleWeekDayTimetable";
 
 export function WardTimetable({ wardId, wardName }: { wardId: string; wardName: string }) {
   const router = useRouter();
@@ -51,9 +51,14 @@ export function WardTimetable({ wardId, wardName }: { wardId: string; wardName: 
         </Card>
       ) : null}
 
-      <ComingSoonPanel
-        title="Ward timetable"
-        description={`A clear week view for ${wardName} will return in a future update. Fees, attendance, and academics for this ward are unchanged.`}
+      <RoleWeekDayTimetable
+        endpoint={`/api/parent/wards/${encodeURIComponent(wardId)}/timetable/week`}
+        title={`${wardName}'s Timetable`}
+        subtitle="Published class timetable for this ward."
+        hideClassName
+        noPublishedMessage="No published timetable is available for this ward's class yet."
+        emptyWeekMessage="No classes are scheduled for this ward this week."
+        emptyDayMessage="No classes are scheduled for this ward on this day."
       />
     </div>
   );

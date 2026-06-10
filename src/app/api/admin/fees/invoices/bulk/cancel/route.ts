@@ -4,6 +4,7 @@ import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
+import { Payment } from "@/models/Payment";
 import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
             if (!invoice) {
               results.failed.push({
                 id: invoiceId,
-                error: "Invoice not found",
+                error: "Bill not found",
               });
               continue;
             }
@@ -47,20 +48,26 @@ export async function POST(req: NextRequest) {
             if (invoice.status === "cancelled") {
               results.failed.push({
                 id: invoiceId,
-                error: "Invoice already cancelled",
+                error: "Bill already withdrawn",
               });
               continue;
             }
 
-            if (invoice.status === "paid") {
+            const paymentCount = await Payment.countDocuments({
+              invoiceId: invoice._id,
+              status: { $ne: "failed" },
+            }).session(session);
+
+            if (invoice.status === "paid" || paymentCount > 0) {
               results.failed.push({
                 id: invoiceId,
-                error: "Cannot cancel paid invoices",
+                error:
+                  "Bills with recorded payments cannot be withdrawn. Use an adjustment or credit note instead.",
               });
               continue;
             }
 
-            // Cancel the invoice
+            // Withdraw the bill
             invoice.status = "cancelled";
             invoice.version += 1;
 
@@ -71,8 +78,10 @@ export async function POST(req: NextRequest) {
               [
                 {
                   invoiceId: invoice._id,
+                  schoolId,
+                  studentId: invoice.studentId,
                   eventType: "cancelled",
-                  description: `Invoice ${invoice.invoiceNumber} cancelled`,
+                  description: `Bill ${invoice.invoiceNumber} withdrawn`,
                   performedBy: userId,
                 },
               ],
@@ -104,9 +113,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error bulk cancelling invoices:", error);
+    console.error("Error bulk withdrawing bills:", error);
     return NextResponse.json(
-      { error: "Failed to bulk cancel invoices" },
+      { error: "Failed to bulk withdraw bills" },
       { status: 500 }
     );
   }

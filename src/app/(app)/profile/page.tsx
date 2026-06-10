@@ -416,6 +416,7 @@ export default function ProfilePage() {
                         schoolId={profile.schoolId}
                         subjectRole={uploadRole}
                         label="Upload profile photo"
+                        initialPreviewUrl={form.avatarUrl}
                         onUploaded={(payload) =>
                           setForm((current) =>
                             current

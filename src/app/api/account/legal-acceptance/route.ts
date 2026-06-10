@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal/versions";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -16,7 +17,23 @@ export async function POST(req: NextRequest) {
   }
 
   await connectToDatabase();
-  const user = await User.findOne({ clerkUserId: userId }).select("_id");
+
+  const clerk = await clerkClient();
+  const cUser = await clerk.users.getUser(userId);
+  const email =
+    cUser.primaryEmailAddress?.emailAddress?.toLowerCase() ||
+    cUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() ||
+    "";
+
+  const userDoc = await ensureCanonicalUserForClerkSession({
+    clerkUserId: userId,
+    email,
+    firstName: cUser.firstName,
+    lastName: cUser.lastName,
+    avatarUrl: cUser.imageUrl,
+  });
+
+  const user = await User.findById(userDoc._id).select("_id");
   if (!user) {
     return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
   }

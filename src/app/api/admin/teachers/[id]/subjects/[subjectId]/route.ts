@@ -57,7 +57,11 @@ export async function DELETE(
   const subjectIds = (teacher.subjectIds || []).map(
     (sid: mongoose.Types.ObjectId) => String(sid)
   );
+  const subjectOfferingIds = (teacher.subjectOfferingIds || []).map(
+    (oid: mongoose.Types.ObjectId) => String(oid)
+  );
   const legacySubjectAssigned = subjectIds.includes(String(subjectObjId));
+  const legacyOfferingAssigned = subjectOfferingIds.includes(String(subjectObjId));
 
   const [subject, offering] = await Promise.all([
     Subject.findOne({ _id: subjectObjId, schoolId: schoolIdObj }).select("name").lean(),
@@ -85,7 +89,7 @@ export async function DELETE(
   };
   const activeAssignmentCount = await TeacherAssignment.countDocuments(assignmentFilter);
 
-  if (!legacySubjectAssigned && activeAssignmentCount === 0) {
+  if (!legacySubjectAssigned && !legacyOfferingAssigned && activeAssignmentCount === 0) {
     return Response.json({
       success: true,
       message: `${subjectName} was already removed`,
@@ -96,6 +100,11 @@ export async function DELETE(
   if (legacySubjectAssigned) {
     await Teacher.findByIdAndUpdate(teacherObjId, {
       $pull: { subjectIds: subjectObjId },
+    });
+  }
+  if (legacyOfferingAssigned) {
+    await Teacher.findByIdAndUpdate(teacherObjId, {
+      $pull: { subjectOfferingIds: subjectObjId },
     });
   }
   if (activeAssignmentCount > 0) {

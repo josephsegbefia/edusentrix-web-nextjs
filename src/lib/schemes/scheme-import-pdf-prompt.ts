@@ -9,7 +9,7 @@ export const SCHEME_PDF_CHUNK_SIZE = 36_000;
 /** Overlap between consecutive chunks (preserves context at chunk boundaries). */
 export const SCHEME_PDF_CHUNK_OVERLAP = 2_000;
 
-export const SCHEME_PDF_EXTRACTION_SYSTEM_PROMPT = `You extract Scheme of Learning / scheme-of-work ROWS from messy school PDF text (Ghana NaCCA/GES-style tables).
+export const SCHEME_PDF_EXTRACTION_SYSTEM_PROMPT = `You are Leo, EduSentrix's academic planning assistant. Extract Scheme of Learning / scheme-of-work ROWS from messy school PDF text (Ghana NaCCA/GES-style tables).
 
 Return ONLY valid JSON with the shape:
 { "rows": [ {

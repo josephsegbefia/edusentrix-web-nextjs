@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, type IUser } from "@/models/User";
 import { School } from "@/models/School";
 import { persistOnboardingSchoolProfile } from "@/lib/onboarding/persist-onboarding-school-profile";
+import { requireOnboardingSchoolActor } from "@/lib/onboarding/require-onboarding-school-actor";
 import {
   MongoTransactionError,
   runMongoTransaction,
@@ -71,33 +70,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  try {
-    await connectToDatabase();
-  } catch (e: unknown) {
+  const actor = await requireOnboardingSchoolActor(userId);
+  if (!actor.ok) {
     console.log(`${routeTag} error`, {
-      status: 500,
-      message: "Database connection failed",
-      error: e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e,
+      status: actor.status,
+      message: actor.error,
+      clerkUserId: userId,
     });
-    return NextResponse.json(
-      { error: "Database connection failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: actor.error }, { status: actor.status });
   }
 
-  const meResult = (await User.findOne({
-    clerkUserId: userId,
-  }).lean()) as IUser | null;
-  const me = meResult;
-  if (!me?.schoolId) {
-    console.log(`${routeTag} error`, { status: 409, message: "No school bound", clerkUserId: userId });
-    return NextResponse.json({ error: "No school bound" }, { status: 409 });
-  }
-  if (String(me.schoolId) !== parsed.data.schoolId) {
+  const { user: me, school: resolvedSchool } = actor;
+  const effectiveSchoolId = String(resolvedSchool._id);
+
+  if (effectiveSchoolId !== parsed.data.schoolId) {
     console.log(`${routeTag} error`, {
       status: 403,
       message: "Forbidden for this school",
-      userSchoolId: String(me.schoolId),
+      userSchoolId: effectiveSchoolId,
       payloadSchoolId: parsed.data.schoolId,
     });
     return NextResponse.json(
@@ -108,7 +98,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await runMongoTransaction(async (session) => {
-      const school = await School.findById(me.schoolId).session(session);
+      const school = await School.findById(resolvedSchool._id).session(session);
       if (!school) {
         throw new MongoTransactionError("School not found", 404);
       }

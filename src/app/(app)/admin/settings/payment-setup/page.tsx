@@ -306,6 +306,7 @@ export default function PaymentSetupPage() {
   const [ownerEmail, setOwnerEmail] = React.useState("");
   const [delegateName, setDelegateName] = React.useState("");
   const [delegateEmail, setDelegateEmail] = React.useState("");
+  const [delegatePanelOpen, setDelegatePanelOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!data) return;
@@ -324,6 +325,7 @@ export default function PaymentSetupPage() {
     setOwnerEmail(data.pendingInvitations.billingOwner?.email || "");
     setDelegateName(data.pendingInvitations.financeDelegate?.name || "");
     setDelegateEmail(data.pendingInvitations.financeDelegate?.email || "");
+    setDelegatePanelOpen(Boolean(data.financeDelegate.email || data.pendingInvitations.financeDelegate));
   }, [data]);
 
   const isDirty = Boolean(
@@ -540,36 +542,50 @@ export default function PaymentSetupPage() {
   const payoutSummary = data.bank.maskedAccountNumber
     ? `${data.bank.bankName} • ${data.bank.maskedAccountNumber}`
     : "Not configured";
+  const setupSteps = [
+    {
+      label: "Payout details saved",
+      description: "Bank, branch, account holder, and settlement account are on file.",
+      done:
+        Boolean(data.bank.bankName) &&
+        Boolean(data.bank.branchName) &&
+        Boolean(data.bank.accountName) &&
+        data.bank.hasAccountNumberOnFile,
+    },
+    {
+      label: "Paystack settlement rail",
+      description: "EduSentrix has created or is creating the school's settlement subaccount.",
+      done:
+        data.status === "pending_provisioning" ||
+        data.status === "provisioned",
+    },
+    {
+      label: "Parent checkout enabled",
+      description: "Families can pay online once setup is provisioned and approved.",
+      done: data.paymentReady,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-linear-to-br from-slate-950 via-emerald-950/40 to-cyan-950/30 p-6 text-white shadow-2xl shadow-black/30">
-        <div
-          className="pointer-events-none absolute -left-14 -top-10 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute right-0 top-0 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl"
-          aria-hidden="true"
-        />
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-black p-6 text-white shadow-2xl shadow-black/30">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 shadow-lg shadow-emerald-900/20">
-              <Wallet className="h-7 w-7 text-emerald-200" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10">
+              <Wallet className="h-6 w-6 text-emerald-200" />
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="bg-linear-to-r from-white via-emerald-100 to-cyan-200 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
+                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                   Payment Setup
                 </h1>
                 <Badge variant="outline" className={cn("px-3 py-1 text-xs", statusBadgeClass)}>
-                  <Sparkles className="mr-1 h-3 w-3" />
                   {data.statusLabel}
                 </Badge>
               </div>
-              <p className="max-w-2xl text-sm text-white/65">
-                Configure how {data.schoolName} receives online fee payments and
-                keep the school's payout rail ready for parent checkout.
+              <p className="max-w-2xl text-sm leading-6 text-white/65">
+                Set the payout account, connect the Paystack settlement rail, and manage who can approve payout changes for {data.schoolName}.
               </p>
             </div>
           </div>
@@ -582,7 +598,7 @@ export default function PaymentSetupPage() {
             >
               <Link href="/admin/settings">
                 <ArrowLeft className="h-4 w-4" />
-                Back to Settings
+                Back
               </Link>
             </Button>
             <Button
@@ -599,7 +615,7 @@ export default function PaymentSetupPage() {
               ) : (
                 <>
                   <BadgeCheck className="h-4 w-4" />
-                  Save Details
+                  Save payout details
                 </>
               )}
             </Button>
@@ -607,43 +623,43 @@ export default function PaymentSetupPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-white/10 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent text-white">
-          <CardContent className="p-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+          <CardContent className="p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Status</p>
-            <p className="mt-3 text-2xl font-bold text-white">{data.statusLabel}</p>
-            <p className="mt-2 text-sm text-white/60">{data.statusDescription}</p>
+            <p className="mt-2 text-lg font-semibold text-white">{data.statusLabel}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/60">{data.statusDescription}</p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-linear-to-br from-cyan-500/10 via-transparent to-transparent text-white">
-          <CardContent className="p-5">
+        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+          <CardContent className="p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Payout Account</p>
-            <p className="mt-3 text-lg font-semibold text-white">{payoutSummary}</p>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 truncate text-lg font-semibold text-white">{payoutSummary}</p>
+            <p className="mt-1 truncate text-xs leading-5 text-white/60">
               {data.bank.accountName || "Account holder name not set"}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-linear-to-br from-amber-500/10 via-transparent to-transparent text-white">
-          <CardContent className="p-5">
+        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+          <CardContent className="p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Gateway Rail</p>
-            <p className="mt-3 text-lg font-semibold text-white">
+            <p className="mt-2 text-lg font-semibold text-white">
               {data.paystack.subaccountCode ? "Paystack linked" : "Awaiting link"}
             </p>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-1 truncate text-xs leading-5 text-white/60">
               {data.paystack.subaccountCode
                 ? data.paystack.subaccountCode
                 : "No school settlement subaccount yet"}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-linear-to-br from-white/8 via-transparent to-transparent text-white">
-          <CardContent className="p-5">
+        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+          <CardContent className="p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-white/45">Authority</p>
-            <p className="mt-3 text-lg font-semibold text-white">
+            <p className="mt-2 truncate text-lg font-semibold text-white">
               {accessModeLabel(data.accessMode)}
             </p>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-1 truncate text-xs leading-5 text-white/60">
               {data.billingOwner.email || "Billing owner not yet assigned"}
             </p>
           </CardContent>
@@ -903,49 +919,33 @@ export default function PaymentSetupPage() {
                   <CreditCard className="h-5 w-5 text-emerald-200" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg text-white">Launch online payments</CardTitle>
+                  <CardTitle className="text-lg text-white">Activation checklist</CardTitle>
                   <CardDescription className="text-white/60">
-                    Submit or retry the Paystack settlement setup for this school.
+                    Complete the payout account first, then start or retry Paystack setup.
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                {[
-                  {
-                    label: "Payout details saved",
-                    done:
-                      Boolean(data.bank.bankName) &&
-                      Boolean(data.bank.branchName) &&
-                      Boolean(data.bank.accountName) &&
-                      data.bank.hasAccountNumberOnFile,
-                  },
-                  {
-                    label: "Paystack subaccount",
-                    done:
-                      data.status === "pending_provisioning" ||
-                      data.status === "provisioned",
-                  },
-                  {
-                    label: "Parent checkout enabled",
-                    done: data.paymentReady,
-                  },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3">
+                {setupSteps.map((item) => (
+                  <div key={item.label} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
                     <div
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold",
+                        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
                         item.done
                           ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-200"
                           : "border-white/10 bg-white/5 text-white/50"
                       )}
                     >
-                      {item.done ? "✓" : "•"}
+                      {item.done ? <BadgeCheck className="h-3.5 w-3.5" /> : "•"}
                     </div>
-                    <span className={cn("text-sm", item.done ? "text-white" : "text-white/60")}>
-                      {item.label}
-                    </span>
+                    <div>
+                      <p className={cn("text-sm font-medium", item.done ? "text-white" : "text-white/65")}>
+                        {item.label}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-white/45">{item.description}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1076,21 +1076,27 @@ export default function PaymentSetupPage() {
           {(data.capabilities.canManageDelegate ||
             data.financeDelegate.email ||
             data.pendingInvitations.financeDelegate) && (
-            <Card className="border-white/10 bg-linear-to-br from-cyan-500/10 via-slate-950 to-slate-950 text-white">
-              <CardHeader>
+            <details
+              className="group overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-cyan-500/10 via-slate-950 to-slate-950 text-white"
+              open={delegatePanelOpen}
+              onToggle={(event) => setDelegatePanelOpen(event.currentTarget.open)}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
                     <ShieldCheck className="h-5 w-5 text-cyan-200" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg text-white">Finance delegate</CardTitle>
-                    <CardDescription className="text-white/60">
-                      Optionally add a finance delegate who can help manage payment
-                      setup without taking over billing owner authority.
-                    </CardDescription>
+                    <p className="text-lg font-semibold text-white">Finance delegate</p>
+                    <p className="text-sm text-white/60">
+                      Optional helper for payment setup.
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
+                <span className="text-sm text-white/45 group-open:hidden">Open</span>
+                <span className="hidden text-sm text-white/45 group-open:inline">Close</span>
+              </summary>
+            <Card className="rounded-none border-0 border-t border-white/10 bg-transparent text-white shadow-none">
               <CardContent className="space-y-4">
                 {(data.financeDelegate.email || data.pendingInvitations.financeDelegate) && (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/65">
@@ -1177,29 +1183,31 @@ export default function PaymentSetupPage() {
                   )}
               </CardContent>
             </Card>
+            </details>
           )}
 
           {data.capabilities.canInviteOwner && (
-            <Card className="border-white/10 bg-linear-to-br from-amber-500/10 via-slate-950 to-slate-950 text-white">
-              <CardHeader>
+            <details className="group overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-amber-500/10 via-slate-950 to-slate-950 text-white">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10">
                     <Mail className="h-5 w-5 text-amber-200" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg text-white">
+                    <p className="text-lg font-semibold text-white">
                       {data.accessMode === "billing_owner"
                         ? "Replace billing owner"
                         : "Assign billing owner"}
-                    </CardTitle>
-                    <CardDescription className="text-white/60">
-                      {data.accessMode === "billing_owner"
-                        ? "Transfer billing-owner authority to another financial decision maker."
-                        : "Hand off payment setup to the person authorized to control the school's payout account."}
-                    </CardDescription>
+                    </p>
+                    <p className="text-sm text-white/60">
+                      Transfer authority when needed.
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
+                <span className="text-sm text-white/45 group-open:hidden">Open</span>
+                <span className="hidden text-sm text-white/45 group-open:inline">Close</span>
+              </summary>
+            <Card className="rounded-none border-0 border-t border-white/10 bg-transparent text-white shadow-none">
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-white/75">Owner name</Label>
@@ -1249,6 +1257,7 @@ export default function PaymentSetupPage() {
                 </Button>
               </CardContent>
             </Card>
+            </details>
           )}
         </div>
       </div>

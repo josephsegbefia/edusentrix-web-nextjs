@@ -12,6 +12,7 @@ import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 
 type LeoSuggestionRow = {
   subjectId: string;
+  subjectOfferingId?: string;
   classGroupId: string;
   gradeId: string;
   label?: string;
@@ -85,7 +86,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
         showError("Leo can’t suggest rows yet", {
           description:
             json.leoSummary ||
-            "Configure OpenAI, or add grades, classes, and subjects first.",
+            "Configure OpenAI, or add grades, class groups, and subject offerings first.",
         });
         return;
       }
@@ -155,6 +156,9 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
         subjectId: s.subjectId,
         classGroupId: s.classGroupId,
       };
+      if (s.subjectOfferingId) {
+        body.subjectOfferingId = s.subjectOfferingId;
+      }
       if (resolution) body.resolution = resolution;
 
       const res = await fetch(
@@ -328,7 +332,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
         </p>
         <p className="mb-3 text-sm text-white/80">
           Describe what {teacherName} teaches in plain language (e.g. &quot;Math in JHS 2A and B,
-          Science in JHS 1&quot;). I&apos;ll match it to your subjects and class groups for the{" "}
+          Science in JHS 1&quot;). I&apos;ll match it to your subject offerings and class groups for the{" "}
           <span className="font-medium text-white/90">current term</span>—confirm before anything is
           saved.
         </p>

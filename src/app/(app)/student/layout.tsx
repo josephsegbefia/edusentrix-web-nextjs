@@ -1,28 +1,16 @@
 // src/app/(app)/student/layout.tsx
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireUser } from "@/lib/auth/get-current-user";
-import { assertRole } from "@/lib/auth/guards";
-import { School } from "@/models/School";
+import { requireStudent } from "@/lib/auth/requireStudent";
 import { AuthRefreshHandler } from "@/components/auth/auth-refresh-handler";
 import StudentSidebar from "@/components/nav/sidebars/student-sidebar";
+
 export default async function StudentLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const user = await requireUser();
-  assertRole(user, ["student"]);
-  if (user.schoolId) {
-    await connectToDatabase();
-    const schoolDoc = await School.findById(user.schoolId).select("status").lean<{
-      status?: string;
-    } | null>();
-    if (schoolDoc?.status === "deactivated") {
-      redirect("/sign-in?error=school_disabled");
-    }
-  }
+  await requireStudent({ mode: "page" });
+
   return (
     <>
       <AuthRefreshHandler />

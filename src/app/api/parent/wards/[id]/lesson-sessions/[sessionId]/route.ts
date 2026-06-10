@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent, verifyGuardianAccess } from "@/lib/auth/requireParent";
 import { Student } from "@/models/Student";
-import { LessonSession } from "@/models/LessonSession";
 import { SchoolSettings } from "@/models/SchoolSettings";
 import { assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 import { formatParentSessionPayload } from "@/lib/lessons/parent-session-payload";
+import { loadWardAccessibleSession } from "@/lib/lessons/ward-lesson-session-access";
 
 export async function GET(
   _req: Request,
@@ -45,13 +45,12 @@ export async function GET(
       return Response.json({ success: false, error: "Student not found" }, { status: 404 });
     }
 
-    const session = await LessonSession.findOne({
-      _id: new mongoose.Types.ObjectId(sessionIdRaw),
+    const { session, delivery } = await loadWardAccessibleSession({
+      sessionId: new mongoose.Types.ObjectId(sessionIdRaw),
       schoolId: context.schoolId,
       classGroupId: student.classGroupId,
-      studentVisibility: "published",
-      parentVisibility: true,
-    }).lean();
+      audience: "parent",
+    });
 
     if (!session) {
       return Response.json({ success: false, error: "Session not found" }, { status: 404 });
@@ -59,7 +58,7 @@ export async function GET(
 
     return Response.json({
       success: true,
-      data: formatParentSessionPayload(session),
+      data: formatParentSessionPayload(session, { deliveryStatus: delivery?.status ?? null }),
     });
   } catch (e: unknown) {
     if (e instanceof Response) return e;

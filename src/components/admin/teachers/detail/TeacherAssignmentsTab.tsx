@@ -13,6 +13,7 @@ import {
   useTeacherAssignments,
   type TeacherAssignmentDTO,
 } from "@/hooks/admin/useTeacherAssignments";
+import { formatHoursMinutes } from "@/lib/time/format-duration";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -256,7 +257,7 @@ function AssignmentCard({ assignment }: { assignment: TeacherAssignmentDTO }) {
         {assignment.workloadHours > 0 ? (
           <div className="flex items-center gap-1.5 text-xs text-white/45">
             <Zap className="h-3 w-3" />
-            {assignment.workloadHours} hrs/week
+            {formatHoursMinutes(assignment.workloadHours)}/week
           </div>
         ) : null}
       </div>

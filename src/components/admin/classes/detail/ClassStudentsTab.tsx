@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   Users,
   UserPlus,
+  Upload,
   Search,
   ExternalLink,
   MoreHorizontal,
@@ -36,6 +37,7 @@ type ClassStudentsTabProps = {
   classId: string;
   className: string;
   onAddStudent?: () => void;
+  onImportStudents?: () => void;
 };
 
 type StudentItem = {
@@ -56,6 +58,7 @@ export function ClassStudentsTab({
   classId,
   className,
   onAddStudent,
+  onImportStudents,
 }: ClassStudentsTabProps) {
   const router = useRouter();
   const [search, setSearch] = React.useState("");
@@ -167,13 +170,26 @@ export function ClassStudentsTab({
             {students.length} student{students.length !== 1 ? "s" : ""} enrolled
           </p>
         </div>
-        <Button
-          onClick={onAddStudent}
-          className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-green-700"
-        >
-          <UserPlus className="h-4 w-4" />
-          Add Student
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {onImportStudents ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onImportStudents}
+              className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+            >
+              <Upload className="h-4 w-4" />
+              Import Students
+            </Button>
+          ) : null}
+          <Button
+            onClick={onAddStudent}
+            className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-green-700"
+          >
+            <UserPlus className="h-4 w-4" />
+            Add Student
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -230,13 +246,26 @@ export function ClassStudentsTab({
                 : "Add students to get started"}
             </p>
             {!search && (
-              <Button
-                onClick={onAddStudent}
-                className="mt-4 gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white"
-              >
-                <UserPlus className="h-4 w-4" />
-                Add First Student
-              </Button>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {onImportStudents ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onImportStudents}
+                    className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Import Students
+                  </Button>
+                ) : null}
+                <Button
+                  onClick={onAddStudent}
+                  className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Add First Student
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>

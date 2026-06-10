@@ -3,12 +3,13 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { requireSessionTeachContext } from "@/lib/lessons/session-teach-access";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const result = await requireSessionTeachContext(id);
+    const classGroupId = new URL(req.url).searchParams.get("classGroupId");
+    const result = await requireSessionTeachContext(id, classGroupId);
     if ("error" in result) return result.error;
 
     const { context, delivery } = result;

@@ -28,6 +28,21 @@ export type GuardianData = {
   hasPlatformAccount: boolean;
 };
 
+export type GuardianSiblingCandidate = {
+  studentId: string;
+  studentName: string;
+  gradeName: string | null;
+  classGroupName: string | null;
+  relationship: GuardianRelationship;
+  isPrimary: boolean;
+};
+
+export type ExistingGuardianSearchResult = {
+  guardian: GuardianData;
+  alreadyLinked: boolean;
+  siblingCandidates: GuardianSiblingCandidate[];
+};
+
 export type CreateGuardianInput = {
   firstName: string;
   lastName: string;
@@ -49,6 +64,25 @@ export type UpdateGuardianInput = {
   photoUrl?: string | null;
   isPrimary?: boolean;
 };
+
+export type LinkExistingGuardianInput = {
+  userId: string;
+  relationship: GuardianRelationship;
+  phone?: string | null;
+  occupation?: string | null;
+  isPrimary: boolean;
+};
+
+async function readApiError(res: Response, fallback: string) {
+  const text = await res.text().catch(() => "");
+  if (!text) return `${fallback} (${res.status})`;
+  try {
+    const json = JSON.parse(text) as { error?: string };
+    return json.error || `${fallback} (${res.status})`;
+  } catch {
+    return `${fallback} (${res.status})`;
+  }
+}
 
 // Fetch guardians for a student
 export function useGuardians(studentId: string | undefined) {
@@ -99,6 +133,62 @@ export function useCreateGuardian(studentId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["guardians", studentId] });
       queryClient.invalidateQueries({ queryKey: ["student", studentId] });
+    },
+  });
+}
+
+export function useExistingGuardianSearch(studentId: string | undefined, query: string) {
+  return useQuery<ExistingGuardianSearchResult[]>({
+    queryKey: ["guardians", studentId, "search-existing", query],
+    queryFn: async () => {
+      if (!studentId) throw new Error("Student ID is required");
+      const params = new URLSearchParams({ q: query });
+      const res = await fetch(
+        `/api/admin/students/${encodeURIComponent(
+          studentId
+        )}/guardians/search-existing?${params.toString()}`
+      );
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.error || "Failed to search existing guardians");
+      }
+      const data = await res.json();
+      return data.data || [];
+    },
+    enabled: Boolean(studentId && query.trim().length >= 2),
+    staleTime: 15_000,
+  });
+}
+
+export function useLinkExistingGuardian(studentId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: LinkExistingGuardianInput) => {
+      if (!studentId) throw new Error("Student ID is required");
+
+      const res = await fetch(
+        `/api/admin/students/${encodeURIComponent(studentId)}/guardians`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...input, mode: "link_existing" }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(await readApiError(res, "Failed to link existing guardian"));
+      }
+
+      return (await res.json()).data as {
+        guardian: GuardianData;
+        siblingCandidates: GuardianSiblingCandidate[];
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["guardians", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["student", studentId] });
+      queryClient.invalidateQueries({ queryKey: ["guardians", studentId, "search-existing"] });
     },
   });
 }

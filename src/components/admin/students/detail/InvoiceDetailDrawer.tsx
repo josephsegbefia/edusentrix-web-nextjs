@@ -98,7 +98,7 @@ export function InvoiceDetailDrawer(props: {
           <SheetTitle className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Invoice Details
+              Bill Details
             </span>
             {invoice && statusBadge(invoice.status)}
           </SheetTitle>
@@ -107,13 +107,13 @@ export function InvoiceDetailDrawer(props: {
         {isLoading ? (
           <div className="flex items-center justify-center gap-3 py-20 text-sm text-muted-foreground">
             <Clock className="h-5 w-5 animate-spin" />
-            Loading invoice details...
+            Loading bill details...
           </div>
         ) : isError || !invoice ? (
           <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-red-400/50" />
             <p className="mt-3 text-sm font-medium text-red-200">
-              Failed to load invoice
+              Failed to load bill
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Please try again later

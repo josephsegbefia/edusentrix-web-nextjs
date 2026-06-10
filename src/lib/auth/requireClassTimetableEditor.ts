@@ -1,18 +1,16 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Teacher } from "@/models/Teacher";
-import { User, type IUser } from "@/models/User";
-import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import type { MembershipRole } from "@/lib/roles";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import type { SchoolStaffReadContext } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
 export type ClassTimetableEditorContext = {
   userId: mongoose.Types.ObjectId;
@@ -21,13 +19,6 @@ export type ClassTimetableEditorContext = {
   /** Present when mode is homeroom_teacher */
   teacherId?: mongoose.Types.ObjectId;
 };
-
-function legacyRoleToArray(role?: string): MembershipRole[] {
-  if (role === "school_admin") return ["school_admin"];
-  if (role === "billing_owner") return ["billing_owner"];
-  if (role === "teacher") return ["teacher"];
-  return ["staff"];
-}
 
 function toObjectId(value: string): mongoose.Types.ObjectId | null {
   try {
@@ -112,49 +103,31 @@ export async function requireClassTimetableEditor(
     };
   }
 
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) {
+  const active = await resolveActiveSchoolContext();
+  if (!active.ok) {
+    if (active.reason === "needs_school_selection") {
+      throw NextResponse.json({ error: "School selection required" }, { status: 409 });
+    }
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userRaw = await User.findOne({ clerkUserId }).lean();
-  const userNormalized = Array.isArray(userRaw) ? userRaw[0] : userRaw;
-  const user = userNormalized as Pick<IUser, "_id" | "schoolId" | "role"> | null;
-  if (!user?.schoolId) {
-    throw NextResponse.json({ error: "User not found" }, { status: 401 });
-  }
-
-  if (String(user.schoolId) !== String(schoolIdObj)) {
+  if (String(active.context.schoolId) !== String(schoolIdObj)) {
     throw NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  let membership = (await UserMembership.findOne({
-    userId: user._id,
-    schoolId: user.schoolId,
-  }).lean()) as IUserMembership | null;
-
-  if (!membership && user.schoolId) {
-    membership = (await UserMembership.create({
-      userId: user._id,
-      schoolId: user.schoolId,
-      roles: legacyRoleToArray(user.role),
-      status: "active",
-    }).then((d) => d.toObject())) as IUserMembership;
-  }
-
-  const roles = (membership?.roles || []) as MembershipRole[];
+  const roles = active.context.roles;
 
   const adminGate = gateSchoolAdminRoles(roles);
   if (adminGate.ok) {
     return {
-      userId: user._id as mongoose.Types.ObjectId,
+      userId: active.context.userId,
       schoolId: schoolIdObj,
       mode: "school_admin",
     };
   }
 
   const teacher = await Teacher.findOne({
-    userId: user._id,
+    userId: active.context.userId,
     schoolId: schoolIdObj,
   })
     .select("_id homeroomClassGroupId")
@@ -185,7 +158,7 @@ export async function requireClassTimetableEditor(
   }
 
   return {
-    userId: user._id as mongoose.Types.ObjectId,
+    userId: active.context.userId,
     schoolId: schoolIdObj,
     mode: "homeroom_teacher",
     teacherId: (teacher as { _id: mongoose.Types.ObjectId })._id,
@@ -236,25 +209,6 @@ export async function isClassTimetableManagerForReadUser(
       ) === String(classObjId)
     );
   }
-
-  let membership = (await UserMembership.findOne({
-    userId: read.userId,
-    schoolId: read.schoolId,
-  }).lean()) as IUserMembership | null;
-
-  if (!membership && read.schoolId) {
-    const user = await User.findById(read.userId).lean();
-    if (!user?.schoolId) return false;
-    membership = (await UserMembership.create({
-      userId: read.userId,
-      schoolId: read.schoolId,
-      roles: legacyRoleToArray((user as Pick<IUser, "role">).role),
-      status: "active",
-    }).then((d) => d.toObject())) as IUserMembership;
-  }
-
-  const roles = (membership?.roles || []) as MembershipRole[];
-  if (gateSchoolAdminRoles(roles).ok) return true;
 
   if (!read.teacherId) return false;
 

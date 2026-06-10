@@ -2,14 +2,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, type IUser } from "@/models/User";
+import type { IUser } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
 import {
-  resolveTenantUserForClerkSession,
   schoolIdFromClerkMetadata,
 } from "@/lib/auth/resolveTenantUserForClerkSession";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 import {
   bindBillingOwnerToSchool,
   bindPaymentSetupDelegateToSchool,
@@ -74,42 +75,22 @@ export async function GET(req: NextRequest) {
 
   await connectToDatabase();
 
-  let appUser: IUser | null = await resolveTenantUserForClerkSession({
-    clerkUserId: userId,
-    email,
-    schoolIdFromMetadata,
-  });
-
-  if (!appUser) {
-    if (email) {
-      const dup = await User.countDocuments({ email: email.toLowerCase() });
-      if (dup > 1) {
-        const errUrl = new URL("/sign-in", req.url);
-        errUrl.searchParams.set("error", "multi_school_email");
-        return NextResponse.redirect(errUrl);
-      }
-    }
-    const created = await User.create({
+  let appUser: IUser;
+  try {
+    appUser = await ensureCanonicalUserForClerkSession({
       clerkUserId: userId,
       email,
       role: role ?? undefined,
-      pendingOnboarding: role === "school_admin" ? true : false,
-      schoolId: schoolIdFromMetadata || undefined,
+      schoolId: schoolIdFromMetadata,
+      firstName: cUser.firstName,
+      lastName: cUser.lastName,
+      avatarUrl: cUser.imageUrl,
     });
-    appUser = created.toObject() as IUser;
-  }
-
-  // If role not set in DB but present in Clerk metadata, persist it
-  if (!appUser.role && role) {
-    await User.updateOne({ _id: appUser._id }, { $set: { role } });
-    appUser.role = role as IUser["role"];
-  }
-  if (!appUser.schoolId && schoolIdFromMetadata) {
-    await User.updateOne(
-      { _id: appUser._id },
-      { $set: { schoolId: schoolIdFromMetadata } }
-    );
-    appUser.schoolId = schoolIdFromMetadata as unknown as IUser["schoolId"];
+  } catch (resolveError) {
+    const errUrl = new URL("/sign-in", req.url);
+    errUrl.searchParams.set("error", "identity_resolution_failed");
+    console.error("Auth callback identity resolution failed:", resolveError);
+    return NextResponse.redirect(errUrl);
   }
 
   // Mark any pending invitations for this email as accepted
@@ -196,8 +177,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const activeSchool = await resolveActiveSchoolContext({ clerkUserId: userId });
   const dest =
     safeNext(url) ??
+    (activeSchool.ok ? activeSchool.context.homePath : null) ??
     decideNextPath({
       role: appUser.role,
       pendingOnboarding: !!appUser.pendingOnboarding,

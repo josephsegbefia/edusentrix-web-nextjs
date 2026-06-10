@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { BookOpenCheck, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { SchoolSchemeWeekSnapshot } from "@/lib/schemes/resolve-scheme-week";
 
 type SchemeRow = {
   id: string;
@@ -18,9 +19,10 @@ type SchemeRow = {
 type Props = {
   rows?: SchemeRow[];
   loading?: boolean;
+  currentSchemeWeek?: SchoolSchemeWeekSnapshot | null;
 };
 
-export function ThisWeekSchemeRows({ rows = [], loading }: Props) {
+export function ThisWeekSchemeRows({ rows = [], loading, currentSchemeWeek }: Props) {
   return (
     <section className="rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -31,7 +33,11 @@ export function ThisWeekSchemeRows({ rows = [], loading }: Props) {
           <div>
             <h2 className="text-sm font-semibold text-white">This week&apos;s Scheme of Learning</h2>
             <p className="mt-1 text-xs text-white/45">
-              Active scheme rows ready to become Lesson Notes.
+              {currentSchemeWeek?.status === "active" && currentSchemeWeek.label
+                ? `${currentSchemeWeek.label}${
+                    currentSchemeWeek.rangeLabel ? ` (${currentSchemeWeek.rangeLabel})` : ""
+                  } · scheme rows ready for Lesson Notes.`
+                : "Active scheme rows ready to become Lesson Notes."}
             </p>
           </div>
         </div>
@@ -59,7 +65,7 @@ export function ThisWeekSchemeRows({ rows = [], loading }: Props) {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-white">{row.title}</p>
                     <p className="mt-1 text-xs text-white/45">
-                      {row.weekNumber != null ? `Week ${row.weekNumber} · ` : ""}
+                      {row.weekNumber != null ? `Term Week ${row.weekNumber} · ` : ""}
                       {[row.className, row.subjectName].filter(Boolean).join(" · ")}
                     </p>
                   </div>

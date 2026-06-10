@@ -24,6 +24,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Send,
 } from "lucide-react";
 import {
   Select,
@@ -37,13 +38,14 @@ import { premiumSelectContent } from "@/components/ui/premium";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useStudentCreditBalance } from "@/hooks/admin/useStudentCreditBalance";
-import { useInvoice } from "@/hooks/admin/useInvoices";
+import { useInvoice, useIssueInvoice } from "@/hooks/admin/useInvoices";
 import { useStudentInvoices } from "@/hooks/admin/useStudentInvoices";
 import { useStudentFeesLedger } from "@/hooks/admin/useStudentFeesLedger";
 import { useStudentFeesSummary } from "@/hooks/admin/useStudentFeesSummary";
 import { useStudentFeesSSE } from "@/hooks/admin/useStudentFeesSSE";
 import { RecordPaymentModal } from "@/components/admin/fees/payments/RecordPaymentModal";
 import { ApplyCreditModal } from "@/components/admin/fees/credits/ApplyCreditModal";
+import { useBusyToast } from "@/hooks/useBusyToast";
 
 // New UI blocks (from earlier additions)
 import { PendingApprovalsCard } from "@/components/admin/fees/payments/PendingApprovalsCard";
@@ -88,6 +90,11 @@ const ACTIVE_INVOICE_STATUSES = new Set([
   "paid",
   "overdue",
 ]);
+const PARENT_VISIBLE_INVOICE_STATUSES = new Set([
+  "issued",
+  "partially_paid",
+  "overdue",
+]);
 
 export function StudentFeesTab({
   student,
@@ -95,6 +102,8 @@ export function StudentFeesTab({
   onRecordPaymentRequestHandled,
 }: Props) {
   const { data: periodsData, isLoading: periodsLoading } = useAcademicPeriods();
+  const busy = useBusyToast();
+  const issueInvoice = useIssueInvoice();
   const [recordPaymentModalOpen, setRecordPaymentModalOpen] =
     React.useState(false);
   const [applyCreditModalOpen, setApplyCreditModalOpen] = React.useState(false);
@@ -261,6 +270,16 @@ export function StudentFeesTab({
     setPaymentDrawerOpen(true);
   }, []);
 
+  const handleIssuePrimaryInvoice = React.useCallback(async () => {
+    if (!primaryInvoice?._id) return;
+
+    await busy.promise(issueInvoice.mutateAsync(String(primaryInvoice._id)), {
+      loading: "Issuing bill...",
+      success: "Bill issued. It is now visible to parents for payment.",
+      error: (err) => err.message || "Failed to issue bill",
+    });
+  }, [busy, issueInvoice, primaryInvoice?._id]);
+
   // Helper: determine how to render each ledger row
   function getRowUI(row: any) {
     const kind = safeStr(row.kind);
@@ -308,7 +327,7 @@ export function StudentFeesTab({
         variant="outline"
         className="border-white/10 bg-white/5 text-white/70"
       >
-        Invoice
+        Bill
       </Badge>
     ) : clickable ? (
       <Badge
@@ -399,10 +418,18 @@ export function StudentFeesTab({
       ),
     [termInvoices]
   );
+  const termDraftInvoices = React.useMemo(
+    () =>
+      termInvoices.filter(
+        (invoice: any) => String(invoice.status || "draft") === "draft"
+      ),
+    [termInvoices]
+  );
   const termSummary = React.useMemo(
     () => ({
       invoiceCount: termInvoices.length,
       activeInvoiceCount: termActiveInvoices.length,
+      draftInvoiceCount: termDraftInvoices.length,
       totalBilled: termActiveInvoices.reduce(
         (sum: number, invoice: any) => sum + Number(invoice.totalAmountMinor || 0),
         0
@@ -426,13 +453,29 @@ export function StudentFeesTab({
             (a: any, b: any) =>
               new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
           )[0]?.dueDate ?? null,
+      draftBilled: termDraftInvoices.reduce(
+        (sum: number, invoice: any) => sum + Number(invoice.totalAmountMinor || 0),
+        0
+      ),
+      draftOutstanding: termDraftInvoices.reduce(
+        (sum: number, invoice: any) =>
+          sum + Number(invoice.totalOutstandingMinor || 0),
+        0
+      ),
     }),
-    [termActiveInvoices, termInvoices.length]
+    [termActiveInvoices, termDraftInvoices, termInvoices.length]
   );
   const hasTermInvoices = termInvoices.length > 0;
   const hasActionableInvoice = Boolean(
     invoiceDetail?._id &&
       ACTIVE_INVOICE_STATUSES.has(String(invoiceDetail.status))
+  );
+  const primaryInvoiceStatus = safeStr(primaryInvoice?.status || "");
+  const canIssuePrimaryInvoice = Boolean(
+    primaryInvoice?._id && primaryInvoiceStatus === "draft"
+  );
+  const parentCanSeePrimaryInvoice = PARENT_VISIBLE_INVOICE_STATUSES.has(
+    primaryInvoiceStatus
   );
   const canApplyCredit = Boolean(
     hasActionableInvoice &&
@@ -748,7 +791,7 @@ export function StudentFeesTab({
                   title={
                     hasActionableInvoice
                       ? "Record payment"
-                      : "No active invoice available for payment"
+                      : "No active bill available for payment"
                   }
                   className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                 >
@@ -766,7 +809,7 @@ export function StudentFeesTab({
                   title={
                     canApplyCredit
                       ? "Apply available credit"
-                      : "Requires credit balance and outstanding amount on the selected invoice"
+                      : "Requires credit balance and outstanding amount on the selected bill"
                   }
                   className="gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
                 >
@@ -1013,7 +1056,7 @@ export function StudentFeesTab({
             </CardContent>
           </Card>
 
-          {/* Installments preview (term-only, based on selected term invoice) */}
+          {/* Installments preview (term-only, based on selected term bill) */}
           {ledgerScope === "term" && showInstallments && invoiceDetail ? (
             <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
               <div
@@ -1088,7 +1131,7 @@ export function StudentFeesTab({
             </Card>
           ) : null}
 
-          {/* Invoice List */}
+          {/* Bill List */}
           <InvoiceList
             studentId={student.id}
             academicPeriodId={academicPeriodId}
@@ -1149,7 +1192,7 @@ export function StudentFeesTab({
                         Pick a term
                       </div>
                       <p className="mt-1 text-xs text-white/50">
-                        Select a term to load the invoice summary and
+                        Select a term to load the bill summary and
                         installments.
                       </p>
                     </div>
@@ -1158,7 +1201,7 @@ export function StudentFeesTab({
               ) : termInvoicesLoading || invoiceLoading ? (
                 <div className="flex items-center justify-center gap-3 py-10">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
-                  <p className="text-sm text-white/60">Loading term invoices…</p>
+                  <p className="text-sm text-white/60">Loading term bills...</p>
                 </div>
               ) : hasTermInvoices ? (
                 <div className="space-y-3">
@@ -1169,13 +1212,14 @@ export function StudentFeesTab({
                           {termLabel}
                         </div>
                         <div className="mt-1 text-xs text-white/50">
-                          {termSummary.activeInvoiceCount} active invoice
+                          {termSummary.activeInvoiceCount} active bill
                           {termSummary.activeInvoiceCount === 1 ? "" : "s"} •{" "}
+                          {termSummary.draftInvoiceCount} draft •{" "}
                           {termSummary.invoiceCount} total
                         </div>
                         {primaryInvoice?.invoiceNumber ? (
                           <div className="mt-1 text-xs text-white/50">
-                            Primary invoice: {primaryInvoice.invoiceNumber}
+                            Primary bill: {primaryInvoice.invoiceNumber}
                           </div>
                         ) : null}
                       </div>
@@ -1191,9 +1235,38 @@ export function StudentFeesTab({
 
                     <Separator className="my-3 bg-white/10" />
 
+                    {primaryInvoice ? (
+                      <div className="mb-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <div className="font-medium text-white/80">
+                              Parent visibility
+                            </div>
+                            <p className="mt-1 text-white/50">
+                              {parentCanSeePrimaryInvoice
+                                ? "This bill is issued and can appear in the parent fees account."
+                                : "Draft bills are admin-only. Issue this bill before parents can see or pay it."}
+                            </p>
+                          </div>
+                          {canIssuePrimaryInvoice ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="gap-2 rounded-xl bg-teal-500 text-slate-950 hover:bg-teal-400"
+                              onClick={handleIssuePrimaryInvoice}
+                              disabled={issueInvoice.isPending}
+                            >
+                              <Send className="h-4 w-4" />
+                              Issue Bill
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <div className="text-white/50">Total billed</div>
+                        <div className="text-white/50">Issued bill total</div>
                         <div className="mt-1 font-semibold text-white/85">
                           {formatMoney(termSummary.totalBilled)}
                         </div>
@@ -1205,7 +1278,7 @@ export function StudentFeesTab({
                         </div>
                       </div>
                       <div>
-                        <div className="text-white/50">Outstanding</div>
+                        <div className="text-white/50">Issued outstanding</div>
                         <div className="mt-1 font-semibold text-white/85">
                           {formatMoney(termSummary.totalOutstanding)}
                         </div>
@@ -1218,6 +1291,22 @@ export function StudentFeesTab({
                             : "--"}
                         </div>
                       </div>
+                      {termSummary.draftInvoiceCount > 0 ? (
+                        <>
+                          <div>
+                            <div className="text-white/50">Draft billed</div>
+                            <div className="mt-1 font-semibold text-amber-100">
+                              {formatMoney(termSummary.draftBilled)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-white/50">Draft outstanding</div>
+                            <div className="mt-1 font-semibold text-amber-100">
+                              {formatMoney(termSummary.draftOutstanding)}
+                            </div>
+                          </div>
+                        </>
+                      ) : null}
                     </div>
                   </div>
 
@@ -1227,11 +1316,16 @@ export function StudentFeesTab({
                         <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300" />
                         <div>
                           <div className="text-sm font-semibold text-white">
-                            No issued invoice in this term yet
+                            No issued bill in this term yet
                           </div>
                           <p className="mt-1 text-xs text-white/50">
-                            Only draft/cancelled invoices are available, so
-                            billed and outstanding totals are shown as 0.
+                            {termSummary.draftInvoiceCount > 0
+                              ? `This term has ${termSummary.draftInvoiceCount} draft bill${
+                                  termSummary.draftInvoiceCount === 1 ? "" : "s"
+                                } with ${formatMoney(
+                                  termSummary.draftOutstanding
+                                )} draft outstanding. Issue the bill to include it in issued totals, parent fees, and payment actions.`
+                              : "Only withdrawn bills are available for this term, so there is no active bill to show."}
                           </p>
                         </div>
                       </div>
@@ -1249,7 +1343,7 @@ export function StudentFeesTab({
                       title={
                         hasActionableInvoice
                           ? "Record payment"
-                          : "No active invoice available for payment"
+                          : "No active bill available for payment"
                       }
                     >
                       <Receipt className="h-4 w-4" />
@@ -1265,7 +1359,7 @@ export function StudentFeesTab({
                       title={
                         canApplyCredit
                           ? "Apply available credit"
-                          : "Requires credit balance and outstanding amount on the selected invoice"
+                          : "Requires credit balance and outstanding amount on the selected bill"
                       }
                     >
                       <Wallet className="h-4 w-4" />
@@ -1279,10 +1373,10 @@ export function StudentFeesTab({
                     <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300" />
                     <div>
                       <div className="text-sm font-semibold text-white">
-                        No invoice found for {termLabel}
+                        No bill found for {termLabel}
                       </div>
                       <p className="mt-1 text-xs text-white/50">
-                        Create and issue an invoice for this term to enable
+                        Create and issue a bill for this term to enable
                         fees tracking and payment actions.
                       </p>
                     </div>
@@ -1325,7 +1419,7 @@ export function StudentFeesTab({
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-white/50">
-                  Credit comes from overpayments and can be applied to outstanding invoices.
+                  Credit comes from overpayments and can be applied to outstanding bills.
                 </div>
               </div>
 

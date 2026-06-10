@@ -18,7 +18,10 @@ function toObjectId(id: string): mongoose.Types.ObjectId | null {
   }
 }
 
-export async function requireSessionTeachContext(sessionId: string) {
+export async function requireSessionTeachContext(
+  sessionId: string,
+  classGroupId?: string | null,
+) {
   const context = await requireTeacher();
   await connectToDatabase();
 
@@ -54,10 +57,19 @@ export async function requireSessionTeachContext(sessionId: string) {
     return { error: Response.json({ success: false, error: "Session not found" }, { status: 404 }) };
   }
 
-  const delivery = await LessonDelivery.findOne({
+  const classGroupOid = classGroupId ? toObjectId(classGroupId) : null;
+  const deliveries = await LessonDelivery.find({
     sessionId: session._id,
     schoolId: context.schoolId,
   });
+
+  const delivery =
+    (classGroupOid
+      ? deliveries.find((d) => String(d.classGroupId) === String(classGroupOid))
+      : null) ??
+    deliveries.find((d) => String(d.classGroupId) === String(session.classGroupId)) ??
+    deliveries[0] ??
+    null;
 
   if (!delivery) {
     return { error: Response.json({ success: false, error: "Delivery not found" }, { status: 404 }) };

@@ -135,7 +135,7 @@ export default async function PlatformUsersPage() {
     User.find(legalOutdatedFilter)
       .sort({ updatedAt: -1 })
       .limit(20)
-      .select("email name firstName lastName role schoolId termsAccepted privacyAccepted termsVersion privacyVersion updatedAt")
+      .select("email name firstName lastName role termsAccepted privacyAccepted termsVersion privacyVersion updatedAt")
       .lean<
         Array<{
           _id: unknown;
@@ -144,7 +144,6 @@ export default async function PlatformUsersPage() {
           firstName?: string | null;
           lastName?: string | null;
           role?: string | null;
-          schoolId?: unknown | null;
           termsAccepted?: boolean | null;
           privacyAccepted?: boolean | null;
           termsVersion?: string | null;
@@ -184,13 +183,26 @@ export default async function PlatformUsersPage() {
         >()
     : [];
 
+  const legalOutdatedUserIds = legalOutdatedSample.map((user) => user._id);
+  const legalOutdatedMemberships = legalOutdatedUserIds.length
+    ? await UserMembership.find({ userId: { $in: legalOutdatedUserIds } })
+        .select("userId schoolId roles status")
+        .lean<
+          Array<{
+            _id: unknown;
+            userId: unknown;
+            schoolId: unknown;
+            roles?: string[];
+            status: "active" | "invited" | "suspended";
+          }>
+        >()
+    : [];
+
   const schoolIds = unique([
     ...recentMemberships.map((membership) => String(membership.schoolId)),
     ...exceptionMemberships.map((membership) => String(membership.schoolId)),
     ...schoolRollup.map((row) => String(row._id)),
-    ...legalOutdatedSample
-      .map((user) => (user.schoolId ? String(user.schoolId) : null))
-      .filter((id): id is string => Boolean(id)),
+    ...legalOutdatedMemberships.map((membership) => String(membership.schoolId)),
   ]);
 
   const schools = schoolIds.length
@@ -223,6 +235,20 @@ export default async function PlatformUsersPage() {
       status: membership.status,
     });
     membershipsByUser.set(key, existing);
+  }
+
+  for (const membership of legalOutdatedMemberships) {
+    const key = String(membership.userId);
+    const existing = membershipsByUser.get(key) || [];
+    if (!existing.some((row) => row.schoolId === String(membership.schoolId))) {
+      existing.push({
+        schoolId: String(membership.schoolId),
+        schoolName: schoolMap.get(String(membership.schoolId)) || "Unknown school",
+        roles: membership.roles || [],
+        status: membership.status,
+      });
+      membershipsByUser.set(key, existing);
+    }
   }
 
   return (
@@ -418,8 +444,7 @@ export default async function PlatformUsersPage() {
             <thead>
               <tr className="border-b border-white/10 text-left text-white/45">
                 <th className="pb-3 font-medium">User</th>
-                <th className="pb-3 font-medium">Role</th>
-                <th className="pb-3 font-medium">School</th>
+                <th className="pb-3 font-medium">Memberships</th>
                 <th className="pb-3 font-medium">Issue</th>
                 <th className="pb-3 font-medium">Last Updated</th>
               </tr>
@@ -427,6 +452,11 @@ export default async function PlatformUsersPage() {
             <tbody>
               {legalOutdatedSample.length > 0 ? (
                 legalOutdatedSample.map((user) => {
+                  const memberships = membershipsByUser.get(String(user._id)) || [];
+                  const roleList = unique([
+                    ...(user.role ? [user.role] : []),
+                    ...memberships.flatMap((membership) => membership.roles || []),
+                  ]);
                   const issues: string[] = [];
                   if (!user.termsAccepted) issues.push("Terms not accepted");
                   if (!user.privacyAccepted) issues.push("Privacy not accepted");
@@ -442,11 +472,29 @@ export default async function PlatformUsersPage() {
                         <p className="font-medium text-white">{displayName(user)}</p>
                         <p className="text-xs text-white/45">{user.email}</p>
                       </td>
-                      <td className="py-3 pr-4 text-white/80">
-                        {user.role ? ROLE_LABELS[user.role] || user.role : "Unknown"}
-                      </td>
-                      <td className="py-3 pr-4 text-white/65">
-                        {user.schoolId ? schoolMap.get(String(user.schoolId)) || "Unknown school" : "Platform-only"}
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {memberships.length > 0 ? (
+                            memberships.map((membership) => (
+                              <PlatformPill key={membership.schoolId} tone="slate">
+                                {membership.schoolName}
+                                {(membership.roles || []).length > 0
+                                  ? ` · ${(membership.roles || [])
+                                      .map((role) => ROLE_LABELS[role] || role)
+                                      .join(", ")}`
+                                  : ""}
+                              </PlatformPill>
+                            ))
+                          ) : roleList.length > 0 ? (
+                            roleList.map((role) => (
+                              <PlatformPill key={role} tone={role === "platform_admin" ? "violet" : "slate"}>
+                                {ROLE_LABELS[role] || role}
+                              </PlatformPill>
+                            ))
+                          ) : (
+                            <span className="text-white/35">Platform-only account</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 pr-4">
                         <div className="flex flex-wrap gap-1.5">
@@ -463,7 +511,7 @@ export default async function PlatformUsersPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-sm text-white/45">
+                  <td colSpan={4} className="py-6 text-center text-sm text-white/45">
                     No legal acceptance exceptions found.
                   </td>
                 </tr>

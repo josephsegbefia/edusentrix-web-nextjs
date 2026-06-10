@@ -9,6 +9,10 @@ import { LessonDelivery } from "@/models/LessonDelivery";
 import { LessonAttendance } from "@/models/LessonAttendance";
 import { Student } from "@/models/Student";
 import { gateLessonsModule } from "@/lib/lessons/lesson-gates";
+import {
+  getEffectiveDeliverySchedule,
+  pickLessonDeliveryForClass,
+} from "@/lib/lessons/delivery-schedule";
 
 function toObjectIdOrNull(id: string | null | undefined) {
   if (!id) return null;
@@ -45,7 +49,7 @@ const PostLessonBody = z.object({
 
 /** GET — returns class roster + existing lesson attendance record if any */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -63,20 +67,40 @@ export async function GET(
     if (!sessionId) {
       return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
     }
+    const classGroupParam = new URL(req.url).searchParams.get("classGroupId");
+
     const session = await LessonSession.findOne({
       _id: sessionId,
       schoolId: context.schoolId,
     })
-      .select("classGroupId scheduledDate startTime endTime title ownerTeacherId subjectOfferingId")
+      .select(
+        "classGroupId scheduledDate dayOfWeek startTime endTime durationMinutes timetableSlotId timetableSlotIds title ownerTeacherId subjectOfferingId",
+      )
       .lean();
     if (!session) {
       return Response.json({ success: false, error: "Session not found" }, { status: 404 });
     }
 
-    // Load the roster from the class group
+    const deliveries = await LessonDelivery.find({
+      schoolId: context.schoolId,
+      sessionId,
+    }).lean();
+    const delivery = pickLessonDeliveryForClass(
+      deliveries,
+      session.classGroupId,
+      classGroupParam,
+    );
+    if (!delivery) {
+      return Response.json({ success: false, error: "Delivery not found" }, { status: 404 });
+    }
+
+    const schedule = getEffectiveDeliverySchedule(session, delivery);
+    const rosterClassGroupId = delivery.classGroupId;
+
+    // Load the roster from the teaching class group
     const students = await Student.find({
       schoolId: context.schoolId,
-      classGroupId: session.classGroupId,
+      classGroupId: rosterClassGroupId,
       status: "active",
     })
       .select("_id firstName middleName lastName admissionNo")
@@ -91,10 +115,11 @@ export async function GET(
         }>
       >();
 
-    // Load existing attendance record for this session (if any)
+    // Load existing attendance record for this session + class (if any)
     const attendance = await LessonAttendance.findOne({
       schoolId: context.schoolId,
       sessionId,
+      classGroupId: rosterClassGroupId,
     }).lean();
 
     const existingMarks = new Map<string, { pre: string; post: string }>();
@@ -119,29 +144,20 @@ export async function GET(
       };
     });
 
-    const delivery = await LessonDelivery.findOne({
-      schoolId: context.schoolId,
-      sessionId,
-    })
-      .select("_id status attendanceBeforeId attendanceAfterId")
-      .lean();
-
     return Response.json({
       success: true,
       data: {
         sessionTitle: session.title,
-        scheduledDate:
-          session.scheduledDate instanceof Date
-            ? session.scheduledDate.toISOString().split("T")[0]
-            : String(session.scheduledDate).split("T")[0],
-        startTime: session.startTime,
-        endTime: session.endTime,
+        scheduledDate: schedule.scheduledDate,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        classGroupId: schedule.classGroupId,
         roster,
         preRecorded: Boolean(attendance?.preRecordedAt),
         postRecorded: Boolean(attendance?.postRecordedAt),
         preRecordedAt: attendance?.preRecordedAt?.toISOString() ?? null,
         postRecordedAt: attendance?.postRecordedAt?.toISOString() ?? null,
-        deliveryId: delivery ? String(delivery._id) : null,
+        deliveryId: String(delivery._id),
       },
     });
   } catch (e: unknown) {
@@ -172,15 +188,34 @@ export async function POST(
     if (!sessionId) {
       return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
     }
+    const classGroupParam = new URL(req.url).searchParams.get("classGroupId");
+
     const session = await LessonSession.findOne({
       _id: sessionId,
       schoolId: context.schoolId,
     })
-      .select("classGroupId scheduledDate startTime endTime ownerTeacherId subjectOfferingId")
+      .select(
+        "classGroupId scheduledDate dayOfWeek startTime endTime durationMinutes timetableSlotId timetableSlotIds ownerTeacherId subjectOfferingId",
+      )
       .lean();
     if (!session) {
       return Response.json({ success: false, error: "Session not found" }, { status: 404 });
     }
+
+    const deliveries = await LessonDelivery.find({
+      schoolId: context.schoolId,
+      sessionId,
+    }).lean();
+    const delivery = pickLessonDeliveryForClass(
+      deliveries,
+      session.classGroupId,
+      classGroupParam,
+    );
+    if (!delivery) {
+      return Response.json({ success: false, error: "Delivery not found" }, { status: 404 });
+    }
+
+    const schedule = getEffectiveDeliverySchedule(session, delivery);
 
     const raw = await req.json().catch(() => null);
     const parsed = PreLessonBody.safeParse(raw);
@@ -239,21 +274,23 @@ export async function POST(
       );
     }
 
-    const delivery = await LessonDelivery.findOne({ schoolId: context.schoolId, sessionId }).lean();
-
     const attendance = await LessonAttendance.findOneAndUpdate(
-      { schoolId: context.schoolId, sessionId },
+      {
+        schoolId: context.schoolId,
+        sessionId,
+        classGroupId: delivery.classGroupId,
+      },
       {
         $set: {
           schoolId: context.schoolId,
           sessionId,
-          deliveryId: delivery?._id ?? null,
-          classGroupId: session.classGroupId,
+          deliveryId: delivery._id,
+          classGroupId: delivery.classGroupId,
           subjectOfferingId: session.subjectOfferingId ?? null,
           teacherId: context.teacherId,
-          scheduledDate: session.scheduledDate,
-          startTime: session.startTime,
-          endTime: session.endTime,
+          scheduledDate: new Date(schedule.scheduledDate),
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
           students: studentDocs,
           totalEnrolled: studentDocs.length,
           preRecordedAt: new Date(),
@@ -303,6 +340,31 @@ export async function PATCH(
     if (!sessionId) {
       return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
     }
+
+    const classGroupParam = new URL(req.url).searchParams.get("classGroupId");
+    const session = await LessonSession.findOne({
+      _id: sessionId,
+      schoolId: context.schoolId,
+    })
+      .select("classGroupId")
+      .lean();
+    if (!session) {
+      return Response.json({ success: false, error: "Session not found" }, { status: 404 });
+    }
+
+    const deliveries = await LessonDelivery.find({
+      schoolId: context.schoolId,
+      sessionId,
+    }).lean();
+    const delivery = pickLessonDeliveryForClass(
+      deliveries,
+      session.classGroupId,
+      classGroupParam,
+    );
+    if (!delivery) {
+      return Response.json({ success: false, error: "Delivery not found" }, { status: 404 });
+    }
+
     const raw = await req.json().catch(() => null);
     const parsed = PostLessonBody.safeParse(raw);
     if (!parsed.success) {
@@ -313,6 +375,7 @@ export async function PATCH(
     const attendance = await LessonAttendance.findOne({
       schoolId: context.schoolId,
       sessionId,
+      classGroupId: delivery.classGroupId,
     });
 
     if (!attendance) {

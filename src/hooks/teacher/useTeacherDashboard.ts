@@ -1,4 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import type { SchoolSchemeWeekSnapshot } from "@/lib/schemes/resolve-scheme-week";
+
+export type TeacherDashboardScheduleSlot = {
+  classGroupId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  startTime: string | null;
+  endTime: string | null;
+  date: string;
+};
 
 export type TeacherDashboardResponse = {
   success: boolean;
@@ -11,15 +22,18 @@ export type TeacherDashboardResponse = {
     };
     today: {
       date: string;
-      schedule: Array<{
-        classGroupId: string;
-        className: string;
-        subjectId: string;
-        subjectName: string;
-        startTime: string | null;
-        endTime: string | null;
-      }>;
+      schedule: TeacherDashboardScheduleSlot[];
     };
+    weekSchedule: {
+      weekStart: string;
+      weekEnd: string;
+      days: Array<{
+        date: string;
+        dayOfWeek: number;
+        isToday: boolean;
+        slots: TeacherDashboardScheduleSlot[];
+      }>;
+    } | null;
     thisWeekSchemeRows: Array<{
       id: string;
       schemeId: string;
@@ -37,6 +51,7 @@ export type TeacherDashboardResponse = {
       href: string;
       tone: "amber" | "indigo" | "rose" | "emerald" | "slate";
     }>;
+    currentSchemeWeek: SchoolSchemeWeekSnapshot | null;
   };
 };
 

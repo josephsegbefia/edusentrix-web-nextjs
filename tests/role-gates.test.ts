@@ -5,6 +5,7 @@ import {
   gateParentApiAccess,
   gatePlatformAdminUser,
   gateSchoolAdminRoles,
+  gateStudentApiAccess,
   gateTeacherApiAccess,
 } from "../src/lib/auth/role-gates";
 
@@ -60,4 +61,13 @@ test("gateTeacherApiAccess: teacher or school_admin passes", () => {
   });
   assert.deepEqual(gateTeacherApiAccess(["teacher"]), { ok: true });
   assert.deepEqual(gateTeacherApiAccess(["school_admin"]), { ok: true });
+});
+
+test("gateStudentApiAccess: only student passes", () => {
+  assert.deepEqual(gateStudentApiAccess(["parent"]), {
+    ok: false,
+    status: 403,
+    error: "Student role required",
+  });
+  assert.deepEqual(gateStudentApiAccess(["student"]), { ok: true });
 });

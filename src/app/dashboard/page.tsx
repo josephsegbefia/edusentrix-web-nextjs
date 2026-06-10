@@ -2,44 +2,35 @@ export const runtime = "nodejs";
 
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
-
-function routeFor(user: { role?: string | null; pendingOnboarding?: boolean }) {
-  if (user.pendingOnboarding) return "/launch";
-
-  const r = (user.role || "").toLowerCase();
-
-  // Platform admin -> /platform
-  if (r === "platform_admin" || r === "platformadmin") return "/platform";
-
-  // School admin -> /admin
-  if (r === "school_admin" || r === "schooladmin" || r === "admin") {
-    return "/admin";
-  }
-  if (r === "billing_owner" || r === "billingowner") {
-    return "/admin/settings/payment-setup";
-  }
-
-  // Other roles -> their respective routes
-  if (r === "teacher") return "/teacher";
-  if (r === "parent") return "/parent";
-  if (r === "student") return "/student";
-  if (r === "bursar") return "/bursar";
-
-  // Default to onboarding if role is unknown
-  return "/launch";
-}
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
 export default async function DashboardHub() {
-  const appUser = await getCurrentUser();
+  const active = await resolveActiveSchoolContext();
 
+  if (active.ok) {
+    redirect(active.context.homePath);
+  }
+
+  const appUser = await getCurrentUser();
   if (!appUser) {
     redirect("/sign-in");
   }
 
-  redirect(
-    routeFor({
-      role: appUser.role,
-      pendingOnboarding: appUser.pendingOnboarding,
-    })
-  );
+  if (appUser.pendingOnboarding) {
+    redirect("/launch");
+  }
+
+  if (appUser.role === "platform_admin") {
+    redirect("/platform");
+  }
+
+  if (active.reason === "needs_school_selection") {
+    redirect("/auth/switch");
+  }
+
+  if (active.reason === "no_memberships") {
+    redirect("/launch");
+  }
+
+  redirect("/auth/switch");
 }

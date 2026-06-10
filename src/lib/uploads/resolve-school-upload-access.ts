@@ -1,4 +1,5 @@
 import "server-only";
+
 import type { Types } from "mongoose";
 import { PlatformStaffProfile } from "@/models/PlatformStaffProfile";
 import {
@@ -7,11 +8,11 @@ import {
 } from "@/lib/platform/permissions/registry";
 import type { PlatformActor } from "@/lib/platform/auth/has-platform-permission";
 import { hasPlatformPermission } from "@/lib/platform/auth/has-platform-permission";
+import { resolveMembershipSchoolUploadAccess } from "@/lib/uploads/membership-upload-access";
 
 type UserUploadIdentity = {
   _id: Types.ObjectId;
   role?: string | null;
-  schoolId?: { toString(): string } | null;
 };
 
 function buildLegacyPlatformActor(user: UserUploadIdentity): PlatformActor {
@@ -75,7 +76,7 @@ export type SchoolUploadAccessResult =
 
 /**
  * Resolves which school an authenticated user may upload into.
- * School-scoped users may only upload to their own school.
+ * School-scoped users may upload to their active school or any active membership.
  * Platform operators (legacy platform_admin or active platform staff with
  * platform.schools.read) may upload on behalf of another school — e.g.
  * assisted onboarding from /platform/schools/[id]/onboarding.
@@ -83,21 +84,30 @@ export type SchoolUploadAccessResult =
 export async function resolveSchoolUploadAccess(params: {
   user: UserUploadIdentity;
   requestedSchoolId?: string;
+  activeSchoolId?: string | null;
+  membershipSchoolIds?: string[];
 }): Promise<SchoolUploadAccessResult> {
-  const userSchoolId = params.user.schoolId?.toString() ?? null;
-  const requestedSchoolId = params.requestedSchoolId?.trim() || null;
-  const targetSchoolId = requestedSchoolId ?? userSchoolId;
+  const membershipAccess = resolveMembershipSchoolUploadAccess({
+    requestedSchoolId: params.requestedSchoolId,
+    activeSchoolId: params.activeSchoolId,
+    membershipSchoolIds: params.membershipSchoolIds,
+  });
 
-  if (!targetSchoolId) {
-    return { allowed: false, reason: "No school associated with user" };
-  }
-
-  if (userSchoolId && targetSchoolId === userSchoolId) {
+  if (membershipAccess.allowed) {
     return {
       allowed: true,
-      effectiveSchoolId: targetSchoolId,
+      effectiveSchoolId: membershipAccess.effectiveSchoolId,
       isPlatformOperator: false,
     };
+  }
+
+  const targetSchoolId =
+    params.requestedSchoolId?.trim() ||
+    params.activeSchoolId?.trim() ||
+    null;
+
+  if (!targetSchoolId) {
+    return { allowed: false, reason: membershipAccess.reason };
   }
 
   const actor = await resolvePlatformActor(params.user);

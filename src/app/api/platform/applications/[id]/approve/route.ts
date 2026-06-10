@@ -196,6 +196,7 @@ import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
+import { UserMembership } from "@/models/UserMembership";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
@@ -291,16 +292,21 @@ export async function POST(
       const existing = await User.findOne({ email: userEmail })
         .session(session)
         .lean();
+      let adminUserId: mongoose.Types.ObjectId;
 
       if (existing) {
+        adminUserId =
+          (existing as any)._id instanceof mongoose.Types.ObjectId
+            ? (existing as any)._id
+            : new mongoose.Types.ObjectId(String((existing as any)._id));
         await User.updateOne(
-          { _id: (existing as any)._id },
+          { _id: adminUserId },
           {
             $set: {
               email: userEmail,
               name: adminFullName,
               phone: app.adminPhone || null,
-              role: "school_admin",
+              role: (existing as { role?: string }).role || "school_admin",
               schoolId: school._id,
               pendingOnboarding: true,
               termsAccepted: !!app.termsAccepted,
@@ -315,7 +321,7 @@ export async function POST(
           { session }
         );
       } else {
-        await User.create(
+        const createdUsers = await User.create(
           [
             {
               email: userEmail,
@@ -336,7 +342,21 @@ export async function POST(
           ],
           { session }
         );
+        adminUserId = createdUsers[0]._id as mongoose.Types.ObjectId;
       }
+
+      await UserMembership.findOneAndUpdate(
+        { userId: adminUserId, schoolId: school._id },
+        {
+          $set: { status: "active" },
+          $setOnInsert: {
+            userId: adminUserId,
+            schoolId: school._id,
+          },
+          $addToSet: { roles: "school_admin" },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true, session }
+      );
 
       // 3) Update app + audit
       app.status = "approved";
@@ -392,7 +412,10 @@ export async function POST(
         emailAddress: approvedApp.adminEmail,
         redirectUrl,
         notify: false,
-        publicMetadata: { role: "school_admin" },
+        publicMetadata: {
+          role: "school_admin",
+          schoolId: schoolIdCreated ? String(schoolIdCreated) : undefined,
+        },
         ignoreExisting: true,
       });
 

@@ -3,10 +3,13 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { SchoolSettings } from "@/models/SchoolSettings";
+import { loadCurrentSchemeWeekForSchool } from "@/lib/schemes/load-current-scheme-week";
+import { schemeItemOverlapsCalendarWeek } from "@/lib/schemes/resolve-scheme-week";
 import { serializeSchemeItemRow, serializeSchemeRow } from "@/lib/schemes/serializers";
 import {
   resolveLessonNoteSchemeFields,
@@ -124,6 +127,32 @@ export async function GET(req: Request) {
             .lean()) as ISchemeItem[])
         : [];
 
+    const [currentSchemeWeek, currentPeriod] = await Promise.all([
+      loadCurrentSchemeWeekForSchool(context.schoolId),
+      AcademicPeriod.findOne({ schoolId: context.schoolId, isCurrent: true })
+        .select("startDate endDate")
+        .lean<{ startDate: Date; endDate: Date } | null>(),
+    ]);
+
+    const periodInput = currentPeriod
+      ? { startDate: currentPeriod.startDate, endDate: currentPeriod.endDate }
+      : null;
+    const currentWeekStart =
+      currentSchemeWeek.weekStartDate != null
+        ? new Date(`${currentSchemeWeek.weekStartDate}T00:00:00.000Z`)
+        : null;
+    const currentWeekEnd =
+      currentSchemeWeek.weekEndDate != null
+        ? new Date(`${currentSchemeWeek.weekEndDate}T00:00:00.000Z`)
+        : null;
+
+    const currentWeekItems =
+      periodInput && currentWeekStart && currentWeekEnd
+        ? items.filter((it) =>
+            schemeItemOverlapsCalendarWeek(it, periodInput, currentWeekStart, currentWeekEnd)
+          )
+        : [];
+
     const suggestedItems =
       topic.length > 0
         ? items
@@ -144,7 +173,9 @@ export async function GET(req: Request) {
               return topic.split(/\s+/).every((word) => haystack.includes(word));
             })
             .slice(0, 12)
-        : items.slice(0, 12);
+        : currentWeekItems.length > 0
+          ? currentWeekItems.slice(0, 12)
+          : items.slice(0, 12);
 
     return Response.json({
       success: true,
@@ -155,6 +186,8 @@ export async function GET(req: Request) {
         schemes: visible.map((s) => serializeSchemeRow(s)),
         items: items.map((it) => serializeSchemeItemRow(it)),
         suggestedItems: suggestedItems.map((it) => serializeSchemeItemRow(it)),
+        currentWeekSuggestedItems: currentWeekItems.slice(0, 12).map((it) => serializeSchemeItemRow(it)),
+        currentSchemeWeek,
         selectedSchemeValid,
       },
     });

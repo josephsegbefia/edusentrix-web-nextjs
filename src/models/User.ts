@@ -13,7 +13,15 @@ export interface IUser {
   phone?: string;
   avatarUrl?: string;
   avatarPublicId?: string;
-  role?: AppRole; // single role (you decided to move from roles[] to role)
+  /**
+   * @deprecated Use `UserMembership.roles` for school tenant access. Retained for
+   * platform operators (`platform_admin`) and migration compatibility only.
+   */
+  role?: AppRole;
+  /**
+   * @deprecated Use active school context from `UserMembership`. Retained as a
+   * default-school hint during migration only; not a tenant access source of truth.
+   */
   schoolId?: Types.ObjectId | null;
   pendingOnboarding?: boolean;
   termsAccepted?: boolean;

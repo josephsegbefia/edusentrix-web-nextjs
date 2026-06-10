@@ -5,7 +5,7 @@ import {
   requireSchoolAdminOrDelegatedAnyPermission,
   requireSchoolAdminOrDelegatedModuleView,
 } from "@/lib/delegations/requireDelegatedModulePermission";
-import { TimetableSlot } from "@/models/TimetableSlot";
+import { TimetableSlot, type ITimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import {
   buildTimetableSlotSnapshot,
@@ -28,6 +28,15 @@ function toObjectIdOrNull(value: string | null | undefined): mongoose.Types.Obje
   } catch {
     return null;
   }
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === 11000
+  );
 }
 
 function parsePositiveInt(value: string | null, defaultValue: number, max = 200): number {
@@ -392,22 +401,61 @@ export async function POST(
       );
     }
 
-    const created = await TimetableSlot.create({
+    const existingClassPeriodSlot = await TimetableSlot.findOne({
       schoolId: schoolIdObj,
       academicPeriodId: version.academicPeriodId,
       versionId: versionObjId,
       classGroupId,
-      gradeId,
-      subjectId,
-      teacherId,
       dayOfWeek,
       startTime: body.startTime,
       endTime: body.endTime,
-      classroomLabel: resolvedClassroomLabel,
-      source: body.source ?? "manual",
-      createdBy: userIdObj,
-      updatedBy: userIdObj,
-    });
+    })
+      .select("_id")
+      .lean();
+
+    if (existingClassPeriodSlot) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "CLASS_PERIOD_ALREADY_SCHEDULED",
+          error:
+            "This class already has a lesson in that period. Move or update the existing lesson instead of creating another one.",
+        },
+        { status: 409 }
+      );
+    }
+
+    let created: mongoose.HydratedDocument<ITimetableSlot>;
+    try {
+      created = await TimetableSlot.create({
+        schoolId: schoolIdObj,
+        academicPeriodId: version.academicPeriodId,
+        versionId: versionObjId,
+        classGroupId,
+        gradeId,
+        subjectId,
+        ...(subjectOfferingId ? { subjectOfferingId } : {}),
+        teacherId,
+        dayOfWeek,
+        startTime: body.startTime,
+        endTime: body.endTime,
+        classroomLabel: resolvedClassroomLabel,
+        source: body.source ?? "manual",
+        createdBy: userIdObj,
+        updatedBy: userIdObj,
+      });
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+      return NextResponse.json(
+        {
+          success: false,
+          code: "CLASS_PERIOD_ALREADY_SCHEDULED",
+          error:
+            "This class already has a lesson in that period. Move or update the existing lesson instead of creating another one.",
+        },
+        { status: 409 }
+      );
+    }
 
     await recordTimetableChangeLog({
       schoolId: schoolIdObj,

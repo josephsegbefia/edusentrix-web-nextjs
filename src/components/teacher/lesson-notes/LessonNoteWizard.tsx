@@ -11,6 +11,7 @@ import { useTeacherLessonNoteCreate } from "@/hooks/teacher/useTeacherLessonNote
 import { useTeacherLessonNoteUpdate } from "@/hooks/teacher/useTeacherLessonNoteUpdate";
 import {
   type LessonNoteFormData,
+  type LessonNotePeriodPlanningContext,
   type LessonNoteTemplateType,
   type WizardStep,
   DEFAULT_FORM_DATA,
@@ -58,6 +59,7 @@ type LessonNoteWizardProps = {
   schoolLogo?: string;
   teacherName?: string;
   curriculumCode?: CurriculumCode;
+  periodPlanningContext?: LessonNotePeriodPlanningContext | null;
 };
 
 // ============================================================================
@@ -73,6 +75,7 @@ export function LessonNoteWizard({
   schoolLogo,
   teacherName,
   curriculumCode = "ghana_nacca",
+  periodPlanningContext,
 }: LessonNoteWizardProps) {
   const busyToast = useBusyToast();
   const createMutation = useTeacherLessonNoteCreate();
@@ -280,6 +283,7 @@ export function LessonNoteWizard({
             onTemplateChange={handleTemplateChange}
             curriculumCode={curriculumCode}
             aiContext={buildAIContext("context")}
+            periodPlanningContext={periodPlanningContext}
           />
         );
 

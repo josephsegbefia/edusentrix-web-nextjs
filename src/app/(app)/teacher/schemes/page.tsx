@@ -36,7 +36,7 @@ export default function TeacherSchemesPage() {
   const { data = [], isLoading, error } = useTeacherSchemes();
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
+    <div className="space-y-6">
       <section className="rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.94),rgba(2,6,23,0.82))] p-5 shadow-2xl shadow-black/20">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -79,7 +79,7 @@ export default function TeacherSchemesPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {data.map((scheme) => (
           <Link key={scheme.id} href={`/teacher/schemes/${scheme.id}`} className="group block">
             <Card className="h-full border-white/10 bg-slate-950/40 text-white transition hover:border-emerald-300/30 hover:bg-slate-950/55">

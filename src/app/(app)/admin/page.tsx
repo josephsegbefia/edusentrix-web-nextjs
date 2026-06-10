@@ -71,7 +71,6 @@ import type { CreateStudentInput } from "@/schemas/student";
 import type { CreateTeacherInput } from "@/schemas/teacher";
 import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsModal";
 import { AcademicPeriodOverviewModal } from "@/components/modals/AcademicPeriodOverviewModal";
-import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
 import { SchoolSetupChecklistCard } from "@/components/admin/setup/SchoolSetupChecklistCard";
@@ -701,47 +700,6 @@ export default function SchoolAdminOverviewPage() {
         );
       }
 
-      // Step 2: Check school type and subjects
-      const schoolRes = await fetch("/api/admin/school", { cache: "no-store" });
-      let schoolType: "Basic" | "SHS" | null = null;
-      if (schoolRes.ok) {
-        const schoolJson: any = await schoolRes.json().catch(() => ({}));
-        schoolType = schoolJson?.data?.type === "SHS" ? "SHS" : "Basic";
-      }
-
-      // Step 3: Check subjects count
-      const checkSubjectsRes = await fetch("/api/admin/subjects?active=1", {
-        cache: "no-store",
-      });
-      let subjectCount = 0;
-      if (checkSubjectsRes.ok) {
-        const json: any = await checkSubjectsRes.json().catch(() => ({}));
-        const list = Array.isArray(json) ? json : json?.data;
-        if (Array.isArray(list)) subjectCount = list.length;
-        else if (typeof json?.total === "number") subjectCount = json.total;
-      }
-
-      // Step 4: Auto-create subjects for Basic schools if none exist
-      if (subjectCount === 0 && schoolType === "Basic") {
-        await busy.promise(
-          fetch("/api/admin/subjects/bulk", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ names: GHANA_BASIC_SUBJECTS }),
-          }).then(async (r) => {
-            if (!r.ok) {
-              const errorText = await r.text();
-              throw new Error(errorText || "Failed to create subjects");
-            }
-          }),
-          {
-            loading: "Creating default subjects for Basic school…",
-            success: "Subjects created successfully.",
-            error: "Couldn't create subjects",
-          }
-        );
-      }
-
       setShowCreateClass(true);
     } catch (e: any) {
       busy.error(e?.message || "Couldn't prepare class creation");
@@ -1334,10 +1292,10 @@ export default function SchoolAdminOverviewPage() {
           icon={Users}
         />
         <MetricCard
-          label="Subjects"
+          label="Subject Offerings"
           value={subjects}
           accent="from-emerald-500/25 via-emerald-500/10 to-transparent"
-          subtitle="Active subjects"
+          subtitle="Active offerings"
           trend={subjectsTrend}
           icon={BookOpen}
         />

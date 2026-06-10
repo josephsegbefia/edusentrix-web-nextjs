@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  isAcceptedStudentImportFilename,
+  STUDENT_IMPORT_ACCEPTED_FILE_TYPES,
+} from "@/lib/students/student-import-file-types";
 
 type ImportResult = {
   success: boolean;
@@ -25,28 +29,44 @@ type ImportResult = {
   error?: string;
 };
 
+type ColumnRef = {
+  name: string;
+  desc: string;
+  required: boolean;
+};
+
 type StudentsImportModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When set, all imported students are assigned to this class group. */
+  classGroupId?: string;
+  classLabel?: string;
 };
 
-const CSV_TEMPLATE = `First Name,Middle Name,Last Name,Grade,Class,Admission No,Sex,Date of Birth,Status,Enrolled At
-John,,Doe,Grade 1,Class A,ADM001,male,2015-03-15,active,2024-09-01
-Jane,Mary,Smith,Grade 2,Class B,ADM002,female,2014-07-22,active,2024-09-01
-Kwame,,Asante,Grade 1,Class A,,male,,active,`;
+const SCHOOL_WIDE_TEMPLATE = `First Name,Middle Name,Last Name,Grade,Class Group,Admission No,Sex,Date of Birth,Status,Enrolled At
+Ama,,Mensah,Primary 1,A,ADM001,female,2017-05-12,active,2024-09-01
+Kofi,,Boateng,JHS 1,B,ADM002,male,2012-08-03,active,2024-09-01
+Abena,Mary,Owusu,Nursery,A,,female,,active,
+Yaw,,Darko,KG,B,,male,2019-01-20,active,
+Akua,,Sarpong,Creche,A,,female,2020-11-02,active,`;
 
-const REQUIRED_COLUMNS = [
+const CLASS_SCOPED_TEMPLATE = `First Name,Middle Name,Last Name,Admission No,Sex,Date of Birth,Status,Enrolled At
+John,,Doe,ADM001,male,2015-03-15,active,2024-09-01
+Jane,Mary,Smith,ADM002,female,2014-07-22,active,2024-09-01
+Kwame,,Asante,,male,,active,`;
+
+const SCHOOL_WIDE_COLUMNS: ColumnRef[] = [
   { name: "First Name", desc: "Student's first name", required: true },
   { name: "Middle Name", desc: "Student's middle name", required: false },
   { name: "Last Name", desc: "Student's last/surname", required: true },
   {
     name: "Grade",
-    desc: "Must match an existing grade name in your school",
+    desc: "Grade name (e.g. Primary 1, JHS 1, KG1). Spacing and KG vs KG1 are normalized automatically when possible",
     required: true,
   },
   {
-    name: "Class",
-    desc: "Must match an existing class under the specified grade",
+    name: "Class Group",
+    desc: "A, B, C, or full label (Creche A, Primary 1A). Grade + stream are combined automatically",
     required: true,
   },
   { name: "Admission No", desc: "Unique admission/ID number", required: false },
@@ -72,21 +92,33 @@ const REQUIRED_COLUMNS = [
   },
 ];
 
-function downloadTemplate() {
-  const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
+const CLASS_SCOPED_COLUMNS: ColumnRef[] = SCHOOL_WIDE_COLUMNS.filter(
+  (col) => col.name !== "Grade" && col.name !== "Class Group"
+);
+
+const ACCEPTED_FILE_TYPES = STUDENT_IMPORT_ACCEPTED_FILE_TYPES;
+
+function downloadTemplate(template: string, filename: string) {
+  const blob = new Blob([template], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "students-import-template.csv";
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
 }
 
-async function uploadCsv(file: File): Promise<ImportResult> {
+async function uploadImportFile(input: {
+  file: File;
+  classGroupId?: string;
+}): Promise<ImportResult> {
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", input.file);
+  if (input.classGroupId) {
+    formData.append("classGroupId", input.classGroupId);
+  }
 
   const res = await fetch("/api/admin/students/import", {
     method: "POST",
@@ -107,7 +139,16 @@ type Step = "upload" | "importing" | "result";
 export function StudentsImportModal({
   open,
   onOpenChange,
+  classGroupId,
+  classLabel,
 }: StudentsImportModalProps) {
+  const isClassScoped = Boolean(classGroupId);
+  const template = isClassScoped ? CLASS_SCOPED_TEMPLATE : SCHOOL_WIDE_TEMPLATE;
+  const columns = isClassScoped ? CLASS_SCOPED_COLUMNS : SCHOOL_WIDE_COLUMNS;
+  const templateFilename = isClassScoped
+    ? "class-students-import-template.csv"
+    : "students-import-template.csv";
+
   const [step, setStep] = React.useState<Step>("upload");
   const [file, setFile] = React.useState<File | null>(null);
   const [dragOver, setDragOver] = React.useState(false);
@@ -116,7 +157,8 @@ export function StudentsImportModal({
   const queryClient = useQueryClient();
 
   const importMutation = useMutation({
-    mutationFn: uploadCsv,
+    mutationFn: (selectedFile: File) =>
+      uploadImportFile({ file: selectedFile, classGroupId }),
     onMutate: () => setStep("importing"),
     onSuccess: (data) => {
       setResult(data);
@@ -124,6 +166,9 @@ export function StudentsImportModal({
       if (data.created > 0) {
         queryClient.invalidateQueries({ queryKey: ["students"] });
         queryClient.invalidateQueries({ queryKey: ["student-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["class-students"] });
+        queryClient.invalidateQueries({ queryKey: ["class"] });
+        queryClient.invalidateQueries({ queryKey: ["classes"] });
         toast.success(`Successfully imported ${data.created} student(s)`);
       }
     },
@@ -150,20 +195,23 @@ export function StudentsImportModal({
     if (!open) resetState();
   }, [open, resetState]);
 
+  const acceptFile = (selected: File | undefined) => {
+    if (!selected) return;
+    if (!isAcceptedStudentImportFilename(selected.name)) {
+      toast.error("Please upload a CSV, TXT, or Excel (.xlsx/.xls) file");
+      return;
+    }
+    setFile(selected);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) setFile(f);
+    acceptFile(e.target.files?.[0]);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const f = e.dataTransfer.files[0];
-    if (f && (f.name.endsWith(".csv") || f.type === "text/csv")) {
-      setFile(f);
-    } else {
-      toast.error("Please upload a CSV file");
-    }
+    acceptFile(e.dataTransfer.files[0]);
   };
 
   const handleImport = () => {
@@ -175,13 +223,16 @@ export function StudentsImportModal({
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Import Students"
-      description="Bulk import students from a CSV file"
+      title={isClassScoped ? "Import Students to Class" : "Import Students"}
+      description={
+        isClassScoped
+          ? `Upload a CSV or Excel file to create students in ${classLabel ?? "this class"}.`
+          : "Bulk import students from a CSV or Excel file"
+      }
       className="sm:max-w-2xl"
     >
       {step === "upload" && (
         <div className="space-y-6">
-          {/* Template download section */}
           <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-500/30 bg-teal-500/10">
@@ -189,18 +240,33 @@ export function StudentsImportModal({
               </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <p className="text-sm font-medium text-teal-200">
-                  Download the CSV template
+                  {isClassScoped
+                    ? "Download the class import template"
+                    : "Download the CSV template"}
                 </p>
                 <p className="text-xs leading-relaxed text-white/50">
-                  Use our template to ensure your data is formatted correctly.
-                  Grade and Class names must match your existing school
-                  configuration exactly.
+                  {isClassScoped ? (
+                    <>
+                      Students in this file will be created and placed in{" "}
+                      <span className="text-white/70">{classLabel}</span>. You
+                      do not need Grade or Class columns.
+                    </>
+                  ) : (
+                    <>
+                      Import accepts flexible formatting:{" "}
+                      <span className="text-white/70">Creche</span> +{" "}
+                      <span className="text-white/70">A</span>,{" "}
+                      <span className="text-white/70">CrecheA</span>, or{" "}
+                      <span className="text-white/70">Creche A</span> all resolve
+                      to the same class group when it exists in your school.
+                    </>
+                  )}
                 </p>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={downloadTemplate}
+                  onClick={() => downloadTemplate(template, templateFilename)}
                   className="gap-2 border-teal-500/30 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20"
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -210,7 +276,6 @@ export function StudentsImportModal({
             </div>
           </div>
 
-          {/* Column reference */}
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-wider text-white/40">
               Column Reference
@@ -231,7 +296,7 @@ export function StudentsImportModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {REQUIRED_COLUMNS.map((col) => (
+                  {columns.map((col) => (
                     <tr
                       key={col.name}
                       className="border-b border-white/5 last:border-0"
@@ -258,7 +323,6 @@ export function StudentsImportModal({
             </div>
           </div>
 
-          {/* Drop zone */}
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -279,7 +343,7 @@ export function StudentsImportModal({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv"
+              accept={ACCEPTED_FILE_TYPES}
               onChange={handleFileChange}
               className="hidden"
             />
@@ -315,17 +379,16 @@ export function StudentsImportModal({
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-white/80">
-                    Drop your CSV file here
+                    Drop your file here
                   </p>
                   <p className="text-xs text-white/40">
-                    or click to browse files
+                    CSV, TXT, or Excel (.xlsx/.xls)
                   </p>
                 </div>
               </>
             )}
           </div>
 
-          {/* Action buttons */}
           <div className="flex items-center justify-end gap-3">
             <Button
               type="button"
@@ -371,7 +434,6 @@ export function StudentsImportModal({
 
       {step === "result" && result && (
         <div className="space-y-6">
-          {/* Summary */}
           <div
             className={cn(
               "flex items-start gap-3 rounded-xl border p-4",
@@ -402,7 +464,9 @@ export function StudentsImportModal({
                 )}
               >
                 {result.created > 0
-                  ? `Successfully imported ${result.created} student(s)`
+                  ? `Successfully imported ${result.created} student(s)${
+                      isClassScoped && classLabel ? ` into ${classLabel}` : ""
+                    }`
                   : "Import failed"}
               </p>
               {result.error && (
@@ -421,7 +485,6 @@ export function StudentsImportModal({
             </div>
           </div>
 
-          {/* Error details */}
           {result.errors.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wider text-white/40">
@@ -443,7 +506,6 @@ export function StudentsImportModal({
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex items-center justify-end gap-3">
             {result.failed > 0 && (
               <Button

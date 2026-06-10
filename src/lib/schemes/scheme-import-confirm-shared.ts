@@ -3,6 +3,11 @@ import {
   clampSchemeItemShortText,
   clampSchemeItemShortTextOrNull,
 } from "@/lib/schemes/scheme-item-field-limits";
+import { getWeekStartMondayUtc } from "@/lib/lessons/week-dates";
+import {
+  computePlannedDatesForSchemeWeek,
+  type AcademicPeriodWeekInput,
+} from "@/lib/schemes/resolve-scheme-week";
 
 export function buildSchemeItemTitle(row: ISchemeImportParsedRow): string {
   const raw =
@@ -54,4 +59,30 @@ export function schemeImportRowToSchemeItemPayload(row: ISchemeImportParsedRow) 
     assessmentIdeas: assessment,
     notes: buildSchemeImportRowNotes(row),
   };
+}
+
+export function resolveSchemeImportItemPlannedDates(args: {
+  row: { weekNumber: number | null; weekEnding?: string | null };
+  period: AcademicPeriodWeekInput | null;
+  parseWeekEnding: (value: string | null | undefined) => Date | null;
+}): { plannedStartDate: Date | null; plannedEndDate: Date | null } {
+  const parsedEnd = args.parseWeekEnding(args.row.weekEnding);
+  if (typeof args.row.weekNumber === "number" && args.period) {
+    const computed = computePlannedDatesForSchemeWeek(
+      args.period,
+      args.row.weekNumber,
+      args.row.weekEnding
+    );
+    return {
+      plannedStartDate: computed.plannedStartDate,
+      plannedEndDate: parsedEnd ?? computed.plannedEndDate,
+    };
+  }
+  if (parsedEnd) {
+    return {
+      plannedStartDate: getWeekStartMondayUtc(parsedEnd),
+      plannedEndDate: parsedEnd,
+    };
+  }
+  return { plannedStartDate: null, plannedEndDate: null };
 }

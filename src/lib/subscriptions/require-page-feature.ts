@@ -18,7 +18,7 @@
 
 import "server-only";
 import * as React from "react";
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 import { resolveSchoolEntitlements } from "@/lib/subscriptions/resolve-school-entitlements";
 import { LockedModulePage } from "@/components/subscriptions/LockedModulePage";
 import type { FeatureKey } from "@/lib/subscriptions/feature-keys";
@@ -37,10 +37,10 @@ export async function requirePageFeature(
 ): Promise<React.ReactElement | null> {
   if (!FRONTEND_GATES_ENABLED) return null;
 
-  const user = await getCurrentUser();
-  if (!user?.schoolId) return null; // can't check without schoolId
+  const active = await resolveActiveSchoolContext();
+  if (!active.ok) return null;
 
-  const snapshot = await resolveSchoolEntitlements(user.schoolId);
+  const snapshot = await resolveSchoolEntitlements(String(active.context.schoolId));
   if (!snapshot) return null;
 
   if (snapshot.hasFeature(featureKey)) return null;

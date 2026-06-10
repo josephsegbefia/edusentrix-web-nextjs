@@ -3,7 +3,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { UserMembership } from "@/models/UserMembership";
-import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Guardian } from "@/models/Guardian";
 import { Payment } from "@/models/Payment";
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
       const teacherWatch = UserMembership.watch(pipeline, {
         fullDocument: "updateLookup",
       });
-      const subjectWatch = Subject.watch(pipeline, {
+      const subjectOfferingWatch = SubjectOffering.watch(pipeline, {
         fullDocument: "updateLookup",
       });
       const periodWatch = AcademicPeriod.watch(pipeline, {
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
             schoolId,
             roles: { $in: ["teacher"] },
           }),
-          Subject.countDocuments({ schoolId }),
+          SubjectOffering.countDocuments({ schoolId, isActive: true }),
         ]);
         send("students.updated", { total: students });
         send("teachers.updated", { total: teachers });
@@ -134,7 +134,7 @@ export async function GET(req: NextRequest) {
 
       studentWatch.on("change", onChangeCounts);
       teacherWatch.on("change", onChangeCounts);
-      subjectWatch.on("change", onChangeCounts);
+      subjectOfferingWatch.on("change", onChangeCounts);
       periodWatch.on("change", onChangePeriod);
 
       // Handle guardian changes - filter by student's schoolId
@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
       closeables.push(
         studentWatch,
         teacherWatch,
-        subjectWatch,
+        subjectOfferingWatch,
         periodWatch,
         guardianWatch,
         attendanceWatch,

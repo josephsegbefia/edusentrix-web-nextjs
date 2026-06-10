@@ -2,10 +2,10 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
 import { Student } from "@/models/Student";
-import { LessonSession } from "@/models/LessonSession";
 import { assertLessonsModuleEnabled, assertLessonsFeatureEnabled } from "@/lib/lessons/settings";
 import { normalizeContentBlocks } from "@/lib/lessons/content-blocks";
 import { formatStudentSessionContent } from "@/lib/lessons/student-session-payload";
+import { loadStudentAccessibleSession } from "@/lib/lessons/student-session-access";
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
   try {
@@ -53,19 +53,20 @@ export async function GET(
       return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
     }
 
-    const session = await LessonSession.findOne({
-      _id: sessionOid,
+    const { session, delivery } = await loadStudentAccessibleSession({
+      sessionId: sessionOid,
       schoolId: context.schoolId,
-      classGroupId: student.classGroupId,
-      studentVisibility: "published",
-    }).lean();
+      studentClassGroupId: student.classGroupId,
+    });
 
     if (!session) {
       return Response.json({ success: false, error: "Lesson not found" }, { status: 404 });
     }
 
     const blocks = normalizeContentBlocks(session.contentBlocks ?? []);
-    const payload = formatStudentSessionContent(session, blocks);
+    const payload = formatStudentSessionContent(session, blocks, {
+      deliveryStatus: delivery?.status ?? null,
+    });
 
     return Response.json({ success: true, data: payload });
   } catch (e: unknown) {

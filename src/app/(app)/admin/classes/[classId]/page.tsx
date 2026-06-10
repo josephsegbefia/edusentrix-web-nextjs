@@ -35,6 +35,7 @@ import { AssignSubjectsToClassModal } from "@/components/modals/AssignSubjectsTo
 import { SubjectTeacherAssignmentWizard } from "@/components/modals/SubjectTeacherAssignmentWizard";
 import { AddStudentToClassModal } from "@/components/modals/AddStudentToClassModal";
 import { AssignClassRoleModal } from "@/components/modals/AssignClassRoleModal";
+import { StudentsImportModal } from "@/components/admin/students/StudentsImportModal";
 
 function ClassDetailContent() {
   const params = useParams<{ classId: string }>();
@@ -51,6 +52,7 @@ function ClassDetailContent() {
   const [assignSubjectsOpen, setAssignSubjectsOpen] = React.useState(false);
   const [assignmentWizardOpen, setAssignmentWizardOpen] = React.useState(false);
   const [addStudentOpen, setAddStudentOpen] = React.useState(false);
+  const [importStudentsOpen, setImportStudentsOpen] = React.useState(false);
   const [assignRoleOpen, setAssignRoleOpen] = React.useState(false);
 
   const { data, isLoading, isError } = useClassDetail(classId);
@@ -317,6 +319,7 @@ function ClassDetailContent() {
             classId={classData.id}
             className={classData.fullLabel}
             onAddStudent={() => setAddStudentOpen(true)}
+            onImportStudents={() => setImportStudentsOpen(true)}
           />
         ) : activeTab === "subjects" ? (
           <ClassSubjectsTeachersTab
@@ -388,6 +391,12 @@ function ClassDetailContent() {
         onOpenChange={setAddStudentOpen}
         classId={classData.id}
         className={classData.fullLabel}
+      />
+      <StudentsImportModal
+        open={importStudentsOpen}
+        onOpenChange={setImportStudentsOpen}
+        classGroupId={classData.id}
+        classLabel={classData.fullLabel}
       />
       <AssignClassRoleModal
         open={assignRoleOpen}

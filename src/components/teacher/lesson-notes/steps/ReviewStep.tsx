@@ -137,7 +137,7 @@ export function ReviewStep({ formData, classOptions, onEdit }: ReviewStepProps) 
             <p className="font-medium text-white">{formatDate(formData.weekOf)}</p>
           </div>
           <div>
-            <p className="text-xs text-white/50">Duration</p>
+            <p className="text-xs text-white/50">Period length</p>
             <p className="font-medium text-white">
               {formData.durationMinutes || totalTime || "—"} min
             </p>

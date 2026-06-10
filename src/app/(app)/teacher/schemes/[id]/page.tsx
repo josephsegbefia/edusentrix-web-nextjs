@@ -9,16 +9,8 @@ export default function TeacherSchemeDetailPage() {
   const schemeId = useMemo(() => String(params?.id || ""), [params]);
 
   if (!schemeId) {
-    return (
-      <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
-        <p className="text-sm text-white/70">Missing scheme id.</p>
-      </div>
-    );
+    return <p className="text-sm text-white/70">Missing scheme id.</p>;
   }
 
-  return (
-    <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
-      <TeacherSchemeReadOnlyView schemeId={schemeId} />
-    </div>
-  );
+  return <TeacherSchemeReadOnlyView schemeId={schemeId} />;
 }

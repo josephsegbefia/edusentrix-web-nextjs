@@ -139,6 +139,21 @@ timetableSlotSchema.index({
   dayOfWeek: 1,
   startTime: 1,
 });
+timetableSlotSchema.index(
+  {
+    schoolId: 1,
+    academicPeriodId: 1,
+    versionId: 1,
+    classGroupId: 1,
+    dayOfWeek: 1,
+    startTime: 1,
+    endTime: 1,
+  },
+  {
+    unique: true,
+    name: "uniq_timetable_slot_class_period",
+  }
+);
 timetableSlotSchema.index({
   schoolId: 1,
   academicPeriodId: 1,

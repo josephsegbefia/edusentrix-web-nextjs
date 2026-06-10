@@ -71,6 +71,13 @@ const TeacherSchema = new Schema(
       index: true,
     },
     subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject", index: true }],
+    subjectOfferingIds: [
+      { type: Schema.Types.ObjectId, ref: "SubjectOffering", index: true },
+    ],
+    /** Grade-scoped subject offerings this teacher is cleared to teach. */
+    subjectOfferingIds: [
+      { type: Schema.Types.ObjectId, ref: "SubjectOffering", index: true },
+    ],
     homeroomClassGroupId: {
       type: Schema.Types.ObjectId,
       ref: "ClassGroup",
@@ -84,7 +91,12 @@ const TeacherSchema = new Schema(
       index: true,
     },
     // Professional details
-    employeeId: { type: String, trim: true },
+    employeeId: {
+      type: String,
+      trim: true,
+      set: (value: unknown) =>
+        typeof value === "string" && value.trim() ? value.trim() : undefined,
+    },
     hireDate: { type: Date },
     terminationDate: { type: Date },
     leaveStartDate: { type: Date, default: null },
@@ -116,10 +128,14 @@ const TeacherSchema = new Schema(
 // One teacher per user school
 TeacherSchema.index({ userId: 1, schoolId: 1 }, { unique: true });
 
-// employeeId unique per school (optional)
+// employeeId is optional. Use a partial index so teachers without employee IDs
+// do not collide as `{ employeeId: null }` within the same school.
 TeacherSchema.index(
   { schoolId: 1, employeeId: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    partialFilterExpression: { employeeId: { $type: "string" } },
+  }
 );
 TeacherSchema.index({ schoolId: 1, status: 1, leaveEndDate: 1 });
 

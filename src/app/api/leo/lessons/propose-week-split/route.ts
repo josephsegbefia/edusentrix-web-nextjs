@@ -8,7 +8,11 @@ import {
   requireLessonsLeoTeacherContext,
   runLessonsLeoCompletion,
 } from "@/lib/leo/lessons-draft-shared";
-import { getAllocatableNoteSectionKeys } from "@/lib/lessons/note-sections";
+import {
+  getSplittableNoteSectionKeys,
+  getWeekReferenceNoteContext,
+  normalizeSplittableSectionKeys,
+} from "@/lib/lessons/note-sections";
 import { validateCoverageWeights } from "@/lib/lessons/content-blocks";
 
 const BodySchema = z.object({
@@ -53,7 +57,8 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
     }
 
-    const sectionKeys = getAllocatableNoteSectionKeys(note);
+    const sectionKeys = getSplittableNoteSectionKeys(note);
+    const weekReference = getWeekReferenceNoteContext(note);
     const payload = lessonNoteToLeoContext(note);
     const teachingMetadata = await lessonNoteTeachingMetadata(note);
     const schemeContext = await buildSchemeItemsContext(note);
@@ -77,18 +82,26 @@ export async function POST(req: Request) {
     }
   ]
 }
-Allowed noteSectionKeys: ${JSON.stringify(sectionKeys)}`,
+Allowed noteSectionKeys (splittable only): ${JSON.stringify(sectionKeys)}
+Do NOT assign context or curriculum to individual sessions — those are week-level reference.`,
       userPrompt: `Propose a pedagogical teaching progression for this approved weekly lesson note across ${parsed.data.sessions.length} teaching sessions.
 
 Important:
 - Consecutive timetable periods may already be grouped as one double period. Treat a grouped double period as ONE longer teaching session, not two separate lessons.
-- Split by what learners should understand and practise in sequence, not by mechanically assigning note sections.
+- Split the teachable content across sessions: focus on body (main teaching activities), resources used during body work, and assessment (usually closing session(s)).
+- Do NOT assign context or curriculum to sessions. They are week-level reference only (see weekReference below).
+- When a session covers body content, include "resources" in noteSectionKeys for that session (materials used in that period).
+- Split body content by subtopic/learning sequence — each session must cover a distinct portion. No overlapping focus across sessions.
+- Session 2 onwards should build on earlier sessions; their focusSummary should assume prior sessions were taught (review happens in class, not by repeating the same body chunk).
 - Make each focusSummary specific enough for a teacher to teach from.
 - For Mathematics, sequence concrete examples before abstract rules, then guided practice, then independent checks.
 - Use clear, encouraging, age-appropriate language for the implied grade.
 - Do not use abusive, offensive, profane, demeaning, or discouraging wording.
 - Keep the split grounded in the note. Do not invent unsupported curriculum codes.
 - Coverage weights must reflect teaching time and importance and sum to 1.
+
+Week reference (context + curriculum — not split per session):
+${JSON.stringify(weekReference)}
 
 Lesson note JSON:
 ${payload}
@@ -110,9 +123,10 @@ ${sessionsJson}`,
       const input = parsed.data.sessions[index] || parsed.data.sessions.find(
         (s) => s.timetableSlotId === row.timetableSlotId,
       );
-      const keys = Array.isArray(row.noteSectionKeys)
-        ? (row.noteSectionKeys as string[]).filter((k) => sectionKeys.includes(k))
-        : [];
+      const keys = normalizeSplittableSectionKeys(
+        Array.isArray(row.noteSectionKeys) ? (row.noteSectionKeys as string[]) : [],
+        sectionKeys,
+      );
       return {
         timetableSlotId: String(row.timetableSlotId || input?.timetableSlotId || ""),
         timetableSlotIds: Array.isArray(row.timetableSlotIds)

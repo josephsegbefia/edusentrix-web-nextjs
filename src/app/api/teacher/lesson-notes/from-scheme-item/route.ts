@@ -3,14 +3,18 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
 import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 import { resolveLessonNoteSubjectOffering } from "@/lib/lesson-notes/resolve-note-subject-offering";
-import { getGhanaTodayDate, getMondayForGhanaWeek, parseGhanaDateLabel } from "@/lib/time/ghana";
-import type { LessonNoteTemplateType } from "@/types/lesson-notes";
+import { loadCurrentSchemeWeekForSchool } from "@/lib/schemes/load-current-scheme-week";
+import { resolveSchemeItemCalendarRange } from "@/lib/schemes/resolve-scheme-week";
+import { listTimetableSlotsForClassSubjectWeek } from "@/lib/lessons/timetable-slots-for-week";
+import { getGhanaTodayDate } from "@/lib/time/ghana";
+import type { LessonNotePeriodPlanningContext, LessonNoteTemplateType } from "@/types/lesson-notes";
 
 /**
  * Detect NaCCA/GES-style scheme rows (Ghana national curriculum import).
@@ -208,12 +212,31 @@ export async function GET(req: Request) {
     }
 
     const indicatorTexts = splitIndicators(item.indicator);
-    const weekEndingDate =
-      item.plannedEndDate || parseGhanaDateLabel(item.weekEndingLabel) || null;
-    const weekOf =
-      item.plannedStartDate ||
-      (weekEndingDate ? getMondayForGhanaWeek(new Date(weekEndingDate)) : getGhanaTodayDate());
+    const [period, currentSchemeWeek] = await Promise.all([
+      scheme.academicPeriodId
+        ? AcademicPeriod.findOne({
+            _id: scheme.academicPeriodId,
+            schoolId: context.schoolId,
+          })
+            .select("startDate endDate yearLabel term")
+            .lean<{ startDate: Date; endDate: Date; yearLabel: string; term: string } | null>()
+        : Promise.resolve(null),
+      loadCurrentSchemeWeekForSchool(context.schoolId, {
+        academicPeriodId: scheme.academicPeriodId ?? null,
+      }),
+    ]);
+
+    const itemWeekRange = resolveSchemeItemCalendarRange(
+      item,
+      period ? { startDate: period.startDate, endDate: period.endDate } : null
+    );
+    const weekOf = itemWeekRange?.weekStart ?? getGhanaTodayDate();
+    const weekEndingDate = itemWeekRange?.weekEnd ?? null;
     const lessonDate = getGhanaTodayDate();
+    const alignsWithCurrentSchoolWeek =
+      currentSchemeWeek.status === "active" &&
+      typeof item.weekNumber === "number" &&
+      currentSchemeWeek.weekNumber === item.weekNumber;
     const topic = item.title || item.topic || "Lesson from Scheme of Learning";
 
     // All learning objectives — use every entry, not just the first.
@@ -235,6 +258,32 @@ export async function GET(req: Request) {
 
     const body = buildBodyForTemplate(templateType, item, bodyContent);
 
+    let periodPlanning: LessonNotePeriodPlanningContext = {
+      periodsThisWeek: null,
+      typicalPeriodMinutes: 40,
+      hasPublishedTimetable: false,
+    };
+
+    if (weekEndingDate) {
+      const timetable = await listTimetableSlotsForClassSubjectWeek({
+        schoolId: context.schoolId,
+        classGroupId: targetClassGroupId,
+        subjectOfferingId: resolvedSubjectOfferingId,
+        subjectId: scheme.subjectId ?? null,
+        weekStartDate: weekOf,
+        weekEndDate: weekEndingDate,
+        teacherId: context.teacherId,
+      });
+      periodPlanning = {
+        periodsThisWeek: timetable.slots.length,
+        typicalPeriodMinutes: timetable.slots[0]?.durationMinutes ?? 40,
+        hasPublishedTimetable: timetable.hasPublishedTimetable,
+      };
+    }
+
+    const durationMinutes =
+      item.suggestedDurationMinutes ?? periodPlanning.typicalPeriodMinutes;
+
     return Response.json({
       success: true,
       data: {
@@ -247,7 +296,7 @@ export async function GET(req: Request) {
           date: lessonDate.toISOString(),
           weekEndingDate: weekEndingDate ? new Date(weekEndingDate).toISOString() : undefined,
           topic,
-          durationMinutes: item.suggestedDurationMinutes ?? 40,
+          durationMinutes,
           references: uniqueStrings([item.contentStandard, ...indicatorTexts]),
           curriculum: {
             strand: item.strand || "",
@@ -276,11 +325,14 @@ export async function GET(req: Request) {
         },
         item: {
           id: String(item._id),
-          title,
+          title: topic,
           weekNumber: item.weekNumber ?? null,
           weekEndingDate: weekEndingDate ? new Date(weekEndingDate).toISOString() : null,
           weekEndingLabel: item.weekEndingLabel ?? null,
+          alignsWithCurrentSchoolWeek,
         },
+        currentSchemeWeek,
+        periodPlanning,
       },
     });
   } catch (error: unknown) {

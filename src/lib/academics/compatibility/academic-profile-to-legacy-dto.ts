@@ -21,10 +21,37 @@ function mapProfileDataSource(
 ): StudentAcademicsDataSource {
   if (source === "legacy") return "legacy";
   if (source === "mixed") return "mixed";
-  if (source === "report_snapshot" || source === "subject_results") {
+  if (
+    source === "report_snapshot" ||
+    source === "subject_results" ||
+    source === "live_gradebook"
+  ) {
     return "assessment_engine";
   }
   return "legacy";
+}
+
+/** Maps profile or legacy DTO sources to a notice variant, or null when no banner should show. */
+export function resolveAcademicsDataSourceNotice(
+  source:
+    | StudentAcademicProfileDTO["dataSource"]
+    | StudentAcademicsDataSource
+    | undefined
+    | null
+): StudentAcademicsDataSource | null {
+  if (!source) return null;
+  if (source === "assessment_engine") return null;
+  if (source === "legacy") return "legacy";
+  if (source === "mixed") return "mixed";
+  if (
+    source === "report_snapshot" ||
+    source === "subject_results" ||
+    source === "live_gradebook" ||
+    source === "none"
+  ) {
+    return null;
+  }
+  return null;
 }
 
 function mapProfileSubjectRow(

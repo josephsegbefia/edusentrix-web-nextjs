@@ -26,11 +26,20 @@ type SessionResponse = {
   error?: string;
 };
 
-export function useTeacherLessonSession(sessionId: string | null) {
+export function useTeacherLessonSession(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   return useQuery<SessionResponse>({
-    queryKey: ["teacher-lesson-session", sessionId],
+    queryKey: ["teacher-lesson-session", sessionId, classGroupId ?? null],
     queryFn: async () => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}`, { cache: "no-store" });
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}${qs ? `?${qs}` : ""}`,
+        { cache: "no-store" },
+      );
       const json = (await res.json().catch(() => null)) as SessionResponse | null;
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to load session");
@@ -53,15 +62,24 @@ type SessionPatch = {
   assessmentItems?: LessonAssessmentItem[];
 };
 
-export function useUpdateTeacherLessonSession(sessionId: string | null) {
+export function useUpdateTeacherLessonSession(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (patch: SessionPatch) => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}`, {
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const qs = params.toString();
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}${qs ? `?${qs}` : ""}`,
+        {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
+          body: JSON.stringify(patch),
+        },
+      );
       const json = (await res.json().catch(() => null)) as SessionResponse | null;
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to update session");
@@ -76,8 +94,8 @@ export function useUpdateTeacherLessonSession(sessionId: string | null) {
 }
 
 /** Alias for useUpdateTeacherLessonSession — accepts non-null sessionId. */
-export function useUpdateLessonSession(sessionId: string) {
-  return useUpdateTeacherLessonSession(sessionId);
+export function useUpdateLessonSession(sessionId: string, classGroupId?: string | null) {
+  return useUpdateTeacherLessonSession(sessionId, classGroupId);
 }
 
 export function useUpdateLessonDelivery() {

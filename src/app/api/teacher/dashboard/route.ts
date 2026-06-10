@@ -10,22 +10,26 @@ import { Submission } from "@/models/Submission";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
-import { getPublishedWeekTimetable } from "@/lib/timetable/read-model";
+import { Subject } from "@/models/Subject";
+import { formatDateYmd, getPublishedWeekTimetable } from "@/lib/timetable/read-model";
 import { getTeacherStudioEnabledForSchool } from "@/lib/features/teacherStudio";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { calculateAtRiskStudents, calculateMissingMarks } from "@/lib/teacher/analytics";
+import {
+  resolveCurrentSchoolSchemeWeek,
+  schemeItemOverlapsCalendarWeek,
+} from "@/lib/schemes/resolve-scheme-week";
+import {
+  loadTeacherAssignmentScopes,
+  teacherAssignedSchemeListFilter,
+} from "@/lib/schemes/teacher-assigned-schemes";
 
 type PopulatedClassGroup = {
   _id: mongoose.Types.ObjectId;
   name: string;
   gradeId?: mongoose.Types.ObjectId | null;
   homeroomTeacherId?: mongoose.Types.ObjectId | null;
-};
-
-type PopulatedSubject = {
-  _id: mongoose.Types.ObjectId;
-  name: string;
 };
 
 type ScheduleSlot = {
@@ -36,7 +40,7 @@ type ScheduleSlot = {
 
 type TeacherDashboardAssignmentLean = {
   classGroupId?: PopulatedClassGroup | mongoose.Types.ObjectId | null;
-  subjectId?: PopulatedSubject | mongoose.Types.ObjectId | null;
+  subjectId?: mongoose.Types.ObjectId | null;
   schedules?: ScheduleSlot[];
   schedule?: ScheduleSlot | null;
 };
@@ -58,6 +62,20 @@ type TodayScheduleRow = {
   subjectName: string;
   startTime: string | null;
   endTime: string | null;
+  date: string;
+};
+
+type WeekScheduleDay = {
+  date: string;
+  dayOfWeek: number;
+  isToday: boolean;
+  slots: TodayScheduleRow[];
+};
+
+type WeekSchedulePayload = {
+  weekStart: string;
+  weekEnd: string;
+  days: WeekScheduleDay[];
 };
 
 type DashboardSchemeRow = {
@@ -77,28 +95,11 @@ function isPopulatedClassGroup(
   return Boolean(value && typeof value === "object" && "_id" in value && "name" in value);
 }
 
-function isPopulatedSubject(
-  value: TeacherDashboardAssignmentLean["subjectId"]
-): value is PopulatedSubject {
-  return Boolean(value && typeof value === "object" && "_id" in value && "name" in value);
-}
-
 function toMinutes(time?: string | null) {
   if (!time) return Number.MAX_SAFE_INTEGER;
   const [hh, mm] = time.split(":").map((v) => Number(v));
   if (Number.isNaN(hh) || Number.isNaN(mm)) return Number.MAX_SAFE_INTEGER;
   return hh * 60 + mm;
-}
-
-function weekBounds(date: Date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const diff = (start.getDay() + 6) % 7;
-  start.setDate(start.getDate() - diff);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
 }
 
 export async function GET() {
@@ -107,14 +108,19 @@ export async function GET() {
     await connectToDatabase();
 
     const today = new Date();
-    const dayOfWeek = today.getDay();
 
     const currentPeriod = await AcademicPeriod.findOne({
       schoolId: context.schoolId,
       isCurrent: true,
     })
-      .select("_id yearLabel term")
-      .lean();
+      .select("_id yearLabel term startDate endDate")
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        yearLabel: string;
+        term: string;
+        startDate: Date;
+        endDate: Date;
+      } | null>();
 
     if (!currentPeriod) {
       return Response.json({
@@ -130,7 +136,9 @@ export async function GET() {
             date: today.toISOString(),
             schedule: [],
           },
+          weekSchedule: null,
           thisWeekSchemeRows: [],
+          currentSchemeWeek: null,
           queues: [],
         },
       });
@@ -144,6 +152,7 @@ export async function GET() {
     })
       .populate("classGroupId", "name gradeId homeroomTeacherId")
       .populate("subjectId", "name")
+      .populate("subjectOfferingId", "subjectId")
       .lean<TeacherDashboardAssignmentLean[]>();
 
     const totalClasses = assignments.length;
@@ -202,25 +211,6 @@ export async function GET() {
         grade.name,
       ])
     );
-
-    const assignmentPairs = assignments
-      .map((assignment) => {
-        const group = assignment.classGroupId;
-        const subject = assignment.subjectId;
-        const classGroupId = group
-          ? isPopulatedClassGroup(group)
-            ? String(group._id)
-            : String(group)
-          : "";
-        const subjectId = subject
-          ? isPopulatedSubject(subject)
-            ? String(subject._id)
-            : String(subject)
-          : "";
-        if (!classGroupId || !subjectId) return null;
-        return { classGroupId, subjectId };
-      })
-      .filter(Boolean) as Array<{ classGroupId: string; subjectId: string }>;
 
     const totalStudents = Array.from(studentCountMap.values()).reduce(
       (sum, count) => sum + count,
@@ -294,6 +284,8 @@ export async function GET() {
     }
 
     let schedule: TodayScheduleRow[] = [];
+    let weekSchedule: WeekSchedulePayload | null = null;
+    const todayYmd = formatDateYmd(today);
     const weekly = await getPublishedWeekTimetable({
       schoolId: context.schoolId,
       targetDate: today,
@@ -301,17 +293,27 @@ export async function GET() {
       teacherId: context.teacherId,
     });
     if (!("error" in weekly) && weekly.data?.days) {
-      const todaySlots = weekly.data.days.find((d) => d.dayOfWeek === dayOfWeek)?.slots || [];
-      schedule = todaySlots
-        .map((slot) => ({
-          classGroupId: slot.classGroupId || "",
-          className: [slot.gradeName, slot.classGroupName].filter(Boolean).join(" ").trim() || "",
-          subjectId: slot.subjectId || "",
-          subjectName: slot.subjectName || "",
-          startTime: slot.startTime || null,
-          endTime: slot.endTime || null,
-        }))
-        .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+      weekSchedule = {
+        weekStart: weekly.data.weekStart,
+        weekEnd: weekly.data.weekEnd,
+        days: weekly.data.days.map((day) => ({
+          date: day.date,
+          dayOfWeek: day.dayOfWeek,
+          isToday: day.date === todayYmd,
+          slots: (day.slots || [])
+            .map((slot) => ({
+              classGroupId: slot.classGroupId || "",
+              className: [slot.gradeName, slot.classGroupName].filter(Boolean).join(" ").trim() || "",
+              subjectId: slot.subjectId || "",
+              subjectName: slot.subjectName || "",
+              startTime: slot.startTime || null,
+              endTime: slot.endTime || null,
+              date: day.date,
+            }))
+            .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime)),
+        })),
+      };
+      schedule = weekSchedule.days.find((day) => day.isToday)?.slots || [];
     }
 
     const attendanceQueueCount = context.homeroomClassGroupId
@@ -320,23 +322,45 @@ export async function GET() {
         : 1
       : 0;
 
+    const currentSchemeWeek = currentPeriod
+      ? resolveCurrentSchoolSchemeWeek({
+          period: {
+            startDate: currentPeriod.startDate,
+            endDate: currentPeriod.endDate,
+          },
+          academicPeriodId: String(currentPeriod._id),
+          academicPeriodLabel: `${currentPeriod.yearLabel} • ${currentPeriod.term}`,
+        })
+      : null;
+
     let thisWeekSchemeRows: DashboardSchemeRow[] = [];
-    if (assignmentPairs.length > 0) {
-      const { start: weekStart, end: weekEnd } = weekBounds(today);
-      const activeSchemes = (await SchemeOfWork.find({
-        schoolId: context.schoolId,
-        academicPeriodId: currentPeriod._id,
-        status: "active",
-        $or: assignmentPairs.map((pair) => ({
-          classGroupId: new mongoose.Types.ObjectId(pair.classGroupId),
-          subjectId: new mongoose.Types.ObjectId(pair.subjectId),
-        })),
-      })
-        .select("_id title classGroupId subjectId")
+    const schemeListFilter = await teacherAssignedSchemeListFilter({
+      schoolId: context.schoolId,
+      teacherId: context.teacherId,
+    });
+    if (
+      schemeListFilter &&
+      currentSchemeWeek?.weekStartDate &&
+      currentSchemeWeek.weekEndDate &&
+      currentPeriod
+    ) {
+      const weekStart = new Date(`${currentSchemeWeek.weekStartDate}T00:00:00.000Z`);
+      const weekEnd = new Date(`${currentSchemeWeek.weekEndDate}T00:00:00.000Z`);
+      const periodInput = {
+        startDate: currentPeriod.startDate,
+        endDate: currentPeriod.endDate,
+      };
+      const assignmentScopes = await loadTeacherAssignmentScopes(
+        { schoolId: context.schoolId, teacherId: context.teacherId },
+        currentPeriod._id
+      );
+
+      const visibleSchemes = (await SchemeOfWork.find(schemeListFilter)
+        .select("_id title classGroupId gradeId subjectId subjectOfferingId")
         .lean()) as ISchemeOfWork[];
 
-      const schemeIds = activeSchemes.map((scheme) => scheme._id);
-      const schemeMap = new Map(activeSchemes.map((scheme) => [String(scheme._id), scheme]));
+      const schemeIds = visibleSchemes.map((scheme) => scheme._id);
+      const schemeMap = new Map(visibleSchemes.map((scheme) => [String(scheme._id), scheme]));
       const classNameById = new Map(
         assignments
           .map((assignment) => {
@@ -347,15 +371,37 @@ export async function GET() {
           })
           .filter(Boolean) as Array<readonly [string, string]>
       );
+      const scopedSubjectIds = [
+        ...new Set(assignmentScopes.map((scope) => String(scope.subjectId))),
+      ].map((id) => new mongoose.Types.ObjectId(id));
+      const scopedSubjects = scopedSubjectIds.length
+        ? await Subject.find({ _id: { $in: scopedSubjectIds }, schoolId: context.schoolId })
+            .select("name")
+            .lean<Array<{ _id: mongoose.Types.ObjectId; name: string }>>()
+        : [];
       const subjectNameById = new Map(
-        assignments
-          .map((assignment) => {
-            const subject = assignment.subjectId;
-            if (!isPopulatedSubject(subject)) return null;
-            return [String(subject._id), subject.name] as const;
-          })
-          .filter(Boolean) as Array<readonly [string, string]>
+        scopedSubjects.map((subject) => [String(subject._id), subject.name] as const)
       );
+
+      function classNamesForScheme(scheme: ISchemeOfWork): string {
+        if (scheme.classGroupId) {
+          return classNameById.get(String(scheme.classGroupId)) || "";
+        }
+        const matchingScopes = assignmentScopes.filter((scope) => {
+          const gradeMatches = scheme.gradeId && String(scope.gradeId) === String(scheme.gradeId);
+          const subjectMatches =
+            scheme.subjectId && String(scope.subjectId) === String(scheme.subjectId);
+          const offeringMatches =
+            scheme.subjectOfferingId &&
+            scope.subjectOfferingId &&
+            String(scope.subjectOfferingId) === String(scheme.subjectOfferingId);
+          return gradeMatches && (subjectMatches || offeringMatches);
+        });
+        const names = matchingScopes
+          .map((scope) => classNameById.get(String(scope.classGroupId)) || "")
+          .filter(Boolean);
+        return Array.from(new Set(names)).join(" · ");
+      }
 
       const items = schemeIds.length
         ? ((await SchemeItem.find({
@@ -363,18 +409,19 @@ export async function GET() {
             schemeId: { $in: schemeIds },
             status: { $ne: "dropped" },
             coverageStatus: { $nin: ["covered", "skipped"] },
-            $or: [
-              { plannedStartDate: { $lte: weekEnd }, plannedEndDate: { $gte: weekStart } },
-              { plannedStartDate: null, plannedEndDate: { $gte: weekStart, $lte: weekEnd } },
-              { plannedStartDate: { $gte: weekStart, $lte: weekEnd }, plannedEndDate: null },
-            ],
           })
-            .sort({ plannedStartDate: 1, plannedEndDate: 1, weekNumber: 1, sequence: 1 })
-            .limit(8)
+            .sort({ weekNumber: 1, plannedStartDate: 1, plannedEndDate: 1, sequence: 1 })
+            .limit(80)
             .lean()) as ISchemeItem[])
         : [];
 
-      thisWeekSchemeRows = items.map((item) => {
+      const currentWeekItems = items
+        .filter((item) =>
+          schemeItemOverlapsCalendarWeek(item, periodInput, weekStart, weekEnd)
+        )
+        .slice(0, 8);
+
+      thisWeekSchemeRows = currentWeekItems.map((item) => {
         const scheme = schemeMap.get(String(item.schemeId));
         return {
           id: String(item._id),
@@ -382,7 +429,7 @@ export async function GET() {
           schemeTitle: scheme?.title || "Scheme of Learning",
           title: item.title || item.topic || "Scheme row",
           weekNumber: item.weekNumber ?? null,
-          className: scheme?.classGroupId ? classNameById.get(String(scheme.classGroupId)) || "" : "",
+          className: scheme ? classNamesForScheme(scheme) : "",
           subjectName: scheme?.subjectId ? subjectNameById.get(String(scheme.subjectId)) || "" : "",
           coverageStatus: item.coverageStatus || "not_started",
         };
@@ -444,7 +491,9 @@ export async function GET() {
           date: today.toISOString(),
           schedule,
         },
+        weekSchedule,
         thisWeekSchemeRows,
+        currentSchemeWeek,
         queues,
       },
     });

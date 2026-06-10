@@ -7,14 +7,20 @@ type SubstituteResponse = {
   error?: string;
 };
 
-export function useAssignSessionSubstitute(sessionId: string | null) {
+export function useAssignSessionSubstitute(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: {
       substituteTeacherId: string;
       substituteReason?: "leave" | "absence" | "delegation" | "other";
     }) => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/substitute`, {
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const query = params.toString() ? `?${params}` : "";
+      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/substitute${query}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -32,11 +38,17 @@ export function useAssignSessionSubstitute(sessionId: string | null) {
   });
 }
 
-export function useClearSessionSubstitute(sessionId: string | null) {
+export function useClearSessionSubstitute(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/substitute`, {
+      const params = new URLSearchParams();
+      if (classGroupId) params.set("classGroupId", classGroupId);
+      const query = params.toString() ? `?${params}` : "";
+      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/substitute${query}`, {
         method: "DELETE",
       });
       const json = (await res.json().catch(() => null)) as SubstituteResponse | null;

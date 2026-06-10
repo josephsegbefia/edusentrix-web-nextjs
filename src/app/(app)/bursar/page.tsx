@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/get-current-user";
-import { assertRole } from "@/lib/auth/guards";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 
 export default async function BursarHomePage() {
-  const user = await requireUser();
-  assertRole(user, ["bursar"]);
+  await requireFinanceStaff({ mode: "page" });
   redirect("/admin/finance");
 }

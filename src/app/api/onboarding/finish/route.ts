@@ -2,9 +2,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 import connectToDatabase from "@/db/connectToDatabase";
-import { User, IUser } from "@/models/User";
+import { User } from "@/models/User";
 import { School, type ISchool } from "@/models/School";
 import { enqueueSchoolPaymentProvisioning } from "@/lib/jobs/payment-provisioning";
 import {
@@ -13,6 +12,8 @@ import {
 } from "@/lib/school-payments/payment-setup";
 import { applyLaunchCurriculum } from "@/lib/onboarding/launch-curriculum";
 import { runMongoTransaction } from "@/lib/mongoose/run-transaction";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
+import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 
 const BodySchema = z
   .object({
@@ -33,8 +34,9 @@ const BodySchema = z
 
 export async function POST(req: Request) {
   const { userId } = await auth();
-  if (!userId)
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const raw = await req.json().catch(() => ({}));
   const parsed = BodySchema.safeParse(raw);
@@ -45,21 +47,27 @@ export async function POST(req: Request) {
   const body = parsed.data;
   const periodList = body?.periods;
 
-  await connectToDatabase();
-  const meRaw = await User.findOne({ clerkUserId: userId })
-    .select("schoolId")
-    .lean();
-  const me = (Array.isArray(meRaw) ? meRaw[0] : meRaw) as Pick<
-    IUser,
-    "schoolId"
-  > | null;
-  if (!me?.schoolId)
-    return NextResponse.json({ error: "No linked school" }, { status: 400 });
+  const active = await resolveActiveSchoolContext({ clerkUserId: userId });
+  if (!active.ok) {
+    return NextResponse.json(
+      {
+        error:
+          active.reason === "needs_school_selection"
+            ? "School selection required"
+            : "No linked school",
+      },
+      { status: active.reason === "needs_school_selection" ? 409 : 400 }
+    );
+  }
 
-  const schoolIdObj =
-    me.schoolId instanceof mongoose.Types.ObjectId
-      ? me.schoolId
-      : new mongoose.Types.ObjectId(String(me.schoolId));
+  const adminGate = gateSchoolAdminRoles(active.context.roles);
+  if (!adminGate.ok) {
+    return NextResponse.json({ error: "School admin access required" }, { status: 403 });
+  }
+
+  const schoolIdObj = active.context.schoolId;
+
+  await connectToDatabase();
 
   try {
     await runMongoTransaction(async (session) => {
@@ -74,7 +82,7 @@ export async function POST(req: Request) {
       }
 
       await User.updateOne(
-        { clerkUserId: userId },
+        { _id: active.context.userId },
         { $set: { pendingOnboarding: false } },
         { session }
       );
@@ -95,7 +103,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  const school = await School.findById(me.schoolId)
+  const school = await School.findById(schoolIdObj)
     .select("bank billing")
     .lean<Pick<ISchool, "bank" | "billing"> | null>();
 
@@ -105,7 +113,7 @@ export async function POST(req: Request) {
     deriveSchoolPaymentSetupStatus(school) !== "review_required"
   ) {
     await enqueueSchoolPaymentProvisioning({
-      schoolId: me.schoolId,
+      schoolId: schoolIdObj,
     });
   }
 

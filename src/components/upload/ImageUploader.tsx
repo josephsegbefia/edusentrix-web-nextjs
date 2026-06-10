@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FileDropzone } from "./FileDropzone";
 import { useToast } from "@/hooks/useToast";
 import { useUploadThing } from "@/lib/uploadthing/react";
@@ -34,6 +34,8 @@ type ImageUploaderProps = {
   onError?: (msg: string) => void;
   className?: string;
   label?: string;
+  /** Existing image URL to show in the dropzone before a new upload */
+  initialPreviewUrl?: string | null;
 };
 
 type AvatarEndpoint =
@@ -85,15 +87,25 @@ export function ImageUploader({
   onError,
   className,
   label = "Upload avatar",
+  initialPreviewUrl,
 }: ImageUploaderProps) {
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(
+    initialPreviewUrl?.trim() || null
+  );
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const uploadErrorMessage = useRef<string | null>(null);
   const toast = useToast();
 
   const endpoint = useMemo(() => endpointForRole(subjectRole), [subjectRole]);
+
+  useEffect(() => {
+    const trimmed = initialPreviewUrl?.trim();
+    if (trimmed) {
+      setPreview(trimmed);
+    }
+  }, [initialPreviewUrl]);
 
   const { startUpload } = useUploadThing(endpoint, {
     onUploadProgress: (progress) => {
@@ -126,11 +138,14 @@ export function ImageUploader({
 
       const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
       const key = uploaded.serverData?.key || uploaded.key;
+      if (!url || typeof url !== "string" || !url.trim()) {
+        throw new Error("Upload did not return a usable image URL");
+      }
       const bytes = uploaded.size ?? file.size;
       const format = inferFormat(uploaded.name || file.name, uploaded.type || file.type);
 
       setUploadProgress(100);
-      setPreview(url);
+      setPreview(url.trim());
       setLocalPreview(null);
 
       setTimeout(() => {
@@ -138,8 +153,8 @@ export function ImageUploader({
       }, 500);
 
       onUploaded({
-        publicId: key,
-        url,
+        publicId: key || "",
+        url: url.trim(),
         bytes,
         format,
       });

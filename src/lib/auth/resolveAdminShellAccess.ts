@@ -2,8 +2,6 @@ import "server-only";
 import { redirect } from "next/navigation";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { School } from "@/models/School";
-import { UserMembership } from "@/models/UserMembership";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { mergedDelegationPermissions } from "@/lib/delegations/service";
 import {
@@ -11,7 +9,8 @@ import {
   delegatedAdminPathPrefixesForPermissions,
 } from "@/lib/delegations/delegate-admin-access";
 import type { DelegatedAdminNavItem } from "@/lib/delegations/delegate-admin-access";
-import type { CurrentAppUser } from "@/lib/auth/get-current-user";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
+import { assertActiveSchoolEnabled } from "@/lib/auth/assert-active-school-enabled";
 
 export type AdminShellAccess =
   | { kind: "full_school_admin" }
@@ -39,81 +38,71 @@ function pickDelegateHomeHref(items: DelegatedAdminNavItem[]): string {
  * Teachers/staff with active delegations for implemented `/admin` modules
  * enter a restricted shell (union of those routes).
  */
-export async function resolveAdminShellAccess(
-  user: CurrentAppUser
-): Promise<AdminShellAccess> {
-  if (!user.schoolId) {
-    redirect("/dashboard");
-  }
-
-  await connectToDatabase();
-  const schoolGate = await School.findById(user.schoolId).select("status").lean<{
-    status?: string;
-  } | null>();
-  if (schoolGate?.status === "deactivated") {
-    redirect("/sign-in?error=school_disabled");
-  }
-
-  if (user.role === "bursar") {
-    const schoolId = new mongoose.Types.ObjectId(user.schoolId);
-    const userId = new mongoose.Types.ObjectId(user._id);
-    const permissions = await mergedDelegationPermissions(schoolId, userId);
-    const delegatedAdminPrefixes =
-      delegatedAdminPathPrefixesForPermissions(permissions);
-    const delegatedNavItems =
-      delegatedAdminNavItemsForPermissions(permissions);
-    return {
-      kind: "bursar",
-      delegatedAdminPrefixes,
-      delegatedNavItems,
-    };
-  }
-  if (user.role === "billing_owner") {
-    return { kind: "billing_owner" };
-  }
-  if (user.role === "school_admin") {
-    return { kind: "full_school_admin" };
-  }
-
+export async function resolveAdminShellAccess(): Promise<AdminShellAccess> {
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo) {
     const roles = (demo.membership.roles ?? []) as string[];
     if (roles.includes("school_admin")) {
       return { kind: "full_school_admin" };
     }
+    if (roles.includes("billing_owner")) {
+      return { kind: "billing_owner" };
+    }
+    if (roles.includes("bursar")) {
+      const schoolId = demo.user.schoolId as mongoose.Types.ObjectId;
+      const userId = demo.user._id as mongoose.Types.ObjectId;
+      const permissions = await mergedDelegationPermissions(schoolId, userId);
+      return {
+        kind: "bursar",
+        delegatedAdminPrefixes: delegatedAdminPathPrefixesForPermissions(permissions),
+        delegatedNavItems: delegatedAdminNavItemsForPermissions(permissions),
+      };
+    }
   }
 
-  const schoolId = new mongoose.Types.ObjectId(user.schoolId);
-  const userId = new mongoose.Types.ObjectId(user._id);
-
-  const membership = await UserMembership.findOne({
-    userId,
-    schoolId,
-    status: "active",
-  })
-    .select({ roles: 1 })
-    .lean<{ roles?: string[] } | null>();
-
-  const roles = (membership?.roles ?? []) as string[];
-  if (roles.includes("school_admin")) {
-    return { kind: "full_school_admin" };
-  }
-
-  if (user.role !== "teacher" && user.role !== "staff") {
+  const active = await resolveActiveSchoolContext();
+  if (!active.ok) {
+    if (active.reason === "needs_school_selection") {
+      redirect("/auth/switch");
+    }
     redirect("/dashboard");
   }
 
-  const permissions = await mergedDelegationPermissions(schoolId, userId);
-  const allowedPathPrefixes =
-    delegatedAdminPathPrefixesForPermissions(permissions);
-  if (allowedPathPrefixes.length > 0) {
-    const navItems = delegatedAdminNavItemsForPermissions(permissions);
+  await connectToDatabase();
+  await assertActiveSchoolEnabled(active.context.schoolId);
+
+  const roles = active.context.roles;
+  const schoolId = active.context.schoolId;
+  const userId = active.context.userId;
+
+  if (roles.includes("school_admin")) {
+    return { kind: "full_school_admin" };
+  }
+  if (roles.includes("billing_owner")) {
+    return { kind: "billing_owner" };
+  }
+  if (roles.includes("bursar")) {
+    const permissions = await mergedDelegationPermissions(schoolId, userId);
     return {
-      kind: "delegated_admin",
-      allowedPathPrefixes,
-      navItems,
-      homeHref: pickDelegateHomeHref(navItems),
+      kind: "bursar",
+      delegatedAdminPrefixes: delegatedAdminPathPrefixesForPermissions(permissions),
+      delegatedNavItems: delegatedAdminNavItemsForPermissions(permissions),
     };
+  }
+
+  if (roles.includes("teacher") || roles.includes("staff")) {
+    const permissions = await mergedDelegationPermissions(schoolId, userId);
+    const allowedPathPrefixes =
+      delegatedAdminPathPrefixesForPermissions(permissions);
+    if (allowedPathPrefixes.length > 0) {
+      const navItems = delegatedAdminNavItemsForPermissions(permissions);
+      return {
+        kind: "delegated_admin",
+        allowedPathPrefixes,
+        navItems,
+        homeHref: pickDelegateHomeHref(navItems),
+      };
+    }
   }
 
   redirect("/dashboard");

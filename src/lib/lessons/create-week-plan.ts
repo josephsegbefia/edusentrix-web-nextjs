@@ -9,6 +9,7 @@ import {
   listTimetableSlotsForClassSubjectWeek,
 } from "@/lib/lessons/timetable-slots-for-week";
 import { normalizeContentBlocks, validateCoverageWeights } from "@/lib/lessons/content-blocks";
+import { createSharedClassDeliveries } from "@/lib/lessons/create-shared-class-deliveries";
 import type { LessonContentBlock } from "@/types/lesson-content-blocks";
 import type { TimetableSlotPreview } from "@/types/lessons-v2";
 
@@ -56,6 +57,7 @@ export async function createWeekPlanWithSessions(input: {
   weekLabel: string;
   title: string;
   sessionInputs?: WeekPlanSessionInput[];
+  additionalClassGroupIds?: mongoose.Types.ObjectId[];
   clonedFromWeekPlanId?: mongoose.Types.ObjectId | null;
 }) {
   const timetable = await listTimetableSlotsForClassSubjectWeek({
@@ -234,10 +236,18 @@ export async function createWeekPlanWithSessions(input: {
     };
   }
 
+  const allClassGroupIds = [
+    input.classGroupId,
+    ...(input.additionalClassGroupIds ?? []).filter(
+      (id) => String(id) !== String(input.classGroupId),
+    ),
+  ];
+
   const plan = await LessonWeekPlan.create({
     schoolId: input.schoolId,
     academicPeriodId: input.academicPeriodId,
     classGroupId: input.classGroupId,
+    classGroupIds: allClassGroupIds,
     subjectOfferingId: input.subjectOfferingId,
     lessonNoteId: input.lessonNoteId,
     ownerTeacherId: input.teacherId,
@@ -304,6 +314,29 @@ export async function createWeekPlanWithSessions(input: {
     sessionDocs.push(session);
     deliveryDocs.push(delivery);
   }
+
+  const shared = await createSharedClassDeliveries({
+    schoolId: input.schoolId,
+    teacherId: input.teacherId,
+    weekPlanId: plan._id,
+    subjectOfferingId: input.subjectOfferingId,
+    subjectId: input.subjectId ?? null,
+    weekStartDate: input.weekStartDate,
+    weekEndDate: input.weekEndDate,
+    sessions: sessionDocs.map((s) => s.toObject()),
+    additionalClassGroupIds: (input.additionalClassGroupIds ?? []).filter(
+      (id) => String(id) !== String(input.classGroupId),
+    ),
+  });
+
+  if (!shared.ok) {
+    await LessonDelivery.deleteMany({ weekPlanId: plan._id });
+    await LessonSession.deleteMany({ weekPlanId: plan._id });
+    await LessonWeekPlan.deleteOne({ _id: plan._id });
+    return { ok: false as const, status: shared.status, error: shared.error };
+  }
+
+  deliveryDocs.push(...shared.deliveries);
 
   plan.sessionIds = sessionDocs.map((s) => s._id);
   await plan.save();

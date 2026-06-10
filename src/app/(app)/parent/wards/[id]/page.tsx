@@ -290,11 +290,13 @@ function WardDetailHeader({
   } | null;
   fees?: {
     status: FeeStatus;
+    billCount: number;
     totalOutstanding: number;
   } | null;
 }) {
   const performanceTier = academics?.performanceTier ?? null;
   const feesStatus = fees?.status ?? null;
+  const hasIssuedBills = Boolean(fees && fees.billCount > 0);
 
   return (
     <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-teal-950/40 to-transparent shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -345,13 +347,13 @@ function WardDetailHeader({
                     Top Performer
                   </Badge>
                 )}
-                {feesStatus === "owing" && (
+                {hasIssuedBills && feesStatus === "owing" && (
                   <Badge
                     variant="outline"
                     className="gap-1 rounded-lg border-red-400/50 bg-red-500/20 text-[10px] font-semibold text-red-200"
                   >
                     <Wallet className="h-3 w-3" />
-                    Owing Fees
+                    Outstanding Bill
                   </Badge>
                 )}
                 {ward.isPrimary && (
@@ -428,23 +430,25 @@ function WardDetailHeader({
             />
             <MetricStatCard
               icon={Wallet}
-              label="Fees"
+              label="Bills"
               value={
-                fees
+                hasIssuedBills
                   ? formatCurrencyAmount(fees.totalOutstanding)
                   : "--"
               }
               subLabel={
-                feesStatus === "clear"
-                  ? "All fees cleared"
-                  : feesStatus === "partial"
-                    ? "Partially paid"
-                    : feesStatus === "owing"
-                      ? "Outstanding balance"
-                      : "No fee data"
+                !hasIssuedBills
+                  ? "No issued bills"
+                  : feesStatus === "clear"
+                    ? "All bills cleared"
+                    : feesStatus === "partial"
+                      ? "Partially paid"
+                      : feesStatus === "owing"
+                        ? "Outstanding balance"
+                        : "No bill data"
               }
               tone={
-                feesStatus === "clear"
+                !hasIssuedBills || feesStatus === "clear"
                   ? "emerald"
                   : feesStatus === "owing"
                     ? "red"
@@ -579,7 +583,8 @@ function OverviewTab({ wardId }: { wardId: string }) {
 
   const termAverage = academics?.summary.overallAverage ?? 0;
   const attendanceRate = attendance?.rate ?? 0;
-  const feesProgress = fees?.paymentProgress ?? 0;
+  const hasIssuedBills = Boolean(fees && fees.billCount > 0);
+  const feesProgress = hasIssuedBills ? fees?.paymentProgress ?? 0 : 0;
 
   return (
     <div className="space-y-6">
@@ -608,10 +613,14 @@ function OverviewTab({ wardId }: { wardId: string }) {
         />
         <MetricStatCard
           icon={Wallet}
-          label="Fees Paid"
-          value={`${feesProgress}%`}
-          subLabel={fees ? `${formatCurrencyAmount(fees.balanceDue)} due` : "No fee data"}
-          tone={feesProgress >= 100 ? "emerald" : feesProgress >= 50 ? "amber" : "red"}
+          label="Bills Paid"
+          value={hasIssuedBills ? `${feesProgress}%` : "--"}
+          subLabel={
+            hasIssuedBills
+              ? `${formatCurrencyAmount(fees?.balanceDue)} due`
+              : "No issued bills"
+          }
+          tone={!hasIssuedBills || feesProgress >= 100 ? "emerald" : feesProgress >= 50 ? "amber" : "red"}
         />
       </div>
 
@@ -943,6 +952,7 @@ function FeesTab({ wardId }: { wardId: string }) {
 
   const paystackKeyMode = data.paystackKeyMode ?? "unset";
   const onlinePaymentsReady = data.onlinePaymentsReady ?? false;
+  const hasIssuedBills = data.billCount > 0;
 
   return (
     <div className="space-y-6">
@@ -1024,7 +1034,7 @@ function FeesTab({ wardId }: { wardId: string }) {
                       The school bears this service fee
                     </p>
                     <p className="text-amber-100/75">
-                      You will be charged only the invoice amount. The Edusentrix
+                      You will be charged only the bill amount. The Edusentrix
                       transaction fee is deducted from the school&apos;s settlement.
                     </p>
                     <p className="text-amber-100/65">
@@ -1136,8 +1146,9 @@ function FeesTab({ wardId }: { wardId: string }) {
         <MetricStatCard
           icon={TrendingUp}
           label="Progress"
-          value={`${data.paymentProgress}%`}
-          tone="purple"
+          value={hasIssuedBills ? `${data.paymentProgress}%` : "--"}
+          subLabel={hasIssuedBills ? undefined : "No issued bills"}
+          tone={hasIssuedBills ? "purple" : "emerald"}
         />
       </div>
 
@@ -1146,15 +1157,22 @@ function FeesTab({ wardId }: { wardId: string }) {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-white/60">Payment Progress</span>
-            <span className="text-sm font-medium text-white">{data.paymentProgress}%</span>
+            <span className="text-sm font-medium text-white">
+              {hasIssuedBills ? `${data.paymentProgress}%` : "--"}
+            </span>
           </div>
           <Progress value={data.paymentProgress} className="h-3" />
-          {data.nextDueDate && (
+          {!hasIssuedBills ? (
+            <p className="text-xs text-white/50 mt-3 flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5" />
+              No issued bills are available for this student yet.
+            </p>
+          ) : data.nextDueDate ? (
             <p className="text-xs text-white/50 mt-3 flex items-center gap-2">
               <Clock className="h-3.5 w-3.5" />
               Next payment due: {new Date(data.nextDueDate).toLocaleDateString()}
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -1177,13 +1195,13 @@ function FeesTab({ wardId }: { wardId: string }) {
         </Card>
       )}
 
-      {/* Pending Invoices */}
+      {/* Pending Bills */}
       {data.invoices.length > 0 && (
         <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Wallet className="h-5 w-5 text-white/60" />
-              Invoices
+              Bills
             </h3>
             <div className="space-y-2">
               {data.invoices.map((invoice) => (
@@ -1622,6 +1640,7 @@ function WardDetailContent() {
         } : null}
         fees={fees ? {
           status: fees.status,
+          billCount: fees.billCount,
           totalOutstanding: fees.balanceDue,
         } : null}
       />

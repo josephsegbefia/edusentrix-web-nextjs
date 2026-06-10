@@ -45,33 +45,33 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
   }, [open]);
 
   const handleDownloadTemplate = () => {
-    // Create CSV template — use human-readable names (Subjects, Homeroom Grade, Homeroom Class)
     const headers = [
       "First Name",
       "Last Name",
       "Email",
       "Phone",
       "Employee ID",
-      "Department",
       "Status",
       "Subjects",
-      "Homeroom Grade",
       "Homeroom Class",
     ];
     const exampleRow = [
-      "John",
-      "Doe",
-      "john.doe@example.com",
-      "+1234567890",
+      "Michael",
+      "Marriot",
+      "michael.marriot@example.com",
+      "0240000000",
       "EMP001",
-      "Mathematics",
       "active",
-      "Mathematics,English",
-      "JHS 1",
-      "JHS 1A",
+      "Mathematics - JHS; English Language - JHS",
+      "JHS 1 A",
     ];
 
-    const csvContent = [headers.join(","), exampleRow.join(",")].join("\n");
+    const escapeCsvValue = (value: string) =>
+      `"${value.replace(/"/g, '""')}"`;
+    const csvContent = [
+      headers.map(escapeCsvValue).join(","),
+      exampleRow.map(escapeCsvValue).join(","),
+    ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -88,8 +88,8 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (!selectedFile.name.endsWith(".csv")) {
-        toast.error("Please select a CSV file");
+      if (!/\.(csv|xls|xlsx)$/i.test(selectedFile.name)) {
+        toast.error("Please select a CSV, XLS, or XLSX file");
         return;
       }
       setFile(selectedFile);
@@ -203,11 +203,11 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <h1 className="text-lg font-semibold">
-                    Import Teachers from CSV
+                    Import Teachers
                   </h1>
                   <p className="text-sm text-white/60">
-                    Upload a CSV file to bulk import teachers. Download the
-                    template to see the required format.
+                    Upload a CSV or Excel file to bulk import teachers. Download
+                    the template to see the required format.
                   </p>
                 </div>
 
@@ -233,12 +233,13 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                     <FileText className="h-5 w-5 text-blue-300 mt-0.5" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-blue-100 mb-1">
-                        CSV Template Required
+                        Spreadsheet Template
                       </p>
                       <p className="text-xs text-blue-200/80 mb-3">
-                        Download the template to ensure your CSV file has the
-                        correct format. Use subject names (e.g. Mathematics, English)
-                        and grade/class names (e.g. JHS 1, JHS 1A) — no IDs required.
+                        Use subject offering names, not IDs. For multiple subjects,
+                        separate them with semicolons, for example: Mathematics - JHS;
+                        English Language - JHS. Homeroom uses the class name, for
+                        example JHS 1 A.
                       </p>
                       <Button
                         type="button"
@@ -255,11 +256,11 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Select CSV File</label>
+                  <label className="text-sm font-medium">Select Import File</label>
                   <div className="flex items-center gap-3">
                     <input
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xls,.xlsx"
                       onChange={handleFileChange}
                       disabled={isUploading}
                       className="hidden"
@@ -269,7 +270,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                       <div className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors">
                         <Upload className="h-5 w-5 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                          {file ? file.name : "Click to select CSV file"}
+                          {file ? file.name : "Click to select CSV or Excel file"}
                         </span>
                       </div>
                     </label>
@@ -348,14 +349,17 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                       <p className="font-medium mb-1">Required Columns:</p>
                       <ul className="list-disc list-inside space-y-0.5">
                         <li>firstName, lastName, email (required)</li>
-                        <li>phone, employeeId, department (optional)</li>
+                        <li>phone and employeeId are optional</li>
                         <li>
                           status: active, inactive, on_leave, terminated
                           (default: active)
                         </li>
-                        <li>subjectIds: comma-separated subject IDs (optional)</li>
                         <li>
-                          homeroomClassGroupId: single class group ID (optional)
+                          subjects: optional subject offering names; separate
+                          multiple subjects with semicolons
+                        </li>
+                        <li>
+                          homeroomClass: optional class name, for example JHS 1 A
                         </li>
                       </ul>
                     </div>

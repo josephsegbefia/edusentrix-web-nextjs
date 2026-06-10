@@ -6,7 +6,9 @@ import {
 } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
-import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { Grade } from "@/models/Grade";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import mongoose from "mongoose";
 
@@ -18,9 +20,98 @@ function toObjectIdOrNull(id: string) {
   }
 }
 
+function formatGradeBandLabel(gradeBand?: string | null) {
+  switch (gradeBand) {
+    case "preschool":
+      return "Preschool";
+    case "lower_primary":
+      return "Lower primary";
+    case "upper_primary":
+      return "Upper primary";
+    case "jhs":
+      return "JHS";
+    case "shs":
+      return "SHS";
+    default:
+      return gradeBand ? String(gradeBand).replace(/_/g, " ") : null;
+  }
+}
+
+async function loadTeacherOfferings(args: {
+  schoolId: mongoose.Types.ObjectId;
+  teacherId: mongoose.Types.ObjectId;
+  teacherSubjectOfferingIds: mongoose.Types.ObjectId[];
+}) {
+  const assignmentRows = await TeacherAssignment.find({
+    schoolId: args.schoolId,
+    teacherId: args.teacherId,
+    status: "active",
+    subjectOfferingId: { $ne: null },
+  })
+    .select("subjectOfferingId")
+    .lean();
+
+  const offeringIdSet = new Set<string>([
+    ...args.teacherSubjectOfferingIds.map(String),
+    ...assignmentRows
+      .map((row) => (row.subjectOfferingId ? String(row.subjectOfferingId) : ""))
+      .filter(Boolean),
+  ]);
+
+  if (offeringIdSet.size === 0) {
+    return [];
+  }
+
+  const offerings = await SubjectOffering.find({
+    _id: {
+      $in: Array.from(offeringIdSet).map((id) => new mongoose.Types.ObjectId(id)),
+    },
+    schoolId: args.schoolId,
+    isActive: true,
+  })
+    .select(
+      "_id subjectId displayName shortName code gradeBand gradeIds isActive"
+    )
+    .lean();
+
+  const gradeIds = [
+    ...new Set(
+      offerings.flatMap((row) =>
+        Array.isArray(row.gradeIds) ? row.gradeIds.map(String) : []
+      )
+    ),
+  ].map((id) => new mongoose.Types.ObjectId(id));
+
+  const grades =
+    gradeIds.length > 0
+      ? await Grade.find({ _id: { $in: gradeIds }, schoolId: args.schoolId })
+          .select("_id name")
+          .lean()
+      : [];
+  const gradeNameById = new Map(
+    grades.map((grade) => [String(grade._id), String(grade.name)])
+  );
+
+  return offerings.map((row) => {
+    const gradeNames = (Array.isArray(row.gradeIds) ? row.gradeIds : [])
+      .map((id) => gradeNameById.get(String(id)))
+      .filter((name): name is string => Boolean(name));
+    return {
+      id: String(row._id),
+      subjectId: String(row.subjectId),
+      name: String(row.displayName || row.shortName || "Subject"),
+      code: row.code ? String(row.code) : null,
+      gradeBand: row.gradeBand ? String(row.gradeBand) : null,
+      gradeBandLabel: formatGradeBandLabel(row.gradeBand),
+      gradeNames,
+      isActive: row.isActive !== false,
+    };
+  });
+}
+
 /**
  * GET /api/admin/teachers/:id/subjects
- * Get all subjects assigned to a teacher
+ * Subject offerings linked to this teacher (profile + active assignments).
  */
 export async function GET(
   _req: NextRequest,
@@ -44,18 +135,18 @@ export async function GET(
   const teacher = await Teacher.findOne({
     _id: teacherObjId,
     schoolId: schoolIdObj,
-  }).populate("subjectIds", "name code isActive");
+  }).select("subjectOfferingIds");
 
   if (!teacher) {
     return Response.json({ error: "Teacher not found" }, { status: 404 });
   }
 
-  const subjects = (teacher.subjectIds || []).map((s: any) => ({
-    id: String(s._id),
-    name: String(s.name || ""),
-    code: s.code ? String(s.code) : null,
-    isActive: s.isActive !== false,
-  }));
+  const subjects = await loadTeacherOfferings({
+    schoolId: schoolIdObj,
+    teacherId: teacherObjId,
+    teacherSubjectOfferingIds: (teacher.subjectOfferingIds ||
+      []) as mongoose.Types.ObjectId[],
+  });
 
   return Response.json({
     success: true,
@@ -65,8 +156,8 @@ export async function GET(
 
 /**
  * POST /api/admin/teachers/:id/subjects
- * Add subject(s) to a teacher
- * Body: { subjectIds: string[] }
+ * Add subject offering(s) to a teacher.
+ * Body: { subjectOfferingIds: string[] }
  */
 export async function POST(
   req: NextRequest,
@@ -88,23 +179,30 @@ export async function POST(
       ? schoolId
       : new mongoose.Types.ObjectId(String(schoolId));
 
-  // Parse body
-  let body;
+  let body: { subjectOfferingIds?: unknown; subjectIds?: unknown };
   try {
     body = await req.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { subjectIds } = body;
-  if (!Array.isArray(subjectIds) || subjectIds.length === 0) {
+  const rawOfferingIds = Array.isArray(body.subjectOfferingIds)
+    ? body.subjectOfferingIds
+    : Array.isArray(body.subjectIds)
+      ? body.subjectIds
+      : [];
+
+  const subjectOfferingIds = rawOfferingIds
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+  if (subjectOfferingIds.length === 0) {
     return Response.json(
-      { error: "subjectIds must be a non-empty array" },
+      { error: "subjectOfferingIds must be a non-empty array" },
       { status: 400 }
     );
   }
 
-  // Find teacher
   const teacher = await Teacher.findOne({
     _id: teacherObjId,
     schoolId: schoolIdObj,
@@ -114,56 +212,66 @@ export async function POST(
     return Response.json({ error: "Teacher not found" }, { status: 404 });
   }
 
-  // Validate and collect valid subject IDs
-  const validSubjectIds: mongoose.Types.ObjectId[] = [];
-  const addedSubjectNames: string[] = [];
-  const existingSubjectIds = new Set(
-    (teacher.subjectIds || []).map((sid: mongoose.Types.ObjectId) =>
-      String(sid)
+  const existingOfferingIds = new Set(
+    (teacher.subjectOfferingIds || []).map((oid: mongoose.Types.ObjectId) =>
+      String(oid)
     )
   );
 
-  for (const sid of subjectIds) {
-    const subjectObjId = toObjectIdOrNull(sid);
-    if (!subjectObjId) continue;
+  const validOfferingIds: mongoose.Types.ObjectId[] = [];
+  const validSubjectIds: mongoose.Types.ObjectId[] = [];
+  const addedSubjectNames: string[] = [];
 
-    // Skip if already assigned
-    if (existingSubjectIds.has(String(subjectObjId))) continue;
+  for (const offeringId of subjectOfferingIds) {
+    const offeringObjId = toObjectIdOrNull(offeringId);
+    if (!offeringObjId) continue;
+    if (existingOfferingIds.has(String(offeringObjId))) continue;
 
-    const subject = await Subject.findOne({
-      _id: subjectObjId,
+    const offering = await SubjectOffering.findOne({
+      _id: offeringObjId,
       schoolId: schoolIdObj,
       isActive: true,
-    });
+    })
+      .select("_id subjectId displayName shortName")
+      .lean();
 
-    if (subject) {
-      validSubjectIds.push(subjectObjId);
-      addedSubjectNames.push(String(subject.name));
-    }
+    if (!offering) continue;
+
+    validOfferingIds.push(offeringObjId);
+    validSubjectIds.push(
+      offering.subjectId instanceof mongoose.Types.ObjectId
+        ? offering.subjectId
+        : new mongoose.Types.ObjectId(String(offering.subjectId))
+    );
+    addedSubjectNames.push(
+      String(offering.displayName || offering.shortName || "Subject")
+    );
+    existingOfferingIds.add(String(offeringObjId));
   }
 
-  if (validSubjectIds.length === 0) {
+  if (validOfferingIds.length === 0) {
     return Response.json({
       success: true,
-      message: "No new subjects to add",
-      data: { added: 0 },
+      message: "No new subject offerings to add",
+      data: { added: 0, subjectNames: [] },
     });
   }
 
-  // Add subjects to teacher
   await Teacher.findByIdAndUpdate(teacherObjId, {
-    $addToSet: { subjectIds: { $each: validSubjectIds } },
+    $addToSet: {
+      subjectOfferingIds: { $each: validOfferingIds },
+      subjectIds: { $each: validSubjectIds },
+    },
   });
 
-  // Log activity
   await logTeacherActivity({
     teacherId: String(teacher._id),
     schoolId: schoolIdObj,
     type: "assignment.created",
-    title: "Subjects assigned",
-    description: `Added subjects: ${addedSubjectNames.join(", ")}`,
+    title: "Subject offerings assigned",
+    description: `Added subject offerings: ${addedSubjectNames.join(", ")}`,
     metadata: {
-      subjectIds: validSubjectIds.map((id) => String(id)),
+      subjectOfferingIds: validOfferingIds.map((oid) => String(oid)),
       subjectNames: addedSubjectNames,
       assignedBy: adminUserId,
     },
@@ -172,9 +280,9 @@ export async function POST(
 
   return Response.json({
     success: true,
-    message: `Added ${validSubjectIds.length} subject(s)`,
+    message: `Added ${validOfferingIds.length} subject offering(s)`,
     data: {
-      added: validSubjectIds.length,
+      added: validOfferingIds.length,
       subjectNames: addedSubjectNames,
     },
   });

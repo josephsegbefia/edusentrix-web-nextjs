@@ -32,34 +32,6 @@ export const CreateTeacherSchema = z
     teachingAssignmentResolution: z
       .enum(["add_alongside", "replace", "skip"])
       .optional(),
-  })
-  .superRefine((data, ctx) => {
-    const rows = data.teachingAssignments || [];
-    const complete = rows.filter(
-      (r) =>
-        String(r.subjectId || "").trim() && String(r.classGroupId || "").trim()
-    );
-    if (complete.length < 1) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["teachingAssignments"],
-        message: "Add at least one subject with a class group.",
-      });
-    }
-    rows.forEach((row, idx) => {
-      const started =
-        Boolean(row.subjectId) ||
-        Boolean(row.classGroupId) ||
-        Boolean(row.gradeId);
-      if (!started) return;
-      if (!row.subjectId || !row.classGroupId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["teachingAssignments", idx, "classGroupId"],
-          message: "Complete subject and class group, or clear the row.",
-        });
-      }
-    });
   });
 
 export type CreateTeacherInput = z.infer<typeof CreateTeacherSchema>;
@@ -95,6 +67,8 @@ export const UpdateTeacherSchema = z.object({
     .union([z.string().url("Invalid photo URL"), z.literal("")])
     .optional()
     .nullable(),
+  /** UploadThing file key; used when replacing avatars. */
+  avatarPublicId: z.string().trim().max(240).optional().nullable(),
 
   // Teacher status
   status: z.enum(["active", "inactive", "on_leave", "terminated"]).optional(),

@@ -190,10 +190,17 @@ const navSections: NavSection[] = [
             href: "/admin/settings/curriculum",
             icon: GraduationCap,
           },
+        ],
+      },
+      {
+        label: "Schemes of Learning",
+        href: "/admin/schemes",
+        icon: ClipboardList,
+        children: [
           {
-            label: "Schemes of Learning",
-            href: "/admin/schemes",
-            icon: ClipboardList,
+            label: "Import scheme",
+            href: "/admin/schemes/import",
+            icon: Upload,
           },
         ],
       },

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { DelegationNavItem } from "@/lib/delegations/types";
+import type { SchoolSchemeWeekSnapshot } from "@/lib/schemes/resolve-scheme-week";
 
 export type TeacherContextResponse = {
   success: boolean;
@@ -54,6 +55,7 @@ export type TeacherContextResponse = {
     };
     permissions: string[];
     delegations?: DelegationNavItem[];
+    currentSchemeWeek?: SchoolSchemeWeekSnapshot;
   };
 };
 

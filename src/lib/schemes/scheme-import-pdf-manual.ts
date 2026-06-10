@@ -17,6 +17,14 @@ const KNOWN_STRANDS = [
   "REVISION AND EXAMINATION",
   "Algebra",
   "Number",
+  "Diversity of Matter",
+  "Cycles",
+  "Systems",
+  "Forces and Energy",
+  "Humans and the Environment",
+  "REVISION",
+  "EXAMINATION",
+  "CLOSING",
 ];
 
 function normalizeSpaces(value: string) {

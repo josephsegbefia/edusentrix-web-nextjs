@@ -7,6 +7,8 @@ export type StudentSessionListItem = {
   scheduledDate: string | null;
   studentVisibility: string;
   studied: boolean;
+  hasNotebookNotes?: boolean;
+  notebookNotesPublished?: boolean;
 };
 
 export type StudentSessionListResponse = {

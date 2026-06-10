@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   XCircle,
   Download,
-  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +50,7 @@ export function InvoicesBulkActionsBar({
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary-50">
               <FileText className="h-3.5 w-3.5" />
               <span>
-                {selectedCount} invoice{selectedCount === 1 ? "" : "s"} selected
+                {selectedCount} bill{selectedCount === 1 ? "" : "s"} selected
               </span>
             </div>
             <button
@@ -85,7 +84,7 @@ export function InvoicesBulkActionsBar({
               onClick={onCancel}
             >
               <XCircle className="mr-1.5 h-3.5 w-3.5" />
-              Cancel selected
+              Withdraw selected
             </Button>
 
             <Button

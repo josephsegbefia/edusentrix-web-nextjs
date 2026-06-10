@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
+  Clock,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -60,6 +61,7 @@ import {
 } from "@/components/admin/classes/detail/ClassTimetableGridBoard";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
 import { cn } from "@/lib/utils";
+import { formatHoursMinutes } from "@/lib/time/format-duration";
 import { DAY_NAMES, formatTimeLabel } from "@/components/admin/timetable/types";
 
 type ClassTimetableEditorProps = {
@@ -434,6 +436,7 @@ export function ClassTimetableEditor({
   const [leoLoading, setLeoLoading] = React.useState(false);
   const [leoText, setLeoText] = React.useState<string | null>(null);
   const [issuesExpanded, setIssuesExpanded] = React.useState(false);
+  const [contactHoursExpanded, setContactHoursExpanded] = React.useState(false);
   const [ignoredContactHourKeys, setIgnoredContactHourKeys] = React.useState<Set<string>>(
     () => new Set()
   );
@@ -516,6 +519,24 @@ export function ClassTimetableEditor({
       ),
     [contactHourPlans]
   );
+
+  const activeContactHourMismatches = React.useMemo(
+    () => contactHourMismatches.filter((plan) => !ignoredContactHourKeys.has(plan.key)),
+    [contactHourMismatches, ignoredContactHourKeys]
+  );
+
+  const underContactHourMismatches = React.useMemo(
+    () => activeContactHourMismatches.filter((plan) => plan.plannedHours < plan.targetHours - 0.01),
+    [activeContactHourMismatches]
+  );
+
+  const overContactHourMismatches = React.useMemo(
+    () => activeContactHourMismatches.filter((plan) => plan.plannedHours > plan.targetHours + 0.01),
+    [activeContactHourMismatches]
+  );
+
+  const dismissedContactHourCount =
+    contactHourMismatches.length - activeContactHourMismatches.length;
 
   const hasIssueSummary =
     errorConflicts.length > 0 ||
@@ -890,13 +911,13 @@ export function ClassTimetableEditor({
                   <span className="font-medium text-white">
                     {activeDay !== null ? DAY_NAMES[activeDay] : ""}
                   </span>
-                  . Drag subjects from the strip above into period rows. Breaks from your school
-                  settings are shown and are not drop targets.
+                  . Drag subjects from the strip above into period rows. Opening blocks and breaks
+                  from the daily schedule are shown and are not drop targets.
                 </p>
                 {activeDay !== null && getResolvedForDay(activeDay)?.isConfigured ? (
                   <div className="space-y-1">
                     <p className="text-xs text-white/45">
-                      Resolved for {DAY_NAMES[activeDay]}: school day{" "}
+                      Resolved for {DAY_NAMES[activeDay]}: teaching window{" "}
                       {formatTimeLabel(getResolvedForDay(activeDay)!.startTime)}–
                       {formatTimeLabel(getResolvedForDay(activeDay)!.endTime)}
                       {" · "}
@@ -911,7 +932,7 @@ export function ClassTimetableEditor({
                           <p className="text-xs text-rose-200/85">
                             {DAY_NAMES[activeDay]} can currently fit only {diagnostics.scheduledPeriods} of{" "}
                             {getResolvedForDay(activeDay)!.periodsPerDay} configured periods. Review
-                            school end time, breaks, or daily overrides in{" "}
+                            daily schedule end time, breaks, or day structure in{" "}
                             <Link href={bellScheduleSettingsHref} className="underline hover:text-rose-100">
                               Settings
                             </Link>
@@ -1080,56 +1101,162 @@ export function ClassTimetableEditor({
             {contactHourMismatches.length > 0 ? (
               <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-50">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-amber-50">Contact-hours check</p>
-                    <p className="mt-1 text-xs text-amber-100/75">
-                      These are planning targets from Subjects & Teachers. The timetable remains
-                      the source of truth for actual teaching times.
-                    </p>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-400/25 bg-amber-500/15">
+                      <Clock className="h-4 w-4 text-amber-200" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-amber-50">Weekly hours vs timetable</p>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-100/75">
+                        On Subjects &amp; Teachers you set how many hours each teacher should teach
+                        this subject in this class. This compares that target to periods already on
+                        this class grid. It does not change the timetable or block publishing.
+                      </p>
+                      {!contactHoursExpanded ? (
+                        <p className="mt-2 text-sm text-amber-50/90">
+                          {activeContactHourMismatches.length === 0 ? (
+                            "All reminders dismissed for this browser."
+                          ) : (
+                            <>
+                              <span className="font-medium text-amber-50">
+                                {activeContactHourMismatches.length} assignment
+                                {activeContactHourMismatches.length === 1 ? "" : "s"}
+                              </span>{" "}
+                              off target
+                              {underContactHourMismatches.length > 0 ||
+                              overContactHourMismatches.length > 0 ? (
+                                <span className="text-amber-100/80">
+                                  {" "}
+                                  (
+                                  {[
+                                    underContactHourMismatches.length > 0
+                                      ? `${underContactHourMismatches.length} need more periods`
+                                      : null,
+                                    overContactHourMismatches.length > 0
+                                      ? `${overContactHourMismatches.length} over target`
+                                      : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                  )
+                                </span>
+                              ) : null}
+                            </>
+                          )}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                  <Badge variant="outline" className="border-amber-300/35 text-amber-100">
-                    {contactHourMismatches.length} item{contactHourMismatches.length === 1 ? "" : "s"}
-                  </Badge>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 border-amber-300/30 text-amber-100 hover:bg-amber-500/20"
+                    onClick={() => setContactHoursExpanded((current) => !current)}
+                  >
+                    {contactHoursExpanded ? (
+                      <ChevronUp className="mr-2 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="mr-2 h-4 w-4" />
+                    )}
+                    {contactHoursExpanded ? "Hide list" : "Show list"}
+                  </Button>
                 </div>
-                <ul className="mt-3 space-y-2">
-                  {contactHourMismatches.map((plan) => {
-                    const delta = plan.plannedHours - plan.targetHours;
-                    const ignored = ignoredContactHourKeys.has(plan.key);
-                    return (
-                      <li
-                        key={plan.key}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/20 bg-black/20 px-3 py-2 text-xs"
-                      >
-                        <span>
-                          <span className="font-medium text-amber-50">{plan.subjectName}</span>
-                          {" · "}
-                          {plan.teacherName}: planned {plan.plannedHours.toFixed(2)}h / target{" "}
-                          {plan.targetHours.toFixed(2)}h
-                          <span className={cn("ml-2", delta > 0 ? "text-rose-200" : "text-amber-200")}>
-                            ({delta > 0 ? "+" : ""}
-                            {delta.toFixed(2)}h)
-                          </span>
-                          {ignored ? (
-                            <span className="ml-2 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-white/60">
-                              ignored
-                            </span>
-                          ) : null}
-                        </span>
-                        {!ignored ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-7 border-amber-300/30 text-amber-100 hover:bg-amber-500/20"
-                            onClick={() => ignoreContactHourKey(plan.key)}
-                          >
-                            Ignore
-                          </Button>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
+
+                {contactHoursExpanded ? (
+                  <div className="mt-4 space-y-4">
+                    {underContactHourMismatches.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-200/70">
+                          Need more periods on the grid
+                        </p>
+                        <ul className="mt-2 space-y-1.5">
+                          {underContactHourMismatches.map((plan) => {
+                            const gapHours = plan.targetHours - plan.plannedHours;
+                            return (
+                              <li
+                                key={plan.key}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/20 bg-black/20 px-3 py-2 text-xs"
+                              >
+                                <span className="min-w-0">
+                                  <span className="font-medium text-amber-50">{plan.subjectName}</span>
+                                  <span className="text-amber-100/70"> · {plan.teacherName}</span>
+                                </span>
+                                <span className="flex shrink-0 flex-wrap items-center gap-2">
+                                  <span className="text-amber-100/80">
+                                    {formatHoursMinutes(plan.plannedHours)} of{" "}
+                                    {formatHoursMinutes(plan.targetHours)}
+                                  </span>
+                                  <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 font-medium text-amber-100">
+                                    -{formatHoursMinutes(gapHours)}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 border-amber-300/30 text-amber-100 hover:bg-amber-500/20"
+                                    onClick={() => ignoreContactHourKey(plan.key)}
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {overContactHourMismatches.length > 0 ? (
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-rose-200/70">
+                          More periods than target
+                        </p>
+                        <ul className="mt-2 space-y-1.5">
+                          {overContactHourMismatches.map((plan) => {
+                            const gapHours = plan.plannedHours - plan.targetHours;
+                            return (
+                              <li
+                                key={plan.key}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs"
+                              >
+                                <span className="min-w-0">
+                                  <span className="font-medium text-rose-50">{plan.subjectName}</span>
+                                  <span className="text-rose-100/70"> · {plan.teacherName}</span>
+                                </span>
+                                <span className="flex shrink-0 flex-wrap items-center gap-2">
+                                  <span className="text-rose-100/80">
+                                    {formatHoursMinutes(plan.plannedHours)} of{" "}
+                                    {formatHoursMinutes(plan.targetHours)}
+                                  </span>
+                                  <span className="rounded-full border border-rose-400/30 bg-rose-500/15 px-2 py-0.5 font-medium text-rose-100">
+                                    +{formatHoursMinutes(gapHours)}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 border-rose-400/30 text-rose-100 hover:bg-rose-500/20"
+                                    onClick={() => ignoreContactHourKey(plan.key)}
+                                  >
+                                    Dismiss
+                                  </Button>
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {dismissedContactHourCount > 0 ? (
+                      <p className="text-xs text-amber-100/60">
+                        {dismissedContactHourCount} reminder
+                        {dismissedContactHourCount === 1 ? "" : "s"} dismissed on this device only.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

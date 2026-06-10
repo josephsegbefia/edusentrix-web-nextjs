@@ -155,7 +155,7 @@ function AdminSchemeImportInner() {
     try {
       setParsePhase(
         isPdf
-          ? "Download complete. Extracting tables from PDF locally (pdf-parse, then PDFExcavator). AI is only used if local extraction cannot read the layout…"
+          ? "Download complete. Leo is reading the PDF and extracting scheme rows with AI first…"
           : "Reading spreadsheet rows…",
       );
       const created = await createMutation.mutateAsync({
@@ -225,7 +225,7 @@ function AdminSchemeImportInner() {
 
   if (schoolRes?.data && !isNaCCASchool) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4 md:p-6">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 p-4 md:p-6">
         <section className="rounded-3xl border border-amber-300/20 bg-amber-500/10 p-6 text-amber-50">
           <p className="text-xs uppercase tracking-wide text-amber-100/70">Scheme of Learning import</p>
           <h1 className="mt-2 text-2xl font-semibold">Import is for NaCCA schools only</h1>
@@ -243,7 +243,7 @@ function AdminSchemeImportInner() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
       <section className="rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -279,7 +279,7 @@ function AdminSchemeImportInner() {
           <h2 className="text-lg font-semibold">1. Upload</h2>
         </div>
         {!jobId || job?.status === "failed" ? (
-          <div className="mt-4 max-w-xl">
+          <div className="mt-4">
             {schoolRes?.data?.id ? (
               <SchemeImportDocumentUploader
                 schoolId={schoolRes.data.id}
@@ -345,13 +345,30 @@ function AdminSchemeImportInner() {
       ) : null}
 
       {job?.status === "parsed" &&
-      (job.sourceKind === "pdf_parse_tables" || job.sourceKind === "pdf_excavator") ? (
+      (job.sourceKind === "pdf_ai" || job.sourceKind === "pdf_gemini") ? (
+        <div className="rounded-xl border border-teal-500/30 bg-teal-950/20 p-4 text-sm text-teal-100">
+          <p className="font-medium">Extracted by Leo (AI)</p>
+          <p className="mt-1">
+            {job.sourceKind === "pdf_gemini"
+              ? "Leo used Gemini to map scheme rows from the PDF text."
+              : "Leo used AI to map scheme rows from the PDF text."}{" "}
+            Review all columns before confirming.
+          </p>
+        </div>
+      ) : null}
+
+      {job?.status === "parsed" &&
+      (job.sourceKind === "pdf_parse_tables" ||
+        job.sourceKind === "pdf_excavator" ||
+        job.sourceKind === "pdf_text_grid") ? (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-sm text-emerald-100">
-          <p className="font-medium">Extracted locally from PDF tables</p>
+          <p className="font-medium">Extracted locally from PDF (no AI required)</p>
           <p className="mt-1">
             {job.sourceKind === "pdf_parse_tables"
-              ? "Used pdf-parse table detection (no AI required)."
-              : "Used PDFExcavator table detection (no AI required)."}{" "}
+              ? "Used pdf-parse table detection."
+              : job.sourceKind === "pdf_text_grid"
+                ? "Used text-based scheme layout detection (for EduSentrix and similar exports)."
+                : "Used PDFExcavator table detection."}{" "}
             Review all columns before confirming.
           </p>
         </div>

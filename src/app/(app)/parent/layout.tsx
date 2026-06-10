@@ -1,10 +1,6 @@
 // src/app/(app)/parent/layout.tsx
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireUser } from "@/lib/auth/get-current-user";
-import { assertRole } from "@/lib/auth/guards";
-import { School } from "@/models/School";
+import { requireParent } from "@/lib/auth/requireParent";
 import ParentSidebar from "@/components/nav/sidebars/parent-sidebar";
 import { AuthRefreshHandler } from "@/components/auth/auth-refresh-handler";
 import { SidebarProvider } from "@/providers/sidebar-provider";
@@ -15,17 +11,7 @@ export default async function ParentLayout({
 }: {
   children: ReactNode;
 }) {
-  const user = await requireUser();
-  assertRole(user, ["parent", "school_admin"]);
-  if (user.role !== "platform_admin" && user.schoolId) {
-    await connectToDatabase();
-    const schoolDoc = await School.findById(user.schoolId).select("status").lean<{
-      status?: string;
-    } | null>();
-    if (schoolDoc?.status === "deactivated") {
-      redirect("/sign-in?error=school_disabled");
-    }
-  }
+  await requireParent({ mode: "page" });
 
   return (
     <>

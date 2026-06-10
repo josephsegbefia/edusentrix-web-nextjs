@@ -37,23 +37,37 @@ export function useProposeWeekSplit() {
   });
 }
 
+export type GenerateSessionContentInput = {
+  lessonNoteId: string;
+  sessionId?: string;
+  session: {
+    title: string;
+    durationMinutes: number;
+    noteSectionKeys: string[];
+    coverageWeight?: number;
+    scheduledDate?: string;
+    startTime?: string;
+    endTime?: string;
+    periodCount?: number;
+    isDoublePeriod?: boolean;
+    focusSummary?: string;
+    sequenceInWeek?: number;
+    previousSession?: {
+      title: string;
+      focusSummary?: string;
+      keyPointsSummary?: string;
+    };
+    priorSessions?: Array<{
+      title: string;
+      focusSummary?: string;
+      keyPointsSummary?: string;
+    }>;
+  };
+};
+
 export function useGenerateSessionContent() {
   return useMutation({
-    mutationFn: async (body: {
-      lessonNoteId: string;
-      session: {
-        title: string;
-        durationMinutes: number;
-        noteSectionKeys: string[];
-        coverageWeight?: number;
-        scheduledDate?: string;
-        startTime?: string;
-        endTime?: string;
-        periodCount?: number;
-        isDoublePeriod?: boolean;
-        focusSummary?: string;
-      };
-    }) => {
+    mutationFn: async (body: GenerateSessionContentInput) => {
       const res = await fetch("/api/leo/lessons/generate-session-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

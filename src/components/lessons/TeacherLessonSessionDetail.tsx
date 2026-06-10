@@ -11,11 +11,14 @@ import {
   Globe,
   Lock,
   Loader2,
+  Eye,
   MonitorPlay,
+  NotebookPen,
   Save,
   Trash2,
   Users,
 } from "lucide-react";
+import { SessionBoardNotesPanel } from "@/components/lessons/SessionBoardNotesPanel";
 import { useCompleteLessonDelivery } from "@/hooks/teacher/useLessonSessionTeach";
 import { LessonContentBlocksEditor } from "@/components/lessons/LessonContentBlocksEditor";
 import { useGenerateSessionContent } from "@/hooks/teacher/useLessonsLeo";
@@ -57,6 +60,7 @@ import {
   type LessonDeliveryStatus,
 } from "@/types/lessons-v2";
 import { cn } from "@/lib/utils";
+import { LessonWeekPreviewPresenter } from "@/components/lessons/LessonWeekPreviewPresenter";
 
 type Props = {
   sessionId: string;
@@ -66,11 +70,19 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
   const router = useRouter();
   const { data: classesData } = useTeacherClasses();
   const busyToast = useBusyToast();
-  const { data, isLoading, error } = useTeacherLessonSession(sessionId);
-  const updateSession = useUpdateTeacherLessonSession(sessionId);
+  const [activeClassGroupId, setActiveClassGroupId] = React.useState<string | null>(null);
+  const { data, isLoading, error } = useTeacherLessonSession(sessionId, activeClassGroupId);
+  const updateSession = useUpdateTeacherLessonSession(sessionId, activeClassGroupId);
   const completeDelivery = useCompleteLessonDelivery();
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [showPreAttendanceModal, setShowPreAttendanceModal] = React.useState(false);
+  const [showSessionPreview, setShowSessionPreview] = React.useState(false);
+  const [notebookNotes, setNotebookNotes] = React.useState<{
+    contentHtml: string;
+    generatedAt: string | Date;
+    aiGenerated: boolean;
+  } | null>(null);
+  const [notebookNotesPublished, setNotebookNotesPublished] = React.useState(false);
   const impactQuery = useSessionDeleteImpact(sessionId, showDeleteModal);
   const deleteSession = useDeleteLessonSession(sessionId);
 
@@ -101,11 +113,27 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
 
   React.useEffect(() => {
     if (!session) return;
+    if (!activeClassGroupId && session.activeClassGroupId) {
+      setActiveClassGroupId(session.activeClassGroupId);
+    }
     setPlanNotes(session.planNotes || "");
     setTitle(session.title);
     setContentBlocks(session.contentBlocks ?? []);
     setDirty(false);
-  }, [session]);
+  }, [session, activeClassGroupId]);
+
+  React.useEffect(() => {
+    if (!sessionId) return;
+    void fetch(`/api/teacher/lesson-sessions/${sessionId}/board-notes`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.success && json.data) {
+          setNotebookNotes(json.data.boardNotes ?? null);
+          setNotebookNotesPublished(Boolean(json.data.notebookNotesPublished));
+        }
+      })
+      .catch(() => null);
+  }, [sessionId]);
 
   const deliveryStatus = session?.delivery?.status ?? "scheduled";
   const deliveryId = session?.delivery?.id;
@@ -149,11 +177,13 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
     const blocks = await busyToast.promise(
       generateContent.mutateAsync({
         lessonNoteId: session.lessonNoteId,
+        sessionId: session.id,
         session: {
           title: session.title,
           durationMinutes: session.durationMinutes,
           noteSectionKeys: session.noteSectionAllocation.noteSectionKeys,
           coverageWeight: session.noteSectionAllocation.coverageWeight,
+          sequenceInWeek: session.sequenceInWeek,
         },
       }),
       {
@@ -260,8 +290,49 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
         <TeacherSessionSubstituteCard
           sessionId={sessionId}
           session={session}
-          classGroupId={session.classGroupId}
+          classGroupId={session.activeClassGroupId}
         />
+      ) : null}
+
+      {(session.classDeliveries?.length ?? 0) > 1 ? (
+        <Card className="border border-violet-400/20 bg-violet-500/8 shadow-lg shadow-black/20 backdrop-blur-xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-violet-100">Teaching class</CardTitle>
+            <p className="text-xs text-white/50">
+              Same lesson content — pick which class you are delivering or reviewing.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {(session.classDeliveries ?? []).map((delivery) => {
+              const match = classesData?.data.classes.find(
+                (c) => c._id === delivery.classGroupId,
+              );
+              const label = match
+                ? `${match.gradeName ? `${match.gradeName} ` : ""}${match.name}`
+                : "Class";
+              const active = delivery.classGroupId === session.activeClassGroupId;
+              return (
+                <Button
+                  key={delivery.id}
+                  type="button"
+                  size="sm"
+                  variant={active ? "default" : "outline"}
+                  onClick={() => setActiveClassGroupId(delivery.classGroupId)}
+                  className={
+                    active
+                      ? "bg-violet-500/25 text-violet-100"
+                      : "border-white/10 bg-white/5 text-white/70"
+                  }
+                >
+                  {label}
+                  <span className="ml-2 text-[10px] uppercase opacity-70">
+                    {delivery.status.replace("_", " ")}
+                  </span>
+                </Button>
+              );
+            })}
+          </CardContent>
+        </Card>
       ) : null}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
@@ -272,6 +343,15 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
           </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowSessionPreview(true)}
+            className="border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
           {teachingEnabled ? (
             deliveryStatus === "in_progress" ? (
               <Button
@@ -279,7 +359,13 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
                 asChild
                 className="bg-teal-500/25 text-teal-100 hover:bg-teal-500/35"
               >
-                <Link href={`/teacher/lessons/sessions/${sessionId}/teach`}>
+                <Link
+                  href={`/teacher/lessons/sessions/${sessionId}/teach${
+                    session.activeClassGroupId
+                      ? `?classGroupId=${encodeURIComponent(session.activeClassGroupId)}`
+                      : ""
+                  }`}
+                >
                   <MonitorPlay className="mr-2 h-4 w-4" />
                   Resume teaching
                 </Link>
@@ -309,6 +395,31 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
           {deliveryStatus === "completed" ? (
             <p className="text-sm text-emerald-200/90">This session is complete for this class.</p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="border border-teal-400/20 bg-teal-500/8 shadow-lg shadow-black/20 backdrop-blur-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <NotebookPen className="h-5 w-5 text-teal-300" />
+            Notes for students&apos; notebooks
+          </CardTitle>
+          <p className="text-xs text-white/50">
+            Structured revision notes for the board and for students to copy after you teach.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <SessionBoardNotesPanel
+            sessionId={sessionId}
+            initialNotes={notebookNotes}
+            notebookNotesPublished={notebookNotesPublished}
+            canWrite={canManageContent}
+            leoEnabled={leoEnabled}
+            onSaved={(saved, published) => {
+              setNotebookNotes(saved);
+              setNotebookNotesPublished(published);
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -577,12 +688,19 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
       {/* Pre-lesson attendance modal */}
       <TeachAttendanceModal
         sessionId={sessionId}
+        classGroupId={session?.activeClassGroupId}
         phase="pre"
         open={showPreAttendanceModal}
         onClose={() => setShowPreAttendanceModal(false)}
         onSubmitted={() => {
           setShowPreAttendanceModal(false);
-          router.push(`/teacher/lessons/sessions/${sessionId}/teach`);
+          router.push(
+            `/teacher/lessons/sessions/${sessionId}/teach${
+              session?.activeClassGroupId
+                ? `?classGroupId=${encodeURIComponent(session.activeClassGroupId)}`
+                : ""
+            }`,
+          );
         }}
       />
 
@@ -662,6 +780,27 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
           </div>
         ) : null}
       </ResponsiveModal>
+
+      {showSessionPreview && session ? (
+        <LessonWeekPreviewPresenter
+          weekTitle={session.title}
+          sessions={[
+            {
+              id: session.id,
+              sequenceInWeek: session.sequenceInWeek,
+              title: session.title,
+              scheduledDate: session.scheduledDate,
+              startTime: session.startTime,
+              endTime: session.endTime,
+              durationMinutes: session.durationMinutes,
+              planNotes: session.planNotes,
+              contentBlocks: contentBlocks,
+              contentVersion: session.contentVersion,
+            },
+          ]}
+          onClose={() => setShowSessionPreview(false)}
+        />
+      ) : null}
     </div>
   );
 }

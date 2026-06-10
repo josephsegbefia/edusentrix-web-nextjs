@@ -14,8 +14,10 @@ import { deriveCurriculumStructureFromSchemeImport } from "@/lib/schemes/scheme-
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
 import {
   buildSchemeItemTitle,
+  resolveSchemeImportItemPlannedDates,
   schemeImportRowToSchemeItemPayload,
 } from "@/lib/schemes/scheme-import-confirm-shared";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 
@@ -61,6 +63,7 @@ function sourceTypeForJob(job: ISchemeImportJob): ISchemeOfWork["sourceType"] {
   if (
     job.sourceKind === "pdf_parse_tables" ||
     job.sourceKind === "pdf_excavator" ||
+    job.sourceKind === "pdf_text_grid" ||
     job.sourceKind === "pdf_ai" ||
     job.sourceKind === "pdf_gemini" ||
     job.sourceKind === "pdf_manual"
@@ -259,12 +262,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       updatedByUserId: ctx.userId,
     });
 
+    const period = await AcademicPeriod.findOne({
+      _id: academicPeriodId,
+      schoolId: ctx.schoolId,
+    })
+      .select("startDate endDate")
+      .lean<{ startDate: Date; endDate: Date } | null>();
+
     let sequence = 0;
     for (const row of job.parsedRows) {
       if (row.skipped || row.errors.length > 0) continue;
       const payload = schemeImportRowToSchemeItemPayload(row);
       if (payload.title.length < 2) continue;
-      const plannedEndDate = parseWeekEnding(row.weekEnding);
+      const plannedDates = resolveSchemeImportItemPlannedDates({
+        row,
+        period: period
+          ? { startDate: period.startDate, endDate: period.endDate }
+          : null,
+        parseWeekEnding,
+      });
       await SchemeItem.create({
         schoolId: ctx.schoolId,
         schemeId: scheme._id,
@@ -285,7 +301,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         sourceRowIndex: row.rowIndex,
         parseConfidence: row.confidence ?? null,
         weekEndingLabel: row.weekEnding?.trim() || null,
-        plannedEndDate,
+        plannedStartDate: plannedDates.plannedStartDate,
+        plannedEndDate: plannedDates.plannedEndDate,
         curriculumNodeIds: derivedCurriculum.rowNodeIds.get(row.rowIndex) ?? [],
         status: "draft",
         createdByUserId: ctx.userId,

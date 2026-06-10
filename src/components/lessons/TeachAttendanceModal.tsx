@@ -28,6 +28,7 @@ type Phase = "pre" | "post";
 
 type Props = {
   sessionId: string;
+  classGroupId?: string | null;
   phase: Phase;
   open: boolean;
   onClose: () => void;
@@ -148,11 +149,18 @@ function StudentRow({
   );
 }
 
-export function TeachAttendanceModal({ sessionId, phase, open, onClose, onSubmitted }: Props) {
+export function TeachAttendanceModal({
+  sessionId,
+  classGroupId,
+  phase,
+  open,
+  onClose,
+  onSubmitted,
+}: Props) {
   const busyToast = useBusyToast();
-  const { data, isLoading } = useLessonAttendanceRoster(open ? sessionId : null);
-  const savePreLesson = useSavePreLessonAttendance(sessionId);
-  const savePostLesson = useSavePostLessonAttendance(sessionId);
+  const { data, isLoading } = useLessonAttendanceRoster(open ? sessionId : null, classGroupId);
+  const savePreLesson = useSavePreLessonAttendance(sessionId, classGroupId);
+  const savePostLesson = useSavePostLessonAttendance(sessionId, classGroupId);
 
   const roster = data?.data?.roster ?? [];
   const [marks, setMarks] = React.useState<Map<string, AttendanceStudentStatus>>(new Map());

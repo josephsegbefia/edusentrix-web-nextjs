@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 import {
   MongoTransactionError,
   runMongoTransaction,
@@ -30,10 +31,38 @@ export async function POST(req: Request) {
 
   await connectToDatabase();
 
+  const clerk = await clerkClient();
+  const clerkUser = await clerk.users.getUser(userId);
+  const email =
+    clerkUser.primaryEmailAddress?.emailAddress?.toLowerCase() ||
+    clerkUser.emailAddresses[0]?.emailAddress?.toLowerCase() ||
+    "";
+
+  if (!email) {
+    return NextResponse.json(
+      { error: "No email associated with this account" },
+      { status: 401 }
+    );
+  }
+
+  let appUser;
+  try {
+    appUser = await ensureCanonicalUserForClerkSession({
+      clerkUserId: userId,
+      email,
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to resolve app user";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
   try {
     await runMongoTransaction(async (session) => {
       const result = await User.updateOne(
-        { clerkUserId: userId },
+        { _id: appUser._id },
         {
           $set: {
             firstName: parsed.data.firstName,

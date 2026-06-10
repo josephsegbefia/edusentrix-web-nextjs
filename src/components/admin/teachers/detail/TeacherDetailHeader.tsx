@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/auth-provider";
+import { TeacherDetailAvatar } from "@/components/admin/teachers/detail/TeacherDetailAvatar";
 import {
   PhoneCall,
   Mail,
@@ -16,6 +17,7 @@ import {
 type TeacherDetailHeaderProps = {
   teacher: {
     id: string;
+    schoolId?: string;
     fullName: string;
     firstName: string;
     lastName: string;
@@ -35,12 +37,6 @@ type TeacherDetailHeaderProps = {
     hasPlatformAccount?: boolean;
   };
 };
-
-function initialsFromName(firstName?: string, lastName?: string): string {
-  const first = firstName?.charAt(0)?.toUpperCase() || "";
-  const last = lastName?.charAt(0)?.toUpperCase() || "";
-  return first + last || "?";
-}
 
 const statusConfig: Record<
   string,
@@ -73,7 +69,11 @@ const statusConfig: Record<
 };
 
 export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
+  const { me } = useAuth();
+  const schoolId = teacher.schoolId || me?.schoolId || "";
+
   const {
+    id,
     fullName,
     firstName,
     lastName,
@@ -164,16 +164,23 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         {/* Left: Avatar + Info */}
         <div className="flex flex-1 items-start gap-5">
-          <Avatar className="h-20 w-20 shrink-0 rounded-2xl border border-white/15 shadow-lg">
-            <AvatarImage
-              src={photoUrl || ""}
-              alt={fullName}
-              className="object-cover"
+          {schoolId ? (
+            <TeacherDetailAvatar
+              teacherId={id}
+              schoolId={schoolId}
+              firstName={firstName}
+              lastName={lastName}
+              fullName={fullName}
+              photoUrl={photoUrl ?? null}
             />
-            <AvatarFallback className="rounded-2xl bg-gradient-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-white">
-              {initialsFromName(firstName, lastName)}
-            </AvatarFallback>
-          </Avatar>
+          ) : (
+            <div
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-white"
+              aria-hidden
+            >
+              {(firstName?.charAt(0) || "") + (lastName?.charAt(0) || "") || "?"}
+            </div>
+          )}
 
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex flex-wrap items-center gap-2">

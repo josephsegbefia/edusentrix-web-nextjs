@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatHoursMinutes } from "@/lib/time/format-duration";
 import {
   BookOpen,
   UserPlus,
@@ -581,7 +582,7 @@ export function ClassSubjectsTeachersTab({
                                       className="gap-1 border-blue-500/30 bg-blue-500/10 text-[10px] text-blue-300"
                                     >
                                       <Clock className="h-3 w-3" />
-                                      {contactHours}h/week
+                                      {formatHoursMinutes(contactHours)}/week
                                     </Badge>
                                   ) : null}
                                   <Button

@@ -3,7 +3,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Teacher } from "@/models/Teacher";
-import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod, IAcademicPeriod } from "@/models/AcademicPeriod";
 import { Payment } from "@/models/Payment";
 import { Invoice } from "@/models/Invoice";
@@ -40,7 +40,7 @@ export async function GET() {
   ] = await Promise.all([
     Student.countDocuments({ schoolId: schoolIdObj }),
     Teacher.countDocuments({ schoolId: schoolIdObj, status: "active" }),
-    Subject.countDocuments({ schoolId: schoolIdObj }),
+    SubjectOffering.countDocuments({ schoolId: schoolIdObj, isActive: true }),
     // Polls
     CommunityPoll.countDocuments({ schoolId: schoolIdObj, status: "live" }),
     CommunityPoll.countDocuments({ schoolId: schoolIdObj, approvalStatus: "pending" }),

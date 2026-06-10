@@ -319,6 +319,17 @@ Use the established shared UI components:
 - Leo generation is section-scoped, editable, and draft-only.
 - Proposal documents should avoid app-like cards; generated documents should look formal, printable, and official.
 
+### Multi-Tenant Identity And Membership
+
+- Spec: `docs/MULTI_TENANT_IDENTITY_AND_MEMBERSHIP_REBUILD_SPEC.md`.
+- `User` is the person identity; `UserMembership` is the school access source of truth.
+- Resolve people through `ensureCanonicalUserForClerkSession` / `ensureCanonicalUserForEmail` in `src/lib/auth/canonical-user.ts`.
+- Resolve tenant context through `resolveActiveSchoolContext` in `src/lib/auth/active-school-context.ts`.
+- Do not add new tenant decisions from `user.schoolId` or `User.role` except platform-operator legacy paths.
+- Do not add new `User.findOne({ clerkUserId })` outside the canonical resolver stack.
+- Do not add new `User.create` outside canonical user helpers.
+- School-facing guards must read roles from active membership context, not from `User.role`.
+
 ## Code Style
 
 - Follow the existing Next.js App Router patterns.

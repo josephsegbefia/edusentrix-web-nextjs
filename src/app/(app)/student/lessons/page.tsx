@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Presentation, BookOpen, CalendarDays } from "lucide-react";
+import { Presentation, BookOpen, CalendarDays, NotebookPen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -124,6 +124,15 @@ export default function StudentLessonsPage() {
                           Studied
                         </Badge>
                       )}
+                      {session.notebookNotesPublished && session.hasNotebookNotes ? (
+                        <Badge
+                          variant="outline"
+                          className="border-teal-500/35 bg-teal-500/10 text-teal-200"
+                        >
+                          <NotebookPen className="mr-1 h-3 w-3" />
+                          Notebook notes
+                        </Badge>
+                      ) : null}
                     </div>
                   </div>
                   <CardTitle className="mt-2 line-clamp-2 text-lg text-white">

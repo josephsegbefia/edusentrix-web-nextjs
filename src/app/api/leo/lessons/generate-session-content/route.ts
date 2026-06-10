@@ -10,12 +10,25 @@ import {
 } from "@/lib/leo/lessons-draft-shared";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { LessonSession } from "@/models/LessonSession";
-import { enrichSliceWithSchemeItems, sliceNoteContextForSections } from "@/lib/lessons/note-sections";
+import {
+  buildSessionGenerationNoteSlice,
+  enrichSliceWithSchemeItems,
+} from "@/lib/lessons/note-sections";
 import { normalizeContentBlocks } from "@/lib/lessons/content-blocks";
+import {
+  summarizeContentBlocksForHandoff,
+  type PriorSessionHandoff,
+} from "@/lib/lessons/session-content-handoff";
+
+const PriorSessionSchema = z.object({
+  title: z.string().trim().min(1).max(220),
+  focusSummary: z.string().trim().max(500).optional(),
+  keyPointsSummary: z.string().trim().max(1200).optional(),
+});
 
 const BodySchema = z.object({
   lessonNoteId: z.string().min(1),
-  /** Optional: if provided, scheme items linked to this session are added to the context. */
+  /** Optional: if provided, scheme items and prior session context are resolved from the week plan. */
   sessionId: z.string().optional(),
   session: z.object({
     title: z.string().trim().min(1).max(220),
@@ -28,6 +41,9 @@ const BodySchema = z.object({
     periodCount: z.number().int().min(1).max(8).optional(),
     isDoublePeriod: z.boolean().optional(),
     focusSummary: z.string().trim().max(500).optional(),
+    sequenceInWeek: z.number().int().min(1).max(12).optional(),
+    previousSession: PriorSessionSchema.optional(),
+    priorSessions: z.array(PriorSessionSchema).max(11).optional(),
   }),
 });
 
@@ -68,24 +84,73 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
     }
 
-    // Load scheme items from an existing session if sessionId provided
     let schemeItemIds: mongoose.Types.ObjectId[] = [];
+    let sequenceInWeek = parsed.data.session.sequenceInWeek ?? 1;
+    let previousSession: PriorSessionHandoff | undefined = parsed.data.session.previousSession;
+    let priorSessions = parsed.data.session.priorSessions ?? [];
+
     if (parsed.data.sessionId) {
       try {
+        await connectToDatabase();
         const sessionOid = new mongoose.Types.ObjectId(parsed.data.sessionId);
         const existingSession = await LessonSession.findOne({
           _id: sessionOid,
           schoolId: ctx.schoolId,
         })
-          .select("noteSectionAllocation.schemeItemIds")
-          .lean();
-        schemeItemIds = existingSession?.noteSectionAllocation?.schemeItemIds ?? [];
+          .select(
+            "noteSectionAllocation.schemeItemIds weekPlanId sequenceInWeek title contentBlocks",
+          )
+          .lean<{
+            noteSectionAllocation?: { schemeItemIds?: mongoose.Types.ObjectId[] };
+            weekPlanId?: mongoose.Types.ObjectId;
+            sequenceInWeek?: number;
+            title?: string;
+            contentBlocks?: Array<{ type: string; title?: string | null; bodyHtml: string; order: number }>;
+          }>();
+
+        if (existingSession) {
+          schemeItemIds = existingSession.noteSectionAllocation?.schemeItemIds ?? [];
+          if (existingSession.sequenceInWeek) {
+            sequenceInWeek = existingSession.sequenceInWeek;
+          }
+
+          if (!previousSession && existingSession.sequenceInWeek && existingSession.sequenceInWeek > 1) {
+            const prev = await LessonSession.findOne({
+              schoolId: ctx.schoolId,
+              weekPlanId: existingSession.weekPlanId,
+              sequenceInWeek: existingSession.sequenceInWeek - 1,
+            })
+              .select("title contentBlocks noteSectionAllocation")
+              .lean<{
+                title?: string;
+                contentBlocks?: Array<{
+                  id: string;
+                  type: string;
+                  title?: string | null;
+                  bodyHtml: string;
+                  order: number;
+                  aiGenerated: boolean;
+                  teacherReviewed: boolean;
+                }>;
+                noteSectionAllocation?: { schemeItemIds?: mongoose.Types.ObjectId[] };
+              }>();
+
+            if (prev) {
+              previousSession = {
+                title: prev.title || "Previous session",
+                keyPointsSummary: summarizeContentBlocksForHandoff(
+                  (prev.contentBlocks ?? []) as Parameters<typeof summarizeContentBlocksForHandoff>[0],
+                ),
+              };
+            }
+          }
+        }
       } catch {
         // invalid id — ignore
       }
     }
 
-    let slice = sliceNoteContextForSections(note, parsed.data.session.noteSectionKeys);
+    let slice = buildSessionGenerationNoteSlice(note, parsed.data.session.noteSectionKeys);
     slice = await enrichSliceWithSchemeItems(
       slice,
       schemeItemIds,
@@ -96,13 +161,13 @@ export async function POST(req: Request) {
     const sliceJson = JSON.stringify(slice);
 
     const isDouble = parsed.data.session.isDoublePeriod ?? false;
+    const isFollowOnSession = sequenceInWeek > 1;
     const minBlocks = isDouble ? 14 : 10;
     const maxBlocks = isDouble ? 18 : 14;
     const minChars = isDouble ? 2500 : 1500;
 
     const result = await runLessonsLeoCompletion({
       context: ctx,
-      model: "gpt-4o",
       systemInstruction: `Return JSON only:
 {
   "contentBlocks": [
@@ -119,7 +184,10 @@ export async function POST(req: Request) {
   ]
 }
 Rules — REQUIRED STRUCTURE (produce ${minBlocks}–${maxBlocks} blocks for this ${parsed.data.session.durationMinutes}-minute ${isDouble ? "double-period" : "single-period"} lesson):
-1. STARTER block (type "explanation"): Activate relevant prior knowledge with a direct recall question or quick activity. State the learning target in plain learner language ("By the end of this session you will be able to…"). Do not just re-read the topic.
+1. STARTER block (type "explanation"):
+   ${isFollowOnSession
+     ? `This is session ${sequenceInWeek} in the week. Open with a brief "Quick review" of the IMMEDIATELY PREVIOUS session only — 2–3 short recall questions or a 3-minute retrieval activity. Do NOT re-teach previous content. Do NOT repeat definitions, worked examples, or activities already covered. Then state today's new learning target ("By the end of this session you will be able to…").`
+     : `Activate relevant prior knowledge with a direct recall question or quick activity. State the learning target in plain learner language ("By the end of this session you will be able to…"). Do not just re-read the topic.`}
 2. CORE EXPLANATION block(s) (type "explanation"): Explain the concept clearly with definition, reasoning, and context. Break complex ideas into short paragraphs. Use subject vocabulary and define new terms.
 3. WORKED EXAMPLE block(s) (type "example"): At least ONE fully worked example with numbered step-by-step reasoning. For maths, show concrete numbers → abstract rule. For science/social studies, show a real observation/case → principle. Include expected answers.
 ${isDouble ? "4. SECOND WORKED EXAMPLE block (type \"example\"): A variation or harder example building on the first." : ""}
@@ -133,6 +201,9 @@ ${isDouble ? "4. SECOND WORKED EXAMPLE block (type \"example\"): A variation or 
 
 Additional rules:
 - Explanation and example blocks must be detailed enough for absent learners to revise from. Avoid thin headings-only content.
+- Cover ONLY the allocated body/resources/assessment slice for this session. Do not re-introduce the whole week topic from scratch.
+- Do not repeat explanations, examples, or activities already assigned to earlier sessions this week (see priorSessions).
+- Context and curriculum in weekReference are background only — do not turn them into a second full lesson.
 - For Mathematics: concrete → abstract sequence, full step-by-step worked solutions, simple numbers first then harder, common error callout, practice questions with answers.
 - For science/social studies/literacy: concept explanation with vocabulary support, Ghana-appropriate examples, guided application, formative check.
 - Use Ghana-appropriate classroom and community examples where helpful.
@@ -143,16 +214,23 @@ Additional rules:
       userPrompt: `Draft deep, classroom-ready lesson content blocks for this session.
 
 Session title: ${parsed.data.session.title}
+Session sequence in week: ${sequenceInWeek}
 Duration: ${parsed.data.session.durationMinutes} minutes
 Period type: ${isDouble ? `double period (${parsed.data.session.periodCount || 2} consecutive periods)` : "single period"}
 Schedule: ${parsed.data.session.scheduledDate || "not specified"} ${parsed.data.session.startTime || ""}–${parsed.data.session.endTime || ""}
-Teaching focus: ${parsed.data.session.focusSummary || "Cover the allocated note sections thoroughly."}
-Note sections allocated: ${parsed.data.session.noteSectionKeys.join(", ") || "general weekly note"}
+Teaching focus: ${parsed.data.session.focusSummary || "Cover the allocated body, resources, and assessment portions for this period."}
+Splittable sections allocated: ${parsed.data.session.noteSectionKeys.join(", ") || "body (main teaching content)"}
+${previousSession
+  ? `\nPrevious session (for quick review starter only — do not re-teach):\n${JSON.stringify(previousSession)}`
+  : ""}
+${priorSessions.length > 0
+  ? `\nEarlier sessions this week (already covered — do not repeat):\n${JSON.stringify(priorSessions)}`
+  : ""}
 
 Teaching context:
 ${JSON.stringify(teachingMetadata)}
 
-Note slice + scheme items:
+Note slice (weekReference + sessionAllocation) + scheme items:
 ${sliceJson}`,
       maxTokens: isDouble ? 11000 : 8000,
     });

@@ -47,6 +47,8 @@ const WEEKDAYS: { key: WeekdayKey; short: string }[] = [
   { key: "sunday", short: "Sun" },
 ];
 
+type WeekdayException = SchoolDailyScheduleConfigV2["weekdayExceptions"][number];
+
 function newId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -105,6 +107,33 @@ function summarizeBreaks(br: DailyBreakItemV2[]) {
   return br.map((b) => `${b.name} (${b.startTime}–${b.endTime})`).join(", ");
 }
 
+function toMinutes(h: string) {
+  const p = h.match(/^(\d{1,2}):(\d{2})$/);
+  if (!p) return Number.NaN;
+  return parseInt(p[1], 10) * 60 + parseInt(p[2], 10);
+}
+
+function dayStructureIsValid(day: {
+  dayGateStart?: string;
+  lessonStart: string;
+  dayEnd: string;
+  openingBlocks?: OpeningBlock[];
+  breaks: DailyBreakItemV2[];
+}) {
+  const opening = validateOpeningBlocks(
+    day.dayGateStart ?? day.lessonStart,
+    day.lessonStart,
+    day.openingBlocks ?? []
+  );
+  if (!opening.ok) return false;
+  if (toMinutes(day.lessonStart) >= toMinutes(day.dayEnd)) return false;
+  return validateBreaksInWindow(
+    day.lessonStart,
+    day.dayEnd,
+    day.breaks as DailyBreakItem[]
+  ).ok;
+}
+
 export function SchoolDailyScheduleWizard({
   initial,
   gradeOptions,
@@ -161,12 +190,7 @@ export function SchoolDailyScheduleWizard({
       draft.openingBlocks ?? []
     );
     if (!open.ok) return false;
-    const toMin = (h: string) => {
-      const p = h.match(/^(\d{1,2}):(\d{2})$/);
-      if (!p) return Number.NaN;
-      return parseInt(p[1], 10) * 60 + parseInt(p[2], 10);
-    };
-    if (toMin(draft.lessonStart) >= toMin(draft.dayEnd)) return false;
+    if (toMinutes(draft.lessonStart) >= toMinutes(draft.dayEnd)) return false;
     return true;
   }, [draft]);
 
@@ -177,12 +201,7 @@ export function SchoolDailyScheduleWizard({
       draft.openingBlocks ?? []
     );
     if (!o.ok) return o.error;
-    const toMin = (h: string) => {
-      const p = h.match(/^(\d{1,2}):(\d{2})$/);
-      if (!p) return Number.NaN;
-      return parseInt(p[1], 10) * 60 + parseInt(p[2], 10);
-    };
-    if (toMin(draft.lessonStart) >= toMin(draft.dayEnd)) {
+    if (toMinutes(draft.lessonStart) >= toMinutes(draft.dayEnd)) {
       return "The school day end must be after lessons start.";
     }
     return null;
@@ -200,13 +219,7 @@ export function SchoolDailyScheduleWizard({
 
   const canGoFromStep3 = !draft.allWeekdaysSame
     ? draft.weekdayExceptions.length > 0 &&
-      draft.weekdayExceptions.every((ex) =>
-        validateBreaksInWindow(
-          ex.lessonStart,
-          ex.dayEnd,
-          ex.breaks as DailyBreakItem[]
-        ).ok
-      )
+      draft.weekdayExceptions.every((ex) => dayStructureIsValid(ex))
     : true;
 
   const canFinish = canGoFromStep1 && canGoFromStep2 && canGoFromStep3;
@@ -251,12 +264,106 @@ export function SchoolDailyScheduleWizard({
 
   const patchException = (
     day: WeekdayKey,
-    patch: Partial<SchoolDailyScheduleConfigV2["weekdayExceptions"][0]>
+    patch: Partial<WeekdayException>
   ) => {
     setDraft((d) => ({
       ...d,
       weekdayExceptions: d.weekdayExceptions.map((e) =>
         e.weekday === day ? { ...e, ...patch } : e
+      ),
+    }));
+  };
+
+  const patchExceptionOpeningBlock = (
+    day: WeekdayKey,
+    blockId: string,
+    patch: Partial<OpeningBlock>
+  ) => {
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) =>
+        e.weekday === day
+          ? {
+              ...e,
+              openingBlocks: (e.openingBlocks ?? []).map((b) =>
+                b.id === blockId ? { ...b, ...patch } : b
+              ),
+            }
+          : e
+      ),
+    }));
+  };
+
+  const addExceptionOpeningBlock = (day: WeekdayKey) => {
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) => {
+        if (e.weekday !== day) return e;
+        const gate = e.dayGateStart ?? e.lessonStart;
+        return {
+          ...e,
+          openingBlocks: [
+            ...(e.openingBlocks ?? []),
+            {
+              id: newId(),
+              name: "Assembly",
+              kind: "assembly",
+              startTime: gate,
+              endTime: e.lessonStart,
+            },
+          ],
+        };
+      }),
+    }));
+  };
+
+  const removeExceptionOpeningBlock = (day: WeekdayKey, blockId: string) => {
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) =>
+        e.weekday === day
+          ? {
+              ...e,
+              openingBlocks: (e.openingBlocks ?? []).filter((b) => b.id !== blockId),
+            }
+          : e
+      ),
+    }));
+  };
+
+  const setExceptionPeriodOverride = (day: WeekdayKey, periodIndex: number, minutes: number) => {
+    const safeIndex = Math.max(1, Math.min(32, periodIndex));
+    const safeMinutes = Math.max(5, Math.min(120, minutes));
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) => {
+        if (e.weekday !== day) return e;
+        const rest = (e.periodLengthOverrides ?? []).filter(
+          (x) => x.periodIndex !== safeIndex
+        );
+        return {
+          ...e,
+          periodLengthOverrides: [
+            ...rest,
+            { periodIndex: safeIndex, minutes: safeMinutes },
+          ],
+        };
+      }),
+    }));
+  };
+
+  const removeExceptionPeriodOverride = (day: WeekdayKey, periodIndex: number) => {
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) =>
+        e.weekday === day
+          ? {
+              ...e,
+              periodLengthOverrides: (e.periodLengthOverrides ?? []).filter(
+                (x) => x.periodIndex !== periodIndex
+              ),
+            }
+          : e
       ),
     }));
   };
@@ -749,8 +856,8 @@ export function SchoolDailyScheduleWizard({
             {!draft.allWeekdaysSame && (
               <div className="space-y-3">
                 <p className="text-sm text-white/60">
-                  Tap the days that use a different start, end, period length, or breaks. You only configure
-                  those days — the rest use your default from step 1–2.
+                  Choose any weekday that should differ from the default. Each selected day gets its own full
+                  structure from first bell through dismissal; unselected days keep the default from steps 1–2.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {WEEKDAYS.map(({ key, short }) => {
@@ -775,14 +882,30 @@ export function SchoolDailyScheduleWizard({
                 {draft.weekdayExceptions.map((ex) => (
                   <div
                     key={ex.weekday}
-                    className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4"
+                    className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4"
                   >
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="capitalize">
-                        {ex.weekday}
-                      </Badge>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="space-y-1">
+                        <Badge variant="secondary" className="capitalize">
+                          {ex.weekday}
+                        </Badge>
+                        <p className="text-xs text-white/45">
+                          Configure this day independently from first bell to dismissal.
+                        </p>
+                      </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-white/60">First bell</Label>
+                        <Input
+                          type="time"
+                          value={ex.dayGateStart ?? ex.lessonStart}
+                          onChange={(e) =>
+                            patchException(ex.weekday, { dayGateStart: e.target.value })
+                          }
+                          className="border-white/10 bg-slate-950/60 text-white"
+                        />
+                      </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-white/60">Lessons start</Label>
                         <Input
@@ -819,6 +942,184 @@ export function SchoolDailyScheduleWizard({
                         />
                       </div>
                     </div>
+
+                    <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <Label className="text-xs text-white/60">Opening / non-teaching blocks</Label>
+                          <p className="mt-1 text-[11px] text-white/40">
+                            Assembly, registration, or other blocks must sit between first bell and lesson start.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addExceptionOpeningBlock(ex.weekday)}
+                          className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          Add block
+                        </Button>
+                      </div>
+                      {(ex.openingBlocks ?? []).length === 0 ? (
+                        <p className="text-xs text-white/40">
+                          No opening blocks for this day.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(ex.openingBlocks ?? []).map((block) => (
+                            <div
+                              key={block.id}
+                              className="grid gap-2 rounded-lg border border-white/5 bg-black/20 p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(120px,0.8fr)_110px_110px_36px]"
+                            >
+                              <Input
+                                value={block.name}
+                                onChange={(e) =>
+                                  patchExceptionOpeningBlock(ex.weekday, block.id, {
+                                    name: e.target.value,
+                                  })
+                                }
+                                className="h-9 border-white/10 bg-slate-950/60 text-sm text-white"
+                                placeholder="e.g. Assembly"
+                              />
+                              <PremiumSelect
+                                value={block.kind}
+                                onValueChange={(v) =>
+                                  patchExceptionOpeningBlock(ex.weekday, block.id, {
+                                    kind: v as OpeningBlock["kind"],
+                                  })
+                                }
+                              >
+                                <PremiumSelectTrigger className="h-9 border-white/10 bg-slate-950/60 text-xs text-white">
+                                  <PremiumSelectValue />
+                                </PremiumSelectTrigger>
+                                <PremiumSelectContent>
+                                  <PremiumSelectItem value="assembly">assembly</PremiumSelectItem>
+                                  <PremiumSelectItem value="registration">registration</PremiumSelectItem>
+                                  <PremiumSelectItem value="other">other</PremiumSelectItem>
+                                </PremiumSelectContent>
+                              </PremiumSelect>
+                              <Input
+                                type="time"
+                                value={block.startTime}
+                                onChange={(e) =>
+                                  patchExceptionOpeningBlock(ex.weekday, block.id, {
+                                    startTime: e.target.value,
+                                  })
+                                }
+                                className="h-9 border-white/10 bg-slate-950/60 text-sm text-white"
+                                aria-label={`${block.name} start time`}
+                              />
+                              <Input
+                                type="time"
+                                value={block.endTime}
+                                onChange={(e) =>
+                                  patchExceptionOpeningBlock(ex.weekday, block.id, {
+                                    endTime: e.target.value,
+                                  })
+                                }
+                                className="h-9 border-white/10 bg-slate-950/60 text-sm text-white"
+                                aria-label={`${block.name} end time`}
+                              />
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeExceptionOpeningBlock(ex.weekday, block.id)}
+                                className="h-9 text-rose-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <Label className="text-xs text-white/60">Period length overrides</Label>
+                          <p className="mt-1 text-[11px] text-white/40">
+                            Use this when a period on this day is shorter or longer than the day default.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setExceptionPeriodOverride(ex.weekday, 1, ex.periodLengthMinutes)}
+                          className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          Add override
+                        </Button>
+                      </div>
+                      {(ex.periodLengthOverrides ?? []).length === 0 ? (
+                        <p className="text-xs text-white/40">
+                          All periods use {ex.periodLengthMinutes} minutes on this day.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(ex.periodLengthOverrides ?? []).map((override) => (
+                            <div
+                              key={override.periodIndex}
+                              className="flex flex-wrap items-end gap-2 rounded-lg border border-white/5 bg-black/20 p-2"
+                            >
+                              <div className="space-y-1">
+                                <Label className="text-[11px] text-white/50">Period #</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={32}
+                                  value={override.periodIndex}
+                                  onChange={(e) => {
+                                    const nextIndex = Number(e.target.value) || 1;
+                                    removeExceptionPeriodOverride(ex.weekday, override.periodIndex);
+                                    setExceptionPeriodOverride(
+                                      ex.weekday,
+                                      nextIndex,
+                                      override.minutes
+                                    );
+                                  }}
+                                  className="h-9 w-24 border-white/10 bg-slate-950/60 text-sm text-white"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[11px] text-white/50">Minutes</Label>
+                                <Input
+                                  type="number"
+                                  min={5}
+                                  max={120}
+                                  value={override.minutes}
+                                  onChange={(e) =>
+                                    setExceptionPeriodOverride(
+                                      ex.weekday,
+                                      override.periodIndex,
+                                      Number(e.target.value) || 0
+                                    )
+                                  }
+                                  className="h-9 w-28 border-white/10 bg-slate-950/60 text-sm text-white"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() =>
+                                  removeExceptionPeriodOverride(ex.weekday, override.periodIndex)
+                                }
+                                className="h-9 text-rose-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="space-y-2">
                       <Label className="text-xs text-white/60">Breaks for this day</Label>
                       {ex.breaks.map((b) => (

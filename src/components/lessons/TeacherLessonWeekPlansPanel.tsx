@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronDown, ChevronRight, Copy, Layers } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronRight, Copy, Layers, NotebookPen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,9 +48,16 @@ function SessionRow({ session }: { session: LessonWeekPlanDto["sessions"][number
             {session.scheduledDate} · {session.startTime}–{session.endTime} · {durationLabel}
           </p>
         </div>
-        <Badge className={cn("shrink-0 border-0", DELIVERY_STATUS_COLORS[deliveryStatus])}>
-          {DELIVERY_STATUS_LABELS[deliveryStatus]}
-        </Badge>
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+          {session.notebookNotesPublished ? (
+            <Badge className="border-0 bg-teal-500/20 text-teal-100">Notebook shared</Badge>
+          ) : session.hasNotebookNotes ? (
+            <Badge className="border-0 bg-white/10 text-white/55">Notebook draft</Badge>
+          ) : null}
+          <Badge className={cn("border-0", DELIVERY_STATUS_COLORS[deliveryStatus])}>
+            {DELIVERY_STATUS_LABELS[deliveryStatus]}
+          </Badge>
+        </div>
       </Link>
     </li>
   );
@@ -244,7 +251,28 @@ export function TeacherLessonWeekPlansPanel({ classGroupId, classLabelMap }: Pro
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-xs text-white/45">
                               {plan.deliverySummary.completed}/{plan.deliverySummary.total} completed
+                              {plan.deliverySummary.notebookNotesReady > 0 ? (
+                                <span className="ml-2 inline-flex items-center gap-1 text-teal-200/80">
+                                  <NotebookPen className="h-3 w-3" />
+                                  {plan.deliverySummary.notebookNotesShared}/
+                                  {plan.deliverySummary.notebookNotesReady} notebook notes shared
+                                </span>
+                              ) : null}
                             </p>
+                            {plan.sessions.length > 0 ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                asChild
+                                className="border-teal-400/25 bg-teal-500/10 text-xs text-teal-100 hover:bg-teal-500/20"
+                              >
+                                <Link href={`/teacher/lessons/week-plans/${plan.id}/notebook-summary`}>
+                                  <NotebookPen className="mr-1.5 h-3.5 w-3.5" />
+                                  Notebook summary
+                                </Link>
+                              </Button>
+                            ) : null}
                             <CloneWeekPlanButton
                               plan={plan}
                               classGroupId={classGroupId}

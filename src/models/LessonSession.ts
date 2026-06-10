@@ -84,6 +84,8 @@ export interface ILessonSession {
   aiMetadata?: ILessonSessionAiMetadata;
   assessmentItems: ILessonAssessmentItem[];
   boardNotes?: ILessonBoardNotes | null;
+  /** When true, notebook notes are visible to students after the class session is taught. */
+  notebookNotesPublished?: boolean;
   /** Set when migrated from legacy `Lesson` for URL redirects. */
   legacyLessonId?: Types.ObjectId | null;
   createdAt?: Date;
@@ -243,6 +245,7 @@ const lessonSessionSchema = new Schema<ILessonSession>(
     contentBlocks: { type: [contentBlockSchema], default: [] },
     assessmentItems: { type: [assessmentItemSchema], default: [] },
     boardNotes: { type: boardNotesSchema, default: null },
+    notebookNotesPublished: { type: Boolean, default: false },
     teachingDeck: { type: teachingDeckSchema, default: null },
     aiMetadata: { type: aiMetadataSchema, default: () => ({}) },
     legacyLessonId: { type: Schema.Types.ObjectId, ref: "Lesson", default: null, index: true },

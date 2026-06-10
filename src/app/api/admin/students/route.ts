@@ -7,7 +7,12 @@ import mongoose from "mongoose";
 import { Student } from "@/models/Student";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
-import { StudentListItem, StudentListResponse } from "@/types/admin/student";
+import { Invoice } from "@/models/Invoice";
+import type {
+  FeeStatus,
+  StudentListItem,
+  StudentListResponse,
+} from "@/types/admin/student";
 
 function parsePositiveInt(value: string | null, fallback: number) {
   const n = Number(value);
@@ -27,9 +32,43 @@ function computeIsNew(enrolledAt?: Date | null, createdAt?: Date): boolean {
   return daysDiff <= 30; // last 30 days
 }
 
+type StudentFeeRollup = {
+  billCount: number;
+  totalBilledMinor: number;
+  totalPaidMinor: number;
+  totalOutstandingMinor: number;
+};
+
+function deriveFeeStatus(rollup?: StudentFeeRollup): {
+  feeStatus: FeeStatus;
+  amountOwed: number | null;
+} {
+  if (!rollup || rollup.billCount === 0) {
+    return { feeStatus: "none", amountOwed: null };
+  }
+
+  const amountOwed = Math.max(rollup.totalOutstandingMinor, 0) / 100;
+
+  if (rollup.totalOutstandingMinor > 0) {
+    return {
+      feeStatus: rollup.totalPaidMinor > 0 ? "partial" : "owing",
+      amountOwed,
+    };
+  }
+
+  if (rollup.totalBilledMinor > 0) {
+    return { feeStatus: "cleared", amountOwed: 0 };
+  }
+
+  return { feeStatus: "none", amountOwed: null };
+}
+
 export async function GET(req: NextRequest) {
   const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("students");
   await connectToDatabase();
+  const schoolObjectId = mongoose.Types.ObjectId.isValid(String(schoolId))
+    ? new mongoose.Types.ObjectId(String(schoolId))
+    : schoolId;
 
   // Ensure models are registered before using populate
   // In Next.js serverless environments, we need to ensure models are evaluated
@@ -55,6 +94,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search")?.trim() || "";
     const gradeId = searchParams.get("gradeId") || null;
     const classGroupId = searchParams.get("classGroupId") || null;
+    const excludeClassId = searchParams.get("excludeClassId") || null;
     const status = searchParams.get("status") || null;
     const sex = searchParams.get("gender") || null;
     const tab = searchParams.get("tab") || "all";
@@ -69,6 +109,15 @@ export async function GET(req: NextRequest) {
 
     if (gradeId) query.gradeId = gradeId;
     if (classGroupId) query.classGroupId = classGroupId;
+    if (
+      excludeClassId &&
+      mongoose.Types.ObjectId.isValid(excludeClassId) &&
+      !classGroupId
+    ) {
+      query.classGroupId = {
+        $ne: new mongoose.Types.ObjectId(excludeClassId),
+      };
+    }
     if (status && status !== "all") {
       query.status = status;
     } else if (tab === "alumni") {
@@ -152,6 +201,40 @@ export async function GET(req: NextRequest) {
       Student.countDocuments(query),
     ]);
 
+    const studentIds = items.map((s: any) => s._id).filter(Boolean);
+    const billRollups = (await Invoice.aggregate([
+      {
+        $match: {
+          schoolId: schoolObjectId,
+          studentId: { $in: studentIds },
+          status: { $ne: "cancelled" },
+        },
+      },
+      {
+        $group: {
+          _id: "$studentId",
+          billCount: { $sum: 1 },
+          totalBilledMinor: { $sum: { $ifNull: ["$totalAmountMinor", 0] } },
+          totalPaidMinor: { $sum: { $ifNull: ["$totalPaidMinor", 0] } },
+          totalOutstandingMinor: {
+            $sum: { $ifNull: ["$totalOutstandingMinor", 0] },
+          },
+        },
+      },
+    ])) as Array<StudentFeeRollup & { _id: unknown }>;
+
+    const feeRollupByStudentId = new Map<string, StudentFeeRollup>(
+      billRollups.map((rollup) => [
+        String(rollup._id),
+        {
+          billCount: Number(rollup.billCount || 0),
+          totalBilledMinor: Number(rollup.totalBilledMinor || 0),
+          totalPaidMinor: Number(rollup.totalPaidMinor || 0),
+          totalOutstandingMinor: Number(rollup.totalOutstandingMinor || 0),
+        },
+      ])
+    );
+
     const data: StudentListItem[] = items.map((s: any) => {
       const grade = s.gradeId as any | null;
       const classGroup = s.classGroupId as any | null;
@@ -167,10 +250,11 @@ export async function GET(req: NextRequest) {
       const enrolledAt: Date | null = s.enrolledAt ?? null;
       const createdAt: Date = s.createdAt;
 
-      // Placeholder fee + academic data until those systems are wired in:
-      const feeStatus = "unknown" as const;
-      const amountOwed = 0;
+      const { feeStatus, amountOwed } = deriveFeeStatus(
+        feeRollupByStudentId.get(String(s._id))
+      );
       const lastPaymentAt: string | null = null;
+      // Placeholder academic data until the academic summary is wired in:
       const latestAverage: number | null = null;
       const academicBadge = "none" as const;
 

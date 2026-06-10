@@ -1,8 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
-import { User } from "@/models/User";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { Student } from "@/models/Student";
@@ -13,6 +13,8 @@ import { trackUsage } from "@/lib/billing/trackUsage";
 import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 import { canUploadLibraryBookCover } from "@/lib/library/library-upload-gate";
 import { resolveSchoolUploadAccess } from "@/lib/uploads/resolve-school-upload-access";
+import { isProfileMediaUploadFolder } from "@/lib/uploads/membership-upload-access";
+import { resolveUploaderSchoolAccess } from "@/lib/uploads/resolve-uploader-school-access";
 
 const f = createUploadthing();
 const RouteInput = z.object({
@@ -55,7 +57,22 @@ type UploadMetadata = {
   folder: string;
   role?: string;
   isPlatformOperator?: boolean;
+  pendingOnboarding?: boolean;
 };
+
+function isMiddlewareError(error: unknown): error is Error {
+  return error instanceof Error;
+}
+
+function formatMiddlewareError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "Upload middleware failed";
+  }
+}
 
 function slugify(value: string): string {
   return value
@@ -92,21 +109,40 @@ async function getUploaderContext(requestedSchoolId?: string) {
 
   await connectToDatabase();
 
-  const user = await User.findOne({ clerkUserId })
-    .select("_id role schoolId")
-    .lean<{
-      _id: { toString(): string };
-      role?: string;
-      schoolId?: { toString(): string } | null;
-    }>();
+  const clerk = await clerkClient();
+  const cUser = await clerk.users.getUser(clerkUserId);
+  const email =
+    cUser.primaryEmailAddress?.emailAddress?.toLowerCase() ||
+    cUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() ||
+    "";
 
-  if (!user) {
-    throw new Error("User not found");
-  }
+  const user = await ensureCanonicalUserForClerkSession({
+    clerkUserId,
+    email,
+    firstName: cUser.firstName,
+    lastName: cUser.lastName,
+    avatarUrl: cUser.imageUrl,
+  });
+
+  const userId =
+    user._id instanceof mongoose.Types.ObjectId
+      ? user._id
+      : new mongoose.Types.ObjectId(String(user._id));
+
+  const { membershipSchoolIds, activeSchoolId } = await resolveUploaderSchoolAccess({
+    userId,
+    legacySchoolId: user.schoolId ?? null,
+    requestedSchoolId,
+  });
 
   const access = await resolveSchoolUploadAccess({
-    user,
+    user: {
+      _id: userId,
+      role: user.role,
+    },
     requestedSchoolId,
+    activeSchoolId,
+    membershipSchoolIds,
   });
   if (!access.allowed) {
     throw new Error(access.reason);
@@ -121,11 +157,12 @@ async function getUploaderContext(requestedSchoolId?: string) {
   );
 
   return {
-    userId: user._id.toString(),
+    userId: String(userId),
     schoolId: access.effectiveSchoolId,
     schoolSlug,
     role: user.role || undefined,
     isPlatformOperator: access.isPlatformOperator,
+    pendingOnboarding: user.pendingOnboarding === true,
   };
 }
 
@@ -138,12 +175,14 @@ async function buildMetadata(
   try {
     context = await getUploaderContext(requestedSchoolId);
   } catch (error) {
+    const message = formatMiddlewareError(error);
     console.error("[uploadthing] getUploaderContext failed:", {
       folder,
       requestedSchoolId,
-      error: error instanceof Error ? error.message : error,
+      message,
+      error: isMiddlewareError(error) ? error.stack : error,
     });
-    throw error;
+    throw new Error(message);
   }
   const timestamp = Date.now();
   const incomingBytes = files.reduce(
@@ -151,9 +190,14 @@ async function buildMetadata(
     0
   );
 
-  // Platform operators may upload during assisted onboarding before entitlements
-  // are fully provisioned. Match /api/uploads/sign behavior.
-  if (!context.isPlatformOperator) {
+  // Profile photos during onboarding and avatar routes should not require the
+  // documents.storage add-on (pilot plans mark it OPTIONAL).
+  const skipDocumentsStorageGate =
+    context.isPlatformOperator ||
+    context.pendingOnboarding === true ||
+    isProfileMediaUploadFolder(folder);
+
+  if (!skipDocumentsStorageGate) {
     const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
     const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
     const featureResult = await requireSchoolFeature(
@@ -162,7 +206,8 @@ async function buildMetadata(
     );
     if (!featureResult.allowed) {
       throw new Error(
-        "Document storage is not available on your current plan. Please contact your platform administrator."
+        featureResult.reason ||
+          "Document storage is not available on your current plan. Please contact your platform administrator."
       );
     }
   }

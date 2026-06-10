@@ -7,6 +7,11 @@ import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { PERMISSIONS } from "@/lib/rbac";
 import { getTemplateDefinition } from "@/constants/curriculum-lesson-templates";
+import {
+  formatLessonNotesAiError,
+  isModelAccessError,
+  lessonNotesAiModels,
+} from "@/lib/lesson-notes/ai-models";
 
 const GenerateRequestSchema = z.object({
   action: z.enum([
@@ -537,10 +542,9 @@ export async function POST(req: Request) {
 
     const data = parsed.data;
 
-    // Deep content actions use gpt-4o for richer, more structured output.
     const deepActions = new Set(["generate_body", "generate_assessment_section"]);
     const useDeepModel = deepActions.has(data.action);
-    const modelToUse = useDeepModel ? "gpt-4o" : "gpt-4o-mini";
+    const modelsToTry = lessonNotesAiModels(useDeepModel);
     const maxTokensForAction = useDeepModel ? 6000 : 4000;
 
     const systemPrompt = buildSystemPrompt(data.templateType, data.action);
@@ -588,16 +592,31 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const completion = await openai.chat.completions.create({
-      model: modelToUse,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: useDeepModel ? 0.6 : 0.7,
-      response_format: { type: "json_object" },
-      max_tokens: maxTokensForAction,
-    });
+    let completion: Awaited<ReturnType<typeof openai.chat.completions.create>> | null = null;
+    let lastModelError: unknown = null;
+
+    for (const model of modelsToTry) {
+      try {
+        completion = await openai.chat.completions.create({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: useDeepModel ? 0.6 : 0.7,
+          response_format: { type: "json_object" },
+          max_tokens: maxTokensForAction,
+        });
+        break;
+      } catch (error: unknown) {
+        lastModelError = error;
+        if (!isModelAccessError(error)) throw error;
+      }
+    }
+
+    if (!completion) {
+      throw lastModelError ?? new Error("No OpenAI model available for lesson generation");
+    }
 
     const responseText = completion.choices[0]?.message?.content;
     if (!responseText) {
@@ -654,7 +673,7 @@ export async function POST(req: Request) {
   } catch (e: unknown) {
     if (e instanceof Response) return e;
     console.error("AI generation error:", e);
-    const message = e instanceof Error ? e.message : "AI generation failed";
+    const message = formatLessonNotesAiError(e);
     return Response.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BookOpen, ChevronRight } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronRight, NotebookPen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,12 @@ export default function ParentWardLessonsPage() {
                           No family summary yet
                         </Badge>
                       )}
+                      {row.notebookNotesPublished && row.hasNotebookNotes ? (
+                        <Badge className="border-violet-400/35 bg-violet-500/15 text-violet-100">
+                          <NotebookPen className="mr-1 h-3 w-3" />
+                          Notebook notes
+                        </Badge>
+                      ) : null}
                       <ChevronRight className="h-5 w-5 text-white/35" />
                     </div>
                   </CardHeader>

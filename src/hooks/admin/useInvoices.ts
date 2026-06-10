@@ -105,6 +105,11 @@ export interface CreateInvoiceInput {
     amount: number;
     allowsInstallments?: boolean;
     numberOfInstallments?: number;
+    installmentSchedule?: Array<{
+      installmentNumber: number;
+      dueDate: string;
+      amount: number;
+    }> | null;
   }>;
   dueDate?: string;
   notes?: string;
@@ -172,10 +177,24 @@ export function useCreateInvoice() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to create invoice");
+        const contentType = res.headers.get("content-type") || "";
+        const error = contentType.includes("application/json")
+          ? await res.json().catch(() => null)
+          : null;
+        const text = error ? "" : await res.text().catch(() => "");
+        const message =
+          typeof error?.error === "string"
+            ? error.error
+            : typeof error?.message === "string"
+              ? error.message
+              : text.trim() || "Failed to create invoice";
+        throw new Error(message);
       }
-      return res.json();
+      const payload = await res.json().catch(() => null);
+      if (!payload?.invoice) {
+        throw new Error("Invoice was created but the server returned an invalid response");
+      }
+      return payload;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
@@ -226,6 +245,42 @@ export function useIssueInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", id] });
       queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-ledger"] });
+    },
+  });
+}
+
+export function useUpdateInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CreateInvoiceInput>;
+    }) => {
+      const res = await fetch(`/api/admin/fees/invoices/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.error || "Failed to update bill");
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-ledger"] });
     },
   });
 }
@@ -249,6 +304,9 @@ export function useBulkCancelInvoices() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-ledger"] });
     },
   });
 }
@@ -299,6 +357,33 @@ export function useCancelInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", id] });
       queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-ledger"] });
+    },
+  });
+}
+
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/fees/invoices/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.error || "Failed to delete bill");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["student-fees-ledger"] });
     },
   });
 }

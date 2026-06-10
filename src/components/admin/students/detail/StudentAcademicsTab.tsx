@@ -293,7 +293,7 @@ export function StudentAcademicsTab({ studentId }: Props) {
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
+        <CardHeader className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-teal-500/20 shadow-inner shadow-white/5">
               <GraduationCap className="h-5 w-5 text-cyan-300" />

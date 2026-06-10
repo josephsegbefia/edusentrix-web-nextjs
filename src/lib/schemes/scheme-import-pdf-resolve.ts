@@ -11,6 +11,8 @@ import {
 import { isAiConfigurationError } from "@/lib/schemes/scheme-import-ai-error";
 import { parseSchemeRowsFromPdfTextManually } from "@/lib/schemes/scheme-import-pdf-manual";
 
+export type PdfSchemeParseMode = "full" | "ai-only" | "manual-only";
+
 export type PdfSchemeParseResult =
   | {
       ok: true;
@@ -21,10 +23,13 @@ export type PdfSchemeParseResult =
   | { ok: false; error: string; primaryError: string | null };
 
 /**
- * PDF extraction order:
+ * PDF AI extraction order (Leo):
  *   If SCHEME_IMPORT_PRIMARY_PROVIDER=gemini → Gemini first, then OpenAI.
  *   Otherwise → OpenAI first, then Gemini.
- * Manual text parser is always last.
+ *
+ * `ai-only` — Leo only; no manual fallback (used before local table parsing).
+ * `manual-only` — manual text parser only.
+ * `full` — Leo then manual (legacy callers).
  *
  * Set SCHEME_IMPORT_PRIMARY_PROVIDER=gemini in .env.local when OpenAI is
  * blocked by a VPN/proxy (e.g. HTTP 421 from api.openai.com).
@@ -36,7 +41,14 @@ function preferGemini(): boolean {
 export async function resolvePdfSchemeParsedRows(args: {
   rawText: string;
   schoolId: mongoose.Types.ObjectId;
+  mode?: PdfSchemeParseMode;
 }): Promise<PdfSchemeParseResult> {
+  const mode = args.mode ?? "full";
+
+  if (mode === "manual-only") {
+    return parseWithManualFallback(args.rawText, null);
+  }
+
   const hasOpenAi = Boolean(process.env.OPENAI_API_KEY?.trim());
   const hasGemini = Boolean(getGeminiApiKey());
   let aiEntitlementOk = false;
@@ -52,10 +64,11 @@ export async function resolvePdfSchemeParsedRows(args: {
       aiEntitlementOk = true;
     } catch (error) {
       if (error instanceof EntitlementError) {
-        return parseWithManualFallback(
-          args.rawText,
-          `${error.message} AI extraction was skipped; using the manual PDF parser instead.`,
-        );
+        const entitlementMessage = `${error.message} Leo AI extraction was skipped.`;
+        if (mode === "ai-only") {
+          return { ok: false, error: entitlementMessage, primaryError: error.message };
+        }
+        return parseWithManualFallback(args.rawText, entitlementMessage);
       }
       throw error;
     }
@@ -116,11 +129,22 @@ export async function resolvePdfSchemeParsedRows(args: {
   }
 
   if (isAiConfigurationError(primaryError)) {
+    const configError = `${primaryError} Fix API keys in .env.local (OPENAI_API_KEY and/or GEMINI_API_KEY / GOOGLE_AI_API_KEY), restart the dev server, then re-upload. CSV/XLSX import does not require AI.`;
+    if (mode === "ai-only") {
+      return { ok: false, error: configError, primaryError };
+    }
     return {
       ok: false,
-      error: `${primaryError} Fix API keys in .env.local (OPENAI_API_KEY and/or GEMINI_API_KEY / GOOGLE_AI_API_KEY), restart the dev server, then re-upload. CSV/XLSX import does not require AI.`,
+      error: configError,
       primaryError,
     };
+  }
+
+  if (mode === "ai-only") {
+    const aiError =
+      primaryError ||
+      "Leo could not identify scheme rows in this PDF. Configure OPENAI_API_KEY or GEMINI_API_KEY / GOOGLE_AI_API_KEY.";
+    return { ok: false, error: aiError, primaryError };
   }
 
   return parseWithManualFallback(args.rawText, primaryError);

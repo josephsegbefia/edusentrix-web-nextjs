@@ -40,6 +40,21 @@ export type TimetableSlotPreview = {
   classroomLabel: string | null;
 };
 
+export type LessonClassDeliveryDto = {
+  id: string;
+  classGroupId: string;
+  status: LessonDeliveryStatus;
+  scheduledTeacherId?: string;
+  ownerTeacherId?: string;
+  actualTeacherId: string | null;
+  substituteReason?: "leave" | "absence" | "delegation" | "other" | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  completedAt?: string | null;
+  attendanceBeforeId?: string | null;
+  attendanceAfterId?: string | null;
+};
+
 export type LessonWeekPlanSessionDto = {
   id: string;
   weekPlanId: string;
@@ -56,24 +71,17 @@ export type LessonWeekPlanSessionDto = {
   status: LessonSessionStatus;
   planNotes: string | null;
   contentBlockCount?: number;
-  delivery: {
-    id: string;
-    status: LessonDeliveryStatus;
-    scheduledTeacherId?: string;
-    ownerTeacherId?: string;
-    actualTeacherId: string | null;
-    substituteReason?: "leave" | "absence" | "delegation" | "other" | null;
-    startedAt?: string | null;
-    endedAt?: string | null;
-    completedAt?: string | null;
-    attendanceBeforeId?: string | null;
-    attendanceAfterId?: string | null;
-  } | null;
+  hasNotebookNotes?: boolean;
+  notebookNotesPublished?: boolean;
+  delivery: LessonClassDeliveryDto | null;
+  classDeliveries?: LessonClassDeliveryDto[];
 };
 
 export type LessonSessionDetailDto = LessonWeekPlanSessionDto & {
   lessonNoteId: string;
   classGroupId: string;
+  activeClassGroupId?: string;
+  sharedClassGroupIds?: string[];
   subjectOfferingId: string;
   contentBlocks: LessonContentBlock[];
   contentVersion: number;
@@ -126,6 +134,7 @@ export type LessonWeekPlanDto = {
   weekStartDate: string;
   weekEndDate: string;
   classGroupId: string;
+  classGroupIds: string[];
   subjectOfferingId: string;
   lessonNoteId: string;
   lessonNoteTopic: string | null;
@@ -136,6 +145,8 @@ export type LessonWeekPlanDto = {
     completed: number;
     delivered: number;
     scheduled: number;
+    notebookNotesReady: number;
+    notebookNotesShared: number;
   };
 };
 
@@ -160,11 +171,19 @@ export type WeekCreationContextResponse = {
     hasPublishedTimetable: boolean;
     canCreate: boolean;
     blockReason: string | null;
+    /** body, resources, assessment — splittable across periods; context/curriculum are week-level. */
+    splittableNoteSectionKeys: string[];
+    /** @deprecated Use splittableNoteSectionKeys */
     allocatableNoteSectionKeys: string[];
     /** Scheme item IDs linked to the lesson note — used to pre-seed sessions. */
     noteSchemeItemIds: string[];
     enableLeoLessonTools: boolean;
     requireTeacherReviewForAiContent: boolean;
+    shareableClassGroups: Array<{
+      classGroupId: string;
+      classGroupName: string;
+      gradeName: string | null;
+    }>;
   };
 };
 

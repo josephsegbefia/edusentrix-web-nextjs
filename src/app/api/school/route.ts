@@ -1,12 +1,11 @@
 // src/app/api/school/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, ISchool } from "@/models/School";
-import { User, IUser } from "@/models/User";
-import mongoose from "mongoose";
-import { z } from "zod";
 import { isValidIanaTimeZone } from "@/lib/validation/iana-timezone";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
+import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 
 const UpdateSchoolProfileSchema = z
   .object({
@@ -32,54 +31,64 @@ const UpdateSchoolProfileSchema = z
     message: "No valid fields to update",
   });
 
+type SchoolProfileFields = Pick<
+  ISchool,
+  | "_id"
+  | "name"
+  | "logo"
+  | "motto"
+  | "type"
+  | "status"
+  | "gesSchoolCode"
+  | "curriculumCode"
+  | "timeZone"
+>;
+
+function serializeSchool(school: SchoolProfileFields) {
+  return {
+    id: String(school._id),
+    name: school.name,
+    logo: school.logo || null,
+    motto: school.motto || null,
+    type: school.type,
+    status: school.status,
+    gesSchoolCode: school.gesSchoolCode || null,
+    curriculumCode: school.curriculumCode || "ghana_nacca",
+    timeZone: school.timeZone?.trim() || "Africa/Accra",
+  };
+}
+
 /**
  * GET /api/school
  * Get current school information for the authenticated user
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const active = await resolveActiveSchoolContext();
+    if (!active.ok) {
+      const status =
+        active.reason === "unauthorized"
+          ? 401
+          : active.reason === "needs_school_selection"
+            ? 409
+            : 404;
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
+        {
+          success: false,
+          error:
+            active.reason === "needs_school_selection"
+              ? "School selection required"
+              : "No school associated with user",
+        },
+        { status }
       );
     }
 
     await connectToDatabase();
 
-    const user = await User.findOne({ clerkUserId }).select("schoolId").lean<Pick<IUser, "_id" | "schoolId">>();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!user.schoolId) {
-      return NextResponse.json(
-        { success: false, error: "No school associated with user" },
-        { status: 404 }
-      );
-    }
-
-    const schoolIdObj = new mongoose.Types.ObjectId(String(user.schoolId));
-    const school = await School.findById(schoolIdObj)
+    const school = await School.findById(active.context.schoolId)
       .select("_id name logo motto type status gesSchoolCode curriculumCode timeZone")
-      .lean<
-        Pick<
-          ISchool,
-          | "_id"
-          | "name"
-          | "logo"
-          | "motto"
-          | "type"
-          | "status"
-          | "gesSchoolCode"
-          | "curriculumCode"
-          | "timeZone"
-        >
-      >();
+      .lean<SchoolProfileFields>();
 
     if (!school) {
       return NextResponse.json(
@@ -90,17 +99,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        id: String(school._id),
-        name: school.name,
-        logo: school.logo || null,
-        motto: school.motto || null,
-        type: school.type,
-        status: school.status,
-        gesSchoolCode: school.gesSchoolCode || null,
-        curriculumCode: school.curriculumCode || "ghana_nacca",
-        timeZone: school.timeZone?.trim() || "Africa/Accra",
-      },
+      data: serializeSchool(school),
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to fetch school";
@@ -117,25 +116,28 @@ export async function GET(req: NextRequest) {
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const active = await resolveActiveSchoolContext();
+    if (!active.ok) {
+      const status =
+        active.reason === "unauthorized"
+          ? 401
+          : active.reason === "needs_school_selection"
+            ? 409
+            : 404;
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
+        {
+          success: false,
+          error:
+            active.reason === "needs_school_selection"
+              ? "School selection required"
+              : "No school associated",
+        },
+        { status }
       );
     }
 
-    await connectToDatabase();
-
-    const user = await User.findOne({ clerkUserId }).select("schoolId role").lean<Pick<IUser, "_id" | "schoolId" | "role">>();
-    if (!user?.schoolId) {
-      return NextResponse.json(
-        { success: false, error: "No school associated" },
-        { status: 404 }
-      );
-    }
-
-    if (user.role !== "school_admin" && user.role !== "platform_admin") {
+    const adminGate = gateSchoolAdminRoles(active.context.roles);
+    if (!adminGate.ok) {
       return NextResponse.json(
         { success: false, error: "Only admins can update school info" },
         { status: 403 }
@@ -171,26 +173,15 @@ export async function PATCH(req: NextRequest) {
       updates.timeZone = parsed.data.timeZone.trim();
     }
 
+    await connectToDatabase();
+
     const updated = await School.findByIdAndUpdate(
-      user.schoolId,
+      active.context.schoolId,
       { $set: updates },
       { new: true, runValidators: true }
     )
       .select("_id name logo motto type status gesSchoolCode curriculumCode timeZone")
-      .lean<
-        Pick<
-          ISchool,
-          | "_id"
-          | "name"
-          | "logo"
-          | "motto"
-          | "type"
-          | "status"
-          | "gesSchoolCode"
-          | "curriculumCode"
-          | "timeZone"
-        >
-      >();
+      .lean<SchoolProfileFields>();
 
     if (!updated) {
       return NextResponse.json(
@@ -201,17 +192,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        id: String(updated._id),
-        name: updated.name,
-        logo: updated.logo || null,
-        motto: updated.motto || null,
-        type: updated.type,
-        status: updated.status,
-        gesSchoolCode: updated.gesSchoolCode || null,
-        curriculumCode: updated.curriculumCode || "ghana_nacca",
-        timeZone: updated.timeZone?.trim() || "Africa/Accra",
-      },
+      data: serializeSchool(updated),
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to update school";

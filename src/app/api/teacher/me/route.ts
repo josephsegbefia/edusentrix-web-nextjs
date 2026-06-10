@@ -21,6 +21,13 @@ import {
   toDelegationNavItems,
 } from "@/lib/delegations/service";
 import type { DelegationNavItem } from "@/lib/delegations/types";
+import { loadCurrentSchemeWeekForSchool } from "@/lib/schemes/load-current-scheme-week";
+import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
+import {
+  canUseExpensiveAi,
+  expensiveAiBlockedMessage,
+} from "@/lib/billing/expensive-ai-access";
+import type { SchoolAccessMode } from "@/lib/billing/resolve-school-access-mode";
 
 function parseTermNumber(term?: string | null) {
   if (!term) return null;
@@ -200,7 +207,10 @@ export async function GET() {
       new Set([...context.permissions, ...delegationPermStrings])
     );
 
-    const subscriptionSnapshot = await getSchoolSubscriptionSnapshot(context.schoolId);
+    const [subscriptionSnapshot, currentSchemeWeek] = await Promise.all([
+      getSchoolSubscriptionSnapshot(context.schoolId),
+      loadCurrentSchemeWeekForSchool(context.schoolId),
+    ]);
     const accessMode: SchoolAccessMode =
       subscriptionSnapshot?.subscription.accessMode ?? "suspended";
     const canUseExpensiveAiNow = canUseExpensiveAi(accessMode);
@@ -253,13 +263,16 @@ export async function GET() {
         },
         academicPlanning: academicPlanningForTeacher,
         subscription: {
-          accessMode: "full",
-          canUseExpensiveAi: true,
-          hasAiLessonNotes: true,
-          expensiveAiBlockedReason: null,
+          accessMode,
+          canUseExpensiveAi: canUseExpensiveAiNow,
+          hasAiLessonNotes,
+          expensiveAiBlockedReason: canUseExpensiveAiNow
+            ? null
+            : expensiveAiBlockedMessage(accessMode),
         },
         permissions,
         delegations: delegationsNav,
+        currentSchemeWeek,
       },
     });
   } catch (e: unknown) {

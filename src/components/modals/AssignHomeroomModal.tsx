@@ -38,10 +38,14 @@ import { useTeacherSearch, useClassGroupSearch } from "@/hooks/admin/useDirector
 import { useAssignHomeroomTeacher } from "@/hooks/admin/useClasses";
 import { useAssignHomeroom } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ClassGroupDTO } from "@/hooks/admin/useClasses";
-import { useMutation } from "@tanstack/react-query";
+import type { ClassGroupMini } from "@/hooks/admin/useDirectorySearch";
+
+function formatClassGroupLabel(cls: Pick<ClassGroupMini, "name" | "gradeName" | "label">) {
+  if (cls.label?.trim()) return cls.label.trim();
+  return [cls.gradeName, cls.name].filter(Boolean).join(" ").trim() || cls.name;
+}
 
 // Schema for assigning teacher to class (from Classes page)
 const teacherSchema = z.object({
@@ -483,6 +487,14 @@ function TeacherModeModal({
   const classes = classesData?.data || [];
 
   const [pickerOpen, setPickerOpen] = React.useState(false);
+
+  const handlePickerOpenChange = React.useCallback((next: boolean) => {
+    setPickerOpen(next);
+    if (!next) {
+      setQuery("");
+    }
+  }, []);
+
   const [homeroomConflict, setHomeroomConflict] = React.useState<{
     message: string;
     currentTeacherName: string;
@@ -649,58 +661,75 @@ function TeacherModeModal({
                 <Label htmlFor="classGroupId" className="text-white">
                   Class
                 </Label>
-                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                <Popover open={pickerOpen} onOpenChange={handlePickerOpenChange}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-12 w-full min-w-0 justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      {selectedClass ? (
-                        <div className="flex min-w-0 items-center gap-2">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-500/20 text-xs font-bold text-violet-300">
-                            {selectedClass.name?.charAt(0) || "C"}
-                          </div>
-                          <span className="truncate text-left">
-                            {selectedClass.label || selectedClass.gradeName
-                              ? `${selectedClass.gradeName || ""} ${selectedClass.name}`.trim()
-                              : selectedClass.name}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-white/50">Search and select a class…</span>
+                      className={cn(
+                        "h-11 w-full min-w-0 cursor-pointer justify-between rounded-xl border-white/10 bg-black/30 px-3 text-white shadow-inner shadow-black/20 hover:border-cyan-300/25 hover:bg-black/40 hover:text-white",
+                        "focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20 data-[state=open]:border-cyan-300/40 data-[state=open]:bg-cyan-400/10"
                       )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-70" />
+                    >
+                      <span className="flex min-w-0 items-center gap-2 truncate text-left">
+                        <Home className="h-4 w-4 shrink-0 text-cyan-200/75" />
+                        <span
+                          className={cn(
+                            "truncate",
+                            selectedClass ? "text-white" : "text-white/40"
+                          )}
+                        >
+                          {selectedClass
+                            ? formatClassGroupLabel(selectedClass)
+                            : "Search and select a class…"}
+                        </span>
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-white/40" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className={cn(
-                      premiumSelectContent,
-                      "w-[--radix-popover-trigger-width] p-1 max-h-[400px]"
-                    )}
+                    className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-white/10 bg-slate-950/98 p-0 text-white shadow-2xl shadow-black/50 backdrop-blur-xl"
                     align="start"
+                    sideOffset={8}
                   >
-                    <Command shouldFilter={false} className="bg-transparent">
+                    <Command
+                      shouldFilter={false}
+                      className="bg-transparent text-white [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-cyan-200/70 [&_[cmdk-list]]:max-h-80"
+                    >
                       <CommandInput
-                        placeholder="Type grade or class name…"
+                        placeholder="Type a grade, stream, or class name…"
                         value={query}
                         onValueChange={setQuery}
-                        className="border-b border-neutral-800/60 bg-transparent"
+                        className="text-white placeholder:text-white/35"
                       />
-                      <CommandList className="max-h-[300px] overflow-y-auto">
+                      <CommandList>
                         {isLoadingClasses ? (
-                          <div className="px-3 py-3 text-sm text-neutral-400">
-                            Loading classes…
-                          </div>
+                          <CommandEmpty>
+                            <span className="inline-flex items-center gap-2 text-white/55">
+                              <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+                              Searching classes…
+                            </span>
+                          </CommandEmpty>
+                        ) : classes.length === 0 ? (
+                          <CommandEmpty>
+                            <div className="px-4 py-3 text-center">
+                              <Search className="mx-auto h-7 w-7 text-white/25" />
+                              <p className="mt-2 font-medium text-white/75">No classes found</p>
+                              <p className="mt-1 text-xs leading-5 text-white/45">
+                                {query.trim()
+                                  ? "Try the grade name, stream letter, or full class label."
+                                  : "Start typing to filter, or browse the list when classes load."}
+                              </p>
+                            </div>
+                          </CommandEmpty>
                         ) : (
-                          <>
-                            <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                              {query.trim()
-                                ? "No classes match. Try a shorter search."
-                                : "Start typing to filter, or browse the list below."}
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {classes.map((cls) => (
+                          <CommandGroup
+                            heading="Matching class groups"
+                            className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
+                          >
+                            {classes.map((cls) => {
+                              const selected = selectedClassId === cls.id;
+                              return (
                                 <CommandItem
                                   key={cls.id}
                                   value={cls.id}
@@ -710,28 +739,35 @@ function TeacherModeModal({
                                     });
                                     setPickerOpen(false);
                                   }}
-                                  className={cn(
-                                    premiumMenuItem,
-                                    "flex items-center justify-between gap-2"
-                                  )}
+                                  className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-cyan-400/10 data-[selected=true]:text-white"
                                 >
-                                  <div className="flex min-w-0 items-center gap-2">
-                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-500/20 text-xs font-bold text-violet-300">
-                                      {cls.name?.charAt(0) || "C"}
+                                  <Check
+                                    className={cn(
+                                      "mr-1 h-4 w-4 shrink-0 text-cyan-200",
+                                      selected ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <p className="truncate font-medium">
+                                        {formatClassGroupLabel(cls)}
+                                      </p>
+                                      {cls.gradeName ? (
+                                        <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[11px] font-medium text-cyan-100">
+                                          {cls.gradeName}
+                                        </span>
+                                      ) : null}
                                     </div>
-                                    <span className="truncate">
-                                      {cls.label || cls.gradeName
-                                        ? `${cls.gradeName || ""} ${cls.name}`.trim()
-                                        : cls.name}
-                                    </span>
+                                    {cls.name ? (
+                                      <p className="mt-1 truncate text-xs text-white/48">
+                                        Stream {cls.name}
+                                      </p>
+                                    ) : null}
                                   </div>
-                                  {selectedClassId === cls.id ? (
-                                    <Check className="h-4 w-4 shrink-0 text-neutral-300" />
-                                  ) : null}
                                 </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
+                              );
+                            })}
+                          </CommandGroup>
                         )}
                       </CommandList>
                     </Command>

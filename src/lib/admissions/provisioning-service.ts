@@ -19,8 +19,6 @@ import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { Student, type IStudentEnrollmentDocument } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
-import { User } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
 import { ClassGroup } from "@/models/ClassGroup";
 import { School } from "@/models/School";
 import { Invitation } from "@/models/Invitation";
@@ -31,6 +29,7 @@ import {
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
 import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 
 export class ProvisioningServiceError extends Error {
   status: number;
@@ -437,44 +436,34 @@ export async function provisionApplication(
   });
   await student.save();
 
-  // 2. Resolve / create the parent User (school-scoped uniqueness on email).
+  // 2. Resolve / create the canonical parent User.
   const emailLower = application.guardian.email.toLowerCase().trim();
   const school = await School.findById(input.schoolId).select("name").lean<{
     name?: string;
   } | null>();
   const schoolName = school?.name ?? "your school";
 
-  let parentUser = await User.findOne({
+  const parentUser = await ensureCanonicalUserForEmail({
     email: emailLower,
+    firstName: application.guardian.firstName,
+    lastName: application.guardian.lastName,
+    phone: application.guardian.phone || undefined,
+    role: "parent",
     schoolId: input.schoolId,
+    pendingOnboarding: false,
   });
-  let createdParent = false;
-  if (!parentUser) {
-    parentUser = new User({
-      email: emailLower,
-      firstName: application.guardian.firstName,
-      lastName: application.guardian.lastName,
-      phone: application.guardian.phone || undefined,
-      role: "parent",
-      schoolId: input.schoolId,
-    });
-    await parentUser.save();
-    createdParent = true;
-  } else if (parentUser.role !== "parent") {
-    parentUser.role = "parent";
-    await parentUser.save();
-  }
+  const createdParent = false;
   const parentUserId =
     parentUser._id instanceof Types.ObjectId
       ? parentUser._id
       : new Types.ObjectId(String(parentUser._id));
 
-  // 3. Ensure UserMembership has the parent role.
-  await UserMembership.findOneAndUpdate(
-    { userId: parentUserId, schoolId: input.schoolId },
-    { $addToSet: { roles: "parent" }, $set: { status: "active" } },
-    { upsert: true }
-  );
+  await ensureMembershipForUser({
+    userId: parentUserId,
+    schoolId: input.schoolId,
+    role: "parent",
+    status: "active",
+  });
 
   // 4. Send Clerk invite if requested and not yet linked.
   let invitedParent = false;

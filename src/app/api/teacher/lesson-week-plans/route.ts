@@ -31,6 +31,7 @@ function parseDateYmd(value: string): Date | null {
 const CreateWeekPlanSchema = z.object({
   lessonNoteId: z.string().min(1),
   classGroupId: z.string().min(1),
+  additionalClassGroupIds: z.array(z.string().min(1)).max(8).optional(),
   weekStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   weekEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   weekLabel: z.string().trim().max(80).optional(),
@@ -76,7 +77,7 @@ export async function GET(req: Request) {
       if (!oid) {
         return Response.json({ success: false, error: "Invalid class group ID" }, { status: 400 });
       }
-      query.classGroupId = oid;
+      query.$or = [{ classGroupId: oid }, { classGroupIds: oid }];
     }
 
     const plans = await LessonWeekPlan.find(query).sort({ weekStartDate: -1, title: 1 }).lean();
@@ -200,11 +201,17 @@ export async function POST(req: Request) {
       );
     }
 
+    const additionalClassGroupIds = (parsed.data.additionalClassGroupIds ?? [])
+      .map((id) => toObjectId(id))
+      .filter((id): id is mongoose.Types.ObjectId => Boolean(id))
+      .filter((id) => String(id) !== String(classGroupOid));
+
     const created = await createWeekPlanWithSessions({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
       academicPeriodId,
       classGroupId: classGroupOid,
+      additionalClassGroupIds,
       subjectOfferingId: subjectOfferingOid,
       subjectId: note.subjectId ? toObjectId(String(note.subjectId)) : null,
       lessonNoteId: note._id,

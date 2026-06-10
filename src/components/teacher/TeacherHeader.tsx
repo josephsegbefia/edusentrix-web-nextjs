@@ -5,6 +5,7 @@ import { CalendarDays, School, ShieldCheck, UserCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { Badge } from "@/components/ui/badge";
+import { CurrentSchemeWeekBadge } from "@/components/schemes/CurrentSchemeWeekBadge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function TeacherHeader() {
@@ -63,6 +64,7 @@ export function TeacherHeader() {
                 <CalendarDays className="h-4 w-4 text-white/40" />
                 {period?.name || "No active term"}
               </span>
+              <CurrentSchemeWeekBadge />
               {teacher?.homeroomClassName && (
                 <Badge
                   className={cn(

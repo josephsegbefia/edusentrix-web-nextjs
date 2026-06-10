@@ -5,6 +5,8 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { User, type IUser } from "@/models/User";
 import { isDemoMode } from "@/lib/demo/runtime";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
 export const runtime = "nodejs";
 
@@ -29,7 +31,23 @@ async function requireAccountUser() {
   }
 
   await connectToDatabase();
-  const user = await User.findOne({ clerkUserId: userId });
+
+  const clerk = await clerkClient();
+  const cUser = await clerk.users.getUser(userId);
+  const email =
+    cUser.primaryEmailAddress?.emailAddress?.toLowerCase() ||
+    cUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() ||
+    "";
+
+  const userDoc = await ensureCanonicalUserForClerkSession({
+    clerkUserId: userId,
+    email,
+    firstName: cUser.firstName,
+    lastName: cUser.lastName,
+    avatarUrl: cUser.imageUrl,
+  });
+
+  const user = await User.findById(userDoc._id);
   if (!user) {
     return {
       error: NextResponse.json(
@@ -49,6 +67,11 @@ function serializeUser(
     name?: string | null;
     logo?: string | null;
   } | null,
+  activeSchool?: {
+    id: string;
+    name: string;
+    roles: string[];
+  } | null,
 ) {
   if (!user) return null;
   const name =
@@ -65,8 +88,9 @@ function serializeUser(
     phone: user.phone || "",
     avatarUrl: user.avatarUrl || "",
     avatarPublicId: user.avatarPublicId || "",
-    role: user.role || null,
-    schoolId: user.schoolId ? String(user.schoolId) : null,
+    role: activeSchool?.roles[0] || user.role || null,
+    schoolId: activeSchool?.id || (user.schoolId ? String(user.schoolId) : null),
+    activeSchool,
     school: school
       ? {
           _id: String(school._id),
@@ -88,8 +112,17 @@ export async function GET() {
     const result = await requireAccountUser();
     if ("error" in result) return result.error;
 
-    const school = result.user.schoolId
-      ? await School.findById(result.user.schoolId)
+    const active = await resolveActiveSchoolContext({ clerkUserId: result.userId });
+    const activeSchool = active.ok
+      ? {
+          id: String(active.context.schoolId),
+          name: active.context.schoolName,
+          roles: active.context.roles,
+        }
+      : null;
+
+    const school = activeSchool
+      ? await School.findById(activeSchool.id)
           .select("name logo")
           .lean<{
             _id: unknown;
@@ -100,7 +133,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: serializeUser(result.user, school),
+      data: serializeUser(result.user, school, activeSchool),
     });
   } catch (error) {
     console.error("[account/profile GET]", error);
@@ -145,21 +178,18 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (parsed.data.email !== result.user.email) {
-      if (result.user.schoolId) {
-        const duplicate = await User.exists({
-          _id: { $ne: result.user._id },
-          schoolId: result.user.schoolId,
-          email: parsed.data.email,
-        });
-        if (duplicate) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "Another user in this school already uses that email.",
-            },
-            { status: 409 },
-          );
-        }
+      const duplicate = await User.exists({
+        _id: { $ne: result.user._id },
+        email: parsed.data.email,
+      });
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Another account already uses that email.",
+          },
+          { status: 409 },
+        );
       }
 
       try {
@@ -184,8 +214,17 @@ export async function PATCH(req: NextRequest) {
     result.user.address = parsed.data.address || undefined;
     await result.user.save();
 
-    const school = result.user.schoolId
-      ? await School.findById(result.user.schoolId)
+    const active = await resolveActiveSchoolContext({ clerkUserId: result.userId });
+    const activeSchool = active.ok
+      ? {
+          id: String(active.context.schoolId),
+          name: active.context.schoolName,
+          roles: active.context.roles,
+        }
+      : null;
+
+    const school = activeSchool
+      ? await School.findById(activeSchool.id)
           .select("name logo")
           .lean<{
             _id: unknown;
@@ -196,7 +235,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: serializeUser(result.user, school),
+      data: serializeUser(result.user, school, activeSchool),
     });
   } catch (error) {
     console.error("[account/profile PATCH]", error);

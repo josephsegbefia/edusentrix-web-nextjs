@@ -5,7 +5,7 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Teacher } from "@/models/Teacher";
 import { Student } from "@/models/Student";
-import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { FeeStructure } from "@/models/FeeStructure";
 import { School, type ISchool } from "@/models/School";
 import type {
@@ -64,7 +64,7 @@ export async function getSchoolSetupReadiness(
     ClassGroup.countDocuments({ schoolId: schoolIdObj, isActive: true }),
     Teacher.countDocuments({ schoolId: schoolIdObj, status: "active" }),
     Student.countDocuments({ schoolId: schoolIdObj }),
-    Subject.countDocuments({ schoolId: schoolIdObj }),
+    SubjectOffering.countDocuments({ schoolId: schoolIdObj, isActive: true }),
     FeeStructure.countDocuments({ schoolId: schoolIdObj, isActive: true }),
     School.findById(schoolIdObj).select("billing").lean() as Promise<
       Pick<ISchool, "billing"> & { _id: mongoose.Types.ObjectId }
@@ -75,7 +75,7 @@ export async function getSchoolSetupReadiness(
   const hasClasses = classGroupCount > 0;
   const hasTeachers = teacherCount > 0;
   const hasStudents = studentCount > 0;
-  const hasSubjects = subjectCount > 0;
+  const hasSubjectOfferings = subjectCount > 0;
   const hasFeeStructures = feeStructureCount > 0;
 
   const payStatus = schoolLean?.billing?.paymentSetup?.status;
@@ -106,13 +106,13 @@ export async function getSchoolSetupReadiness(
       ctaLabel: "Classes",
     },
     {
-      id: "subjects",
-      title: "Subjects",
-      description: "Ensure subjects exist for your curriculum and class assignments.",
-      done: hasSubjects,
+      id: "subject_offerings",
+      title: "Subject offerings",
+      description: "Set up grade-scoped subject offerings for curriculum and class assignments.",
+      done: hasSubjectOfferings,
       priority: "high",
       href: "/admin/subjects",
-      ctaLabel: "Subjects",
+      ctaLabel: "Subject offerings",
     },
     {
       id: "teachers",

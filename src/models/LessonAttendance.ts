@@ -77,7 +77,10 @@ const lessonAttendanceSchema = new Schema<ILessonAttendance>(
   { timestamps: true },
 );
 
-lessonAttendanceSchema.index({ schoolId: 1, sessionId: 1 }, { unique: true });
+lessonAttendanceSchema.index(
+  { schoolId: 1, sessionId: 1, classGroupId: 1 },
+  { unique: true },
+);
 
 export const LessonAttendance: Model<ILessonAttendance> =
   (models.LessonAttendance as Model<ILessonAttendance>) ||

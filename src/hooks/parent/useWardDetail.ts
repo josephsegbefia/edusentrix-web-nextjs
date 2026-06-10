@@ -95,6 +95,7 @@ export interface WardAcademicsData {
 
 export interface WardFeesData {
   status: FeeStatus;
+  billCount: number;
   totalFees: number;
   amountPaid: number;
   balanceDue: number;

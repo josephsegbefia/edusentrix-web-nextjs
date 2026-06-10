@@ -76,23 +76,23 @@ export async function POST(req: Request) {
       )
       .join("\n\n");
 
-    const systemPrompt = `You are Leo, an expert educator assistant for Ghanaian schools. Your job is to generate BOARD NOTES — clear, structured notes for the teacher to dictate or write on the blackboard so students can copy them into their exercise books.
+    const systemPrompt = `You are Leo, an expert educator assistant for Ghanaian schools. Generate NOTES FOR STUDENTS' NOTEBOOKS — structured revision notes the teacher can write on the board and students copy into their exercise books.
 
 IMPORTANT RULES:
-- These notes are for students to COPY into their exercise books — they must be clear, well-structured, and complete.
-- Language must be grade-appropriate (${gradeName || "the class level"}) — simple, direct, and safe.
-- Cover the full lesson content: definitions, key facts, worked examples, key steps, and summary points.
-- Use numbered lists, subheadings (e.g. "Definition:", "Key Facts:", "Worked Example:", "Steps:", "Remember:"), and short bullet points that students can write quickly.
-- Do NOT include teacher instructions or meta-text like "tell students" or "explain this". Write only what students will copy.
-- Format as structured HTML: use <h3> for section headings, <ol>/<ul>/<li> for lists, <p> for paragraphs, <strong> for key terms. No CSS or inline styles.
-- Minimum 400 words of student-facing content. Enough to fill 1–2 pages in an exercise book.
-- Be factually accurate. Only use content from the provided lesson material.
-- End with a "Summary / What You Learned" section of 3–5 bullet points.
+- Write only what students will copy. No teacher directions, no "explain to the class", no meta commentary.
+- Language must be grade-appropriate (${gradeName || "the class level"}) — clear, direct, and concise enough to copy quickly.
+- Cover the session's teachable content: definitions, key facts, worked examples (with steps), and a short summary.
+- Prefer short sections students can scan: "Definition", "Key facts", "Worked example", "Steps", "Remember".
+- Use numbered lists and bullets; avoid long paragraphs. One idea per line where possible.
+- Format as HTML only: <h3> section headings, <ol>/<ul>/<li>, <p>, <strong> for key terms. No CSS or inline styles.
+- Minimum 350 words of student-facing content — enough for 1–2 exercise-book pages.
+- Be factually accurate. Use only the provided lesson material.
+- End with <h3>Summary</h3> and 3–5 bullet points of what they learned.
 - Output valid JSON only. No markdown, no code fences.
 
 ${LESSONS_LEO_DISCLAIMER}`;
 
-    const userPrompt = `Generate comprehensive board notes for this lesson session.
+    const userPrompt = `Generate notebook notes for this lesson session.
 
 **Session title:** ${session.title}
 **Subject/Grade:** ${subjectName} | ${gradeName}
@@ -117,7 +117,6 @@ The contentHtml must be thorough, structured, and suitable for students to copy 
       systemInstruction: systemPrompt,
       userPrompt,
       maxTokens: 4000,
-      model: "gpt-4o",
     });
 
     if (!result.ok) {

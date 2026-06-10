@@ -3,6 +3,7 @@ import "server-only";
 import { PDFParse } from "pdf-parse";
 import { PDFExcavator } from "pdfexcavator";
 import { ensurePdfParseWorker, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
+import { extractSchemeTableGridsFromPdfText } from "@/lib/schemes/scheme-import-pdf-text-grid";
 import type { SchemeTableGrid } from "@/lib/schemes/scheme-import-pdf-table-map";
 
 function tableRowsToGrid(rows: (string | null)[][]): SchemeTableGrid {
@@ -84,8 +85,11 @@ export async function resolvePdfTableGrids(
   const excavator = await extractGridsWithPdfExcavator(buffer);
   if (excavator.ok) return excavator;
 
+  const textGrid = await extractSchemeTableGridsFromPdfText(buffer);
+  if (textGrid.ok) return textGrid;
+
   return {
     ok: false,
-    error: `${pdfParse.error}; ${excavator.error}`,
+    error: `${pdfParse.error}; ${excavator.error}; ${textGrid.error}`,
   };
 }

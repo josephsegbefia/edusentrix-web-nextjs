@@ -1,22 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
-import type { Types } from "mongoose";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
 import { School, type ISchool } from "@/models/School";
 import { normalizePaymentSetupEmail } from "@/lib/school-payments/payment-setup";
-import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
-import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
-import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
-
-function legacyRoleToArray(role?: string) {
-  if (role === "school_admin") return ["school_admin"];
-  if (role === "billing_owner") return ["billing_owner"];
-  if (role === "bursar") return ["bursar"];
-  if (role === "teacher") return ["teacher"];
-  return ["staff"];
-}
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
 type PaymentSetupAccessContext = {
   userId: NonNullable<IUser["_id"]>;
@@ -45,92 +32,26 @@ type PaymentSetupAccessContext = {
 export async function requirePaymentSetupAccess(): Promise<PaymentSetupAccessContext> {
   await connectToDatabase();
 
-  const assisted = await getActiveAssistedAccessSession();
-  if (assisted) {
-    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
-    const school = await School.findById(assisted.schoolId)
-      .select("name createdBy bank billing")
-      .lean<Pick<ISchool, "_id" | "createdBy" | "billing" | "bank" | "name"> | null>();
-
-    if (!school) {
-      throw NextResponse.json({ error: "School not found" }, { status: 404 });
+  const active = await resolveActiveSchoolContext();
+  if (!active.ok) {
+    if (active.reason === "needs_school_selection") {
+      throw NextResponse.json({ error: "School selection required" }, { status: 409 });
     }
-
-    return {
-      userId: assisted.actorUserId,
-      schoolId: assisted.schoolId,
-      school,
-      roles: ["school_admin"],
-      accessMode: "admin_fallback",
-      userEmail: assisted.actorEmail,
-      userName: assisted.actorName,
-      shouldBindOwnerUserId: false,
-      shouldBindDelegateUserId: false,
-      capabilities: {
-        canView: true,
-        canManage: true,
-        canManageDelegate: false,
-        canInviteOwner: true,
-        canApprovePayoutChange: false,
-      },
-    };
+    throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let resolvedUserId: string | null = null;
-
-  const demo = await tryResolveDemoGuard();
-  if (demo.isDemo) {
-    resolvedUserId = "__demo__";
-  }
-
-  if (!resolvedUserId) {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
-      throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    resolvedUserId = clerkUserId;
-  }
-
-  let userRaw;
-  if (demo.isDemo) {
-    userRaw = await User.findById(demo.user._id).lean();
-  } else {
-    userRaw = await User.findOne({ clerkUserId: resolvedUserId }).lean();
-  }
+  const userRaw = await User.findById(active.context.userId).lean();
   const user = (Array.isArray(userRaw) ? userRaw[0] : userRaw) as Pick<
     IUser,
-    "_id" | "schoolId" | "role" | "email" | "name" | "firstName" | "lastName"
+    "_id" | "email" | "name" | "firstName" | "lastName"
   > | null;
 
   if (!user) {
     throw NextResponse.json({ error: "User not found" }, { status: 401 });
   }
 
-  if (!user.schoolId) {
-    throw NextResponse.json(
-      { error: "School context is missing for this account" },
-      { status: 400 }
-    );
-  }
-
-  await ensureActiveSchoolForTenant(user.schoolId as Types.ObjectId, { mode: "api" });
-
-  let membership = await UserMembership.findOne({
-    userId: user._id,
-    schoolId: user.schoolId,
-  });
-
-  if (!membership) {
-    membership = await UserMembership.create({
-      userId: user._id,
-      schoolId: user.schoolId,
-      roles: legacyRoleToArray(user.role),
-      status: "active",
-    });
-  }
-
-  const roles = membership.roles || [];
-  const school = await School.findById(user.schoolId)
+  const roles = active.context.roles;
+  const school = await School.findById(active.context.schoolId)
     .select("name createdBy bank billing")
     .lean<Pick<ISchool, "_id" | "createdBy" | "billing" | "bank" | "name"> | null>();
 
@@ -206,7 +127,7 @@ export async function requirePaymentSetupAccess(): Promise<PaymentSetupAccessCon
 
   return {
     userId: user._id,
-    schoolId: user.schoolId,
+    schoolId: active.context.schoolId as NonNullable<IUser["schoolId"]>,
     school,
     roles,
     accessMode,

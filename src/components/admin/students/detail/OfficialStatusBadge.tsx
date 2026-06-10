@@ -29,8 +29,8 @@ export function OfficialStatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border font-medium",
-        compact ? "px-1.5 py-0 text-[10px]" : "px-2 py-0.5 text-[11px]",
+        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border font-medium leading-normal",
+        compact ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs",
         STATUS_STYLES[status],
         className
       )}

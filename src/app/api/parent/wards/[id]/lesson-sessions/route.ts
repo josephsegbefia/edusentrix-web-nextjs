@@ -58,18 +58,39 @@ export async function GET(
       orClauses.push({ _id: { $in: completedSessionIds } });
     }
 
-    const rows = (await LessonSession.find({
+    const sharedSessionIds = (await LessonDelivery.distinct("sessionId", {
       schoolId: context.schoolId,
       classGroupId: student.classGroupId,
+    })) as mongoose.Types.ObjectId[];
+
+    const rows = (await LessonSession.find({
+      schoolId: context.schoolId,
       status: { $ne: "archived" as const },
-      $or: orClauses,
+      $and: [
+        {
+          $or: [
+            { classGroupId: student.classGroupId },
+            ...(sharedSessionIds.length > 0 ? [{ _id: { $in: sharedSessionIds } }] : []),
+          ],
+        },
+        { $or: orClauses },
+      ],
     })
       .sort({ scheduledDate: -1 })
       .limit(80)
-      .select("_id title subjectOfferingId scheduledDate parentVisibility contentBlocks")
+      .select(
+        "_id title subjectOfferingId scheduledDate parentVisibility contentBlocks boardNotes notebookNotesPublished",
+      )
       .lean()) as Pick<
       ILessonSession,
-      "_id" | "title" | "subjectOfferingId" | "scheduledDate" | "parentVisibility" | "contentBlocks"
+      | "_id"
+      | "title"
+      | "subjectOfferingId"
+      | "scheduledDate"
+      | "parentVisibility"
+      | "contentBlocks"
+      | "boardNotes"
+      | "notebookNotesPublished"
     >[];
 
     // Subject names
@@ -105,6 +126,8 @@ export async function GET(
           ? new Date(s.scheduledDate).toISOString().slice(0, 10)
           : null,
         hasParentSummary: blocks.length > 0,
+        hasNotebookNotes: Boolean(s.boardNotes?.contentHtml?.trim()),
+        notebookNotesPublished: Boolean(s.notebookNotesPublished),
       };
     });
 

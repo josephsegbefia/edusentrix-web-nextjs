@@ -9,6 +9,7 @@ import { LessonDelivery } from "@/models/LessonDelivery";
 import { Teacher } from "@/models/Teacher";
 import { gateLessonsModule } from "@/lib/lessons/lesson-gates";
 import { formatLessonSessionDetail } from "@/lib/lessons/format-lesson-session";
+import { pickLessonDeliveryForClass } from "@/lib/lessons/delivery-schedule";
 import { canManageLessonSessionContent } from "@/lib/lessons/session-access";
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
@@ -92,10 +93,16 @@ export async function POST(
       return Response.json({ success: false, error: "Substitute teacher not found" }, { status: 404 });
     }
 
-    const delivery = await LessonDelivery.findOne({
+    const classGroupId = new URL(req.url).searchParams.get("classGroupId");
+    const deliveries = await LessonDelivery.find({
       sessionId: session._id,
       schoolId: context.schoolId,
     });
+    const delivery = pickLessonDeliveryForClass(
+      deliveries,
+      session.classGroupId,
+      classGroupId,
+    );
     if (!delivery) {
       return Response.json({ success: false, error: "Delivery not found" }, { status: 404 });
     }
@@ -126,7 +133,7 @@ export async function POST(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -163,10 +170,16 @@ export async function DELETE(
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const delivery = await LessonDelivery.findOne({
+    const classGroupId = new URL(req.url).searchParams.get("classGroupId");
+    const deliveries = await LessonDelivery.find({
       sessionId: session._id,
       schoolId: context.schoolId,
     });
+    const delivery = pickLessonDeliveryForClass(
+      deliveries,
+      session.classGroupId,
+      classGroupId,
+    );
     if (!delivery) {
       return Response.json({ success: false, error: "Delivery not found" }, { status: 404 });
     }

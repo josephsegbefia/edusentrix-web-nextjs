@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, BookOpen, X } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -26,14 +26,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 import {
-  useSubjectSearch,
-} from "@/hooks/admin/useDirectorySearch";
-import {
   useAssignSubjects,
   useTeacherSubjects,
-  type TeacherSubjectDTO,
 } from "@/hooks/admin/useTeachers";
-import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
+import { useSubjectOfferings, type SubjectOfferingDTO } from "@/hooks/admin/useSubjectOfferings";
 
 type Props = {
   open: boolean;
@@ -42,88 +38,114 @@ type Props = {
   teacherName: string;
 };
 
+function offeringSubtitle(offering: SubjectOfferingDTO) {
+  if (offering.gradeNames?.length) {
+    return offering.gradeNames.join(", ");
+  }
+  if (offering.gradeBand) {
+    return offering.gradeBand.replace(/_/g, " ");
+  }
+  return offering.subjectFamily || "School subject offering";
+}
+
 export function AssignSubjectModal({
   open,
   onOpenChange,
   teacherId,
   teacherName,
 }: Props) {
-  const [selectedSubjectIds, setSelectedSubjectIds] = React.useState<Set<string>>(new Set());
-  const [subjectOpen, setSubjectOpen] = React.useState(false);
-  const [subjectQuery, setSubjectQuery] = React.useState("");
-  const subjectQ = useDebouncedValue(subjectQuery, 250);
-  const subjectsQ = useSubjectSearch(subjectQ);
+  const [selectedOfferingIds, setSelectedOfferingIds] = React.useState<Set<string>>(
+    new Set()
+  );
+  const [selectedOfferingsById, setSelectedOfferingsById] = React.useState<
+    Map<string, SubjectOfferingDTO>
+  >(new Map());
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery, 250);
+
+  const offeringsQ = useSubjectOfferings({
+    search: debouncedSearch,
+    isActive: true,
+    enabled: open,
+  });
   const { data: existingSubjectsData } = useTeacherSubjects(teacherId);
   const existingSubjects = existingSubjectsData?.data ?? [];
-  const existingSubjectIds = new Set(existingSubjects.map((s) => s.id));
+  const existingOfferingIds = new Set(existingSubjects.map((s) => s.id));
 
   const assignSubjectsMutation = useAssignSubjects();
 
-  // Filter out already assigned subjects from search results
-  const availableSubjects = (subjectsQ.data?.data ?? []).filter(
-    (s) => !existingSubjectIds.has(s.id)
+  const availableOfferings = (offeringsQ.data?.data ?? []).filter(
+    (offering) => !existingOfferingIds.has(offering.id)
   );
 
-  const subjectItems = availableSubjects.map((s) => ({
-    id: s.id,
-    label: s.name,
-  }));
-
-  // Reset selection when modal opens
   React.useEffect(() => {
     if (open) {
-      setSelectedSubjectIds(new Set());
-      setSubjectQuery("");
-      setSubjectOpen(false);
+      setSelectedOfferingIds(new Set());
+      setSelectedOfferingsById(new Map());
+      setSearchQuery("");
+      setPickerOpen(false);
     }
   }, [open]);
 
-  const handleToggleSubject = (subjectId: string) => {
-    setSelectedSubjectIds((prev) => {
+  const handleToggleOffering = (offering: SubjectOfferingDTO) => {
+    setSelectedOfferingIds((prev) => {
       const next = new Set(prev);
-      if (next.has(subjectId)) {
-        next.delete(subjectId);
+      if (next.has(offering.id)) {
+        next.delete(offering.id);
       } else {
-        next.add(subjectId);
+        next.add(offering.id);
+      }
+      return next;
+    });
+    setSelectedOfferingsById((prev) => {
+      const next = new Map(prev);
+      if (next.has(offering.id)) {
+        next.delete(offering.id);
+      } else {
+        next.set(offering.id, offering);
       }
       return next;
     });
   };
 
-  const handleRemoveSelected = (subjectId: string) => {
-    setSelectedSubjectIds((prev) => {
+  const handleRemoveSelected = (offeringId: string) => {
+    setSelectedOfferingIds((prev) => {
       const next = new Set(prev);
-      next.delete(subjectId);
+      next.delete(offeringId);
+      return next;
+    });
+    setSelectedOfferingsById((prev) => {
+      const next = new Map(prev);
+      next.delete(offeringId);
       return next;
     });
   };
 
   const handleSubmit = async () => {
-    if (selectedSubjectIds.size === 0) {
-      toast.error("Please select at least one subject");
+    if (selectedOfferingIds.size === 0) {
+      toast.error("Please select at least one subject offering");
       return;
     }
 
     try {
       const result = await assignSubjectsMutation.mutateAsync({
         teacherId,
-        subjectIds: Array.from(selectedSubjectIds),
+        subjectOfferingIds: Array.from(selectedOfferingIds),
       });
 
-      toast.success(result.message || "Subjects assigned successfully", {
+      toast.success(result.message || "Subject offerings assigned successfully", {
         description: result.data?.subjectNames?.join(", ") || undefined,
       });
 
       onOpenChange(false);
     } catch (e: unknown) {
       const error = e as { message?: string };
-      toast.error(error.message || "Failed to assign subjects");
+      toast.error(error.message || "Failed to assign subject offerings");
     }
   };
 
-  const selectedSubjects = Array.from(selectedSubjectIds)
-    .map((id) => availableSubjects.find((s) => s.id === id))
-    .filter(Boolean) as Array<{ id: string; name: string }>;
+  const selectedOfferings = Array.from(selectedOfferingsById.values());
 
   const isPending = assignSubjectsMutation.isPending;
 
@@ -174,9 +196,9 @@ export function AssignSubjectModal({
             <div className="px-6 pt-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <h1 className="text-lg font-semibold">Assign Subjects</h1>
+                  <h1 className="text-lg font-semibold">Assign Subject Offerings</h1>
                   <p className="text-sm text-white/60">
-                    Add subjects to{" "}
+                    Add grade-scoped subject offerings for{" "}
                     <span className="font-medium text-white/85">
                       {teacherName}
                     </span>
@@ -201,23 +223,23 @@ export function AssignSubjectModal({
 
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
               <div className="space-y-4">
-                {selectedSubjects.length > 0 && (
+                {selectedOfferings.length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                      Selected Subjects ({selectedSubjects.length})
+                      Selected ({selectedOfferings.length})
                     </Label>
-                    <div className="flex flex-wrap gap-2 rounded-lg border border-white/10 bg-white/5 p-3">
-                      {selectedSubjects.map((s) => (
+                    <div className="flex flex-wrap gap-2 rounded-xl border border-white/10 bg-white/5 p-3">
+                      {selectedOfferings.map((offering) => (
                         <Badge
-                          key={s.id}
+                          key={offering.id}
                           variant="outline"
-                          className="border-brand/30 bg-brand/10 text-brand gap-1.5 pr-1"
+                          className="gap-1.5 border-cyan-400/25 bg-cyan-400/10 pr-1 text-cyan-100"
                         >
-                          {s.name}
+                          {offering.displayName}
                           <button
                             type="button"
-                            onClick={() => handleRemoveSelected(s.id)}
-                            className="ml-1 rounded-full hover:bg-brand/20 p-0.5"
+                            onClick={() => handleRemoveSelected(offering.id)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-cyan-400/20"
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -229,77 +251,131 @@ export function AssignSubjectModal({
 
                 <div className="space-y-2">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                    Search Subjects
+                    Search Subject Offerings
                   </Label>
-                  <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
+                  <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-10 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-brand"
+                        className={cn(
+                          "h-11 w-full cursor-pointer justify-between rounded-xl border-white/10 bg-black/30 px-3 text-white shadow-inner shadow-black/20 hover:border-cyan-300/25 hover:bg-black/40 hover:text-white",
+                          "focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20 data-[state=open]:border-cyan-300/40 data-[state=open]:bg-cyan-400/10"
+                        )}
                       >
-                        <span
-                          className={cn(
-                            "truncate",
-                            subjectQuery ? "text-white" : "text-muted-foreground"
-                          )}
-                        >
-                          {subjectQuery || "Search subjects to assign..."}
+                        <span className="flex min-w-0 items-center gap-2 truncate text-left">
+                          <BookOpen className="h-4 w-4 shrink-0 text-cyan-200/75" />
+                          <span
+                            className={cn(
+                              "truncate",
+                              selectedOfferingIds.size > 0
+                                ? "text-white"
+                                : "text-white/40"
+                            )}
+                          >
+                            {selectedOfferingIds.size > 0
+                              ? `${selectedOfferingIds.size} offering${
+                                  selectedOfferingIds.size === 1 ? "" : "s"
+                                } selected`
+                              : "Search subject offerings to assign…"}
+                          </span>
                         </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-white/40" />
                       </Button>
                     </PopoverTrigger>
 
                     <PopoverContent
-                      className={cn(
-                        premiumSelectContent,
-                        "w-[var(--radix-popover-trigger-width)] p-1 max-h-[400px]"
-                      )}
+                      className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-white/10 bg-slate-950/98 p-0 text-white shadow-2xl shadow-black/50 backdrop-blur-xl"
+                      align="start"
+                      sideOffset={8}
                     >
-                      <Command shouldFilter={false} className="bg-transparent">
+                      <Command
+                        shouldFilter={false}
+                        className="bg-transparent text-white [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-cyan-200/70 [&_[cmdk-list]]:max-h-80"
+                      >
                         <CommandInput
-                          placeholder="Search subjects…"
-                          value={subjectQuery}
-                          onValueChange={setSubjectQuery}
-                          className="border-b border-neutral-800/60 bg-transparent"
+                          placeholder="Type a subject, grade, or code…"
+                          value={searchQuery}
+                          onValueChange={setSearchQuery}
+                          className="text-white placeholder:text-white/35"
                         />
-                        <CommandList className="max-h-[300px] overflow-y-auto">
-                          {subjectsQ.isLoading ? (
-                            <div className="px-3 py-3 text-sm text-neutral-400">
-                              Searching…
-                            </div>
+                        <CommandList>
+                          {offeringsQ.isLoading ? (
+                            <CommandEmpty>
+                              <span className="inline-flex items-center gap-2 text-white/55">
+                                <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+                                Searching subject offerings…
+                              </span>
+                            </CommandEmpty>
+                          ) : offeringsQ.isError ? (
+                            <CommandEmpty>
+                              <div className="px-4 py-3 text-center">
+                                <p className="font-medium text-amber-200/90">
+                                  Could not load subject offerings
+                                </p>
+                                <p className="mt-2 text-xs leading-5 text-white/50">
+                                  {offeringsQ.error instanceof Error
+                                    ? offeringsQ.error.message
+                                    : "Try again in a moment."}
+                                </p>
+                              </div>
+                            </CommandEmpty>
+                          ) : availableOfferings.length === 0 ? (
+                            <CommandEmpty>
+                              <div className="px-4 py-3 text-center">
+                                <BookOpen className="mx-auto h-7 w-7 text-white/25" />
+                                <p className="mt-2 font-medium text-white/75">
+                                  {existingOfferingIds.size > 0
+                                    ? "All matching offerings are already assigned"
+                                    : "No subject offerings found"}
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-white/45">
+                                  Set up offerings under Admin → Subjects, then
+                                  search by subject name, grade, or code.
+                                </p>
+                              </div>
+                            </CommandEmpty>
                           ) : (
-                            <>
-                              <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                                {existingSubjectIds.size > 0
-                                  ? "All available subjects are already assigned"
-                                  : "No subjects found"}
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {subjectItems.map((it) => {
-                                  const isSelected =
-                                    selectedSubjectIds.has(it.id);
-                                  return (
-                                    <CommandItem
-                                      key={it.id}
-                                      value={it.id}
-                                      onSelect={() => handleToggleSubject(it.id)}
+                            <CommandGroup
+                              heading="Matching subject offerings"
+                              className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
+                            >
+                              {availableOfferings.map((offering) => {
+                                const isSelected = selectedOfferingIds.has(
+                                  offering.id
+                                );
+                                return (
+                                  <CommandItem
+                                    key={offering.id}
+                                    value={offering.id}
+                                    onSelect={() => handleToggleOffering(offering)}
+                                    className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-cyan-400/10 data-[selected=true]:text-white"
+                                  >
+                                    <Check
                                       className={cn(
-                                        premiumMenuItem,
-                                        "flex items-center justify-between"
+                                        "mr-1 h-4 w-4 shrink-0 text-cyan-200",
+                                        isSelected ? "opacity-100" : "opacity-0"
                                       )}
-                                    >
-                                      <span className="truncate">
-                                        {it.label}
-                                      </span>
-                                      {isSelected && (
-                                        <Check className="h-4 w-4 text-neutral-300" />
-                                      )}
-                                    </CommandItem>
-                                  );
-                                })}
-                              </CommandGroup>
-                            </>
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <p className="truncate font-medium">
+                                          {offering.displayName}
+                                        </p>
+                                        {offering.code ? (
+                                          <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[11px] font-medium text-cyan-100">
+                                            {offering.code}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      <p className="mt-1 truncate text-xs text-white/48">
+                                        {offeringSubtitle(offering)}
+                                      </p>
+                                    </div>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
                           )}
                         </CommandList>
                       </Command>
@@ -308,8 +384,8 @@ export function AssignSubjectModal({
                 </div>
 
                 {existingSubjects.length > 0 && (
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted mb-2">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted">
                       Already Assigned ({existingSubjects.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -320,6 +396,12 @@ export function AssignSubjectModal({
                           className="border-white/10 bg-white/5 text-white/60"
                         >
                           {s.name}
+                          {s.gradeNames?.length ? (
+                            <span className="text-white/40">
+                              {" "}
+                              · {s.gradeNames.join(", ")}
+                            </span>
+                          ) : null}
                         </Badge>
                       ))}
                     </div>
@@ -339,13 +421,13 @@ export function AssignSubjectModal({
                   <Button
                     type="button"
                     onClick={handleSubmit}
-                    disabled={isPending || selectedSubjectIds.size === 0}
+                    disabled={isPending || selectedOfferingIds.size === 0}
                     className="gap-2 bg-brand text-black hover:opacity-90"
                   >
                     {isPending
                       ? "Assigning…"
-                      : `Assign ${selectedSubjectIds.size} Subject${
-                          selectedSubjectIds.size !== 1 ? "s" : ""
+                      : `Assign ${selectedOfferingIds.size} Offering${
+                          selectedOfferingIds.size !== 1 ? "s" : ""
                         }`}
                   </Button>
                 </div>

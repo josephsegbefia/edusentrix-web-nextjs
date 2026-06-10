@@ -17,6 +17,7 @@ type AcademicPeriodRow = {
 };
 
 type InvoiceSummaryRow = {
+  billCount?: number;
   totalBilledMinor?: number;
   totalPaidMinor?: number;
   outstandingMinor?: number;
@@ -124,6 +125,7 @@ export async function GET(
       {
         $group: {
           _id: null,
+          billCount: { $sum: 1 },
           totalBilledMinor: { $sum: "$totalAmountMinor" },
           totalPaidMinor: { $sum: "$totalPaidMinor" },
           outstandingMinor: { $sum: "$totalOutstandingMinor" },
@@ -161,6 +163,7 @@ export async function GET(
 
     const overallRow = overallSummary[0];
     const overall = {
+      billCount: Number(overallRow?.billCount || 0),
       totalBilled: toMajorUnits(Number(overallRow?.totalBilledMinor || 0)),
       totalPaid: toMajorUnits(Number(overallRow?.totalPaidMinor || 0)),
       outstanding: toMajorUnits(Number(overallRow?.outstandingMinor || 0)),
@@ -174,9 +177,9 @@ export async function GET(
         ? "partial"
         : "owing";
 
-    const paymentProgress = overall.totalBilled > 0
+    const paymentProgress = overall.billCount > 0 && overall.totalBilled > 0
       ? Math.round((overall.totalPaid / overall.totalBilled) * 100)
-      : 100;
+      : 0;
 
     // Map invoices to expected format
     const invoices = pendingInvoices.map((inv) => {
@@ -226,6 +229,7 @@ export async function GET(
       data: {
         // Format expected by the frontend hook
         status: feeStatus,
+        billCount: overall.billCount,
         totalFees: overall.totalBilled,
         amountPaid: overall.totalPaid,
         balanceDue: overall.outstanding,

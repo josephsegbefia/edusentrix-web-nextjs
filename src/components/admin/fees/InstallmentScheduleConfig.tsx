@@ -20,6 +20,7 @@ type Props<T extends CreateInvoiceInput | BulkCreateInvoiceInput = CreateInvoice
   totalAmount: number;
   numberOfInstallments: number;
   startDate?: string; // Optional start date for first installment
+  maxDueDate?: Date | null;
 };
 
 function parseLocalDate(value?: string | null): Date | null {
@@ -44,6 +45,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
   totalAmount,
   numberOfInstallments,
   startDate,
+  maxDueDate,
 }: Props<T>) {
   const fieldArrayName = `lineItems.${lineItemIndex}.installmentSchedule` as const;
 
@@ -55,11 +57,23 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
   const installmentSchedule = useWatch({
     control,
     name: fieldArrayName as any,
-  }) as Array<{ amount?: number }> | undefined;
+  }) as Array<{ amount?: number; dueDate?: string }> | undefined;
+  const installmentScheduleLength = Array.isArray(installmentSchedule)
+    ? installmentSchedule.length
+    : 0;
+  const preservedInitialScheduleRef = React.useRef(false);
 
   // Auto-generate installments when numberOfInstallments changes
   React.useEffect(() => {
     if (numberOfInstallments >= 2 && totalAmount > 0) {
+      if (
+        !preservedInitialScheduleRef.current &&
+        installmentScheduleLength > 0
+      ) {
+        preservedInitialScheduleRef.current = true;
+        return;
+      }
+      preservedInitialScheduleRef.current = true;
       const amounts = calculateInstallmentAmounts(toMinorUnits(totalAmount), numberOfInstallments);
       const baseDate = startDate ? new Date(startDate) : new Date();
 
@@ -78,16 +92,35 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
 
       replace(newSchedule as any);
     } else if (numberOfInstallments < 2) {
+      preservedInitialScheduleRef.current = true;
       // Clear schedule if installments disabled
       replace([]);
     }
-  }, [numberOfInstallments, totalAmount, startDate, replace]);
+  }, [installmentScheduleLength, numberOfInstallments, totalAmount, startDate, replace]);
 
   const totalScheduled = (installmentSchedule ?? []).reduce(
     (sum: number, inst) => sum + (inst?.amount || 0),
     0
   );
   const difference = Math.abs(totalScheduled - totalAmount);
+  const overdueInstallments = (installmentSchedule ?? [])
+    .map((inst, index) => {
+      if (!maxDueDate || !inst?.dueDate) return null;
+      const dueDate = parseLocalDate(inst.dueDate);
+      if (!dueDate) return null;
+      const dueDay = new Date(
+        dueDate.getFullYear(),
+        dueDate.getMonth(),
+        dueDate.getDate()
+      ).getTime();
+      const maxDay = new Date(
+        maxDueDate.getFullYear(),
+        maxDueDate.getMonth(),
+        maxDueDate.getDate()
+      ).getTime();
+      return dueDay > maxDay ? index + 1 : null;
+    })
+    .filter((value): value is number => value !== null);
 
   return (
     <div className="space-y-4 mt-4 pt-4 border-t border-white/10">
@@ -140,6 +173,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
                         value={parseLocalDate(field.value)}
                         onChange={(date) => field.onChange(formatLocalDate(date))}
                         placeholder="Select due date"
+                        maxDate={maxDueDate ?? undefined}
                         className="h-9 border-white/10 bg-white/5 text-sm text-white"
                         triggerAriaLabel={`Installment ${index + 1} due date`}
                       />
@@ -197,6 +231,12 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
               GHS {totalScheduled.toFixed(2)} / GHS {totalAmount.toFixed(2)}
             </span>
           </div>
+          {overdueInstallments.length > 0 && maxDueDate ? (
+            <p className="mt-2 rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+              Installment {overdueInstallments.join(", ")} must be due on or before{" "}
+              {maxDueDate.toLocaleDateString()} because that is the selected academic period end date.
+            </p>
+          ) : null}
         </div>
       )}
     </div>

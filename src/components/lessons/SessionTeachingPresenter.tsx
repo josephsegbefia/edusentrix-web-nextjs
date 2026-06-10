@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  BookOpen,
+  NotebookPen,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -23,35 +23,11 @@ import {
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { TeachAttendanceModal } from "@/components/lessons/TeachAttendanceModal";
 import { SessionBoardNotesPanel } from "@/components/lessons/SessionBoardNotesPanel";
-import type { TeachingSlide } from "@/types/teaching-deck";
+import { TeachingSlideView } from "@/components/lessons/TeachingSlideView";
 import { cn } from "@/lib/utils";
 
 type Props = {
   sessionId: string;
-};
-
-const SLIDE_TYPE_LABELS: Record<string, string> = {
-  title: "Lesson Start",
-  content_block: "Content",
-  activity: "Activity",
-  check: "Quick Check",
-  discussion: "Discussion",
-  exit_ticket: "Exit Ticket",
-  resource: "Resource",
-  timer: "Timer",
-  plan_notes: "Teacher Notes",
-};
-
-const SLIDE_TYPE_COLORS: Record<string, string> = {
-  title: "text-teal-300",
-  content_block: "text-white/60",
-  activity: "text-amber-300",
-  check: "text-sky-300",
-  discussion: "text-violet-300",
-  exit_ticket: "text-rose-300",
-  resource: "text-emerald-300",
-  timer: "text-orange-300",
-  plan_notes: "text-white/40",
 };
 
 function formatElapsed(sec: number) {
@@ -62,10 +38,12 @@ function formatElapsed(sec: number) {
 
 export function SessionTeachingPresenter({ sessionId }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const classGroupId = searchParams.get("classGroupId");
   const busyToast = useBusyToast();
-  const { data, isLoading, error, refetch } = useLessonSessionTeach(sessionId);
-  const startTeach = useStartLessonTeach(sessionId);
-  const endTeach = useEndLessonTeach(sessionId);
+  const { data, isLoading, error, refetch } = useLessonSessionTeach(sessionId, classGroupId);
+  const startTeach = useStartLessonTeach(sessionId, classGroupId);
+  const endTeach = useEndLessonTeach(sessionId, classGroupId);
 
   const [slideIdx, setSlideIdx] = React.useState(0);
   const [elapsedSec, setElapsedSec] = React.useState(0);
@@ -78,20 +56,21 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
   const slide = slides[slideIdx] ?? null;
   const deliveryStatus = ctx?.delivery.status ?? "scheduled";
 
-  // Board notes loaded separately
   const [boardNotes, setBoardNotes] = React.useState<{
     contentHtml: string;
     generatedAt: string | Date;
     aiGenerated: boolean;
   } | null>(null);
+  const [notebookNotesPublished, setNotebookNotesPublished] = React.useState(false);
 
   React.useEffect(() => {
     if (!sessionId) return;
     void fetch(`/api/teacher/lesson-sessions/${sessionId}/board-notes`)
       .then((r) => r.json())
       .then((json) => {
-        if (json?.success && json.data?.boardNotes) {
-          setBoardNotes(json.data.boardNotes as typeof boardNotes);
+        if (json?.success && json.data) {
+          setBoardNotes(json.data.boardNotes ?? null);
+          setNotebookNotesPublished(Boolean(json.data.notebookNotesPublished));
         }
       })
       .catch(() => null);
@@ -218,7 +197,6 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
               {deliveryStatus.replace("_", " ")}
             </Badge>
 
-            {/* Board notes toggle */}
             <Button
               type="button"
               variant="ghost"
@@ -227,12 +205,12 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
               className={cn(
                 "h-auto gap-1.5 px-3 py-1.5 text-xs",
                 showBoardNotes
-                  ? "bg-violet-500/20 text-violet-200"
+                  ? "bg-teal-500/20 text-teal-200"
                   : "text-white/60 hover:bg-white/10 hover:text-white",
               )}
             >
-              <BookOpen className="h-3.5 w-3.5" />
-              Board Notes
+              <NotebookPen className="h-3.5 w-3.5" />
+              Notebook notes
             </Button>
 
             {/* Start teaching */}
@@ -291,7 +269,7 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
             )}
           >
             {slide ? (
-              <SlideView slide={slide} />
+              <TeachingSlideView slide={slide} />
             ) : (
               <div className="flex flex-col items-center gap-3 text-center">
                 <PanelRight className="h-8 w-8 text-white/20" />
@@ -310,13 +288,12 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
             </aside>
           ) : null}
 
-          {/* Board notes panel */}
           {showBoardNotes ? (
             <aside className="flex w-full flex-col border-l border-white/10 bg-black/40 lg:w-96">
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-violet-300" />
-                  <span className="text-sm font-medium text-white">Board Notes</span>
+                  <NotebookPen className="h-4 w-4 text-teal-300" />
+                  <span className="text-sm font-medium text-white">Notebook notes</span>
                 </div>
                 <button
                   type="button"
@@ -330,9 +307,13 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
                 <SessionBoardNotesPanel
                   sessionId={sessionId}
                   initialNotes={boardNotes}
+                  notebookNotesPublished={notebookNotesPublished}
                   canWrite
                   leoEnabled
-                  onSaved={(saved) => setBoardNotes(saved)}
+                  onSaved={(saved, published) => {
+                    setBoardNotes(saved);
+                    setNotebookNotesPublished(published);
+                  }}
                 />
               </div>
             </aside>
@@ -371,6 +352,7 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
       {showPostAttendance ? (
         <PostAttendanceDialog
           sessionId={sessionId}
+          classGroupId={classGroupId}
           onSkip={() => void handleSkipPostAttendance()}
           onSubmitted={() => void handlePostAttendanceSubmitted()}
         />
@@ -382,10 +364,12 @@ export function SessionTeachingPresenter({ sessionId }: Props) {
 /** Wrapper that shows the post attendance modal with a "Skip" option */
 function PostAttendanceDialog({
   sessionId,
+  classGroupId,
   onSkip,
   onSubmitted,
 }: {
   sessionId: string;
+  classGroupId?: string | null;
   onSkip: () => void;
   onSubmitted: () => void;
 }) {
@@ -395,6 +379,7 @@ function PostAttendanceDialog({
     return (
       <TeachAttendanceModal
         sessionId={sessionId}
+        classGroupId={classGroupId}
         phase="post"
         open
         onClose={onSkip}
@@ -433,98 +418,3 @@ function PostAttendanceDialog({
   );
 }
 
-function SlideView({ slide }: { slide: TeachingSlide }) {
-  const typeLabel = SLIDE_TYPE_LABELS[slide.type] ?? slide.type;
-  const typeColor = SLIDE_TYPE_COLORS[slide.type] ?? "text-white/60";
-
-  if (slide.type === "timer") {
-    return (
-      <div className="text-center">
-        <p className={cn("text-xs uppercase tracking-widest", typeColor)}>{typeLabel}</p>
-        <p className="mt-2 text-3xl font-semibold">{slide.title}</p>
-        {slide.timerMinutes ? (
-          <p className="mt-4 text-6xl font-bold text-teal-300">{slide.timerMinutes} min</p>
-        ) : null}
-        {slide.bodyHtml ? (
-          <div
-            className="prose prose-invert mx-auto mt-6 max-w-2xl text-lg"
-            dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-          />
-        ) : null}
-      </div>
-    );
-  }
-
-  if (slide.type === "check" || slide.type === "discussion" || slide.type === "exit_ticket") {
-    return (
-      <div className="max-w-2xl text-center">
-        <p className={cn("text-xs uppercase tracking-widest", typeColor)}>{typeLabel}</p>
-        <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">{slide.title}</h2>
-        {slide.bodyHtml ? (
-          <div
-            className="prose prose-invert mx-auto mt-8 max-w-2xl text-left text-lg"
-            dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-          />
-        ) : null}
-        {slide.type === "check" ? (
-          <div className="mt-8 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-6 py-4">
-            <p className="text-sm text-sky-200/80">Ask students to respond before moving on.</p>
-          </div>
-        ) : null}
-        {slide.type === "exit_ticket" ? (
-          <div className="mt-8 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-6 py-4">
-            <p className="text-sm text-rose-200/80">Collect student responses before dismissal.</p>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (slide.type === "activity") {
-    return (
-      <div className="max-w-3xl text-center">
-        <p className={cn("text-xs uppercase tracking-widest", typeColor)}>{typeLabel}</p>
-        <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">{slide.title}</h2>
-        {slide.estimatedMinutes ? (
-          <p className="mt-2 text-sm text-amber-300/70">{slide.estimatedMinutes} min</p>
-        ) : null}
-        {slide.bodyHtml ? (
-          <div
-            className="prose prose-invert mx-auto mt-8 max-w-3xl text-left text-lg"
-            dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-          />
-        ) : null}
-        <div className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-6 py-3">
-          <p className="text-sm text-amber-200/80">Allow time for student activity.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl text-center">
-      <p className={cn("text-xs uppercase tracking-widest", typeColor)}>{typeLabel}</p>
-      <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{slide.title}</h2>
-      {slide.bodyHtml ? (
-        <div
-          className="prose prose-invert mx-auto mt-8 max-w-3xl text-left text-lg prose-p:leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-        />
-      ) : slide.speakerNotes ? (
-        <p className="mt-8 text-lg text-white/60">See speaker notes →</p>
-      ) : null}
-      {slide.resourceUrl ? (
-        <p className="mt-6">
-          <a
-            href={slide.resourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-teal-300 underline"
-          >
-            Open resource
-          </a>
-        </p>
-      ) : null}
-    </div>
-  );
-}

@@ -3,11 +3,19 @@ import type { StudentLessonSessionContentDto } from "@/types/lesson-content-bloc
 import type { LessonContentBlock } from "@/types/lesson-content-blocks";
 import { formatDateYmdUtc } from "@/lib/lessons/timetable-slots-for-week";
 import { sanitizeLessonHtml } from "@/lib/lessons/content-safety";
+import { canStudentViewNotebookNotes } from "@/lib/lessons/notebook-notes-visibility";
 
 export function formatStudentSessionContent(
   session: ILessonSession,
   blocks: LessonContentBlock[],
+  options?: { deliveryStatus?: string | null },
 ): StudentLessonSessionContentDto {
+  const showNotebook = canStudentViewNotebookNotes({
+    notebookNotesPublished: Boolean(session.notebookNotesPublished),
+    boardNotesHtml: session.boardNotes?.contentHtml,
+    deliveryStatus: options?.deliveryStatus,
+  });
+
   return {
     sessionId: String(session._id),
     title: session.title,
@@ -21,5 +29,13 @@ export function formatStudentSessionContent(
       order: b.order,
       estimatedMinutes: b.estimatedMinutes ?? null,
     })),
+    notebookNotes:
+      showNotebook && session.boardNotes
+        ? {
+            contentHtml: sanitizeLessonHtml(session.boardNotes.contentHtml),
+            publishedAt: new Date(session.boardNotes.generatedAt).toISOString(),
+            aiGenerated: session.boardNotes.aiGenerated,
+          }
+        : null,
   };
 }

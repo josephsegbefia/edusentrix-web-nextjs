@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
+import { StudentNotebookNotesView } from "@/components/lessons/StudentNotebookNotesView";
+import type { StudentNotebookNotesDto } from "@/types/lesson-content-blocks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +24,7 @@ type SessionSummaryData = {
   scheduledDate: string;
   summaryBlocks: SummaryBlock[];
   planNotesExcerpt: string | null;
+  notebookNotes?: StudentNotebookNotesDto | null;
 };
 
 type DetailJson =
@@ -129,6 +132,14 @@ export default function ParentWardLessonSessionPage() {
               )}
             </CardContent>
           </Card>
+
+          {data.notebookNotes ? (
+            <StudentNotebookNotesView
+              notes={data.notebookNotes}
+              title="Notebook notes from class"
+              subtitle="What your child was asked to copy into their exercise book after this lesson."
+            />
+          ) : null}
         </div>
       )}
     </div>

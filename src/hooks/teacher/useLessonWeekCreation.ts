@@ -56,6 +56,7 @@ export function useCreateLessonWeekPlan() {
     mutationFn: async (body: {
       lessonNoteId: string;
       classGroupId: string;
+      additionalClassGroupIds?: string[];
       weekStartDate: string;
       weekEndDate: string;
       weekLabel?: string;

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatHoursMinutes } from "@/lib/time/format-duration";
 import {
   AlertTriangle,
   BookOpen,
@@ -283,9 +284,28 @@ export function TeacherOverviewTab({
   const { data: workloadData } = useTeacherWorkload(teacher.id);
   const subjectsFromApi = subjectsData?.data ?? [];
   const homeroom = homeroomData?.data ?? null;
-  const subjects = (teacher.assignedSubjects?.length ? teacher.assignedSubjects : subjectsFromApi).map((s) =>
-    "classGroups" in s ? { id: s.id, name: s.name } : s
-  );
+  const subjects = React.useMemo(() => {
+    const byId = new Map<
+      string,
+      { id: string; name: string; classGroups?: string[]; gradeNames?: string[] }
+    >();
+    for (const s of subjectsFromApi) {
+      byId.set(s.id, {
+        id: s.id,
+        name: s.name,
+        gradeNames: s.gradeNames,
+      });
+    }
+    for (const s of teacher.assignedSubjects ?? []) {
+      byId.set(s.id, {
+        id: s.id,
+        name: s.name,
+        classGroups: s.classGroups,
+        gradeNames: byId.get(s.id)?.gradeNames,
+      });
+    }
+    return Array.from(byId.values());
+  }, [subjectsFromApi, teacher.assignedSubjects]);
   const workload = workloadData?.data;
   const homeroomLabel = homeroom
     ? homeroom.label ||
@@ -593,7 +613,10 @@ export function TeacherOverviewTab({
                 <div className="space-y-2">
                   {subjects.length > 0 ? (
                     subjects.map((s) => {
-                      const classGroups = teacher.assignedSubjects?.find((a) => a.id === s.id)?.classGroups;
+                      const classGroups =
+                        s.classGroups ??
+                        teacher.assignedSubjects?.find((a) => a.id === s.id)
+                          ?.classGroups;
                       return (
                         <div
                           key={s.id}
@@ -606,6 +629,10 @@ export function TeacherOverviewTab({
                             {classGroups?.length ? (
                               <p className="mt-1 break-words text-xs leading-relaxed text-indigo-100/75">
                                 {classGroups.join(", ")}
+                              </p>
+                            ) : s.gradeNames?.length ? (
+                              <p className="mt-1 break-words text-xs leading-relaxed text-indigo-100/75">
+                                {s.gradeNames.join(", ")}
                               </p>
                             ) : null}
                           </div>
@@ -803,7 +830,7 @@ export function TeacherOverviewTab({
                       <p className="text-xs text-white/40">Workload per Week</p>
                     </div>
                     <p className="text-lg font-semibold text-white">
-                      {workload.current.workloadHours} hrs/week
+                      {formatHoursMinutes(workload.current.workloadHours)}/week
                     </p>
                     <p className="mt-0.5 text-[10px] text-white/40">
                       From linked timetable slots for this week

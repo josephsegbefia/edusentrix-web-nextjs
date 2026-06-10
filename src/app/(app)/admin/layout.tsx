@@ -1,7 +1,6 @@
 // src/app/(app)/admin/layout.tsx
 import { ReactNode } from "react";
 import { requireUser } from "@/lib/auth/get-current-user";
-import { assertRole } from "@/lib/auth/guards";
 import { resolveAdminShellAccess } from "@/lib/auth/resolveAdminShellAccess";
 import SchoolAdminSidebar from "@/components/nav/sidebars/school-admin-sidebar";
 import BursarSidebar from "@/components/nav/sidebars/bursar-sidebar";
@@ -15,14 +14,24 @@ import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 import { AdminContextualDelegateBar } from "@/components/delegations/AdminContextualDelegateBar";
 import { AdminLeoEntry } from "@/components/leo/AdminLeoEntry";
 import { AssistedAccessBanner } from "@/components/platform/assisted-access/AssistedAccessBanner";
+import type { AppRole } from "@/lib/roles";
+
+function shellRoleForPathGuard(
+  kind: Awaited<ReturnType<typeof resolveAdminShellAccess>>["kind"]
+): AppRole | undefined {
+  if (kind === "full_school_admin") return "school_admin";
+  if (kind === "bursar") return "bursar";
+  if (kind === "billing_owner") return "billing_owner";
+  return undefined;
+}
 
 export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const user = await requireUser();
-  const shell = await resolveAdminShellAccess(user);
+  await requireUser();
+  const shell = await resolveAdminShellAccess();
 
   if (shell.kind === "delegated_admin") {
     return (
@@ -49,17 +58,16 @@ export default async function AdminLayout({
     );
   }
 
-  assertRole(user, ["school_admin", "bursar", "billing_owner"]);
-  const isBursar = user.role === "bursar";
-  const isBillingOwner = user.role === "billing_owner";
-  const isSchoolAdmin = user.role === "school_admin";
+  const isBursar = shell.kind === "bursar";
+  const isBillingOwner = shell.kind === "billing_owner";
+  const isSchoolAdmin = shell.kind === "full_school_admin";
 
   return (
     <>
       <AuthRefreshHandler />
       <AssistedAccessBanner />
       <AdminRolePathGuard
-        role={user.role}
+        role={shellRoleForPathGuard(shell.kind)}
         bursarExtraAllowedPrefixes={
           shell.kind === "bursar" ? shell.delegatedAdminPrefixes : []
         }

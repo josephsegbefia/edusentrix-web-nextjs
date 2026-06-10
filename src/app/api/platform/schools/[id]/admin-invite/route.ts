@@ -15,6 +15,7 @@ import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
+import { ensureMembershipForUser } from "@/lib/auth/canonical-user";
 
 export async function POST(
   _req: Request,
@@ -46,12 +47,31 @@ export async function POST(
       );
     }
 
-    const adminUser = await User.findOne({
+    const adminMembership = await UserMembership.findOne({
       schoolId,
-      role: "school_admin",
+      roles: "school_admin",
     })
       .sort({ createdAt: 1 })
-      .select("_id email firstName lastName name clerkUserId")
+      .select("userId")
+      .lean<{ userId: mongoose.Types.ObjectId } | null>();
+
+    const adminUser = adminMembership?.userId
+      ? await User.findById(adminMembership.userId)
+          .select("_id email firstName lastName name clerkUserId")
+          .lean<{
+            _id: mongoose.Types.ObjectId;
+            email?: string | null;
+            firstName?: string | null;
+            lastName?: string | null;
+            name?: string | null;
+            clerkUserId?: string | null;
+          } | null>()
+      : await User.findOne({
+          schoolId,
+          role: "school_admin",
+        })
+          .sort({ createdAt: 1 })
+          .select("_id email firstName lastName name clerkUserId")
       .lean<{
         _id: mongoose.Types.ObjectId;
         email?: string | null;
@@ -136,14 +156,12 @@ export async function POST(
       },
     });
 
-    await UserMembership.updateOne(
-      { userId: adminUser._id, schoolId },
-      {
-        $addToSet: { roles: "school_admin" },
-        $set: { status: "invited" },
-      },
-      { upsert: true }
-    );
+    await ensureMembershipForUser({
+      userId: adminUser._id,
+      schoolId,
+      role: "school_admin",
+      status: "invited",
+    });
 
     await recordActivity({
       schoolId,

@@ -3,6 +3,11 @@ import "server-only";
 import type { Types } from "mongoose";
 import type { ILessonNote } from "@/models/LessonNote";
 import { SchemeItem } from "@/models/SchemeItem";
+import {
+  normalizeSplittableSectionKeys,
+  SPLITTABLE_STANDARD_KEYS,
+  WEEK_REFERENCE_SECTION_KEYS,
+} from "@/lib/lessons/splittable-section-keys";
 
 const MAX_SCHEME_ENRICHMENT_CHARS = 3_000;
 
@@ -14,6 +19,8 @@ const STANDARD_SECTION_KEYS = [
   "assessment",
 ] as const;
 
+export { SPLITTABLE_STANDARD_KEYS, normalizeSplittableSectionKeys } from "@/lib/lessons/splittable-section-keys";
+
 /** Section keys available for allocation from a lesson note (excludes reflections by default). */
 export function getAllocatableNoteSectionKeys(note: ILessonNote): string[] {
   if (note.templateType === "IB_PYP_UNIT_PLANNER" || note.templateType === "IB_MYP_UNIT_PLANNER") {
@@ -24,6 +31,40 @@ export function getAllocatableNoteSectionKeys(note: ILessonNote): string[] {
     if (keys.length > 0) return keys;
   }
   return [...STANDARD_SECTION_KEYS];
+}
+
+/**
+ * Section keys that may be assigned to individual timetable sessions.
+ * Context and curriculum stay week-level reference material, not per-period splits.
+ */
+export function getSplittableNoteSectionKeys(note: ILessonNote): string[] {
+  if (note.templateType === "IB_PYP_UNIT_PLANNER" || note.templateType === "IB_MYP_UNIT_PLANNER") {
+    const unit = note.body as { unitSections?: Array<{ key?: string }> } | undefined;
+    const keys = (unit?.unitSections ?? [])
+      .map((s) => String(s.key || "").trim())
+      .filter(Boolean)
+      .filter((k) => !(new Set<string>(WEEK_REFERENCE_SECTION_KEYS).has(k)));
+    if (keys.length > 0) return keys;
+  }
+  return [...SPLITTABLE_STANDARD_KEYS];
+}
+
+/** Week-level reference shown to Leo during generation but not split across sessions. */
+export function getWeekReferenceNoteContext(note: ILessonNote): Record<string, unknown> {
+  return sliceNoteContextForSections(note, [...WEEK_REFERENCE_SECTION_KEYS]);
+}
+
+/** Build the note slice sent to Leo for one session's content generation. */
+export function buildSessionGenerationNoteSlice(
+  note: ILessonNote,
+  sectionKeys: string[],
+): Record<string, unknown> {
+  const allowed = getSplittableNoteSectionKeys(note);
+  const normalized = normalizeSplittableSectionKeys(sectionKeys, allowed);
+  return {
+    weekReference: getWeekReferenceNoteContext(note),
+    sessionAllocation: sliceNoteContextForSections(note, normalized),
+  };
 }
 
 /**

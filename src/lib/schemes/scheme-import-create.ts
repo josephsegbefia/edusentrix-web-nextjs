@@ -52,7 +52,7 @@ function cleanupParseError(message: string, options?: { fileRemoved: boolean }) 
     return `${message} Large PDFs can take up to 2 minutes per provider. Wait a moment and retry.${suffix}`;
   }
   if (isAiConnectivityError(message)) {
-    return `${message} The app tried OpenAI first, then attempted manual PDF parsing.${suffix}`;
+    return `${message} Leo tried AI extraction first, then fell back to local/manual PDF parsing.${suffix}`;
   }
   return `${message}${suffix}`;
 }
@@ -89,6 +89,7 @@ async function createFailedImportJob(
       | "pdf_manual"
       | "pdf_parse_tables"
       | "pdf_excavator"
+      | "pdf_text_grid"
       | "spreadsheet";
     parseError: string;
     keepUploadedFile?: boolean;
@@ -162,35 +163,11 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       };
     }
 
-    console.info("[scheme-import] resolving PDF rows (local tables → AI → manual)…");
-    const structured = await resolvePdfStructuredRows(downloaded.buffer);
-    if (structured.ok) {
-      console.info("[scheme-import] structured PDF parse ok", {
-        sourceKind: structured.sourceKind,
-        rows: structured.rows.length,
-      });
-      const job = await SchemeImportJob.create({
-        schoolId: input.schoolId,
-        createdByUserId: input.createdByUserId,
-        status: "parsed",
-        sourceKind: structured.sourceKind,
-        fileName: input.fileName,
-        fileUrl: input.fileUrl,
-        fileKey: input.fileKey ?? null,
-        parseWarning:
-          structured.sourceKind === "pdf_parse_tables"
-            ? "Rows extracted locally from PDF tables (pdf-parse). Review before confirming."
-            : "Rows extracted locally from PDF tables (PDFExcavator). Review before confirming.",
-        parsedRows: structured.rows,
-      });
-      return { ok: true, job: serializeSchemeImportJob(job.toObject()) };
-    }
-
-    console.info("[scheme-import] structured PDF parse failed", { errors: structured.errors });
+    console.info("[scheme-import] resolving PDF rows (Leo AI → local tables → manual)…");
 
     let rawText: string;
     try {
-      console.info("[scheme-import] extracting PDF text for AI/manual fallback…");
+      console.info("[scheme-import] extracting PDF text for Leo…");
       rawText = await extractTextFromPdfBuffer(downloaded.buffer);
       console.info("[scheme-import] PDF text chars", rawText.length);
     } catch (e: unknown) {
@@ -204,22 +181,81 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       return { ok: true, job };
     }
 
-    const parsed = await resolvePdfSchemeParsedRows({
+    const aiParsed = await resolvePdfSchemeParsedRows({
       rawText,
       schoolId: input.schoolId,
+      mode: "ai-only",
     });
-    console.info("[scheme-import] PDF parse result", {
-      ok: parsed.ok,
-      sourceKind: parsed.ok ? parsed.sourceKind : null,
-      rows: parsed.ok ? parsed.rows.length : 0,
-      primaryError: parsed.ok ? parsed.primaryError : parsed.primaryError,
+    console.info("[scheme-import] Leo AI parse result", {
+      ok: aiParsed.ok,
+      sourceKind: aiParsed.ok ? aiParsed.sourceKind : null,
+      rows: aiParsed.ok ? aiParsed.rows.length : 0,
+      primaryError: aiParsed.ok ? null : aiParsed.primaryError,
     });
 
-    if (!parsed.ok) {
+    if (aiParsed.ok) {
+      const job = await SchemeImportJob.create({
+        schoolId: input.schoolId,
+        createdByUserId: input.createdByUserId,
+        status: "parsed",
+        sourceKind: aiParsed.sourceKind,
+        fileName: input.fileName,
+        fileUrl: input.fileUrl,
+        fileKey: input.fileKey ?? null,
+        parseWarning: null,
+        parsedRows: aiParsed.rows,
+      });
+      return { ok: true, job: serializeSchemeImportJob(job.toObject()) };
+    }
+
+    const aiFailureNote = aiParsed.error;
+
+    console.info("[scheme-import] Leo AI parse failed; trying local table/text extraction…", {
+      error: aiFailureNote,
+    });
+    const structured = await resolvePdfStructuredRows(downloaded.buffer);
+    if (structured.ok) {
+      console.info("[scheme-import] structured PDF parse ok", {
+        sourceKind: structured.sourceKind,
+        rows: structured.rows.length,
+      });
+      const localMethod =
+        structured.sourceKind === "pdf_parse_tables"
+          ? "pdf-parse table detection"
+          : structured.sourceKind === "pdf_text_grid"
+            ? "text-based scheme layout detection"
+            : "PDFExcavator table detection";
+      const job = await SchemeImportJob.create({
+        schoolId: input.schoolId,
+        createdByUserId: input.createdByUserId,
+        status: "parsed",
+        sourceKind: structured.sourceKind,
+        fileName: input.fileName,
+        fileUrl: input.fileUrl,
+        fileKey: input.fileKey ?? null,
+        parseWarning: `Leo could not extract rows from this PDF (${aiFailureNote}). Rows below were extracted using ${localMethod} — review before confirming.`,
+        parsedRows: structured.rows,
+      });
+      return { ok: true, job: serializeSchemeImportJob(job.toObject()) };
+    }
+
+    console.info("[scheme-import] structured PDF parse failed", { errors: structured.errors });
+
+    const manualParsed = await resolvePdfSchemeParsedRows({
+      rawText,
+      schoolId: input.schoolId,
+      mode: "manual-only",
+    });
+    console.info("[scheme-import] manual PDF parse result", {
+      ok: manualParsed.ok,
+      rows: manualParsed.ok ? manualParsed.rows.length : 0,
+    });
+
+    if (!manualParsed.ok) {
       const structuredNote = structured.errors.length
         ? ` Local table extraction also failed (${structured.errors.join("; ")}).`
         : "";
-      const errMsg = `${parsed.error}${structuredNote}`;
+      const errMsg = `${aiFailureNote}${structuredNote}`;
       const keepFile = shouldKeepUploadedFileOnPdfParseFailure(errMsg);
       if (!keepFile) {
         await cleanupUploadedImportFile(input);
@@ -233,27 +269,19 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       return { ok: true, job };
     }
 
-    const parseWarning =
-      parsed.sourceKind === "pdf_manual" && parsed.primaryError
-        ? `Local table extraction failed. AI extraction could not complete (${parsed.primaryError}). Rows below were extracted by the manual PDF parser — many columns may be empty; review before confirming or re-upload as CSV/XLSX.`
-        : parsed.sourceKind === "pdf_manual"
-          ? "Local table extraction failed. Rows were extracted by the manual PDF parser. Columns after content standard are often incomplete — review each row or re-upload as CSV/XLSX."
-          : parsed.sourceKind === "pdf_gemini" && parsed.primaryError
-            ? `Local table extraction failed. OpenAI could not extract rows (${parsed.primaryError}). Rows below were extracted by Gemini — review before confirming.`
-            : parsed.sourceKind === "pdf_ai" && structured.errors.length
-              ? `Local table extraction failed (${structured.errors.join("; ")}). Rows were extracted with AI — review before confirming.`
-              : null;
-
+    const structuredNote = structured.errors.length
+      ? ` Local table extraction also failed (${structured.errors.join("; ")}).`
+      : "";
     const job = await SchemeImportJob.create({
       schoolId: input.schoolId,
       createdByUserId: input.createdByUserId,
       status: "parsed",
-      sourceKind: parsed.sourceKind,
+      sourceKind: "pdf_manual",
       fileName: input.fileName,
       fileUrl: input.fileUrl,
       fileKey: input.fileKey ?? null,
-      parseWarning,
-      parsedRows: parsed.rows,
+      parseWarning: `Leo could not extract rows from this PDF (${aiFailureNote}).${structuredNote} Rows below were extracted by the manual PDF parser — many columns may be empty; review before confirming or re-upload as CSV/XLSX.`,
+      parsedRows: manualParsed.rows,
     });
 
     return { ok: true, job: serializeSchemeImportJob(job.toObject()) };

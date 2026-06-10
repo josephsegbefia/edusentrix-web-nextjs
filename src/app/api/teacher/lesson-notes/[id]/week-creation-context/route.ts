@@ -11,17 +11,12 @@ import {
   listAvailableTimetableSlotsForClassSubjectUpcoming,
   listTimetableSlotsForClassSubjectWeek,
 } from "@/lib/lessons/timetable-slots-for-week";
-import {
-  addDaysUtc,
-  dateOnlyUtc,
-  formatDateYmdUtc,
-  getCalendarWeekRange,
-  getWeekStartMondayUtc,
-} from "@/lib/lessons/week-dates";
-import { parseGhanaDateLabel } from "@/lib/time/ghana";
+import { formatDateYmdUtc, getCalendarWeekRange } from "@/lib/lessons/week-dates";
+import { mergeSchemeItemsWeekContext } from "@/lib/schemes/resolve-scheme-week";
 import type { WeekCreationContextResponse } from "@/types/lessons-v2";
 import { getLessonsModuleSettings } from "@/lib/lessons/settings";
-import { getAllocatableNoteSectionKeys } from "@/lib/lessons/note-sections";
+import { getSplittableNoteSectionKeys } from "@/lib/lessons/note-sections";
+import { listShareableClassGroupsForWeekPlan } from "@/lib/lessons/shareable-class-groups";
 import type { ILessonNote } from "@/models/LessonNote";
 import { resolveLessonNoteSubjectOffering } from "@/lib/lesson-notes/resolve-note-subject-offering";
 
@@ -39,20 +34,6 @@ function parseDateYmd(value: string | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function minDate(values: Date[]) {
-  return values.reduce<Date | null>((min, value) => {
-    const date = dateOnlyUtc(value);
-    return !min || date < min ? date : min;
-  }, null);
-}
-
-function maxDate(values: Date[]) {
-  return values.reduce<Date | null>((max, value) => {
-    const date = dateOnlyUtc(value);
-    return !max || date > max ? date : max;
-  }, null);
-}
-
 async function resolveSchemeWeekContext(input: {
   schoolId: mongoose.Types.ObjectId;
   schemeId?: mongoose.Types.ObjectId | null;
@@ -64,74 +45,36 @@ async function resolveSchemeWeekContext(input: {
   );
   if (!schemeItemIds.length) return null;
 
-  const items = await SchemeItem.find({
-    _id: { $in: schemeItemIds },
-    schoolId: input.schoolId,
-    ...(input.schemeId ? { schemeId: input.schemeId } : {}),
-  })
-    .select("weekNumber plannedStartDate plannedEndDate weekEndingLabel sequence")
-    .sort({ weekNumber: 1, sequence: 1 })
-    .lean<
-      Array<{
-        weekNumber?: number | null;
-        plannedStartDate?: Date | null;
-        plannedEndDate?: Date | null;
-        weekEndingLabel?: string | null;
-      }>
-    >();
-
-  if (!items.length) return null;
-
-  const explicitStarts = items
-    .map((item) => item.plannedStartDate)
-    .filter((date): date is Date => Boolean(date));
-  const explicitEnds = items
-    .map((item) => item.plannedEndDate ?? parseGhanaDateLabel(item.weekEndingLabel))
-    .filter((date): date is Date => Boolean(date));
-  const derivedStarts = explicitEnds.map((date) => getWeekStartMondayUtc(date));
-
-  let weekStart = minDate([...explicitStarts, ...derivedStarts]);
-  let weekEnd = maxDate(explicitEnds);
-
-  const weekNumbers = Array.from(
-    new Set(
-      items
-        .map((item) => item.weekNumber)
-        .filter((value): value is number => typeof value === "number" && Number.isFinite(value)),
-    ),
-  ).sort((a, b) => a - b);
-
-  if ((!weekStart || !weekEnd) && weekNumbers.length && input.academicPeriodId) {
-    const period = await AcademicPeriod.findOne({
-      _id: input.academicPeriodId,
+  const [items, period] = await Promise.all([
+    SchemeItem.find({
+      _id: { $in: schemeItemIds },
       schoolId: input.schoolId,
+      ...(input.schemeId ? { schemeId: input.schemeId } : {}),
     })
-      .select("startDate endDate")
-      .lean<{ startDate: Date; endDate: Date } | null>();
+      .select("weekNumber plannedStartDate plannedEndDate weekEndingLabel sequence")
+      .sort({ weekNumber: 1, sequence: 1 })
+      .lean<
+        Array<{
+          weekNumber?: number | null;
+          plannedStartDate?: Date | null;
+          plannedEndDate?: Date | null;
+          weekEndingLabel?: string | null;
+        }>
+      >(),
+    input.academicPeriodId
+      ? AcademicPeriod.findOne({
+          _id: input.academicPeriodId,
+          schoolId: input.schoolId,
+        })
+          .select("startDate endDate")
+          .lean<{ startDate: Date; endDate: Date } | null>()
+      : Promise.resolve(null),
+  ]);
 
-    if (period) {
-      const periodStart = getWeekStartMondayUtc(period.startDate);
-      const firstWeek = weekNumbers[0]!;
-      const lastWeek = weekNumbers[weekNumbers.length - 1]!;
-      weekStart = weekStart ?? addDaysUtc(periodStart, (firstWeek - 1) * 7);
-      const computedEnd = addDaysUtc(periodStart, lastWeek * 7 - 1);
-      const periodEnd = dateOnlyUtc(period.endDate);
-      weekEnd = weekEnd ?? (computedEnd < periodEnd ? computedEnd : periodEnd);
-    }
-  }
-
-  if (!weekStart && weekEnd) weekStart = getWeekStartMondayUtc(weekEnd);
-  if (weekStart && !weekEnd) weekEnd = addDaysUtc(weekStart, 6);
-  if (!weekStart || !weekEnd || weekEnd < weekStart) return null;
-
-  const weekLabel =
-    weekNumbers.length === 1
-      ? `Scheme Week ${weekNumbers[0]}`
-      : weekNumbers.length > 1
-        ? `Scheme Weeks ${weekNumbers[0]}-${weekNumbers[weekNumbers.length - 1]}`
-        : "Scheme Week";
-
-  return { weekStart, weekEnd, weekLabel };
+  return mergeSchemeItemsWeekContext(
+    items,
+    period ? { startDate: period.startDate, endDate: period.endDate } : null
+  );
 }
 
 export async function GET(
@@ -277,6 +220,19 @@ export async function GET(
     const leoEnabled =
       lessonsSettings.enableLeoLessonTools && can(context.permissions, PERMISSIONS.lessonAiUse);
 
+    const academicPeriodOid = note.academicPeriodId
+      ? toObjectId(String(note.academicPeriodId))
+      : null;
+    const shareableClassGroups = academicPeriodOid
+      ? await listShareableClassGroupsForWeekPlan({
+          schoolId: context.schoolId,
+          teacherId: context.teacherId,
+          academicPeriodId: academicPeriodOid,
+          subjectOfferingId: subjectOfferingOid,
+          primaryClassGroupId: classGroupOid,
+        })
+      : [];
+
     const body: WeekCreationContextResponse = {
       success: true,
       data: {
@@ -298,10 +254,13 @@ export async function GET(
           timetable.hasPublishedTimetable || suggestedTimetable.hasPublishedTimetable,
         canCreate: !blockReason,
         blockReason,
-        allocatableNoteSectionKeys: getAllocatableNoteSectionKeys(note as ILessonNote),
+        splittableNoteSectionKeys: getSplittableNoteSectionKeys(note as ILessonNote),
+        /** @deprecated Use splittableNoteSectionKeys — context/curriculum are week-level only. */
+        allocatableNoteSectionKeys: getSplittableNoteSectionKeys(note as ILessonNote),
         noteSchemeItemIds: (note.schemeItemIds ?? []).map((id) => String(id)),
         enableLeoLessonTools: leoEnabled,
         requireTeacherReviewForAiContent: lessonsSettings.requireTeacherReviewForAiContent,
+        shareableClassGroups,
       },
     };
 

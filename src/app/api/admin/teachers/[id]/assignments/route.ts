@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { Teacher } from "@/models/Teacher";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { TimetableVersion } from "@/models/TimetableVersion";
@@ -306,6 +307,10 @@ export async function POST(
       body.classGroupId,
       "classGroupId"
     );
+    const subjectOfferingObjId =
+      body.subjectOfferingId && String(body.subjectOfferingId).trim()
+        ? toObjectIdOrThrow(String(body.subjectOfferingId), "subjectOfferingId")
+        : null;
 
     const scheduleWriteAttempted =
       Object.prototype.hasOwnProperty.call(body, "schedule") ||
@@ -341,7 +346,7 @@ export async function POST(
       _id: classGroupObjId,
       schoolId: schoolIdObj,
     })
-      .select("_id schoolId subjectIds name")
+      .select("_id schoolId subjectIds subjectOfferingIds name")
       .lean();
     if (!classGroup)
       return Response.json({ error: "Class group not found" }, { status: 404 });
@@ -356,13 +361,43 @@ export async function POST(
     if (!subject)
       return Response.json({ error: "Subject not found" }, { status: 404 });
 
+    let resolvedSubjectOfferingId: mongoose.Types.ObjectId | null = null;
+    if (subjectOfferingObjId) {
+      const offering = await SubjectOffering.findOne({
+        _id: subjectOfferingObjId,
+        schoolId: schoolIdObj,
+        subjectId: subjectObjId,
+        isActive: true,
+      })
+        .select("_id")
+        .lean();
+      if (!offering) {
+        return Response.json(
+          { error: "Subject offering not found for this school and subject" },
+          { status: 404 }
+        );
+      }
+      resolvedSubjectOfferingId = subjectOfferingObjId;
+    }
+
     const warnings: string[] = [];
 
     // Optional: warn if subject not in class group’s configured subjects
+    const cgSubjectOfferingIds = Array.isArray((classGroup as any).subjectOfferingIds)
+      ? (classGroup as any).subjectOfferingIds.map(String)
+      : [];
     const cgSubjects = Array.isArray((classGroup as any).subjectIds)
       ? (classGroup as any).subjectIds.map(String)
       : [];
-    if (cgSubjects.length && !cgSubjects.includes(String(subjectObjId))) {
+    if (
+      resolvedSubjectOfferingId &&
+      cgSubjectOfferingIds.length &&
+      !cgSubjectOfferingIds.includes(String(resolvedSubjectOfferingId))
+    ) {
+      warnings.push(
+        "This subject offering is not currently assigned to the selected class group."
+      );
+    } else if (cgSubjects.length && !cgSubjects.includes(String(subjectObjId))) {
       warnings.push(
         "This subject is not currently assigned to the selected class group."
       );
@@ -457,6 +492,7 @@ export async function POST(
         teacherId: teacherObjId,
         academicPeriodId: academicPeriodObjId,
         subjectId: subjectObjId,
+        subjectOfferingId: resolvedSubjectOfferingId,
         classGroupId: classGroupObjId,
         workloadHours:
           typeof body.workloadHours === "number" ? body.workloadHours : 0,

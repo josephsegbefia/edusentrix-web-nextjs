@@ -259,18 +259,18 @@ export function validateAndNormalizeSchoolDailySchedule(
     };
   }
 
-  if (c.allWeekdaysSame) {
-    const t = assertTeachingDay(
-      "Default schedule",
-      c.lessonStart,
-      c.dayEnd,
-      c.periodLengthMinutes,
-      c.periodLengthOverrides ?? [],
-      c.breaks
-    );
-    if (!t.ok) return { ok: false, error: t.error };
-    allWarnings.push(...t.warnings);
-  } else {
+  const defaultTeaching = assertTeachingDay(
+    "Default schedule",
+    c.lessonStart,
+    c.dayEnd,
+    c.periodLengthMinutes,
+    c.periodLengthOverrides ?? [],
+    c.breaks
+  );
+  if (!defaultTeaching.ok) return { ok: false, error: defaultTeaching.error };
+  allWarnings.push(...defaultTeaching.warnings);
+
+  if (!c.allWeekdaysSame) {
     for (const ex of c.weekdayExceptions) {
       const gate = ex.dayGateStart ?? ex.lessonStart;
       const obs = ex.openingBlocks ?? [];

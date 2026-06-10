@@ -21,6 +21,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
+import { formatHoursMinutes } from "@/lib/time/format-duration";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 import { Button } from "@/components/ui/button";
@@ -1290,8 +1291,7 @@ export function CreateTeacherAssignmentModal({
                                     Workload
                                   </p>
                                   <p className="text-sm text-white/85">
-                                    {form.getValues("workloadHours") ?? 0}{" "}
-                                    hrs/week
+                                    {formatHoursMinutes(form.getValues("workloadHours") ?? 0)}/week
                       </p>
                     </div>
                                 <div className="space-y-1">

@@ -22,7 +22,7 @@ export function FeeStatusBadge({ status, amountOwed }: FeeStatusBadgeProps) {
         return {
           label:
             amountOwed !== null && amountOwed > 0
-              ? `Owing GHS${amountOwed.toLocaleString(undefined, {
+              ? `Owing GH₵${amountOwed.toLocaleString(undefined, {
                   maximumFractionDigits: 2,
                 })}`
               : "Owing Fees",

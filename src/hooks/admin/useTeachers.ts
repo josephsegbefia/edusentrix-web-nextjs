@@ -394,6 +394,10 @@ export type TeacherSubjectDTO = {
   id: string;
   name: string;
   code: string | null;
+  subjectId?: string;
+  gradeBand?: string | null;
+  gradeBandLabel?: string | null;
+  gradeNames?: string[];
   isActive: boolean;
 };
 
@@ -447,15 +451,15 @@ export function useAssignSubjects() {
   return useMutation({
     mutationFn: async ({
       teacherId,
-      subjectIds,
+      subjectOfferingIds,
     }: {
       teacherId: string;
-      subjectIds: string[];
+      subjectOfferingIds: string[];
     }): Promise<AssignSubjectsResponse> => {
       const res = await fetch(`/api/admin/teachers/${teacherId}/subjects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjectIds }),
+        body: JSON.stringify({ subjectOfferingIds }),
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Failed to assign subjects" }));

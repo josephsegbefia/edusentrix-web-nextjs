@@ -359,7 +359,7 @@ export function applyLegacyDataToAcademicProfile(
   profile.recordStatus = "legacy";
   profile.dataSource = "legacy";
   profile.dataSourceNotes = [
-    "Showing legacy SubjectGrade and TermResult data until the assessment engine fully replaces this period.",
+    "Results on this page come from the previous gradebook until this period is scored in the current assessment system.",
   ];
 
   profile.summary = {

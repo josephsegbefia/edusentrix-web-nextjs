@@ -396,6 +396,13 @@ export interface LessonNoteFormData {
   schemeItemIds?: string[];
 }
 
+/** Timetable context shown when planning a lesson note from a scheme row. */
+export type LessonNotePeriodPlanningContext = {
+  periodsThisWeek: number | null;
+  typicalPeriodMinutes: number;
+  hasPublishedTimetable: boolean;
+};
+
 export const DEFAULT_FORM_DATA: Omit<LessonNoteFormData, "classGroupId"> = {
   templateType: "SIMPLE",
   weekOf: new Date(),

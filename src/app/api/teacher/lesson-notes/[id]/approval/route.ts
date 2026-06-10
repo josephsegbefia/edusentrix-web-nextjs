@@ -17,7 +17,6 @@ import {
   notifyTeacherLessonNoteRejected,
 } from "@/lib/lesson-notes/notifications";
 import { Teacher } from "@/models/Teacher";
-import { User, type IUser } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { formatUserDisplayName } from "@/lib/lesson-notes/review";
 import { assertLessonNoteRequiresSchemeLink } from "@/lib/lesson-notes/validate-lesson-note-scheme";
@@ -27,6 +26,7 @@ import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
 // ============================================================================
 // Zod Schemas
@@ -85,17 +85,6 @@ type LessonNoteApprovalContext = {
   isAdmin: boolean;
 };
 
-function legacyRoleToArray(role?: string): MembershipRole[] {
-  if (role === "school_admin") return ["school_admin"];
-  if (role === "billing_owner") return ["billing_owner"];
-  if (role === "bursar") return ["bursar"];
-  if (role === "teacher") return ["teacher"];
-  if (role === "parent") return ["parent"];
-  if (role === "student") return ["student"];
-  if (role === "staff") return ["staff"];
-  return ["staff"];
-}
-
 function authError(status: number, message: string): never {
   throw Response.json({ success: false, error: message }, { status });
 }
@@ -148,37 +137,19 @@ async function requireLessonNoteApprovalContext(): Promise<LessonNoteApprovalCon
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) authError(401, "Unauthorized");
 
-  await connectToDatabase();
-  const userRaw = await User.findOne({ clerkUserId }).lean();
-  const user = (Array.isArray(userRaw) ? userRaw[0] : userRaw) as Pick<
-    IUser,
-    "_id" | "schoolId" | "role"
-  > | null;
-
-  if (!user) authError(401, "User not found");
-  if (!user.schoolId) authError(401, "User not associated with a school");
-
-  let membership = await UserMembership.findOne({
-    userId: user._id,
-    schoolId: user.schoolId,
-  }).lean<{
-    roles?: MembershipRole[];
-    subroles?: TeacherSubrole[];
-    status?: string;
-  } | null>();
-
-  if (!membership) {
-    membership = (await UserMembership.create({
-      userId: user._id,
-      schoolId: user.schoolId,
-      roles: legacyRoleToArray(user.role),
-      status: "active",
-    }).then((doc) => doc.toObject())) as typeof membership;
+  const active = await resolveActiveSchoolContext({ clerkUserId });
+  if (!active.ok) {
+    authError(
+      active.reason === "needs_school_selection" ? 409 : 401,
+      active.reason === "needs_school_selection"
+        ? "School selection required"
+        : "Unauthorized"
+    );
   }
 
-  if (membership?.status !== "active") authError(403, "Membership is not active");
+  await connectToDatabase();
 
-  const roles = (membership?.roles || []) as MembershipRole[];
+  const roles = active.context.roles;
   const isAdmin = roles.includes("school_admin");
   if (!isAdmin) {
     const teacherGate = gateTeacherApiAccess(roles);
@@ -188,24 +159,35 @@ async function requireLessonNoteApprovalContext(): Promise<LessonNoteApprovalCon
   const teacher = isAdmin
     ? null
     : await Teacher.findOne({
-        userId: user._id,
-        schoolId: user.schoolId,
+        userId: active.context.userId,
+        schoolId: active.context.schoolId,
       })
         .select("_id subroles")
         .lean();
 
   if (!isAdmin && !teacher) authError(404, "Teacher record not found");
 
+  const membership = await UserMembership.findOne({
+    userId: active.context.userId,
+    schoolId: active.context.schoolId,
+  })
+    .select("subroles status")
+    .lean<{ subroles?: TeacherSubrole[]; status?: string } | null>();
+
+  if (membership?.status && membership.status !== "active") {
+    authError(403, "Membership is not active");
+  }
+
   const teacherSubroles = ((teacher as { subroles?: string[] } | null)?.subroles || []) as TeacherSubrole[];
   const membershipSubroles = (membership?.subroles || []) as TeacherSubrole[];
 
-  await ensureActiveSchoolForTenant(user.schoolId as mongoose.Types.ObjectId, {
+  await ensureActiveSchoolForTenant(active.context.schoolId, {
     mode: "api",
   });
 
   return {
-    userId: user._id as mongoose.Types.ObjectId,
-    schoolId: user.schoolId as mongoose.Types.ObjectId,
+    userId: active.context.userId,
+    schoolId: active.context.schoolId,
     roles,
     subroles: membershipSubroles.length > 0 ? membershipSubroles : teacherSubroles,
     permissions: resolvePermissions({ roles }),

@@ -3,9 +3,11 @@ import type { CurriculumCode } from "@/constants/curriculum-profiles";
 import { PlatformAuditLog } from "@/models/PlatformAuditLog";
 import { PlatformTask } from "@/models/PlatformTask";
 import { School, type SchoolType } from "@/models/School";
-import { User } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
 import { assignPilotSubscription } from "@/lib/subscriptions/assign-pilot-subscription";
+import {
+  ensureCanonicalUserForEmail,
+  ensureMembershipForUser,
+} from "@/lib/auth/canonical-user";
 
 export type CreateSchoolFromPlatformInput = {
   actorUserId: mongoose.Types.ObjectId;
@@ -57,38 +59,24 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
   });
 
   const normalizedAdminEmail = input.admin.email.toLowerCase().trim();
-  const existingAdmin = await User.findOne({
-    email: normalizedAdminEmail,
-    schoolId: school._id,
-  });
   const nameParts = splitName(input.admin.fullName);
-  const adminUser =
-    existingAdmin ||
-    (await User.create({
-      email: normalizedAdminEmail,
-      name: input.admin.fullName,
-      firstName: nameParts.firstName,
-      lastName: nameParts.lastName,
-      phone: input.admin.phone || undefined,
-      role: "school_admin",
-      schoolId: school._id,
-      pendingOnboarding: true,
-    }));
+  const adminUser = await ensureCanonicalUserForEmail({
+    email: normalizedAdminEmail,
+    name: input.admin.fullName,
+    firstName: nameParts.firstName,
+    lastName: nameParts.lastName,
+    phone: input.admin.phone || undefined,
+    role: "school_admin",
+    schoolId: school._id,
+    pendingOnboarding: true,
+  });
 
-  await UserMembership.updateOne(
-    { userId: adminUser._id, schoolId: school._id },
-    {
-      $setOnInsert: {
-        userId: adminUser._id,
-        schoolId: school._id,
-        roles: ["school_admin"],
-        status: "invited",
-        invitedBy: input.actorUserId,
-        invitedAt: new Date(),
-      },
-    },
-    { upsert: true }
-  );
+  await ensureMembershipForUser({
+    userId: adminUser._id,
+    schoolId: school._id,
+    role: "school_admin",
+    status: "invited",
+  });
 
   const task = await PlatformTask.create({
     schoolId: school._id,

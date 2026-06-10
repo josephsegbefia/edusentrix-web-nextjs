@@ -1,4 +1,4 @@
-import { formatDateYmdUtc } from "@/lib/lessons/timetable-slots-for-week";
+import { getEffectiveDeliverySchedule } from "@/lib/lessons/delivery-schedule";
 import {
   buildTeachingDeckFromSession,
   teachingDeckNeedsRebuild,
@@ -7,15 +7,17 @@ import { requireSessionTeachContext } from "@/lib/lessons/session-teach-access";
 import type { SessionTeachContextResponse } from "@/types/teaching-deck";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const result = await requireSessionTeachContext(id);
+    const classGroupId = new URL(req.url).searchParams.get("classGroupId");
+    const result = await requireSessionTeachContext(id, classGroupId);
     if ("error" in result) return result.error;
 
     const { session, delivery, settings } = result;
+    const schedule = getEffectiveDeliverySchedule(session, delivery);
 
     if (teachingDeckNeedsRebuild(session, session.teachingDeck ?? undefined)) {
       session.teachingDeck = buildTeachingDeckFromSession(session);
@@ -28,11 +30,12 @@ export async function GET(
         session: {
           id: String(session._id),
           title: session.title,
-          scheduledDate: formatDateYmdUtc(new Date(session.scheduledDate)),
-          startTime: session.startTime,
-          endTime: session.endTime,
-          durationMinutes: session.durationMinutes,
+          scheduledDate: schedule.scheduledDate,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          durationMinutes: schedule.durationMinutes,
           planNotes: session.planNotes?.trim() || null,
+          classGroupId: schedule.classGroupId,
         },
         deck: session.teachingDeck!,
         delivery: {

@@ -179,7 +179,7 @@ export function InstallmentSchedule({ studentId }: Props) {
               No installments found
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Installments will appear here when invoices are created with installment plans
+              Installments will appear here when bills are created with installment plans
             </p>
           </div>
         ) : (

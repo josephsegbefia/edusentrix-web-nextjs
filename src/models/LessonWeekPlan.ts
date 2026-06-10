@@ -7,6 +7,8 @@ export interface ILessonWeekPlan {
   schoolId: Types.ObjectId;
   academicPeriodId: Types.ObjectId;
   classGroupId: Types.ObjectId;
+  /** All class groups sharing this week plan content (includes classGroupId). */
+  classGroupIds: Types.ObjectId[];
   subjectOfferingId: Types.ObjectId;
   lessonNoteId: Types.ObjectId;
   ownerTeacherId: Types.ObjectId;
@@ -32,6 +34,11 @@ const lessonWeekPlanSchema = new Schema<ILessonWeekPlan>(
       index: true,
     },
     classGroupId: { type: Schema.Types.ObjectId, ref: "ClassGroup", required: true, index: true },
+    classGroupIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: "ClassGroup" }],
+      default: [],
+      index: true,
+    },
     subjectOfferingId: {
       type: Schema.Types.ObjectId,
       ref: "SubjectOffering",

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentSessionContentView } from "@/components/lessons/StudentSessionContentView";
+import { StudentNotebookNotesView } from "@/components/lessons/StudentNotebookNotesView";
 import { useStudentLessonSession } from "@/hooks/student/useStudentLessonSession";
 import { useStudentSessionComplete } from "@/hooks/student/useStudentSessionComplete";
 import { useStudentSessionResources } from "@/hooks/student/useStudentSessionResources";
@@ -165,6 +166,9 @@ export default function StudentLessonDetailPage() {
       <StudentSessionContentView blocks={session.blocks} />
 
       <div className="mt-8 space-y-8">
+        {session.notebookNotes ? (
+          <StudentNotebookNotesView notes={session.notebookNotes} />
+        ) : null}
         {/* Resources */}
         {resources.length > 0 && (
           <Card className="border border-slate-700/80 bg-slate-900/40">

@@ -61,7 +61,7 @@ async function resolveCurrentPeriodId(schoolId: mongoose.Types.ObjectId) {
   return period?._id ?? null;
 }
 
-async function loadTeacherAssignmentScopes(
+export async function loadTeacherAssignmentScopes(
   ctx: TeacherSchemeContext,
   academicPeriodId?: mongoose.Types.ObjectId | null
 ): Promise<AssignmentScope[]> {

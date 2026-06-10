@@ -2,13 +2,10 @@
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User } from "@/models/User";
 import { Teacher } from "@/models/Teacher";
-import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
-import { UserMembership } from "@/models/UserMembership";
 import { School } from "@/models/School";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -16,11 +13,13 @@ import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { parse } from "csv-parse/sync";
+import * as XLSX from "xlsx";
 import mongoose from "mongoose";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
+import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
   if (!id || !id.trim()) return null;
@@ -39,12 +38,91 @@ type CSVRow = {
   employeeId?: string;
   department?: string;
   status?: string;
-  subjects?: string; // comma-separated subject names (e.g. "Mathematics,English")
+  subjects?: string; // semicolon/comma-separated subject offering names
   subjectIds?: string; // legacy: comma-separated IDs
+  subjectOfferingIds?: string; // legacy: comma-separated IDs
+  homeroom?: string;
   homeroomGrade?: string;
   homeroomClass?: string;
   homeroomClassGroupId?: string; // legacy: ID
 };
+
+type SpreadsheetRow = Record<string, unknown>;
+
+function normalizeLookupValue(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function uniqueObjectIds(ids: mongoose.Types.ObjectId[]) {
+  const seen = new Set<string>();
+  return ids.filter((id) => {
+    const key = String(id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function splitMultiValue(value: string) {
+  return value
+    .split(/[;,|]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function subjectOfferingAliases(offering: {
+  displayName?: string | null;
+  shortName?: string | null;
+  code?: string | null;
+  subjectFamily?: string | null;
+}) {
+  const raw = [
+    offering.displayName,
+    offering.shortName,
+    offering.code,
+    offering.subjectFamily,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .flatMap((value) => [
+      value,
+      value.replace(/\s*-\s*(jhs|shs|primary|upper primary|lower primary)\s*$/i, ""),
+    ]);
+
+  return Array.from(new Set(raw.map(normalizeLookupValue).filter(Boolean)));
+}
+
+function parseSpreadsheetRows(buffer: Buffer, fileName: string): SpreadsheetRow[] {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+
+  if (ext === "csv" || ext === "txt") {
+    return parse(buffer.toString("utf8"), {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+      cast: false,
+      bom: true,
+      relax_column_count: true,
+    }) as SpreadsheetRow[];
+  }
+
+  if (ext === "xlsx" || ext === "xls") {
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) return [];
+
+    return XLSX.utils.sheet_to_json<SpreadsheetRow>(workbook.Sheets[sheetName], {
+      defval: "",
+      raw: false,
+    });
+  }
+
+  throw new Error("Unsupported file type. Upload a CSV, XLS, or XLSX file.");
+}
 
 /**
  * POST /api/admin/teachers/bulk-create
@@ -69,30 +147,24 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Read file content
-    const fileContent = await file.text();
-    if (!fileContent.trim()) {
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    if (fileBuffer.length === 0) {
       return Response.json({ error: "File is empty" }, { status: 400 });
     }
 
-    // Parse CSV
+    // Parse spreadsheet
     let rows: CSVRow[];
     try {
-      rows = parse(fileContent, {
-        columns: true,
-        skip_empty_lines: true,
-        trim: true,
-        cast: false,
-      }) as CSVRow[];
+      rows = parseSpreadsheetRows(fileBuffer, file.name) as CSVRow[];
     } catch (parseError) {
       return Response.json(
-        { error: "Failed to parse CSV file", details: String(parseError) },
+        { error: "Failed to parse teacher import file", details: String(parseError) },
         { status: 400 }
       );
     }
 
     if (rows.length === 0) {
-      return Response.json({ error: "CSV file contains no data rows" }, { status: 400 });
+      return Response.json({ error: "Import file contains no data rows" }, { status: 400 });
     }
 
     // Normalize column names (case-insensitive, spaces allowed)
@@ -108,8 +180,12 @@ export async function POST(req: NextRequest) {
         else if (n === "employeeid" || n === "employee_id") normalized.employeeId = value;
         else if (n === "department") normalized.department = value;
         else if (n === "status") normalized.status = value;
-        else if (n === "subjects") normalized.subjects = value;
+        else if (n === "subjects" || n === "subject") normalized.subjects = value;
         else if (n === "subjectids" || n === "subject_ids") normalized.subjectIds = value;
+        else if (n === "subjectofferingids" || n === "subject_offering_ids")
+          normalized.subjectOfferingIds = value;
+        else if (n === "homeroom" || n === "homeroomclassname" || n === "homeroom_class_name")
+          normalized.homeroom = value;
         else if (n === "homeroomgrade" || n === "homeroom_grade") normalized.homeroomGrade = value;
         else if (n === "homeroomclass" || n === "homeroom_class") normalized.homeroomClass = value;
         else if (n === "homeroomclassgroupid" || n === "homeroom_class_group_id")
@@ -149,6 +225,55 @@ export async function POST(req: NextRequest) {
     // Fetch school name for emails
     const school = await School.findById(schoolIdObj).select("name").lean();
     const schoolName = school ? (school as any).name : "your school";
+
+    const allSubjectOfferings = await SubjectOffering.find({
+      schoolId: schoolIdObj,
+      isActive: true,
+    })
+      .select("_id subjectId displayName shortName code subjectFamily")
+      .lean();
+
+    const subjectOfferingMap = new Map<string, (typeof allSubjectOfferings)[number]>();
+    for (const offering of allSubjectOfferings) {
+      for (const alias of subjectOfferingAliases(offering)) {
+        if (!subjectOfferingMap.has(alias)) {
+          subjectOfferingMap.set(alias, offering);
+        }
+      }
+    }
+
+    const allClassGroups = await ClassGroup.find({
+      schoolId: schoolIdObj,
+      isActive: true,
+    })
+      .select("_id name gradeId homeroomTeacherId")
+      .lean();
+
+    const allGrades = await Grade.find({
+      schoolId: schoolIdObj,
+      isActive: true,
+    })
+      .select("_id name")
+      .lean();
+
+    const gradeNameById = new Map(allGrades.map((grade) => [String(grade._id), grade.name]));
+    const classGroupMap = new Map<string, (typeof allClassGroups)[number][]>();
+    for (const classGroup of allClassGroups) {
+      const gradeName = gradeNameById.get(String(classGroup.gradeId)) ?? "";
+      const aliases = [
+        classGroup.name,
+        `${gradeName} ${classGroup.name}`,
+        classGroup.name.replace(/^(.+?)([A-Z])$/i, "$1 $2"),
+      ].filter(Boolean);
+
+      for (const alias of aliases) {
+        const key = normalizeLookupValue(alias);
+        if (!key) continue;
+        const existing = classGroupMap.get(key) ?? [];
+        existing.push(classGroup);
+        classGroupMap.set(key, existing);
+      }
+    }
 
     // Process each row
     for (let i = 0; i < normalizedRows.length; i++) {
@@ -190,131 +315,126 @@ export async function POST(req: NextRequest) {
 
         const normalizedEmail = row.email.toLowerCase().trim();
 
-        const existingUser = await User.findOne({
-          email: normalizedEmail,
-          schoolId: schoolIdObj,
-        }).lean();
-        if (existingUser) {
-          results.push({
-            row: rowNumber,
-            success: false,
-            email: normalizedEmail,
-            error:
-              "A user with this email already exists in your school",
-          });
-          continue;
-        }
-
-        // Validate and resolve subjects — by name or (legacy) by ID
+        // Validate and resolve subject offerings — by name or legacy ID.
         let subjectIds: mongoose.Types.ObjectId[] = [];
-        const subjectInput = (row.subjects || row.subjectIds || "").trim();
+        let subjectOfferingIds: mongoose.Types.ObjectId[] = [];
+        const subjectInput = (row.subjects || row.subjectOfferingIds || row.subjectIds || "").trim();
         if (subjectInput) {
-          const parts = subjectInput.split(",").map((p) => p.trim()).filter(Boolean);
+          const parts = splitMultiValue(subjectInput);
 
           if (parts.length > 0) {
             const firstPart = parts[0];
             const looksLikeId = /^[a-f0-9]{24}$/i.test(firstPart);
 
             if (looksLikeId) {
-              const validSubjectIds = parts
+              const validSubjectOfferingIds = parts
                 .map((id) => toObjectIdOrNull(id))
                 .filter((id): id is mongoose.Types.ObjectId => id !== null);
-              const subjects = await Subject.find({
-                _id: { $in: validSubjectIds },
+              const offerings = await SubjectOffering.find({
+                _id: { $in: validSubjectOfferingIds },
                 schoolId: schoolIdObj,
                 isActive: true,
               }).lean();
-              if (subjects.length !== validSubjectIds.length) {
+              if (offerings.length !== validSubjectOfferingIds.length) {
                 results.push({
                   row: rowNumber,
                   success: false,
                   email: normalizedEmail,
-                  error: "One or more subject IDs are invalid or not found",
+                  error: "One or more subject offering IDs are invalid or not found",
                 });
                 continue;
               }
-              subjectIds = subjects.map((s: any) =>
-                s._id instanceof mongoose.Types.ObjectId ? s._id : new mongoose.Types.ObjectId(String(s._id))
+              subjectOfferingIds = offerings.map((offering) =>
+                offering._id instanceof mongoose.Types.ObjectId
+                  ? offering._id
+                  : new mongoose.Types.ObjectId(String(offering._id))
+              );
+              subjectIds = offerings.map((offering) =>
+                offering.subjectId instanceof mongoose.Types.ObjectId
+                  ? offering.subjectId
+                  : new mongoose.Types.ObjectId(String(offering.subjectId))
               );
             } else {
-              const allSubjects = await Subject.find({
-                schoolId: schoolIdObj,
-                isActive: true,
-              })
-                .select("_id name")
-                .lean();
-              const subjectMap = new Map(
-                allSubjects.map((s: any) => [s.name.toLowerCase().trim(), s._id])
-              );
-
               let subjectResolveFailed = false;
               for (const name of parts) {
-                const id = subjectMap.get(name.toLowerCase().trim());
-                if (!id) {
+                const offering = subjectOfferingMap.get(normalizeLookupValue(name));
+                if (!offering) {
+                  const available = allSubjectOfferings
+                    .map((item) => item.displayName || item.shortName || item.code)
+                    .filter(Boolean)
+                    .slice(0, 12)
+                    .join("; ");
                   results.push({
                     row: rowNumber,
                     success: false,
                     email: normalizedEmail,
-                    error: `Subject "${name}" not found. Available: ${[...subjectMap.keys()].slice(0, 10).join(", ")}${subjectMap.size > 10 ? "..." : ""}`,
+                    error: `Subject "${name}" was not found. Use subject offering names such as: ${available}${allSubjectOfferings.length > 12 ? "..." : ""}`,
                   });
                   subjectResolveFailed = true;
                   break;
                 }
+                subjectOfferingIds.push(
+                  offering._id instanceof mongoose.Types.ObjectId
+                    ? offering._id
+                    : new mongoose.Types.ObjectId(String(offering._id))
+                );
                 subjectIds.push(
-                  id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(String(id))
+                  offering.subjectId instanceof mongoose.Types.ObjectId
+                    ? offering.subjectId
+                    : new mongoose.Types.ObjectId(String(offering.subjectId))
                 );
               }
               if (subjectResolveFailed) continue;
             }
           }
         }
+        subjectIds = uniqueObjectIds(subjectIds);
+        subjectOfferingIds = uniqueObjectIds(subjectOfferingIds);
 
-        // Validate homeroom — by Grade + Class names or (legacy) by ID
+        // Validate homeroom — by class name, Grade + Class names, or legacy ID.
         let homeroomClassGroupId: mongoose.Types.ObjectId | null = null;
         const hasHomeroomByName =
-          row.homeroomGrade?.trim() && row.homeroomClass?.trim();
+          row.homeroom?.trim() ||
+          (row.homeroomGrade?.trim() && row.homeroomClass?.trim()) ||
+          row.homeroomClass?.trim();
         const hasHomeroomById = row.homeroomClassGroupId?.trim();
 
         if (hasHomeroomByName) {
-          const grade = await Grade.findOne({
-            schoolId: schoolIdObj,
-            name: new RegExp(`^${row.homeroomGrade!.trim()}$`, "i"),
-            isActive: true,
-          })
-            .select("_id")
-            .lean();
+          const homeroomInput = row.homeroom?.trim()
+            ? row.homeroom.trim()
+            : row.homeroomGrade?.trim() && row.homeroomClass?.trim()
+              ? `${row.homeroomGrade.trim()} ${row.homeroomClass.trim()}`
+              : row.homeroomClass!.trim();
+          const matches = classGroupMap.get(normalizeLookupValue(homeroomInput)) ?? [];
 
-          if (!grade) {
+          if (matches.length === 0) {
             results.push({
               row: rowNumber,
               success: false,
               email: normalizedEmail,
-              error: `Homeroom grade "${row.homeroomGrade}" not found`,
+              error: `Homeroom class "${homeroomInput}" was not found. Use the class name as shown in Class Groups, for example "JHS 1 A".`,
             });
             continue;
           }
 
-          const classGroup = await ClassGroup.findOne({
-            schoolId: schoolIdObj,
-            gradeId: (grade as any)._id,
-            name: new RegExp(`^${row.homeroomClass!.trim()}$`, "i"),
-            isActive: true,
-          }).lean();
-
-          if (!classGroup) {
+          if (matches.length > 1) {
+            const candidates = matches
+              .map((match) => `${gradeNameById.get(String(match.gradeId)) ?? "Grade"} / ${match.name}`)
+              .join(", ");
             results.push({
               row: rowNumber,
               success: false,
               email: normalizedEmail,
-              error: `Class "${row.homeroomClass}" not found under grade "${row.homeroomGrade}"`,
+              error: `Homeroom class "${homeroomInput}" matches multiple classes: ${candidates}. Use a fuller name such as "JHS 1 A".`,
             });
             continue;
           }
 
+          const classGroup = matches[0];
           homeroomClassGroupId =
-            (classGroup as any)._id instanceof mongoose.Types.ObjectId
-              ? (classGroup as any)._id
-              : new mongoose.Types.ObjectId(String((classGroup as any)._id));
+            classGroup._id instanceof mongoose.Types.ObjectId
+              ? classGroup._id
+              : new mongoose.Types.ObjectId(String(classGroup._id));
         } else if (hasHomeroomById) {
           const classGroupObjId = toObjectIdOrNull(row.homeroomClassGroupId!);
           if (!classGroupObjId) {
@@ -373,38 +493,53 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const teacherUser = new User({
+        const teacherUser = await ensureCanonicalUserForEmail({
           email: normalizedEmail,
           firstName: row.firstName.trim(),
           lastName: row.lastName.trim(),
           phone: row.phone?.trim() || undefined,
           role: "teacher",
           schoolId: schoolIdObj,
+          pendingOnboarding: false,
         });
-
-        await teacherUser.save();
 
         const teacherIdObj =
           teacherUser._id instanceof mongoose.Types.ObjectId
             ? teacherUser._id
             : new mongoose.Types.ObjectId(String(teacherUser._id));
 
-        // Ensure membership entry
-        await UserMembership.findOneAndUpdate(
-          { userId: teacherIdObj, schoolId: schoolIdObj },
-          { $addToSet: { roles: "teacher" }, $set: { status: "active" } },
-          { upsert: true }
-        );
+        const existingTeacher = await Teacher.findOne({
+          schoolId: schoolIdObj,
+          userId: teacherIdObj,
+        })
+          .select("_id")
+          .lean();
+        if (existingTeacher) {
+          results.push({
+            row: rowNumber,
+            success: false,
+            email: normalizedEmail,
+            error: "A teacher record already exists for this email in your school",
+          });
+          continue;
+        }
+
+        await ensureMembershipForUser({
+          userId: teacherIdObj,
+          schoolId: schoolIdObj,
+          role: "teacher",
+          status: "active",
+        });
 
         // Create teacher record
         const teacherRecord = new Teacher({
           schoolId: schoolIdObj,
           userId: teacherIdObj,
           subjectIds: subjectIds,
+          subjectOfferingIds,
           homeroomClassGroupId: homeroomClassGroupId,
           status: status as "active" | "inactive" | "on_leave" | "terminated",
           employeeId: row.employeeId?.trim() || undefined,
-          department: row.department?.trim() || undefined,
         });
 
         await teacherRecord.save();
@@ -476,8 +611,10 @@ export async function POST(req: NextRequest) {
             metadata: {
               firstName: row.firstName,
               lastName: row.lastName,
-              subjectIds: row.subjectIds?.split(",").map((id) => id.trim()) || [],
-              homeroomClassGroupId: row.homeroomClassGroupId,
+              subjects: splitMultiValue(row.subjects || ""),
+              subjectOfferingIds: subjectOfferingIds.map(String),
+              homeroom: row.homeroom || row.homeroomClass || null,
+              homeroomClassGroupId: homeroomClassGroupId ? String(homeroomClassGroupId) : null,
               invitationEmailSuppressed: false,
             },
           });
@@ -495,6 +632,7 @@ export async function POST(req: NextRequest) {
           metadata: {
             email: normalizedEmail,
             subjectIds: subjectIds.map(String),
+            subjectOfferingIds: subjectOfferingIds.map(String),
             homeroomClassGroupId: homeroomClassGroupId ? String(homeroomClassGroupId) : null,
             importedBy: adminUserId,
             isBulkOperation: true,

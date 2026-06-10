@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
 import { getDefaultFeaturesForPlan } from "@/lib/subscriptions/plan-defaults";
+import { syncCanonicalSubscriptionPlans } from "@/lib/subscriptions/default-plan-seeds";
 
 const CreatePlanSchema = z.object({
   code: z.string().trim().min(1).max(40),
@@ -43,7 +44,12 @@ export async function GET(req: NextRequest) {
   const query = activeOnly
     ? { code: { $in: Object.values(PLAN_CODES) }, active: true }
     : { code: { $in: Object.values(PLAN_CODES) } };
-  const plans = await SubscriptionTier.find(query).sort({ sortOrder: 1 }).lean();
+  let plans = await SubscriptionTier.find(query).sort({ sortOrder: 1 }).lean();
+
+  if (plans.length === 0) {
+    await syncCanonicalSubscriptionPlans();
+    plans = await SubscriptionTier.find(query).sort({ sortOrder: 1 }).lean();
+  }
 
   return NextResponse.json({ success: true, data: plans });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Highlighter, MessageSquarePlus, WandSparkles } from "lucide-react";
+import { Highlighter, MessageSquarePlus, WandSparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,11 @@ export function AdminReviewCommentComposer({
   const captureSelection = React.useCallback(() => {
     const selected = window.getSelection()?.toString().replace(/\s+/g, " ").trim() || "";
     if (selected) setHighlightedText(selected.slice(0, 500));
+  }, []);
+
+  const clearHighlight = React.useCallback(() => {
+    setHighlightedText("");
+    window.getSelection()?.removeAllRanges();
   }, []);
 
   const handleSubmit = async () => {
@@ -85,22 +90,46 @@ export function AdminReviewCommentComposer({
             <Highlighter className="mt-0.5 h-4 w-4 shrink-0 text-sky-200" />
             <span>
               Select text in this section, then capture it to attach a precise highlight to your
-              review note.
+              review note. Use <span className="text-sky-100">Clear selection</span> to remove a
+              captured highlight.
             </span>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={captureSelection}
-            className="w-fit border-sky-300/20 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20"
-          >
-            <WandSparkles className="mr-2 h-3.5 w-3.5" />
-            Capture selection
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={captureSelection}
+              className="w-fit border-sky-300/20 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20"
+            >
+              <WandSparkles className="mr-2 h-3.5 w-3.5" />
+              Capture selection
+            </Button>
+            {highlightedText ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={clearHighlight}
+                className="w-fit border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white"
+              >
+                <X className="mr-2 h-3.5 w-3.5" />
+                Clear selection
+              </Button>
+            ) : null}
+          </div>
         </div>
         {highlightedText ? (
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">
-            <span className="font-semibold text-sky-100">Highlighted:</span> {highlightedText}
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">
+            <p>
+              <span className="font-semibold text-sky-100">Highlighted:</span> {highlightedText}
+            </p>
+            <button
+              type="button"
+              onClick={clearHighlight}
+              className="shrink-0 rounded-md p-1 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+              aria-label="Clear highlighted selection"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         ) : null}
       </div>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, CheckCircle, Pencil, Presentation } from "lucide-react";
+import { Bell, CheckCircle, Eye, Pencil, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -109,19 +109,35 @@ export function TeacherLessonNoteWorkflowBar({
               onSuccess={onActionComplete}
             />
             {canCreateLesson ? (
-              <Button
-                type="button"
-                size="sm"
-                asChild
-                className="bg-violet-500/20 text-violet-100 hover:bg-violet-500/30"
-              >
-                <Link
-                  href={`/teacher/lessons/create?noteId=${note.id}${note.classGroupId ? `&classGroupId=${note.classGroupId}` : ""}`}
+              <>
+                {status === "approved" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+                  >
+                    <Link href={`/teacher/lesson-notes/${note.id}/preview-week`}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview week
+                    </Link>
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  asChild
+                  className="bg-violet-500/20 text-violet-100 hover:bg-violet-500/30"
                 >
-                  <Presentation className="mr-2 h-4 w-4" />
-                  Create weekly lessons
-                </Link>
-              </Button>
+                  <Link
+                    href={`/teacher/lessons/create?noteId=${note.id}${note.classGroupId ? `&classGroupId=${note.classGroupId}` : ""}`}
+                  >
+                    <Presentation className="mr-2 h-4 w-4" />
+                    Create weekly lessons
+                  </Link>
+                </Button>
+              </>
             ) : (
               <Button
                 type="button"
@@ -146,8 +162,8 @@ export function TeacherLessonNoteWorkflowBar({
         <div className="flex items-start gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-100/90">
           <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
           <p>
-            This lesson note is approved. Create weekly lessons from your timetable, then publish
-            each session when you are ready.
+            This lesson note is approved. Create weekly lessons from your timetable, preview how
+            they will look in class, then publish each session when you are ready.
           </p>
         </div>
       ) : null}

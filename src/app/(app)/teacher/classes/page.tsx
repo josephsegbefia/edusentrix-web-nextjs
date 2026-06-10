@@ -112,11 +112,17 @@ type ScheduleEntry = {
 
 export default function TeacherClassesPage() {
   const busyToast = useBusyToast();
-  const { data: contextData } = useTeacherContext();
+  const {
+    data: contextData,
+    isLoading: contextLoading,
+    isError: contextError,
+    refetch: refetchContext,
+  } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canView = can(permissions, PERMISSIONS.classesView);
 
   const { data, isLoading, isFetching, refetch } = useTeacherClasses();
+  const loadingAccess = contextLoading || (!contextData && !contextError);
 
   const classes = React.useMemo(() => {
     const map = new Map<
@@ -186,6 +192,55 @@ export default function TeacherClassesPage() {
       error: "Failed to refresh classes",
     });
   }, [busyToast, refetch]);
+
+  if (loadingAccess) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <div className="h-8 w-36 animate-pulse rounded-lg bg-white/10" />
+          <div className="mt-2 h-4 w-72 animate-pulse rounded bg-white/5" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="h-32 animate-pulse rounded-2xl border border-white/10 bg-linear-to-br from-white/10 via-white/5 to-transparent"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (contextError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">My Classes</h1>
+          <p className="text-sm text-white/60">Could not load your teacher profile.</p>
+        </div>
+        <Card className="border border-rose-500/25 bg-rose-500/10 shadow-lg shadow-black/20 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-lg text-rose-100">Something went wrong</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-rose-100/80">
+              The page could not verify your access. Try again — if this keeps happening, sign out
+              and back in, or contact your school admin.
+            </p>
+            <Button
+              type="button"
+              onClick={() => refetchContext()}
+              className="border border-white/15 bg-white/10 text-white hover:bg-white/15"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!canView) {
     return (

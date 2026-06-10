@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Loader2, Trash2, User, Coffee, Sun, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatHoursMinutes } from "@/lib/time/format-duration";
 import {
   useCreateClassSlot,
   useDeleteClassSlot,
@@ -351,7 +352,7 @@ export function ClassTimetableGridBoard({
       ) {
         const decision = await confirm({
           title: "Contact hours exceeded",
-          description: `${contactPlan.teacherName} is planned for ${contactPlan.targetHours}h/week in ${contactPlan.subjectName}. This drop will bring the timetable to ${projectedHours.toFixed(2)}h/week.`,
+          description: `${contactPlan.teacherName} is planned for ${formatHoursMinutes(contactPlan.targetHours)}/week in ${contactPlan.subjectName}. This drop will bring the timetable to ${formatHoursMinutes(projectedHours)}/week.`,
           confirmLabel: "Ignore and add lesson",
           cancelLabel: "Cancel",
           intent: "default",

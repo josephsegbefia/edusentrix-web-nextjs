@@ -10,6 +10,7 @@ import { premiumTopLink } from "@/components/ui/premium";
 import { AppTopbarUserMenu } from "./AppTopbarUserMenu";
 import { NetworkIndicator } from "@/components/system/NetworkIndicator";
 import { SchoolBrand } from "@/components/brand/SchoolBrand";
+import { CurrentSchemeWeekBadge } from "@/components/schemes/CurrentSchemeWeekBadge";
 
 export default function AppTopbar({ user }: { user: CurrentAppUser }) {
   const [mounted, setMounted] = useState(false);
@@ -48,10 +49,11 @@ export default function AppTopbar({ user }: { user: CurrentAppUser }) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-neutral-900 bg-card/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <SchoolBrand size="sm" showName href="/admin" />
+          <CurrentSchemeWeekBadge compact className="hidden sm:inline-flex shrink-0" />
           {/* Navigation links */}
-          <nav className="ml-6 hidden md:flex items-center gap-1">
+          <nav className="ml-3 hidden lg:flex items-center gap-1">
             <Link
               href="/docs"
               className={`${premiumTopLink} flex items-center gap-2`}

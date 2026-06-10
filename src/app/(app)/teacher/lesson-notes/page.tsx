@@ -623,6 +623,7 @@ function TeacherLessonNotesInner() {
           onComplete={handleWizardComplete}
           onCancel={handleWizardCancel}
           curriculumCode={(contextData?.data.school?.curriculumCode as import("@/constants/curriculum-profiles").CurriculumCode) || "ghana_nacca"}
+          periodPlanningContext={schemePrefill?.periodPlanning ?? null}
         />
       </WorkspacePageShell>
     );

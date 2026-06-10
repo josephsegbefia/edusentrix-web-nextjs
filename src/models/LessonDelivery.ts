@@ -15,6 +15,14 @@ export interface ILessonDelivery {
   sessionId: Types.ObjectId;
   weekPlanId: Types.ObjectId;
   classGroupId: Types.ObjectId;
+  /** Class-specific schedule when content is shared across multiple classes. */
+  scheduledDate?: Date | null;
+  dayOfWeek?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  durationMinutes?: number | null;
+  timetableSlotId?: Types.ObjectId | null;
+  timetableSlotIds?: Types.ObjectId[];
   ownerTeacherId: Types.ObjectId;
   scheduledTeacherId: Types.ObjectId;
   actualTeacherId?: Types.ObjectId | null;
@@ -36,6 +44,13 @@ const lessonDeliverySchema = new Schema<ILessonDelivery>(
     sessionId: { type: Schema.Types.ObjectId, ref: "LessonSession", required: true, index: true },
     weekPlanId: { type: Schema.Types.ObjectId, ref: "LessonWeekPlan", required: true, index: true },
     classGroupId: { type: Schema.Types.ObjectId, ref: "ClassGroup", required: true, index: true },
+    scheduledDate: { type: Date, default: null, index: true },
+    dayOfWeek: { type: Number, min: 0, max: 6, default: null },
+    startTime: { type: String, trim: true, default: null },
+    endTime: { type: String, trim: true, default: null },
+    durationMinutes: { type: Number, min: 1, default: null },
+    timetableSlotId: { type: Schema.Types.ObjectId, ref: "TimetableSlot", default: null },
+    timetableSlotIds: [{ type: Schema.Types.ObjectId, ref: "TimetableSlot", default: [] }],
     ownerTeacherId: { type: Schema.Types.ObjectId, ref: "Teacher", required: true, index: true },
     scheduledTeacherId: { type: Schema.Types.ObjectId, ref: "Teacher", required: true },
     actualTeacherId: { type: Schema.Types.ObjectId, ref: "Teacher", default: null },
@@ -60,7 +75,10 @@ const lessonDeliverySchema = new Schema<ILessonDelivery>(
   { timestamps: true },
 );
 
-lessonDeliverySchema.index({ schoolId: 1, sessionId: 1 }, { unique: true });
+lessonDeliverySchema.index(
+  { schoolId: 1, sessionId: 1, classGroupId: 1 },
+  { unique: true, name: "lesson_delivery_session_class_unique" },
+);
 
 export const LessonDelivery: Model<ILessonDelivery> =
   (models.LessonDelivery as Model<ILessonDelivery>) ||

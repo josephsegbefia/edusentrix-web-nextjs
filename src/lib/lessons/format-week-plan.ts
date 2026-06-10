@@ -10,14 +10,22 @@ export function formatWeekPlanDto(input: {
   deliveries: ILessonDelivery[];
   lessonNoteTopic?: string | null;
 }): LessonWeekPlanDto {
-  const deliveryBySession = new Map(
-    input.deliveries.map((d) => [String(d.sessionId), d]),
-  );
+  const deliveriesBySession = new Map<string, ILessonDelivery[]>();
+  for (const delivery of input.deliveries) {
+    const key = String(delivery.sessionId);
+    const list = deliveriesBySession.get(key) ?? [];
+    list.push(delivery);
+    deliveriesBySession.set(key, list);
+  }
 
   const sessionDtos: LessonWeekPlanSessionDto[] = input.sessions
     .sort((a, b) => a.sequenceInWeek - b.sequenceInWeek)
     .map((s) => {
-      const delivery = deliveryBySession.get(String(s._id));
+      const sessionDeliveries = deliveriesBySession.get(String(s._id)) ?? [];
+      const delivery =
+        sessionDeliveries.find(
+          (d) => String(d.classGroupId) === String(input.plan.classGroupId),
+        ) ?? sessionDeliveries[0] ?? null;
       return {
         id: String(s._id),
         weekPlanId: String(s.weekPlanId),
@@ -35,15 +43,24 @@ export function formatWeekPlanDto(input: {
         status: s.status,
         planNotes: s.planNotes?.trim() || null,
         contentBlockCount: Array.isArray(s.contentBlocks) ? s.contentBlocks.length : 0,
+        hasNotebookNotes: Boolean(s.boardNotes?.contentHtml?.trim()),
+        notebookNotesPublished: Boolean(s.notebookNotesPublished),
         delivery: delivery
           ? {
               id: String(delivery._id),
+              classGroupId: String(delivery.classGroupId),
               status: delivery.status,
               actualTeacherId: delivery.actualTeacherId
                 ? String(delivery.actualTeacherId)
                 : null,
             }
           : null,
+        classDeliveries: sessionDeliveries.map((d) => ({
+          id: String(d._id),
+          classGroupId: String(d.classGroupId),
+          status: d.status,
+          actualTeacherId: d.actualTeacherId ? String(d.actualTeacherId) : null,
+        })),
       };
     });
 
@@ -54,6 +71,8 @@ export function formatWeekPlanDto(input: {
       (s) => s.delivery?.status === "delivered" || s.delivery?.status === "completed",
     ).length,
     scheduled: sessionDtos.filter((s) => s.delivery?.status === "scheduled").length,
+    notebookNotesReady: sessionDtos.filter((s) => s.hasNotebookNotes).length,
+    notebookNotesShared: sessionDtos.filter((s) => s.notebookNotesPublished).length,
   };
 
   return {
@@ -63,6 +82,10 @@ export function formatWeekPlanDto(input: {
     weekStartDate: formatDateYmdUtc(new Date(input.plan.weekStartDate)),
     weekEndDate: formatDateYmdUtc(new Date(input.plan.weekEndDate)),
     classGroupId: String(input.plan.classGroupId),
+    classGroupIds: (input.plan.classGroupIds?.length
+      ? input.plan.classGroupIds
+      : [input.plan.classGroupId]
+    ).map((id) => String(id)),
     subjectOfferingId: String(input.plan.subjectOfferingId),
     lessonNoteId: String(input.plan.lessonNoteId),
     lessonNoteTopic: input.lessonNoteTopic ?? null,

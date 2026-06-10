@@ -51,7 +51,7 @@ export function TermSelector({
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {selectedPeriod ? (
         <OfficialStatusBadge
           status={selectedPeriod.status}
@@ -76,7 +76,7 @@ export function TermSelector({
               key={period.academicPeriodId}
               value={period.academicPeriodId}
             >
-              <span className="flex w-full items-center justify-between gap-3">
+              <span className="flex w-full items-center justify-between gap-3 pr-6">
                 <span className="min-w-0 truncate text-left">{period.label}</span>
                 <OfficialStatusBadge
                   status={period.status}

@@ -56,6 +56,7 @@ const isPublicRoute = createRouteMatcher([
   "/favicon.ico",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/api/auth/dev-teacher-login",
   "/api/banks/search",
   "/api/public/contact",
   "/api/public/admissions(.*)", // public admission application APIs
@@ -121,6 +122,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/",
       "/sign-in",
       "/sign-up",
+      "/api/auth/dev-teacher-login",
       "/about",
       "/contact",
       "/terms",

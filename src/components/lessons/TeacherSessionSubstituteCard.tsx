@@ -30,8 +30,8 @@ type Props = {
 
 export function TeacherSessionSubstituteCard({ sessionId, session, classGroupId }: Props) {
   const busyToast = useBusyToast();
-  const assign = useAssignSessionSubstitute(sessionId);
-  const clear = useClearSessionSubstitute(sessionId);
+  const assign = useAssignSessionSubstitute(sessionId, session.activeClassGroupId);
+  const clear = useClearSessionSubstitute(sessionId, session.activeClassGroupId);
   const [query, setQuery] = React.useState("");
   const [targets, setTargets] = React.useState<TeacherTarget[]>([]);
   const [loadingTargets, setLoadingTargets] = React.useState(false);

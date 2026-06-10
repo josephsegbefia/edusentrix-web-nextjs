@@ -24,6 +24,7 @@ type AttendanceContextResponse = {
     scheduledDate: string;
     startTime: string;
     endTime: string;
+    classGroupId?: string;
     roster: RosterEntry[];
     preRecorded: boolean;
     postRecorded: boolean;
@@ -33,11 +34,23 @@ type AttendanceContextResponse = {
   };
 };
 
-export function useLessonAttendanceRoster(sessionId: string | null) {
+function attendanceQuery(classGroupId?: string | null) {
+  const params = new URLSearchParams();
+  if (classGroupId) params.set("classGroupId", classGroupId);
+  const query = params.toString() ? `?${params}` : "";
+  return query;
+}
+
+export function useLessonAttendanceRoster(
+  sessionId: string | null,
+  classGroupId?: string | null,
+) {
   return useQuery<AttendanceContextResponse>({
-    queryKey: ["lesson-attendance-roster", sessionId],
+    queryKey: ["lesson-attendance-roster", sessionId, classGroupId ?? null],
     queryFn: async () => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/attendance`);
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}/attendance${attendanceQuery(classGroupId)}`,
+      );
       const json = (await res.json().catch(() => null)) as AttendanceContextResponse | null;
       if (!res.ok || !json?.success) {
         throw new Error(json?.error ?? "Failed to load attendance roster");
@@ -49,17 +62,23 @@ export function useLessonAttendanceRoster(sessionId: string | null) {
   });
 }
 
-export function useSavePreLessonAttendance(sessionId: string) {
+export function useSavePreLessonAttendance(
+  sessionId: string,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (
       marks: Array<{ studentId: string; preLesson: AttendanceStudentStatus }>,
     ) => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase: "pre", marks }),
-      });
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}/attendance${attendanceQuery(classGroupId)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phase: "pre", marks }),
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         throw new Error(json?.error ?? "Failed to save pre-lesson attendance");
@@ -76,22 +95,30 @@ export function useSavePreLessonAttendance(sessionId: string) {
       };
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["lesson-attendance-roster", sessionId] });
+      void qc.invalidateQueries({
+        queryKey: ["lesson-attendance-roster", sessionId, classGroupId ?? null],
+      });
     },
   });
 }
 
-export function useSavePostLessonAttendance(sessionId: string) {
+export function useSavePostLessonAttendance(
+  sessionId: string,
+  classGroupId?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (
       marks: Array<{ studentId: string; postLesson: AttendanceStudentStatus }>,
     ) => {
-      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/attendance`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phase: "post", marks }),
-      });
+      const res = await fetch(
+        `/api/teacher/lesson-sessions/${sessionId}/attendance${attendanceQuery(classGroupId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phase: "post", marks }),
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
         throw new Error(json?.error ?? "Failed to save post-lesson attendance");
@@ -99,7 +126,9 @@ export function useSavePostLessonAttendance(sessionId: string) {
       return json as { success: true; data: { attendanceId: string; postRecordedAt: string | null } };
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["lesson-attendance-roster", sessionId] });
+      void qc.invalidateQueries({
+        queryKey: ["lesson-attendance-roster", sessionId, classGroupId ?? null],
+      });
       void qc.invalidateQueries({ queryKey: ["teacher-lesson-session", sessionId] });
     },
   });

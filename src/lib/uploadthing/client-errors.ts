@@ -13,13 +13,22 @@ export function getUploadThingErrorMessage(error: UploadThingClientError): strin
       ? error.cause.message
       : typeof error.cause === "string"
         ? error.cause
-        : null;
+        : error.cause &&
+            typeof error.cause === "object" &&
+            "message" in error.cause &&
+            typeof (error.cause as { message?: unknown }).message === "string"
+          ? String((error.cause as { message: string }).message)
+          : null;
 
-  if (error.message === "Failed to run middleware" && cause) {
+  if (cause) {
     return cause;
   }
 
-  return error.message || "Upload failed";
+  if (error.message && error.message !== "Failed to run middleware") {
+    return error.message;
+  }
+
+  return "Upload failed";
 }
 
 export function logUploadThingClientError(

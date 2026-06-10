@@ -9,6 +9,7 @@ import {
   isSimpleBody,
 } from "@/types/lesson-notes";
 import { summarizeLessonBodyForAI } from "@/lib/lesson-notes/ai-context";
+import { sanitizeRichTextField } from "@/lib/lesson-notes/plain-text-content";
 import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
 import { NaCCA3PhaseEditor } from "./NaCCA3PhaseEditor";
 import { ClassicJHSEditor } from "./ClassicJHSEditor";
@@ -98,6 +99,37 @@ function mergeSimpleBody(
   };
 }
 
+function sanitizeBodyStrings(value: unknown): unknown {
+  if (typeof value === "string") return sanitizeRichTextField(value);
+  if (Array.isArray(value)) return value.map(sanitizeBodyStrings);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+        key,
+        sanitizeBodyStrings(entry),
+      ])
+    );
+  }
+  return value;
+}
+
+function extractGeneratedBodyPayload(data: unknown): Record<string, unknown> | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  if (isRecord(record.body)) return record.body;
+  if (isRecord(record.starter) && isRecord(record.main) && isRecord(record.plenary)) {
+    return record;
+  }
+  if (
+    isRecord(record.objectives) ||
+    typeof record.content === "string" ||
+    typeof record.introduction === "string"
+  ) {
+    return record;
+  }
+  return null;
+}
+
 function applyGeneratedBody(
   current: LessonNoteFormData["body"],
   generated: Record<string, unknown>
@@ -129,11 +161,11 @@ export function BodyStep({ formData, onUpdate, aiContext }: BodyStepProps) {
       existingContent={summarizeLessonBodyForAI(formData)}
       promptPlaceholder='What do you want help with on this section? e.g. "Make the main activity more interactive and suitable for mixed-ability learners."'
       onGenerated={(data) => {
-        if (!("body" in data) || !isRecord(data.body)) {
-          return;
-        }
+        const generatedBody = extractGeneratedBodyPayload(data);
+        if (!generatedBody) return;
+        const sanitizedBody = sanitizeBodyStrings(generatedBody) as Record<string, unknown>;
         onUpdate({
-          body: applyGeneratedBody(formData.body, data.body),
+          body: applyGeneratedBody(formData.body, sanitizedBody),
         });
       }}
     />

@@ -3,8 +3,9 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { BookText, School, Users, TrendingUp } from "lucide-react";
+import { BookText, Info, School, Users, TrendingUp } from "lucide-react";
 import { useSubjectOfferings } from "@/hooks/admin/useSubjectOfferings";
+import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import CountUp from "react-countup";
 
 type StatTone = "amber" | "teal" | "sky" | "rose";
@@ -16,6 +17,7 @@ type StatCardProps = {
   tone: StatTone;
   loading?: boolean;
   subtitle?: string;
+  onInfoClick?: () => void;
 };
 
 const toneConfig: Record<
@@ -70,6 +72,7 @@ function StatCard({
   tone,
   loading,
   subtitle,
+  onInfoClick,
 }: StatCardProps) {
   const config = toneConfig[tone];
 
@@ -99,9 +102,21 @@ function StatCard({
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
-            {label}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
+              {label}
+            </p>
+            {onInfoClick ? (
+              <button
+                type="button"
+                onClick={onInfoClick}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/45 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                aria-label={`Explain ${label}`}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
           <div className="flex items-baseline gap-2">
             <p
               className={cn(
@@ -135,6 +150,7 @@ function StatCard({
 }
 
 export function SubjectsQuickStatsSection() {
+  const [classLinksInfoOpen, setClassLinksInfoOpen] = React.useState(false);
   const { data, isLoading } = useSubjectOfferings({ isActive: true });
 
   const subjects = (data?.data || []).filter(
@@ -156,38 +172,69 @@ export function SubjectsQuickStatsSection() {
   }, [subjects]);
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard
-        label="Total Offerings"
-        value={stats.total}
-        icon={<BookText className="h-5 w-5" />}
-        tone="amber"
-        loading={isLoading}
-      />
-      <StatCard
-        label="Active Offerings"
-        value={stats.active}
-        icon={<TrendingUp className="h-5 w-5" />}
-        tone="teal"
-        loading={isLoading}
-        subtitle={`${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}% of total`}
-      />
-      <StatCard
-        label="Classes Teaching"
-        value={stats.totalClasses}
-        icon={<School className="h-5 w-5" />}
-        tone="sky"
-        loading={isLoading}
-        subtitle="Total class assignments"
-      />
-      <StatCard
-        label="Teachers Assigned"
-        value={stats.totalTeachers}
-        icon={<Users className="h-5 w-5" />}
-        tone="rose"
-        loading={isLoading}
-        subtitle="Teaching subjects"
-      />
-    </div>
+    <>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total Offerings"
+          value={stats.total}
+          icon={<BookText className="h-5 w-5" />}
+          tone="amber"
+          loading={isLoading}
+        />
+        <StatCard
+          label="Active Offerings"
+          value={stats.active}
+          icon={<TrendingUp className="h-5 w-5" />}
+          tone="teal"
+          loading={isLoading}
+          subtitle={`${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}% of total`}
+        />
+        <StatCard
+          label="Class Offering Links"
+          value={stats.totalClasses}
+          icon={<School className="h-5 w-5" />}
+          tone="sky"
+          loading={isLoading}
+          subtitle="Offerings assigned to class groups"
+          onInfoClick={() => setClassLinksInfoOpen(true)}
+        />
+        <StatCard
+          label="Teachers Assigned"
+          value={stats.totalTeachers}
+          icon={<Users className="h-5 w-5" />}
+          tone="rose"
+          loading={isLoading}
+          subtitle="Teaching subjects"
+        />
+      </div>
+
+      <ResponsiveModal
+        open={classLinksInfoOpen}
+        onOpenChange={setClassLinksInfoOpen}
+        title="Class Offering Links"
+        description="This metric counts subject-offering-to-class-group links, not unique classes."
+      >
+        <div className="space-y-4 text-sm leading-relaxed text-white/70">
+          <p>
+            A class offering link is created when one subject offering is attached to one class group.
+            The total adds up every active non-preschool subject offering across every class group it
+            has been assigned to.
+          </p>
+
+          <div className="rounded-xl border border-sky-400/20 bg-sky-400/10 p-4 text-sky-50">
+            <p className="font-semibold">Example</p>
+            <p className="mt-2 text-sky-50/80">
+              If Mathematics, English, Science, and Social Studies are each assigned to JHS 1A,
+              JHS 1B, and JHS 1C, that is 4 offerings x 3 class groups = 12 class offering links.
+            </p>
+          </div>
+
+          <p>
+            This is why the number can be higher than the number of classes. It is measuring coverage
+            of offerings across class groups, not the count of class groups themselves.
+          </p>
+        </div>
+      </ResponsiveModal>
+    </>
   );
 }

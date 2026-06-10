@@ -15,6 +15,20 @@ function toObjectIdOrNull(value: string): mongoose.Types.ObjectId | null {
   }
 }
 
+function slotPeriodKey(slot: {
+  classGroupId: mongoose.Types.ObjectId;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}): string {
+  return [
+    String(slot.classGroupId),
+    String(slot.dayOfWeek),
+    slot.startTime,
+    slot.endTime,
+  ].join("|");
+}
+
 /**
  * POST /api/admin/timetable/versions/:versionId/clone-from-published
  * Clone currently published slots for the same school+period into the target draft version.
@@ -82,26 +96,41 @@ export async function POST(
     }
 
     const sourceVersionId = (sourceVersion as { _id: mongoose.Types.ObjectId })._id;
-    const sourceSlots = await TimetableSlot.find({ versionId: sourceVersionId }).lean();
+    const sourceSlots = await TimetableSlot.find({ versionId: sourceVersionId })
+      .sort({ classGroupId: 1, dayOfWeek: 1, startTime: 1, _id: 1 })
+      .lean();
 
     await TimetableSlot.deleteMany({ versionId: targetVersionId });
 
-    if ((sourceSlots || []).length > 0) {
+    const uniqueSourceSlots = Array.from(
+      (sourceSlots || [])
+        .reduce((map, slot) => {
+          const key = slotPeriodKey(slot);
+          if (!map.has(key)) map.set(key, slot);
+          return map;
+        }, new Map<string, (typeof sourceSlots)[number]>())
+        .values()
+    );
+
+    if (uniqueSourceSlots.length > 0) {
       const now = new Date();
       await TimetableSlot.insertMany(
-        sourceSlots.map((slot) => ({
+        uniqueSourceSlots.map((slot) => ({
           schoolId: slot.schoolId,
           academicPeriodId: slot.academicPeriodId,
           versionId: targetVersionId,
           classGroupId: slot.classGroupId,
           gradeId: slot.gradeId,
           subjectId: slot.subjectId,
-          teacherId: slot.teacherId,
+          subjectOfferingId: slot.subjectOfferingId ?? null,
+          teacherId: slot.teacherId ?? null,
+          roomId: slot.roomId ?? null,
           dayOfWeek: slot.dayOfWeek,
           startTime: slot.startTime,
           endTime: slot.endTime,
           classroomLabel: slot.classroomLabel,
           source: slot.source,
+          legacyAssignmentId: slot.legacyAssignmentId ?? null,
           createdBy: userIdObj,
           updatedBy: userIdObj,
           createdAt: now,
@@ -130,7 +159,7 @@ export async function POST(
       entityId: targetVersionId,
       metadata: {
         sourceVersionId: String(sourceVersionId),
-        clonedSlotCount: sourceSlots.length,
+        clonedSlotCount: uniqueSourceSlots.length,
       },
     });
 
@@ -139,7 +168,7 @@ export async function POST(
       data: {
         targetVersionId: String(targetVersionId),
         sourceVersionId: String(sourceVersionId),
-        clonedSlotCount: sourceSlots.length,
+        clonedSlotCount: uniqueSourceSlots.length,
       },
     });
   } catch (e: unknown) {

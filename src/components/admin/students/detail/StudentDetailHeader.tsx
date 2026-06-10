@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
   GraduationCap,
@@ -14,7 +13,6 @@ import {
   PhoneCall,
   Mail,
   Wallet,
-  Sparkles,
   Calendar,
   Hash,
   Landmark,
@@ -25,25 +23,19 @@ import {
   Loader2,
   HelpCircle,
   Send,
+  Mars,
+  Venus,
 } from "lucide-react";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/useToast";
+import { StudentDetailAvatar } from "@/components/admin/students/detail/StudentDetailAvatar";
+import { formatStudentSexLabel } from "@/lib/students/format-student-sex";
 
 type StudentDetailHeaderProps = {
   student: StudentDetailDTO;
   onRecordPayment?: () => void;
 };
-
-function initialsFromName(fullName: string) {
-  const parts = fullName.trim().split(/\s+/);
-  if (!parts.length) return "";
-  if (parts.length === 1) return parts[0]!.charAt(0)?.toUpperCase() ?? "";
-  return (
-    (parts[0]?.charAt(0)?.toUpperCase() ?? "") +
-    (parts[parts.length - 1]?.charAt(0)?.toUpperCase() ?? "")
-  );
-}
 
 function MetricStatCard({
   icon: Icon,
@@ -169,12 +161,14 @@ export function StudentDetailHeader({
 }: StudentDetailHeaderProps) {
   const {
     id,
+    schoolId,
     fullName,
     classGroup,
     grade,
     admissionNo,
     status,
     photoUrl,
+    sex,
     ageYears,
     academicSummary,
     feesSummary,
@@ -182,6 +176,8 @@ export function StudentDetailHeader({
     gesIndexNumber,
     gesSchoolCode,
   } = student;
+
+  const sexLabel = formatStudentSexLabel(sex);
 
   const performanceTier = academicSummary?.performanceTier ?? null;
   const feesStatus = feesSummary?.status ?? null;
@@ -292,19 +288,13 @@ export function StudentDetailHeader({
       <CardContent className="relative z-10 flex flex-col gap-6 p-6 lg:flex-row lg:items-start lg:justify-between">
         {/* Left: Avatar + basic info */}
         <div className="flex flex-1 flex-col items-center gap-5 min-w-0 sm:flex-row sm:items-start">
-          <div className="relative shrink-0">
-            <Avatar className="size-24 rounded-full border-2 border-white/20 shadow-xl shadow-black/50 ring-2 ring-teal-500/20">
-              {photoUrl ? <AvatarImage src={photoUrl} alt={fullName} /> : null}
-              <AvatarFallback className="bg-linear-to-br from-teal-600/40 to-cyan-600/40 text-2xl font-bold text-white">
-                {initialsFromName(fullName)}
-              </AvatarFallback>
-            </Avatar>
-            {status === "active" && (
-              <div className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-900 bg-emerald-500 shadow-lg shadow-emerald-500/30">
-                <Sparkles className="h-3 w-3 text-white" />
-              </div>
-            )}
-          </div>
+          <StudentDetailAvatar
+            studentId={id}
+            schoolId={schoolId}
+            fullName={fullName}
+            photoUrl={photoUrl}
+            status={status}
+          />
 
           <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left">
             {/* Name and badges */}
@@ -358,6 +348,23 @@ export function StudentDetailHeader({
                   <span className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/60">
                     <Calendar className="h-3 w-3" />
                     {ageYears} years old
+                  </span>
+                )}
+                {sexLabel && (
+                  <span
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold",
+                      sex === "female"
+                        ? "border-rose-400/35 bg-rose-500/15 text-rose-100"
+                        : "border-sky-400/35 bg-sky-500/15 text-sky-100"
+                    )}
+                  >
+                    {sex === "female" ? (
+                      <Venus className="h-3 w-3" aria-hidden />
+                    ) : (
+                      <Mars className="h-3 w-3" aria-hidden />
+                    )}
+                    {sexLabel}
                   </span>
                 )}
                 <span

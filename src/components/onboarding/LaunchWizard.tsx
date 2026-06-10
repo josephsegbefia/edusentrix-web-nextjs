@@ -20,8 +20,10 @@ import {
   CheckCircle2,
   GraduationCap,
   MapPin,
+  Plus,
   School,
   Sparkles,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,13 +49,14 @@ import {
 } from "@/constants/curriculum-profiles";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import {
-  mergeLaunchPeriodsForTerms,
+  createManualLaunchPeriod,
   normalizeAcademicPeriodsInOrder,
   reconcileLaunchPeriodYearLabels,
   type LaunchPeriodDraft,
 } from "@/lib/academic-periods/launch-period-defaults";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Bootstrap = {
   user: {
@@ -98,7 +101,7 @@ const STEPS = [
   {
     id: 3,
     title: "Academic periods",
-    description: "Review the academic periods for the school year.",
+    description: "Add the academic periods you want to start with.",
     icon: GraduationCap,
   },
 ] as const;
@@ -118,13 +121,6 @@ export type LaunchWizardProps = {
   variant: "school" | "platform";
   platformSchoolId?: string;
 };
-
-function createPeriodsForTerms(
-  termLabels: string[],
-  existingPeriods: Period[] = []
-): Period[] {
-  return mergeLaunchPeriodsForTerms(termLabels, existingPeriods);
-}
 
 function parseDateValue(value: string): Date | null {
   const trimmed = value?.trim();
@@ -208,7 +204,9 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
 
-  const [periods, setPeriods] = useState<Period[]>(createPeriodsForTerms(["Term 1"]));
+  const [periods, setPeriods] = useState<Period[]>(() => [
+    createManualLaunchPeriod(true),
+  ]);
   const [activePeriodIndex, setActivePeriodIndex] = useState(0);
 
   const curriculumProfile = useMemo(
@@ -253,13 +251,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
           setRegion(payload.school.region || "");
         }
 
-        const bootstrapCurriculum = payload.school?.curriculumCode || "ghana_nacca";
-
-        setPeriods(
-          createPeriodsForTerms(
-            getCurriculumProfile(bootstrapCurriculum).termLabels || ["Term 1"]
-          )
-        );
         setActivePeriodIndex(0);
       } catch (error) {
         setBootstrapError(
@@ -310,6 +301,34 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     });
   }
 
+  function addPeriod() {
+    setPeriods((current) => {
+      const next = [...current, createManualLaunchPeriod(false)];
+      setActivePeriodIndex(next.length - 1);
+      return next;
+    });
+  }
+
+  function removePeriod(index: number) {
+    if (periods.length <= 1) {
+      toast.error("Keep at least one academic period.");
+      return;
+    }
+
+    setPeriods((current) => {
+      const next = current.filter((_, periodIndex) => periodIndex !== index);
+      if (!next.some((period) => period.isCurrent)) {
+        const fallbackIndex = Math.min(index, next.length - 1);
+        next[fallbackIndex] = { ...next[fallbackIndex], isCurrent: true };
+      }
+      return next;
+    });
+
+    setActivePeriodIndex((current) =>
+      Math.min(current, Math.max(periods.length - 2, 0))
+    );
+  }
+
   async function persistSchoolProfile() {
     if (!data?.school) {
       throw new Error("No school bound to your account");
@@ -353,31 +372,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   async function saveStep1() {
     setSaving(true);
     try {
-      const res = await fetch(
-        variant === "platform" ? `${apiBase}/profile` : "/api/onboarding/profile",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            phone: phone.trim() || undefined,
-            dateOfBirth: dob ? new Date(dob).toISOString() : undefined,
-            address: address.trim() || undefined,
-            avatarUrl: avatarUrl.trim() || undefined,
-            avatarPublicId: avatarPublicId || undefined,
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        const error = await res.json().catch(() => null);
-        toast.error(error?.error || "Failed to save profile");
-        return;
+      const saved = await persistProfileStep();
+      if (saved) {
+        toast.success("Profile saved");
+        setCurrentStep(2);
       }
-
-      toast.success("Profile saved");
-      setCurrentStep(2);
     } catch {
       toast.error("Failed to save profile");
     } finally {
@@ -385,17 +384,92 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     }
   }
 
+  async function persistProfileStep(overrides?: {
+    avatarUrl?: string;
+    avatarPublicId?: string | null;
+  }) {
+    const profileFirstName = firstName.trim() || data?.user.firstName?.trim() || "";
+    const profileLastName = lastName.trim() || data?.user.lastName?.trim() || "";
+
+    if (!profileFirstName || !profileLastName) {
+      toast.error("Enter your first and last name before saving your profile photo.");
+      return false;
+    }
+
+    const nextAvatarUrl = (overrides?.avatarUrl ?? avatarUrl).trim();
+    const nextAvatarPublicId = overrides?.avatarPublicId ?? avatarPublicId;
+
+    const res = await fetch(
+      variant === "platform" ? `${apiBase}/profile` : "/api/onboarding/profile",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: profileFirstName,
+          lastName: profileLastName,
+          phone: phone.trim() || undefined,
+          dateOfBirth: dob ? new Date(dob).toISOString() : undefined,
+          address: address.trim() || undefined,
+          avatarUrl: nextAvatarUrl || undefined,
+          avatarPublicId: nextAvatarPublicId || undefined,
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      toast.error(error?.error || "Failed to save profile");
+      return false;
+    }
+
+    setData((current) =>
+      current
+        ? {
+            ...current,
+            user: {
+              ...current.user,
+              firstName: profileFirstName,
+              lastName: profileLastName,
+              avatarUrl: nextAvatarUrl,
+            },
+          }
+        : current
+    );
+
+    return true;
+  }
+
+  async function handleAvatarUploaded(url: string, publicId: string) {
+    setAvatarUrl(url);
+    setAvatarPublicId(publicId || null);
+    setData((current) =>
+      current
+        ? {
+            ...current,
+            user: {
+              ...current.user,
+              avatarUrl: url,
+            },
+          }
+        : current
+    );
+
+    const saved = await persistProfileStep({
+      avatarUrl: url,
+      avatarPublicId: publicId || null,
+    });
+
+    if (!saved) {
+      toast.message("Photo uploaded", {
+        description: "Continue to save your profile when your name fields are ready.",
+      });
+    }
+  }
+
   async function saveStep2() {
     setSaving(true);
     try {
       await persistSchoolProfile();
-
-      const refreshedTerms = getCurriculumProfile(curriculumCode).termLabels || [
-        "Term 1",
-      ];
-
-      setPeriods((prev) => createPeriodsForTerms(refreshedTerms, prev));
-      setActivePeriodIndex(0);
 
       toast.success("School profile saved");
       setCurrentStep(3);
@@ -536,8 +610,13 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
             <p className="mt-3 text-sm leading-6 text-white/55">
               {variant === "platform"
                 ? "This school could not be loaded for assisted onboarding."
-                : "Please ensure you have a valid school invitation linked to your account."}
+                : "We could not find a school workspace linked to your account. Sign in with the email address used on your enrolment application, or contact support if you already received an invite."}
             </p>
+            {data?.user?.email ? (
+              <p className="mt-4 text-xs uppercase tracking-[0.18em] text-white/35">
+                Signed in as {data.user.email}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -547,6 +626,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   const stepMeta = STEPS.find((step) => step.id === currentStep);
   const progressPercent = Math.round((currentStep / STEPS.length) * 100);
   const StepIcon = stepMeta?.icon ?? Sparkles;
+  const profileDisplayName =
+    [firstName, lastName].filter(Boolean).join(" ") ||
+    [data.user.firstName, data.user.lastName].filter(Boolean).join(" ") ||
+    data.user.email;
+  const profileInitial = profileDisplayName.charAt(0).toUpperCase();
   const activePeriod = periods[activePeriodIndex] ?? periods[0];
 
   return (
@@ -636,18 +720,29 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                 </div>
 
                 <div className="rounded-[1.6rem] border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/58">
-                  <p>
-                    Signed in as{" "}
-                    <span className="font-medium text-white/82">
-                      {data.user.email}
-                    </span>
-                  </p>
-                  <p className="mt-1">
-                    School status{" "}
-                    <span className="font-medium text-white/82">
-                      {data.school.status}
-                    </span>
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-11 w-11 border border-white/10">
+                      {avatarUrl ? (
+                        <AvatarImage
+                          src={avatarUrl}
+                          alt={profileDisplayName}
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-white/10 text-sm font-semibold text-white/80">
+                        {profileInitial}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-medium text-white/82">{profileDisplayName}</p>
+                      <p className="mt-1 text-white/55">{data.user.email}</p>
+                      <p className="mt-2">
+                        School status{" "}
+                        <span className="font-medium text-white/82">
+                          {data.school.status}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -671,9 +766,9 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               schoolId={data.school.id}
                               subjectRole="school_admins"
                               maxSizeMB={5}
+                              initialPreviewUrl={avatarUrl}
                               onUploaded={({ url, publicId }) => {
-                                setAvatarUrl(url);
-                                setAvatarPublicId(publicId);
+                                void handleAvatarUploaded(url, publicId);
                               }}
                             />
                           ) : (
@@ -955,14 +1050,24 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           icon={CalendarDays}
                           eyebrow="Academic periods"
                           title="Academic periods"
-                          description="Review each period one at a time, adjust the dates, and choose which period should be current. Terms cannot overlap on the same day when you finish—if needed, we will move later terms to start the day after the previous term ends when you complete this step."
+                          description="Add each period you want to start with, set its dates, and choose which one is current. Only the periods you define here are saved when you finish."
                         >
                           <div className="space-y-4">
-                            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white/58">
-                              We created {periods.length} period
-                              {periods.length === 1 ? "" : "s"} from the selected
-                              curriculum. Move across the steps below and update
-                              the timeline for each one.
+                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white/58">
+                              <p>
+                                Define each period yourself. Nothing is pre-filled from
+                                the curriculum — only what you add here is saved.
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={addPeriod}
+                                className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add period
+                              </Button>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {periods.map((period, index) => {
@@ -983,7 +1088,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       Period {index + 1}
                                     </p>
                                     <p className="mt-1 text-sm font-semibold text-white">
-                                      {period.term}
+                                      {period.term.trim() || "Untitled period"}
                                     </p>
                                     <p className="mt-1 text-xs text-white/48">
                                       {period.isCurrent
@@ -1004,7 +1109,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                     Period {activePeriodIndex + 1} of {periods.length}
                                   </span>
                                   <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/78">
-                                    {activePeriod.term}
+                                    {activePeriod.term.trim() || "Untitled period"}
                                   </span>
                                   {activePeriod.isCurrent ? (
                                     <span className="rounded-full border border-brand/20 bg-brand/12 px-3 py-1 text-sm font-medium text-white">
@@ -1034,10 +1139,17 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                   </div>
 
                                   <div className="space-y-2">
-                                    <Label className={launchLabelClass}>Term</Label>
-                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/75">
-                                      {activePeriod.term}
-                                    </div>
+                                    <Label className={launchLabelClass}>Term name</Label>
+                                    <Input
+                                      value={activePeriod.term}
+                                      onChange={(event) =>
+                                        updatePeriod(activePeriodIndex, {
+                                          term: event.target.value,
+                                        })
+                                      }
+                                      placeholder="e.g. Term 3"
+                                      className={launchInputClass}
+                                    />
                                   </div>
 
                                   <div className="space-y-2">
@@ -1080,8 +1192,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                         </Label>
                                         <p className="text-sm leading-6 text-white/55">
                                           Mark this when the period closes the academic year.
-                                          Term 3 is selected automatically. Promotions and
-                                          billing use this flag.
+                                          Promotions and billing use this flag.
                                         </p>
                                       </div>
                                       <Switch
@@ -1095,20 +1206,33 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                     </div>
                                   </div>
 
-                                  <Button
-                                    type="button"
-                                    variant={activePeriod.isCurrent ? "default" : "outline"}
-                                    onClick={() => setCurrentPeriod(activePeriodIndex)}
-                                    className={
-                                      activePeriod.isCurrent
-                                        ? "w-full rounded-2xl bg-brand text-black hover:bg-sky-300"
-                                        : "w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                                    }
-                                  >
-                                    {activePeriod.isCurrent
-                                      ? "Current period"
-                                      : "Set as current period"}
-                                  </Button>
+                                  <div className="flex flex-col gap-3 sm:flex-row">
+                                    <Button
+                                      type="button"
+                                      variant={activePeriod.isCurrent ? "default" : "outline"}
+                                      onClick={() => setCurrentPeriod(activePeriodIndex)}
+                                      className={
+                                        activePeriod.isCurrent
+                                          ? "flex-1 rounded-2xl bg-brand text-black hover:bg-sky-300"
+                                          : "flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                                      }
+                                    >
+                                      {activePeriod.isCurrent
+                                        ? "Current period"
+                                        : "Set as current period"}
+                                    </Button>
+                                    {periods.length > 1 ? (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => removePeriod(activePeriodIndex)}
+                                        className="rounded-2xl border-rose-500/20 bg-rose-500/5 text-rose-200 hover:bg-rose-500/10 hover:text-rose-100"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Remove
+                                      </Button>
+                                    ) : null}
+                                  </div>
                                 </div>
                               </div>
                             ) : null}

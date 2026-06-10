@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Link2, Plus } from "lucide-react";
 import { GuardianForm } from "./GuardianForm";
 import { GuardianList } from "./GuardianList";
+import { ExistingGuardianLinker } from "./ExistingGuardianLinker";
 import {
   useGuardians,
   useCreateGuardian,
@@ -23,7 +24,7 @@ type Props = {
   studentId: string;
 };
 
-type ViewMode = "list" | "create" | "edit";
+type ViewMode = "list" | "create" | "edit" | "link-existing";
 
 export function ManageGuardiansContent({
   studentId,
@@ -117,6 +118,19 @@ export function ManageGuardiansContent({
     );
   };
 
+  const handleExistingLinked = (result: {
+    guardian: GuardianData;
+    siblingCandidates: Array<{ studentName: string; classGroupName: string | null }>;
+  }) => {
+    const siblingCount = result.siblingCandidates.length;
+    busy.success(
+      siblingCount > 0
+        ? `Linked ${result.guardian.fullName}. Found ${siblingCount} possible sibling${siblingCount === 1 ? "" : "s"} already connected to this parent.`
+        : `Linked ${result.guardian.fullName}.`
+    );
+    setViewMode("list");
+  };
+
   const handleEdit = (guardian: GuardianData) => {
     setEditingGuardian(guardian);
     setViewMode("edit");
@@ -151,15 +165,27 @@ export function ManageGuardiansContent({
                   ? "No guardians added yet"
                   : `${guardians.length} guardian${guardians.length === 1 ? "" : "s"} linked`}
               </p>
-              <Button
-                type="button"
-                onClick={() => setViewMode("create")}
-                disabled={isLoading}
-                className="gap-2 bg-primary text-black hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-4 w-4" />
-                Add Guardian
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setViewMode("link-existing")}
+                  disabled={isLoading}
+                  className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Link Existing Parent
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setViewMode("create")}
+                  disabled={isLoading}
+                  className="gap-2 bg-primary text-black hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New Parent
+                </Button>
+              </div>
             </div>
 
             {loadingGuardians ? (
@@ -175,6 +201,22 @@ export function ManageGuardiansContent({
                 isLoading={isLoading}
               />
             )}
+          </motion.div>
+        )}
+
+        {viewMode === "link-existing" && (
+          <motion.div
+            key="link-existing"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ExistingGuardianLinker
+              studentId={studentId}
+              onLinked={handleExistingLinked}
+              onCancel={handleCancel}
+            />
           </motion.div>
         )}
 

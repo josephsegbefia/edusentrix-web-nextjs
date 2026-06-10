@@ -140,6 +140,105 @@ function ErrorBlock() {
   );
 }
 
+function DevTeacherLoginPanel() {
+  const [enabled, setEnabled] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/auth/dev-teacher-login", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (!cancelled) {
+          setEnabled(Boolean(payload?.data?.enabled));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!enabled) return null;
+
+  const startDevTeacherLogin = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/dev-teacher-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.data?.url) {
+        throw new Error(payload?.error || "Could not start test teacher login.");
+      }
+      window.location.href = payload.data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start test teacher login.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4"
+    >
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-amber-100">Test teacher login</p>
+        <p className="text-xs leading-5 text-amber-100/70">
+          Use this for E2E teacher accounts. It signs in through a dev-only Clerk token and skips
+          invitation acceptance and verification codes.
+        </p>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_auto]">
+        <input
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void startDevTeacherLogin();
+            }
+          }}
+          placeholder="teacher@example.com"
+          className="h-10 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-amber-300/60"
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void startDevTeacherLogin();
+            }
+          }}
+          placeholder="Test password"
+          className="h-10 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-amber-300/60"
+        />
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => void startDevTeacherLogin()}
+          className="inline-flex h-10 items-center justify-center rounded-xl bg-amber-300 px-4 text-sm font-semibold text-black transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
+        </button>
+      </div>
+      {error ? <p className="mt-2 text-xs text-rose-200">{error}</p> : null}
+    </div>
+  );
+}
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <Clerk.Label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
@@ -683,6 +782,8 @@ export default function SignInPage() {
                             title="Welcome back"
                             description="Enter your work email and continue with your preferred sign-in method."
                           />
+
+                          <DevTeacherLoginPanel />
 
                           {GOOGLE_ENABLED ? (
                             <>

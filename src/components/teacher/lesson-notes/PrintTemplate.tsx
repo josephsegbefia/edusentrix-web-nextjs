@@ -133,7 +133,10 @@ function PrintHeader({
         <InfoRow label="Subject" value={subjectName} />
         <InfoRow label="Class" value={className} />
         <InfoRow label="Week Of" value={formatDate(formData.weekOf)} />
-        <InfoRow label="Duration" value={`${formData.durationMinutes || totalTime || "—"} minutes`} />
+        <InfoRow
+          label="Period length"
+          value={`${formData.durationMinutes || totalTime || "—"} minutes`}
+        />
         <InfoRow label="Teacher" value={teacherName} />
         <InfoRow
           label="Date"

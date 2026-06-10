@@ -42,6 +42,7 @@ export type SessionTeachContextResponse = {
       endTime: string;
       durationMinutes: number;
       planNotes: string | null;
+      classGroupId?: string;
     };
     deck: TeachingDeck;
     delivery: {

@@ -6,10 +6,12 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { LessonSession } from "@/models/LessonSession";
 import { LessonDelivery } from "@/models/LessonDelivery";
+import { LessonWeekPlan } from "@/models/LessonWeekPlan";
 import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
 import { linkedAssignmentsSummaryForSession } from "@/lib/lessons/linked-session-assignments";
 import { gateLessonsModule } from "@/lib/lessons/lesson-gates";
 import { formatLessonSessionDetail } from "@/lib/lessons/format-lesson-session";
+import { pickLessonDeliveryForClass } from "@/lib/lessons/delivery-schedule";
 import { getLessonsModuleSettings } from "@/lib/lessons/settings";
 import { loadLessonSessionForTeacher } from "@/lib/lessons/load-lesson-session";
 import { canManageLessonSessionContent } from "@/lib/lessons/session-access";
@@ -57,7 +59,7 @@ const PatchSchema = z.object({
 });
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -77,11 +79,15 @@ export async function GET(
       return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
     }
 
+    const classGroupParam = new URL(req.url).searchParams.get("classGroupId");
+    const classGroupOid = classGroupParam ? toObjectId(classGroupParam) : null;
+
     const loaded = await loadLessonSessionForTeacher({
       sessionId: sessionOid,
       schoolId: context.schoolId,
       teacherId: context.teacherId,
       isAdmin: context.isAdmin,
+      classGroupId: classGroupOid,
     });
 
     if (loaded.kind === "not_found") {
@@ -91,9 +97,15 @@ export async function GET(
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const [settings, linkedAssignmentsSummary] = await Promise.all([
+    const [settings, linkedAssignmentsSummary, weekPlan] = await Promise.all([
       getLessonsModuleSettings(context.schoolId),
       linkedAssignmentsSummaryForSession(context.schoolId, sessionOid),
+      LessonWeekPlan.findOne({
+        _id: loaded.session.weekPlanId,
+        schoolId: context.schoolId,
+      })
+        .select("classGroupIds classGroupId")
+        .lean(),
     ]);
     const canManage = canManageLessonSessionContent({
       session: loaded.session,
@@ -107,6 +119,14 @@ export async function GET(
         session: formatLessonSessionDetail({
           session: loaded.session,
           delivery: loaded.delivery,
+          deliveries: loaded.deliveries,
+          activeClassGroupId: loaded.activeClassGroupId,
+          sharedClassGroupIds: (weekPlan?.classGroupIds?.length
+            ? weekPlan.classGroupIds
+            : weekPlan?.classGroupId
+              ? [weekPlan.classGroupId]
+              : [loaded.session.classGroupId]
+          ).map((id) => String(id)),
         }),
         lessonsSettings: {
           enableLeoLessonTools: settings.enableLeoLessonTools,
@@ -258,15 +278,26 @@ export async function PATCH(
       );
     }
 
-    const delivery = await LessonDelivery.findOne({
+    const classGroupParam = new URL(req.url).searchParams.get("classGroupId");
+    const deliveries = await LessonDelivery.find({
       sessionId: session._id,
       schoolId: context.schoolId,
     }).lean();
+    const delivery = pickLessonDeliveryForClass(
+      deliveries,
+      session.classGroupId,
+      classGroupParam,
+    );
 
     return Response.json({
       success: true,
       data: {
-        session: formatLessonSessionDetail({ session: session.toObject(), delivery }),
+        session: formatLessonSessionDetail({
+          session: session.toObject(),
+          delivery,
+          deliveries,
+          activeClassGroupId: delivery ? String(delivery.classGroupId) : undefined,
+        }),
         lessonsSettings: {
           enableLeoLessonTools: settings.enableLeoLessonTools,
           requireTeacherReviewForAiContent: settings.requireTeacherReviewForAiContent,

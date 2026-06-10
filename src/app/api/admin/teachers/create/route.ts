@@ -3,10 +3,8 @@
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User } from "@/models/User";
 import { Subject, type ISubject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
-import { UserMembership } from "@/models/UserMembership";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
@@ -31,6 +29,8 @@ import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
+import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
+import { attachClerkUserIdToUser } from "@/lib/auth/resolveTenantUserForClerkSession";
 type Body = {
   firstName: string;
   lastName: string;
@@ -65,6 +65,28 @@ function getDevTeacherPassword() {
   return (
     process.env.E2E_TEACHER_DEFAULT_PASSWORD?.trim() || "TeacherTest123!"
   );
+}
+
+async function markDevTeacherEmailVerified({
+  clerk,
+  clerkUser,
+  email,
+}: {
+  clerk: Awaited<ReturnType<typeof clerkClient>>;
+  clerkUser: any;
+  email: string;
+}) {
+  const matchingEmail = clerkUser.emailAddresses.find(
+    (address: { id: string; emailAddress: string }) =>
+      address.emailAddress.toLowerCase() === email.toLowerCase()
+  );
+  if (!matchingEmail?.id) {
+    return;
+  }
+  await clerk.emailAddresses.updateEmailAddress(matchingEmail.id, {
+    verified: true,
+    primary: true,
+  });
 }
 
 async function createOrUpdateDevTeacherClerkLogin({
@@ -120,6 +142,8 @@ async function createOrUpdateDevTeacherClerkLogin({
           e2eTeacherLoginBypass: true,
         },
       });
+
+  await markDevTeacherEmailVerified({ clerk, clerkUser, email });
 
   return {
     clerkUserId: clerkUser.id,
@@ -200,16 +224,6 @@ export async function POST(req: NextRequest) {
       status: body.status || "active",
     };
 
-    if (teachingAssignmentsDeduped.length < 1) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Add at least one teaching assignment (subject and class group) before creating the teacher.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
     // Validate required fields
     if (!normalizedBody.firstName?.trim() || !normalizedBody.lastName?.trim()) {
       return new Response(
@@ -251,22 +265,6 @@ export async function POST(req: NextRequest) {
     }
 
     const effectiveEmail = normalizedBody.email.toLowerCase().trim();
-
-    // Same email allowed in different schools; block duplicates within this school
-    const existingUser = await User.findOne({
-      email: effectiveEmail,
-      schoolId: schoolIdObj,
-    }).lean();
-
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "A user with this email already exists in your school. Use a different email or update the existing staff record.",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
 
     const subjectIdStringsFromAssignments = (
       normalizedBody.teachingAssignments || []
@@ -447,8 +445,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create teacher user
-    const teacherUser = new User({
+    const teacherUser = await ensureCanonicalUserForEmail({
       email: effectiveEmail,
       firstName: normalizedBody.firstName.trim(),
       lastName: normalizedBody.lastName.trim(),
@@ -456,21 +453,36 @@ export async function POST(req: NextRequest) {
       avatarUrl: normalizedBody.photoUrl,
       role: "teacher",
       schoolId: schoolIdObj,
+      pendingOnboarding: false,
     });
-
-    await teacherUser.save();
 
     const teacherIdObj =
       teacherUser._id instanceof mongoose.Types.ObjectId
         ? teacherUser._id
         : new mongoose.Types.ObjectId(String(teacherUser._id));
 
-    // Ensure membership entry for metrics/onboarding
-    await UserMembership.findOneAndUpdate(
-      { userId: teacherIdObj, schoolId: schoolIdObj },
-      { $addToSet: { roles: "teacher" }, $set: { status: "active" } },
-      { upsert: true }
-    );
+    const existingTeacher = await Teacher.findOne({
+      schoolId: schoolIdObj,
+      userId: teacherIdObj,
+    })
+      .select("_id")
+      .lean();
+    if (existingTeacher) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "A teacher record already exists for this email in your school.",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    await ensureMembershipForUser({
+      userId: teacherIdObj,
+      schoolId: schoolIdObj,
+      role: "teacher",
+      status: "active",
+    });
 
     // Persist teacher metadata (subjects + homeroom)
     const teacherRecord = new Teacher({
@@ -599,8 +611,7 @@ export async function POST(req: NextRequest) {
           schoolId: schoolIdObj,
           teacherUserId: teacherIdObj,
         });
-        teacherUser.clerkUserId = devLogin.clerkUserId;
-        await teacherUser.save();
+        await attachClerkUserIdToUser(devLogin.clerkUserId, teacherIdObj);
         invitationStatus = "accepted";
         devLoginCredentials = devLogin.credentials;
       } catch (devLoginError) {
@@ -766,6 +777,14 @@ export async function POST(req: NextRequest) {
     // Handle MongoDB duplicate key errors (code 11000)
     if (e?.code === 11000) {
       const errorMsg = e?.message || "";
+      if (errorMsg.includes("schoolId_1_employeeId_1")) {
+        return new Response(
+          JSON.stringify({
+            error: "Another teacher already has this employee ID.",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
       if (
         errorMsg.includes("schoolId_1_email_1") ||
         errorMsg.includes("dup key") ||

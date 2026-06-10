@@ -24,6 +24,7 @@ import { TermResult } from "@/models/TermResult";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { StudentAttendance } from "@/models/StudentAttendance";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 function derivePerformanceTier(
   averageScore: number | null | undefined
@@ -548,12 +549,12 @@ export async function GET(
       };
     }
 
-    // ── Populate feesSummary from Invoice + Payment ──
-    // Use active (issued/paid/overdue) invoices only; exclude draft/cancelled.
+    // ── Populate feesSummary from bills + payments ──
+    // Admin summaries should show assigned fee data even before a bill is issued.
     const activeInvoices = (await Invoice.find({
       schoolId,
       studentId: studentOid,
-      status: { $in: ["issued", "partially_paid", "paid", "overdue"] },
+      status: { $in: ["draft", "issued", "partially_paid", "paid", "overdue"] },
     })
       .sort({ createdAt: -1 })
       .lean()) as any[];
@@ -756,6 +757,17 @@ export async function PATCH(
       idempotencyKey: resolveAuditIdempotencyKey(req, `student.record.updated:${id}`),
     });
 
+    let previousPhotoUrl: string | null = null;
+    if (data.photoUrl !== undefined) {
+      const existingPhoto = await Student.findOne({
+        _id: studentObjId,
+        schoolId: schoolIdObj,
+      })
+        .select("photoUrl")
+        .lean<{ photoUrl?: string | null }>();
+      previousPhotoUrl = existingPhoto?.photoUrl ?? null;
+    }
+
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
@@ -860,6 +872,14 @@ export async function PATCH(
       throw err;
     } finally {
       await session.endSession();
+    }
+
+    if (data.photoUrl !== undefined && previousPhotoUrl) {
+      const nextPhotoUrl =
+        !data.photoUrl || data.photoUrl === "" ? null : data.photoUrl;
+      if (previousPhotoUrl !== nextPhotoUrl) {
+        await deleteUploadedFile(previousPhotoUrl);
+      }
     }
 
     return Response.json({ success: true });

@@ -1,11 +1,16 @@
 "use client";
 
 import { Info } from "lucide-react";
+import { resolveAcademicsDataSourceNotice } from "@/lib/academics/compatibility/academic-profile-to-legacy-dto";
 import { cn } from "@/lib/utils";
+import type { StudentAcademicProfileDTO } from "@/types/academics/student-academic-profile";
 import type { StudentAcademicsDataSource } from "@/types/admin/student-academics";
 
 type Props = {
-  dataSource?: StudentAcademicsDataSource;
+  dataSource?:
+    | StudentAcademicProfileDTO["dataSource"]
+    | StudentAcademicsDataSource
+    | null;
   dataSourceNotes?: string[];
   className?: string;
 };
@@ -15,19 +20,20 @@ export function AcademicsDataSourceNotice({
   dataSourceNotes,
   className,
 }: Props) {
-  if (!dataSource || dataSource === "assessment_engine") {
+  const noticeSource = resolveAcademicsDataSourceNotice(dataSource);
+  if (!noticeSource) {
     return null;
   }
 
   const title =
-    dataSource === "mixed"
+    noticeSource === "mixed"
       ? "Mixed academic data sources"
-      : "Legacy gradebook data";
+      : "Previous gradebook results";
 
   const fallbackMessage =
-    dataSource === "mixed"
-      ? "Some subjects or term summaries still use the older gradebook until all results are migrated to the assessment engine."
-      : "This view is showing older SubjectGrade and TermResult records. New assessment engine results will replace them when available.";
+    noticeSource === "mixed"
+      ? "Some subjects or term summaries still use the previous gradebook until all results are available in the current assessment system."
+      : "These results come from the previous gradebook for this period. They will update when scores are entered and released in the current assessment system.";
 
   const notes = dataSourceNotes?.length ? dataSourceNotes : [fallbackMessage];
 

@@ -112,14 +112,26 @@ export function ClassFeesTab({ classId, className }: Props) {
           title="Unable to load fee analytics"
           description="The class fee overview could not be loaded right now. Try again shortly."
         />
-      ) : analytics && analytics.summary.invoiceCount === 0 ? (
+      ) : analytics && analytics.summary.studentCount === 0 ? (
         <EmptyAnalyticsState
           icon={Receipt}
-          title="No invoices in this scope"
-          description="No issued, partially paid, overdue, or paid invoices were found for the selected class scope."
+          title="No students in this class"
+          description="Fee analytics appear once active students are enrolled in this class."
         />
       ) : analytics ? (
         <>
+          {analytics.summary.invoiceCount === 0 ? (
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              <p className="font-medium text-amber-50">No issued invoices in this scope</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
+                This view tracks issued, partially paid, overdue, and paid invoices only.
+                {(analytics.summary.draftInvoiceCount ?? 0) > 0
+                  ? ` ${analytics.summary.draftInvoiceCount} draft invoice${analytics.summary.draftInvoiceCount === 1 ? "" : "s"} exist for students in this class — issue them from Finance or the student fees tab to include them here.`
+                  : " Draft invoices are not counted until they are issued."}
+              </p>
+            </div>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <AnalyticsStatCard
               label="Total Billed"

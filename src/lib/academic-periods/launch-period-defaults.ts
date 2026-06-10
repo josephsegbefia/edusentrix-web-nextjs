@@ -122,7 +122,18 @@ export function reconcileLaunchPeriodYearLabels(
   return out;
 }
 
-/** Default periods with academic year labels and ~3-month sequential dates. */
+/** Blank period row for manual launch wizard entry (no curriculum auto-fill). */
+export function createManualLaunchPeriod(isCurrent = false): LaunchPeriodDraft {
+  return {
+    yearLabel: defaultAcademicYear(),
+    term: "",
+    startDate: "",
+    endDate: "",
+    isCurrent,
+    isYearEndTerminal: false,
+  };
+}
+
 export function buildLaunchPeriodDefaults(termLabels: string[]): LaunchPeriodDraft[] {
   const labels = termLabels.length > 0 ? termLabels : ["Term 1"];
   const periods: LaunchPeriodDraft[] = [];

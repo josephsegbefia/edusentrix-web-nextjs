@@ -1,23 +1,22 @@
-import "server-only";
 import { NextRequest, NextResponse } from "next/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import crypto from "crypto";
-import { auth } from "@clerk/nextjs/server";
+import mongoose from "mongoose";
 import { initCloudinary } from "@/lib/cloudinary";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, IUser } from "@/models/User";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
+import { resolveSchoolUploadAccess } from "@/lib/uploads/resolve-school-upload-access";
+import { resolveUploaderSchoolAccess } from "@/lib/uploads/resolve-uploader-school-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Body validation: we accept the "target" role/category to place under the correct folder
 const Body = z.object({
   kind: z.enum(["avatar", "document", "image", "doc"]),
   schoolId: z.string().min(1),
-  // For avatars -> subject role (who the image is for): students | teachers | school_admins | parents | staff
-  subjectRole: z.string().min(1).optional(), // used when kind is avatar
-  // For douments ->  a loose category (e.g, "admissions", "finance", "exams", generic)
-  category: z.string().min(1).optional(), // used when kind === "document"
+  subjectRole: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
 });
 
 const ALLOWED_IMAGE_ROLES = new Set([
@@ -35,7 +34,6 @@ function cloudinarySign(params: Record<string, string>) {
   if (!apiSecret) {
     throw new Error("Missing Cloudinary credentials");
   }
-  // cloudinary signature: sort keys alphabetically, join as querystring without "file" and api_key, then sha1
   const toSign = Object.keys(params)
     .sort()
     .map((k) => `${k}=${params[k]}`)
@@ -58,34 +56,59 @@ export async function POST(req: NextRequest) {
   const kind =
     rawKind === "image" ? "avatar" : rawKind === "doc" ? "document" : rawKind;
 
-  // Auth via Clerk
-  const { userId } = await auth();
-  if (!userId)
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  // Connect DB and load app user
   await connectToDatabase();
-  const meRaw = await User.findOne({ clerkUserId: userId })
-    .select("_id role schoolId")
-    .lean();
-  const me = (Array.isArray(meRaw) ? meRaw[0] : meRaw) as Pick<
-    IUser,
-    "_id" | "role" | "schoolId"
-  > | null;
-  if (!me)
-    return NextResponse.json({ error: "User not found" }, { status: 403 });
 
-  // Authorization: platform_admin can sign for any school; others only for their own school
-  const isPlatformAdmin = me.role === "platform_admin";
-  const sameSchool = me.schoolId && String(me.schoolId) === schoolId;
+  const clerk = await clerkClient();
+  const cUser = await clerk.users.getUser(clerkUserId);
+  const email =
+    cUser.primaryEmailAddress?.emailAddress?.toLowerCase() ||
+    cUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() ||
+    "";
 
-  if (!isPlatformAdmin && !sameSchool) {
+  const user = await ensureCanonicalUserForClerkSession({
+    clerkUserId,
+    email,
+    firstName: cUser.firstName,
+    lastName: cUser.lastName,
+    avatarUrl: cUser.imageUrl,
+  });
+
+  const userId =
+    user._id instanceof mongoose.Types.ObjectId
+      ? user._id
+      : new mongoose.Types.ObjectId(String(user._id));
+
+  const { membershipSchoolIds, activeSchoolId } = await resolveUploaderSchoolAccess({
+    userId,
+    legacySchoolId: user.schoolId ?? null,
+    requestedSchoolId: schoolId,
+  });
+
+  const access = await resolveSchoolUploadAccess({
+    user: {
+      _id: userId,
+      role: user.role,
+    },
+    requestedSchoolId: schoolId,
+    activeSchoolId,
+    membershipSchoolIds,
+  });
+
+  if (!access.allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Check document storage feature entitlement before issuing upload signature (§13A.9).
-  // Platform admins bypass this check so they can upload to any school.
-  if (!isPlatformAdmin) {
+  const isPlatformOperator = access.isPlatformOperator;
+  const isProfileMedia =
+    kind === "avatar" ||
+    (category || "").toLowerCase().trim() === "branding";
+
+  if (!isPlatformOperator && !isProfileMedia && user.pendingOnboarding !== true) {
     const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
     const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
     const featureResult = await requireSchoolFeature(schoolId, FEATURE_KEYS.DOCUMENTS_STORAGE);
@@ -97,7 +120,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Initialize Cloudinary
   initCloudinary();
 
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME!;
@@ -118,13 +140,11 @@ export async function POST(req: NextRequest) {
     folder = `schools/${schoolId}/avatars/${roleFolder}`;
     resource_type = "image";
   } else {
-    // Document
     const cat = (category || "generic").toLowerCase().trim();
     folder = `schools/${schoolId}/documents/${cat}`;
     resource_type = "raw";
   }
 
-  // Base params we sign (do not include the file itself)
   const signedParams: Record<string, string> = {
     timestamp,
     folder,
@@ -132,7 +152,6 @@ export async function POST(req: NextRequest) {
     overwrite: "false",
   };
 
-  // Sign and return upload details
   const signature = cloudinarySign(signedParams);
   return NextResponse.json({
     uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resource_type}/upload`,

@@ -10,6 +10,7 @@ export async function loadLessonSessionForTeacher(input: {
   schoolId: Types.ObjectId;
   teacherId: Types.ObjectId;
   isAdmin?: boolean;
+  classGroupId?: Types.ObjectId | null;
 }) {
   const session = await LessonSession.findOne({
     _id: input.sessionId,
@@ -18,10 +19,20 @@ export async function loadLessonSessionForTeacher(input: {
 
   if (!session) return { kind: "not_found" as const };
 
-  const delivery = await LessonDelivery.findOne({
+  const deliveries = await LessonDelivery.find({
     sessionId: session._id,
     schoolId: input.schoolId,
   }).lean();
+
+  const targetClassGroupId = input.classGroupId
+    ? String(input.classGroupId)
+    : String(session.classGroupId);
+
+  const delivery =
+    deliveries.find((d) => String(d.classGroupId) === targetClassGroupId) ??
+    deliveries.find((d) => String(d.classGroupId) === String(session.classGroupId)) ??
+    deliveries[0] ??
+    null;
 
   if (
     !canReadLessonSession({
@@ -34,5 +45,11 @@ export async function loadLessonSessionForTeacher(input: {
     return { kind: "forbidden" as const };
   }
 
-  return { kind: "ok" as const, session, delivery };
+  return {
+    kind: "ok" as const,
+    session,
+    delivery,
+    deliveries,
+    activeClassGroupId: delivery ? String(delivery.classGroupId) : targetClassGroupId,
+  };
 }

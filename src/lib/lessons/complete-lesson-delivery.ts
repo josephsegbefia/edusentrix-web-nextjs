@@ -21,14 +21,14 @@ export async function writeCoverageForCompletedDelivery(input: {
       await LessonCoverageRecord.findOneAndUpdate(
         {
           schoolId: input.session.schoolId,
-          classGroupId: input.session.classGroupId,
+          classGroupId: input.delivery.classGroupId,
           schemeItemId,
           weekPlanId: input.session.weekPlanId,
         },
         {
           $setOnInsert: {
             schoolId: input.session.schoolId,
-            classGroupId: input.session.classGroupId,
+            classGroupId: input.delivery.classGroupId,
             subjectOfferingId: input.session.subjectOfferingId,
             weekPlanId: input.session.weekPlanId,
             lessonNoteId: input.session.lessonNoteId,

@@ -24,6 +24,21 @@ import {
 import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal/versions";
+import { LegalAcceptanceModal } from "@/components/legal/LegalAcceptanceModal";
+import {
+  TERMS_OF_USE_INTRO,
+  TERMS_OF_USE_LAST_UPDATED,
+  TERMS_OF_USE_SECTIONS,
+  TERMS_OF_USE_SUPPORT_EMAIL,
+  TERMS_OF_USE_SUPPORT_PHONE,
+} from "@/lib/legal/terms-of-use";
+import {
+  PRIVACY_POLICY_CONTACT_EMAIL,
+  PRIVACY_POLICY_CONTACT_PHONE,
+  PRIVACY_POLICY_INTRO,
+  PRIVACY_POLICY_LAST_UPDATED,
+  PRIVACY_POLICY_SECTIONS,
+} from "@/lib/legal/privacy-policy";
 import {
   ArrowRight,
   Award,
@@ -416,7 +431,12 @@ export default function EnrollPage() {
   const [status, setStatus] = useState<"idle" | "success">("idle");
   const [schoolType, setSchoolType] = useState<"Basic" | "Secondary" | "">("");
   const [region, setRegion] = useState<GhanaRegion | "">("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [legalModal, setLegalModal] = useState<"terms" | "privacy" | null>(null);
   const { promise, error } = useBusyToast();
+
+  const canSubmitApplication = termsAccepted && privacyAccepted;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -428,6 +448,8 @@ export default function EnrollPage() {
       ...raw,
       schoolType: schoolType || (raw.schoolType as string | undefined),
       region: region || (raw.region as string | undefined),
+      termsAccepted: termsAccepted ? "on" : undefined,
+      privacyAccepted: privacyAccepted ? "on" : undefined,
     });
 
     if (!result.success) {
@@ -478,10 +500,14 @@ export default function EnrollPage() {
       formEl.reset();
       setSchoolType("");
       setRegion("");
+      setTermsAccepted(false);
+      setPrivacyAccepted(false);
     } catch {
       formEl.reset();
       setSchoolType("");
       setRegion("");
+      setTermsAccepted(false);
+      setPrivacyAccepted(false);
       setStatus("idle");
     } finally {
       setLoading(false);
@@ -795,40 +821,57 @@ export default function EnrollPage() {
                   <label className="flex items-start gap-3 text-sm text-white/70">
                     <input
                       type="checkbox"
-                      name="termsAccepted"
-                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40"
-                      required
+                      checked={termsAccepted}
+                      readOnly
+                      tabIndex={-1}
+                      aria-checked={termsAccepted}
+                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40 pointer-events-none"
                     />
                     <span>
                       I have read and accept the{" "}
-                      <Link href="/terms" target="_blank" className="text-cyan-300 hover:text-cyan-200">
+                      <button
+                        type="button"
+                        onClick={() => setLegalModal("terms")}
+                        className="text-cyan-300 underline-offset-2 hover:text-cyan-200 hover:underline"
+                      >
                         Terms of Use
-                      </Link>
+                      </button>
                       .
                     </span>
                   </label>
                   <label className="flex items-start gap-3 text-sm text-white/70">
                     <input
                       type="checkbox"
-                      name="privacyAccepted"
-                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40"
-                      required
+                      checked={privacyAccepted}
+                      readOnly
+                      tabIndex={-1}
+                      aria-checked={privacyAccepted}
+                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40 pointer-events-none"
                     />
                     <span>
                       I have read and accept the{" "}
-                      <Link href="/privacy" target="_blank" className="text-cyan-300 hover:text-cyan-200">
+                      <button
+                        type="button"
+                        onClick={() => setLegalModal("privacy")}
+                        className="text-cyan-300 underline-offset-2 hover:text-cyan-200 hover:underline"
+                      >
                         Privacy Policy
-                      </Link>
+                      </button>
                       .
                     </span>
                   </label>
+                  {!canSubmitApplication ? (
+                    <p className="text-xs leading-5 text-white/40">
+                      Open and accept both documents above to enable submission.
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Submit */}
                 <div className="space-y-3 pt-1">
                   <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !canSubmitApplication}
                     aria-busy={loading}
                     className="group flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-6 text-sm font-semibold text-black shadow-lg shadow-brand/25 transition-all duration-200 hover:bg-sky-300 hover:shadow-brand/40 hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -864,6 +907,66 @@ export default function EnrollPage() {
           </div>
         </div>
       </div>
+
+      <LegalAcceptanceModal
+        open={legalModal === "terms"}
+        onClose={() => setLegalModal(null)}
+        title="Terms of Use"
+        intro={TERMS_OF_USE_INTRO}
+        lastUpdated={TERMS_OF_USE_LAST_UPDATED}
+        sections={TERMS_OF_USE_SECTIONS}
+        contactNote={
+          <>
+            Need clarification or legal contact? Email{" "}
+            <a
+              className="font-semibold underline decoration-cyan-300/50"
+              href={`mailto:${TERMS_OF_USE_SUPPORT_EMAIL}`}
+            >
+              {TERMS_OF_USE_SUPPORT_EMAIL}
+            </a>{" "}
+            or call{" "}
+            <a
+              className="font-semibold underline decoration-cyan-300/50"
+              href={`tel:${TERMS_OF_USE_SUPPORT_PHONE}`}
+            >
+              {TERMS_OF_USE_SUPPORT_PHONE}
+            </a>
+            .
+          </>
+        }
+        onAccept={() => setTermsAccepted(true)}
+        acceptLabel="Accept Terms of Use"
+      />
+
+      <LegalAcceptanceModal
+        open={legalModal === "privacy"}
+        onClose={() => setLegalModal(null)}
+        title="Privacy Policy"
+        intro={PRIVACY_POLICY_INTRO}
+        lastUpdated={PRIVACY_POLICY_LAST_UPDATED}
+        sections={PRIVACY_POLICY_SECTIONS}
+        contactNote={
+          <>
+            Need privacy support? Email{" "}
+            <a
+              className="font-semibold underline decoration-cyan-300/50"
+              href={`mailto:${PRIVACY_POLICY_CONTACT_EMAIL}`}
+            >
+              {PRIVACY_POLICY_CONTACT_EMAIL}
+            </a>{" "}
+            or call{" "}
+            <a
+              className="font-semibold underline decoration-cyan-300/50"
+              href={`tel:${PRIVACY_POLICY_CONTACT_PHONE}`}
+            >
+              {PRIVACY_POLICY_CONTACT_PHONE}
+            </a>
+            .
+          </>
+        }
+        onAccept={() => setPrivacyAccepted(true)}
+        acceptLabel="Accept Privacy Policy"
+      />
     </div>
   );
 }

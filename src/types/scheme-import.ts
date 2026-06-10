@@ -4,6 +4,7 @@ export type SchemeImportSourceKind =
   | "spreadsheet"
   | "pdf_parse_tables"
   | "pdf_excavator"
+  | "pdf_text_grid"
   | "pdf_ai"
   | "pdf_gemini"
   | "pdf_manual";

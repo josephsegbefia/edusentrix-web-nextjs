@@ -187,6 +187,161 @@ function SlotRow({
   );
 }
 
+function buildWeekGridRows(weekDays: WeeklyTimetableResponse["data"]["days"]) {
+  const rowMap = new Map<
+    string,
+    {
+      startTime: string;
+      endTime: string;
+      slotsByDay: Map<number, TimetableSlotView[]>;
+    }
+  >();
+
+  for (const day of weekDays) {
+    for (const slot of day.slots || []) {
+      const key = `${slot.startTime}|${slot.endTime}`;
+      const row =
+        rowMap.get(key) ||
+        {
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          slotsByDay: new Map<number, TimetableSlotView[]>(),
+        };
+      const daySlots = row.slotsByDay.get(day.dayOfWeek) || [];
+      daySlots.push(slot);
+      row.slotsByDay.set(day.dayOfWeek, sortSlots(daySlots));
+      rowMap.set(key, row);
+    }
+  }
+
+  return Array.from(rowMap.values()).sort((a, b) => {
+    if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
+    return a.endTime.localeCompare(b.endTime);
+  });
+}
+
+function WeekGridSlot({
+  slot,
+  hideClassName,
+  hideTeacherName,
+}: {
+  slot: TimetableSlotView;
+  hideClassName: boolean;
+  hideTeacherName: boolean;
+}) {
+  return (
+    <div className="min-h-20 rounded-lg border border-cyan-400/25 bg-cyan-500/10 p-2 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset]">
+      <p className="line-clamp-2 break-words text-xs font-semibold leading-snug text-white">
+        {slot.subjectName || "Subject"}
+      </p>
+      <div className="mt-1 space-y-0.5 text-[11px] leading-snug text-white/60">
+        {!hideTeacherName ? (
+          <p className="truncate">{slot.teacherName || "Teacher"}</p>
+        ) : null}
+        {!hideClassName ? (
+          <p className="truncate">{slot.classGroupName || slot.gradeName || "Class"}</p>
+        ) : null}
+        {slot.classroomLabel ? <p className="truncate">{slot.classroomLabel}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function WeekTimetableGrid({
+  weekDays,
+  workingDays,
+  emptyWeekMessage,
+  hideClassName,
+  hideTeacherName,
+}: {
+  weekDays: WeeklyTimetableResponse["data"]["days"];
+  workingDays: number[];
+  emptyWeekMessage: string;
+  hideClassName: boolean;
+  hideTeacherName: boolean;
+}) {
+  const rows = React.useMemo(() => buildWeekGridRows(weekDays), [weekDays]);
+  const dayMap = React.useMemo(() => {
+    const map = new Map<number, WeeklyTimetableResponse["data"]["days"][number]>();
+    for (const day of weekDays) map.set(day.dayOfWeek, day);
+    return map;
+  }, [weekDays]);
+
+  if (!rows.length) {
+    return (
+      <div className="rounded-lg border border-dashed border-white/15 bg-white/5 p-4 text-center text-sm text-white/60">
+        {emptyWeekMessage}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/15">
+      <div
+        className="grid min-w-[860px]"
+        style={{
+          gridTemplateColumns: `112px repeat(${workingDays.length}, minmax(140px, 1fr))`,
+        }}
+      >
+        <div className="sticky left-0 z-10 border-b border-r border-white/10 bg-slate-950/95 p-3 text-xs font-medium uppercase text-white/45">
+          Time
+        </div>
+        {workingDays.map((day) => {
+          const dayPayload = dayMap.get(day);
+          return (
+            <div
+              key={day}
+              className="border-b border-r border-white/10 bg-slate-950/80 p-3 last:border-r-0"
+            >
+              <p className="text-sm font-semibold text-white">{DAY_NAMES[day]}</p>
+              {dayPayload?.date ? (
+                <p className="mt-0.5 text-xs text-white/45">{formatDateShort(dayPayload.date)}</p>
+              ) : null}
+            </div>
+          );
+        })}
+
+        {rows.map((row) => (
+          <React.Fragment key={`${row.startTime}-${row.endTime}`}>
+            <div className="sticky left-0 z-10 border-r border-t border-white/10 bg-slate-950/95 p-3">
+              <p className="font-mono text-xs font-semibold text-white/80">
+                {formatTime(row.startTime)}
+              </p>
+              <p className="mt-0.5 font-mono text-[11px] text-white/40">
+                {formatTime(row.endTime)}
+              </p>
+            </div>
+            {workingDays.map((day) => {
+              const slots = row.slotsByDay.get(day) || [];
+              return (
+                <div
+                  key={`${row.startTime}-${row.endTime}-${day}`}
+                  className="min-h-24 border-r border-t border-white/10 bg-white/[0.025] p-2 last:border-r-0"
+                >
+                  {slots.length ? (
+                    <div className="space-y-2">
+                      {slots.map((slot) => (
+                        <WeekGridSlot
+                          key={slot.id}
+                          slot={slot}
+                          hideClassName={hideClassName}
+                          hideTeacherName={hideTeacherName}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-full min-h-16 rounded-lg border border-dashed border-white/10 bg-black/10" />
+                  )}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function RoleWeekDayTimetable({
   endpoint,
   title,
@@ -428,45 +583,13 @@ export function RoleWeekDayTimetable({
             </p>
           </div>
         ) : mode === "week" ? (
-          <div className="space-y-4">
-            {weekDays.map((day) => {
-              const daySlots = sortSlots(day.slots || []);
-              return (
-                <div key={`${day.dayOfWeek}-${day.date}`} className="rounded-xl border border-white/10 bg-black/15 p-3">
-                  <div className="mb-3 flex items-center gap-2">
-                    <p className="font-medium text-white">{DAY_NAMES[day.dayOfWeek]}</p>
-                    <span className="text-xs text-white/55">{formatDateShort(day.date)}</span>
-                    <Badge variant="outline" className="border-white/20 text-xs text-white/65">
-                      {daySlots.length} slot{daySlots.length === 1 ? "" : "s"}
-                    </Badge>
-                  </div>
-
-                  {daySlots.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-white/15 bg-white/5 p-3 text-xs text-white/50">
-                      No slots.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {daySlots.map((slot) => (
-                        <SlotRow
-                          key={slot.id}
-                          slot={slot}
-                          hideClassName={hideClassName}
-                          hideTeacherName={hideTeacherName}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {totalSlotsInWeek === 0 ? (
-              <div className="rounded-lg border border-dashed border-white/15 bg-white/5 p-4 text-center text-sm text-white/60">
-                {emptyWeekMessage}
-              </div>
-            ) : null}
-          </div>
+          <WeekTimetableGrid
+            weekDays={weekDays}
+            workingDays={workingDays}
+            emptyWeekMessage={emptyWeekMessage}
+            hideClassName={hideClassName}
+            hideTeacherName={hideTeacherName}
+          />
         ) : selectedDay ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">

@@ -128,6 +128,7 @@ export async function GET(
           summary: {
             studentCount: 0,
             invoiceCount: 0,
+            draftInvoiceCount: 0,
             totalBilledMinor: 0,
             totalPaidMinor: 0,
             totalOutstandingMinor: 0,
@@ -188,6 +189,18 @@ export async function GET(
         "studentId invoiceNumber status totalAmountMinor totalPaidMinor totalOutstandingMinor dueDate issueDate"
       )
       .sort({ dueDate: 1, createdAt: -1 })
+      .lean();
+
+    const draftInvoiceQuery: Record<string, unknown> = {
+      schoolId: schoolIdObj,
+      studentId: { $in: studentIds },
+      status: "draft",
+    };
+    if (!useAllPeriods && selectedPeriodId) {
+      draftInvoiceQuery.academicPeriodId = selectedPeriodId;
+    }
+    const draftInvoices = await Invoice.find(draftInvoiceQuery)
+      .select("studentId invoiceNumber")
       .lean();
 
     const invoiceIds = invoices.map((invoice) => invoice._id);
@@ -383,6 +396,7 @@ export async function GET(
         summary: {
           studentCount: studentRows.length,
           invoiceCount: invoices.length,
+          draftInvoiceCount: draftInvoices.length,
           totalBilledMinor,
           totalPaidMinor,
           totalOutstandingMinor,

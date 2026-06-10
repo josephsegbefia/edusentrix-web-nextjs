@@ -166,7 +166,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
         <CardHeader className="relative z-10 pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-              Invoices
+              Bills
             </CardTitle>
             {pagination && (
               <div className="text-xs text-muted-foreground">
@@ -181,7 +181,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search invoices..."
+                placeholder="Search bills..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-white/5 border-white/10"
@@ -294,26 +294,26 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
             </Button>
           </div>
 
-          {/* Invoice list */}
+          {/* Bill list */}
           {isLoading ? (
             <div className="flex items-center justify-center gap-3 py-10 text-sm text-muted-foreground">
               <Clock className="h-5 w-5 animate-spin" />
-              Loading invoices...
+              Loading bills...
             </div>
           ) : isError ? (
             <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">
-              Failed to load invoices. Please try again.
+              Failed to load bills. Please try again.
             </div>
           ) : filteredAndSorted.length === 0 ? (
             <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center">
               <FileText className="mx-auto h-12 w-12 text-white/20" />
               <p className="mt-3 text-sm font-medium text-white/80">
-                No invoices found
+                No bills found
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {searchQuery || statusFilter !== "all"
                   ? "Try adjusting your filters"
-                  : "No invoices have been created yet"}
+                  : "No bills have been created yet"}
               </p>
             </div>
           ) : (

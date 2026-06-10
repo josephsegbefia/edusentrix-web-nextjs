@@ -6,6 +6,8 @@ export type ParentWardSessionRow = {
   subjectName: string | null;
   scheduledDate: string | null;
   hasParentSummary: boolean;
+  hasNotebookNotes?: boolean;
+  notebookNotesPublished?: boolean;
 };
 
 export type ParentWardSessionsResponse =

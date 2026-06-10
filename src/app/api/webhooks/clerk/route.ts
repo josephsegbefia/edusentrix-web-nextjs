@@ -12,11 +12,9 @@ import { headers } from "next/headers";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
-import { UserMembership } from "@/models/UserMembership";
 import mongoose from "mongoose";
-import { attachClerkUserIdToUser } from "@/lib/auth/resolveTenantUserForClerkSession";
 import { trackUsage } from "@/lib/billing/trackUsage";
-import { isMembershipRole } from "@/lib/roles";
+import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 import {
   bindBillingOwnerToSchool,
   bindPaymentSetupDelegateToSchool,
@@ -122,120 +120,44 @@ async function handleUserCreated(data: ClerkUserData) {
   const resolvedName =
     [data.first_name, data.last_name].filter(Boolean).join(" ").trim() || null;
 
-  interface ExistingUserLean {
-    _id: mongoose.Types.ObjectId;
-    firstName?: string;
-    lastName?: string;
-    avatarUrl?: string;
-    schoolId?: mongoose.Types.ObjectId;
-    role?: string;
-  }
-
-  let existingUser: ExistingUserLean | null = null;
-  if (schoolId && mongoose.isValidObjectId(schoolId)) {
-    const schoolOid = new mongoose.Types.ObjectId(schoolId);
-    existingUser = (await User.findOne({
-      email,
-      schoolId: schoolOid,
-    }).lean()) as ExistingUserLean | null;
-  }
-  if (!existingUser) {
-    const dup = await User.countDocuments({ email });
-    if (dup <= 1) {
-      existingUser = (await User.findOne({ email }).lean()) as ExistingUserLean | null;
-    } else {
-      console.warn(
-        "Clerk webhook: skipped ambiguous email-only lookup (same email in multiple schools); use schoolId in metadata",
-        email
-      );
-    }
-  }
-
-  if (existingUser) {
-    await attachClerkUserIdToUser(
-      data.id,
-      existingUser._id instanceof mongoose.Types.ObjectId
-        ? existingUser._id
-        : new mongoose.Types.ObjectId(String(existingUser._id))
-    );
-    await User.updateOne(
-      { _id: existingUser._id },
-      {
-        $set: {
-          firstName: data.first_name || existingUser.firstName,
-          lastName: data.last_name || existingUser.lastName,
-          avatarUrl: data.image_url || existingUser.avatarUrl,
-          ...(role ? { role } : {}),
-          ...(schoolId ? { schoolId: new mongoose.Types.ObjectId(schoolId) } : {}),
-        },
-      }
-    );
-    console.log(`Clerk webhook: Linked existing user ${email} to Clerk ID ${data.id}`);
-
-    if (schoolId && role && isMembershipRole(role)) {
-      resolvedSchoolId = new mongoose.Types.ObjectId(schoolId);
-      await UserMembership.findOneAndUpdate(
-        {
-          userId: existingUser._id,
-          schoolId: resolvedSchoolId,
-        },
-        { $addToSet: { roles: role }, $set: { status: "active" } },
-        { upsert: true }
-      );
-    }
-    resolvedUserId = existingUser._id;
-    if (!resolvedSchoolId && existingUser.schoolId) {
-      resolvedSchoolId = existingUser.schoolId;
-    }
-
-    if (existingUser.schoolId) {
-      await trackUsage({
-        schoolId: existingUser.schoolId,
-        provider: "clerk",
-        metricKey: "user_created_events",
-        quantity: 1,
-        unitLabel: "events",
-        allocationMethod: "direct",
-        sourceType: "system_estimate",
-        notes: "Clerk user.created webhook processed for an existing linked user.",
-      });
-    }
-  } else {
-    // Create new user from Clerk data
-    const newUser = await User.create({
+  try {
+    const appUser = await ensureCanonicalUserForClerkSession({
       clerkUserId: data.id,
       email,
       firstName: data.first_name || undefined,
       lastName: data.last_name || undefined,
       avatarUrl: data.image_url || undefined,
       role,
-      schoolId: schoolId ? new mongoose.Types.ObjectId(schoolId) : undefined,
+      schoolId,
       pendingOnboarding: role === "school_admin",
     });
-    resolvedUserId = newUser._id;
-    resolvedSchoolId = schoolId ? new mongoose.Types.ObjectId(schoolId) : null;
+    resolvedUserId =
+      appUser._id instanceof mongoose.Types.ObjectId
+        ? appUser._id
+        : new mongoose.Types.ObjectId(String(appUser._id));
+    resolvedSchoolId = appUser.schoolId
+      ? appUser.schoolId instanceof mongoose.Types.ObjectId
+        ? appUser.schoolId
+        : new mongoose.Types.ObjectId(String(appUser.schoolId))
+      : null;
 
-    // If schoolId is set, create UserMembership
-    if (schoolId && role && isMembershipRole(role)) {
-      await UserMembership.findOneAndUpdate(
-        { userId: newUser._id, schoolId: resolvedSchoolId },
-        { $addToSet: { roles: role }, $set: { status: "active" } },
-        { upsert: true }
-      );
+    console.log(`Clerk webhook: Resolved user ${email} to Clerk ID ${data.id}`);
 
+    if (resolvedSchoolId) {
       await trackUsage({
-        schoolId,
+        schoolId: resolvedSchoolId,
         provider: "clerk",
         metricKey: "user_created_events",
         quantity: 1,
         unitLabel: "events",
         allocationMethod: "direct",
         sourceType: "system_estimate",
-        notes: "Clerk user.created webhook created a new linked user.",
+        notes: "Clerk user.created webhook resolved an app user.",
       });
     }
-
-    console.log(`Clerk webhook: Created new user ${email} from Clerk ID ${data.id}`);
+  } catch (error) {
+    console.error("Clerk webhook: failed to resolve canonical user", error);
+    return;
   }
 
   const inviteMatch: Record<string, unknown> = { email, status: "pending" };

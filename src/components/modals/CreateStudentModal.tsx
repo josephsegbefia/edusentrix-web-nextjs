@@ -35,7 +35,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 type Props = {
   onClose: () => void;
@@ -133,6 +132,11 @@ export default function CreateStudentModal({
   const gradeId = useWatch({ control, name: "gradeId" });
   const classGroupId = useWatch({ control, name: "classGroupId" });
   const photoUrl = useWatch({ control, name: "photoUrl" });
+  const [photoPreviewUrl, setPhotoPreviewUrl] = React.useState<string | null>(
+    null
+  );
+  const avatarPhotoUrl =
+    (photoUrl?.trim() || photoPreviewUrl?.trim() || "") || "";
   const firstName = useWatch({ control, name: "firstName" });
   const lastName = useWatch({ control, name: "lastName" });
   const dateOfBirth = useWatch({ control, name: "dateOfBirth" });
@@ -273,6 +277,7 @@ export default function CreateStudentModal({
   }
 
   function handleRemovePhoto() {
+    setPhotoPreviewUrl(null);
     setValue("photoUrl", undefined, { shouldValidate: true });
   }
 
@@ -699,7 +704,7 @@ export default function CreateStudentModal({
                   >
                     <div className="relative w-36 h-36 rounded-full border-4 border-white/10 bg-white/5 overflow-hidden shadow-lg">
                       <AnimatePresence mode="wait">
-                        {photoUrl ? (
+                        {avatarPhotoUrl ? (
                           <motion.div
                             key="photo"
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -708,13 +713,11 @@ export default function CreateStudentModal({
                             transition={{ duration: 0.2 }}
                             className="relative w-full h-full"
                           >
-                            <Image
-                              src={photoUrl}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={avatarPhotoUrl}
                               alt="Student photo"
-                              fill
-                              className="object-cover rounded-full"
-                              sizes="144px"
-                              priority
+                              className="h-full w-full object-cover rounded-full"
                             />
                           </motion.div>
                         ) : (
@@ -732,7 +735,7 @@ export default function CreateStudentModal({
                         )}
                       </AnimatePresence>
                     </div>
-                    {photoUrl && (
+                    {avatarPhotoUrl ? (
                       <motion.button
                         type="button"
                         initial={{ scale: 0 }}
@@ -742,7 +745,7 @@ export default function CreateStudentModal({
                       >
                         <X className="h-4 w-4" />
                       </motion.button>
-                    )}
+                    ) : null}
                   </motion.div>
 
                   {/* Upload Dropzone */}
@@ -750,7 +753,9 @@ export default function CreateStudentModal({
                     <ImageUploader
                       schoolId={me.schoolId}
                       subjectRole="students"
+                      initialPreviewUrl={avatarPhotoUrl || null}
                       onUploaded={(payload) => {
+                        setPhotoPreviewUrl(payload.url);
                         setValue("photoUrl", payload.url, {
                           shouldValidate: true,
                         });

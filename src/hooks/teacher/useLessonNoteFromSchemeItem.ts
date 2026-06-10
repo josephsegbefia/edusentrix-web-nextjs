@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { LessonNoteFormData } from "@/types/lesson-notes";
+import type { LessonNoteFormData, LessonNotePeriodPlanningContext } from "@/types/lesson-notes";
 
 type ApiInitialData = Omit<Partial<LessonNoteFormData>, "weekOf" | "date" | "weekEndingDate"> & {
   weekOf: string;
@@ -19,6 +19,7 @@ type Response = {
       weekEndingDate?: string | null;
       weekEndingLabel?: string | null;
     };
+    periodPlanning?: LessonNotePeriodPlanningContext;
   };
   error?: string;
 };
@@ -38,6 +39,7 @@ export function useLessonNoteFromSchemeItem(schemeItemId: string | null) {
       }
       return {
         ...json.data,
+        periodPlanning: json.data.periodPlanning,
         initialData: {
           ...json.data.initialData,
           weekOf: new Date(json.data.initialData.weekOf),

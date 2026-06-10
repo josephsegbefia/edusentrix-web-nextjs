@@ -1,16 +1,12 @@
 import "server-only";
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, type IUser } from "@/models/User";
-import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import { Guardian } from "@/models/Guardian";
 import type { MembershipRole } from "@/lib/roles";
 import { gateParentApiAccess } from "@/lib/auth/role-gates";
-import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
-import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { assertActiveSchoolEnabled } from "@/lib/auth/assert-active-school-enabled";
+import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
 export interface ParentContext {
   userId: Types.ObjectId;
@@ -23,17 +19,6 @@ type RequireParentOptions = {
   mode?: "api" | "page";
 };
 
-function legacyRoleToArray(role?: string): MembershipRole[] {
-  if (role === "school_admin") return ["school_admin"];
-  if (role === "billing_owner") return ["billing_owner"];
-  if (role === "bursar") return ["bursar"];
-  if (role === "teacher") return ["teacher"];
-  if (role === "parent") return ["parent"];
-  if (role === "student") return ["student"];
-  if (role === "staff") return ["staff"];
-  return ["staff"];
-}
-
 function handleFailure(
   mode: "api" | "page",
   status: number,
@@ -41,6 +26,7 @@ function handleFailure(
 ): never {
   if (mode === "page") {
     if (status === 401) redirect("/sign-in");
+    if (status === 409) redirect("/auth/switch");
     redirect("/dashboard");
   }
   throw NextResponse.json({ error: message }, { status });
@@ -55,71 +41,29 @@ export async function requireParent(
 ): Promise<ParentContext> {
   const { mode = "api" } = options;
 
-  const demo = await tryResolveDemoGuard();
-  if (demo.isDemo && demo.user.schoolId) {
-    await ensureActiveSchoolForTenant(demo.user.schoolId as Types.ObjectId, {
+  const active = await resolveActiveSchoolContext();
+  if (!active.ok) {
+    handleFailure(
       mode,
-    });
-    const roles = [...demo.membership.roles] as MembershipRole[];
-    return {
-      userId: demo.user._id as Types.ObjectId,
-      schoolId: demo.user.schoolId as Types.ObjectId,
-      roles,
-      isAdmin: roles.includes("school_admin"),
-    };
+      active.reason === "needs_school_selection" ? 409 : active.reason === "unauthorized" ? 401 : 403,
+      active.reason === "needs_school_selection" ? "School selection required" : "Unauthorized"
+    );
   }
 
-  const { userId: clerkUserId } = await auth();
-
-  if (!clerkUserId) {
-    handleFailure(mode, 401, "Unauthorized");
-  }
-
-  await connectToDatabase();
-
-  const userRaw = await User.findOne({ clerkUserId }).lean();
-  const userNormalized = Array.isArray(userRaw) ? userRaw[0] : userRaw;
-  const user = userNormalized as Pick<IUser, "_id" | "schoolId" | "role"> | null;
-
-  if (!user) {
-    handleFailure(mode, 401, "User not found");
-  }
-
-  if (!user.schoolId) {
-    handleFailure(mode, 401, "User not associated with a school");
-  }
-
-  let membership = (await UserMembership.findOne({
-    userId: user._id,
-    schoolId: user.schoolId,
-  }).lean()) as IUserMembership | null;
-
-  if (!membership) {
-    const createdMembership = await UserMembership.create({
-      userId: user._id,
-      schoolId: user.schoolId,
-      roles: legacyRoleToArray(user.role),
-      status: "active",
-    });
-    membership = createdMembership.toObject() as IUserMembership;
-  }
-
-  if (membership.status !== "active") {
-    handleFailure(mode, 403, "Membership is not active");
-  }
-
-  const roles = (membership.roles || []) as MembershipRole[];
+  const roles = active.context.roles;
   const isAdmin = roles.includes("school_admin");
   const parentGate = gateParentApiAccess(roles);
   if (!parentGate.ok) {
     handleFailure(mode, parentGate.status, parentGate.error);
   }
 
-  await ensureActiveSchoolForTenant(user.schoolId as Types.ObjectId, { mode });
+  if (mode === "page") {
+    await assertActiveSchoolEnabled(active.context.schoolId);
+  }
 
   return {
-    userId: user._id as Types.ObjectId,
-    schoolId: user.schoolId as Types.ObjectId,
+    userId: active.context.userId,
+    schoolId: active.context.schoolId,
     roles,
     isAdmin,
   };

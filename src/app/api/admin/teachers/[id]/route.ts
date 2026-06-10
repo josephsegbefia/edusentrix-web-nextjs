@@ -14,6 +14,7 @@ import { Grade } from "@/models/Grade";
 import { UpdateTeacherSchema } from "@/schemas/teacher";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { createTeacherNotification } from "@/lib/teachers/teacherNotifications";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 import mongoose from "mongoose";
 
 function startOfDay(d: Date) {
@@ -305,11 +306,15 @@ export async function PATCH(
       return Response.json({ error: "Teacher not found" }, { status: 404 });
     }
 
+    const existingUser = await User.findById(teacher.userId)
+      .select("avatarUrl avatarPublicId")
+      .lean<{ avatarUrl?: string | null; avatarPublicId?: string | null }>();
+
     // Track what changed for activity log
     const changes: string[] = [];
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 1. Update User fields (firstName, lastName, email, phone, photoUrl)
+    // 1. Update User fields (firstName, lastName, email, phone, avatar)
     // ─────────────────────────────────────────────────────────────────────────
     const userUpdates: Record<string, any> = {};
 
@@ -344,18 +349,29 @@ export async function PATCH(
       changes.push("phone");
     }
     if (input.photoUrl !== undefined) {
-      userUpdates.photoUrl = input.photoUrl || null;
+      userUpdates.avatarUrl = input.photoUrl || null;
       changes.push("photoUrl");
+    }
+    if (input.avatarPublicId !== undefined) {
+      userUpdates.avatarPublicId = input.avatarPublicId || null;
     }
 
     if (Object.keys(userUpdates).length > 0) {
       await User.findByIdAndUpdate(teacher.userId, { $set: userUpdates });
     }
 
+    if (input.photoUrl !== undefined && existingUser?.avatarUrl) {
+      const nextAvatarUrl = input.photoUrl || null;
+      if (existingUser.avatarUrl !== nextAvatarUrl) {
+        await deleteUploadedFile(existingUser.avatarUrl);
+      }
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // 2. Update Teacher fields
     // ─────────────────────────────────────────────────────────────────────────
     const teacherUpdates: Record<string, any> = {};
+    const teacherUnsets: Record<string, 1> = {};
 
     // Status
     if (input.status !== undefined) {
@@ -391,8 +407,11 @@ export async function PATCH(
             { status: 409 }
           );
         }
+        teacherUpdates.employeeId = nextEmployeeId;
+      } else {
+        teacherUnsets.employeeId = 1;
+        delete teacherUpdates.employeeId;
       }
-      teacherUpdates.employeeId = nextEmployeeId;
       changes.push("employeeId");
     }
     if (input.department !== undefined) {
@@ -509,8 +528,14 @@ export async function PATCH(
     }
 
     // Apply teacher updates
-    if (Object.keys(teacherUpdates).length > 0) {
-      await Teacher.findByIdAndUpdate(teacherObjId, { $set: teacherUpdates });
+    if (
+      Object.keys(teacherUpdates).length > 0 ||
+      Object.keys(teacherUnsets).length > 0
+    ) {
+      await Teacher.findByIdAndUpdate(teacherObjId, {
+        ...(Object.keys(teacherUpdates).length ? { $set: teacherUpdates } : {}),
+        ...(Object.keys(teacherUnsets).length ? { $unset: teacherUnsets } : {}),
+      });
     }
 
     // ─────────────────────────────────────────────────────────────────────────

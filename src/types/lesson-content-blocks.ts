@@ -41,6 +41,12 @@ export type LessonSessionAiMetadata = {
   teacherReviewedAllAi?: boolean;
 };
 
+export type StudentNotebookNotesDto = {
+  contentHtml: string;
+  publishedAt: string;
+  aiGenerated: boolean;
+};
+
 /** Stable student/mobile payload for published sessions */
 export type StudentLessonSessionContentDto = {
   sessionId: string;
@@ -55,6 +61,7 @@ export type StudentLessonSessionContentDto = {
     order: number;
     estimatedMinutes: number | null;
   }>;
+  notebookNotes?: StudentNotebookNotesDto | null;
 };
 
 export type WeekSplitSessionProposal = {

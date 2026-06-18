@@ -19,6 +19,7 @@ export type SubscriptionEventType =
   | "pilot_ended"
   | "access_mode_override"
   | "addon_purchased"
+  | "addon_removed"
   | "addon_credited"
   | "usage_event"
   | "renewal_requested"
@@ -46,6 +47,7 @@ export const SUBSCRIPTION_EVENT_TYPES: SubscriptionEventType[] = [
   "pilot_ended",
   "access_mode_override",
   "addon_purchased",
+  "addon_removed",
   "addon_credited",
   "usage_event",
   "renewal_requested",

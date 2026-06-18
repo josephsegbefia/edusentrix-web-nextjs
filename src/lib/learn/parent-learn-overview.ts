@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
-import { getOrCreateLearnPlatformSettings } from "@/lib/learn/platform-settings";
+import { resolveParentLearnPriceForSchool } from "@/lib/learn/parent-pricing";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Guardian } from "@/models/Guardian";
@@ -162,7 +162,7 @@ export async function getParentLearnOverview(
   onlyStudentId?: Types.ObjectId
 ): Promise<ParentLearnOverview> {
   const [settings, schoolEligibility, guardians] = await Promise.all([
-    getOrCreateLearnPlatformSettings(),
+    resolveParentLearnPriceForSchool(schoolId),
     getSchoolLearnEligibility(schoolId),
     Guardian.find({
       userId: parentUserId,

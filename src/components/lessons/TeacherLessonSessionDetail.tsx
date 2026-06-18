@@ -16,16 +16,17 @@ import {
   NotebookPen,
   Save,
   Trash2,
-  Users,
 } from "lucide-react";
 import { SessionBoardNotesPanel } from "@/components/lessons/SessionBoardNotesPanel";
 import { useCompleteLessonDelivery } from "@/hooks/teacher/useLessonSessionTeach";
 import { LessonContentBlocksEditor } from "@/components/lessons/LessonContentBlocksEditor";
+import { LessonQualityStrip } from "@/components/lessons/LessonQualityStrip";
 import { useGenerateSessionContent } from "@/hooks/teacher/useLessonsLeo";
 import type { LessonContentBlock } from "@/types/lesson-content-blocks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,7 @@ import { TeacherSessionAssignmentsPanel } from "@/components/lessons/TeacherSess
 import { TeacherSessionResourcesPanel } from "@/components/lessons/TeacherSessionResourcesPanel";
 import { TeacherSessionAssessmentPanel } from "@/components/lessons/TeacherSessionAssessmentPanel";
 import { TeacherSessionLearnResourcesPanel } from "@/components/lessons/TeacherSessionLearnResourcesPanel";
+import { TeacherSessionExplorePanel } from "@/components/lessons/TeacherSessionExplorePanel";
 import { TeachAttendanceModal } from "@/components/lessons/TeachAttendanceModal";
 import {
   PremiumSelect,
@@ -61,6 +63,12 @@ import {
 } from "@/types/lessons-v2";
 import { cn } from "@/lib/utils";
 import { LessonWeekPreviewPresenter } from "@/components/lessons/LessonWeekPreviewPresenter";
+import { LessonContentBlocksRenderer } from "@/components/lessons/LessonContentBlocksRenderer";
+import {
+  AfterClassStepHeading,
+  TeacherSessionAfterClassWorkflow,
+} from "@/components/lessons/TeacherSessionAfterClassWorkflow";
+import { TeacherSessionTaughtArchive } from "@/components/lessons/TeacherSessionTaughtArchive";
 
 type Props = {
   sessionId: string;
@@ -69,6 +77,8 @@ type Props = {
 export function TeacherLessonSessionDetail({ sessionId }: Props) {
   const router = useRouter();
   const { data: classesData } = useTeacherClasses();
+  const { data: teacherContext } = useTeacherContext();
+  const schoolId = teacherContext?.data?.school?._id;
   const busyToast = useBusyToast();
   const [activeClassGroupId, setActiveClassGroupId] = React.useState<string | null>(null);
   const { data, isLoading, error } = useTeacherLessonSession(sessionId, activeClassGroupId);
@@ -208,10 +218,13 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
     });
   };
 
-  const showPostLesson =
+  const isActiveClassTaught =
+    deliveryStatus === "in_progress" ||
     deliveryStatus === "delivered" ||
-    deliveryStatus === "completed" ||
-    deliveryStatus === "in_progress";
+    deliveryStatus === "completed";
+
+  const followUpUnlocked =
+    deliveryStatus === "completed" || deliveryStatus === "delivered";
 
   if (error) {
     return (
@@ -336,10 +349,14 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
       ) : null}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-        <CardHeader>
-          <CardTitle className="text-lg text-white">Delivery</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-white">
+            {isActiveClassTaught ? "Teaching" : "Before class"}
+          </CardTitle>
           <p className="text-xs text-white/50">
-            Teach in presenter mode, then mark delivered and complete when finished.
+            {isActiveClassTaught
+              ? "Resume presenter mode or preview what you taught."
+              : "Preview your lesson, then teach in presenter mode."}
           </p>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -381,309 +398,370 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
               </Button>
             ) : null
           ) : null}
-          {deliveryStatus === "delivered" ? (
-            <Button
-              type="button"
-              onClick={() => void markComplete()}
-              disabled={completeDelivery.isPending || !deliveryId}
-              className="bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
-            >
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Mark complete
-            </Button>
-          ) : null}
           {deliveryStatus === "completed" ? (
-            <p className="text-sm text-emerald-200/90">This session is complete for this class.</p>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="border border-teal-400/20 bg-teal-500/8 shadow-lg shadow-black/20 backdrop-blur-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
-            <NotebookPen className="h-5 w-5 text-teal-300" />
-            Notes for students&apos; notebooks
-          </CardTitle>
-          <p className="text-xs text-white/50">
-            Structured revision notes for the board and for students to copy after you teach.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <SessionBoardNotesPanel
-            sessionId={sessionId}
-            initialNotes={notebookNotes}
-            notebookNotesPublished={notebookNotesPublished}
-            canWrite={canManageContent}
-            leoEnabled={leoEnabled}
-            onSaved={(saved, published) => {
-              setNotebookNotes(saved);
-              setNotebookNotesPublished(published);
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
-            <Users className="h-4 w-4 text-sky-300" />
-            Attendance
-          </CardTitle>
-          <p className="text-xs text-white/50">
-            Lesson attendance is recorded when you start and end a teach session.
-          </p>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs",
-                session.delivery?.attendanceBeforeId
-                  ? "bg-emerald-500/15 text-emerald-300"
-                  : "bg-white/5 text-white/40",
-              )}
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              Pre-lesson {session.delivery?.attendanceBeforeId ? "✓ recorded" : "not yet"}
-            </div>
-            <div
-              className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs",
-                session.delivery?.attendanceAfterId
-                  ? "bg-emerald-500/15 text-emerald-300"
-                  : "bg-white/5 text-white/40",
-              )}
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              Post-lesson {session.delivery?.attendanceAfterId ? "✓ recorded" : "not yet"}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-        <CardHeader>
-          <CardTitle className="text-lg text-white">Visibility</CardTitle>
-          <p className="text-xs text-white/50">
-            Control who can see this session in student, parent, and admin surfaces.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {requireAiReview && session.unreviewedAiBlockCount > 0 ? (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>
-                Review {session.unreviewedAiBlockCount} AI-generated block
-                {session.unreviewedAiBlockCount === 1 ? "" : "s"} before publishing to students.
-              </p>
-            </div>
-          ) : null}
-          <PremiumSelect
-            value={session.studentVisibility}
-            onValueChange={(v) =>
-              void patchVisibility({ studentVisibility: v as "hidden" | "published" })
-            }
-            disabled={!canManageContent}
-          >
-            <PremiumSelectTrigger>
-              <PremiumSelectValue />
-            </PremiumSelectTrigger>
-            <PremiumSelectContent>
-              <PremiumSelectItem value="hidden">Hidden</PremiumSelectItem>
-              <PremiumSelectItem value="published">Published to students</PremiumSelectItem>
-            </PremiumSelectContent>
-          </PremiumSelect>
-          {canManageContent && parentSummaryEnabled ? (
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-              <div>
-                <Label className="text-white/80">Parent summary</Label>
-                <p className="text-xs text-white/45">Visible to parents when your school enables it.</p>
-              </div>
-              <Switch
-                checked={session.parentVisibility}
-                onCheckedChange={(checked) => void patchVisibility({ parentVisibility: checked })}
-              />
-            </div>
-          ) : null}
-          {canManageContent ? (
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-              <div>
-                <Label className="text-white/80">Admin visibility</Label>
-                <p className="text-xs text-white/45">Include in school admin lesson views.</p>
-              </div>
-              <Switch
-                checked={session.adminVisibility}
-                onCheckedChange={(checked) => void patchVisibility({ adminVisibility: checked })}
-              />
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-        <CardHeader>
-          <CardTitle className="text-lg text-white">Lesson content</CardTitle>
-          <p className="text-xs text-white/50">
-            Rich blocks shown to students when published. Leo drafts require your review when your
-            school has that setting enabled.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {canManageContent ? (
-            <LessonContentBlocksEditor
-              blocks={contentBlocks}
-              onChange={(next) => {
-                setContentBlocks(next);
-                setDirty(true);
-              }}
-              leoEnabled={leoEnabled}
-              leoLoading={generateContent.isPending}
-              onGenerateWithLeo={leoEnabled ? generateWithLeo : undefined}
-            />
-          ) : (
-            <p className="text-sm text-white/55">
-              You are covering this session as a substitute. Content editing stays with the session
-              owner.
+            <p className="self-center text-sm text-emerald-200/90">
+              Complete for {classLabel || "this class"}.
             </p>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-        <CardHeader>
-          <CardTitle className="text-lg text-white">Session plan notes</CardTitle>
-          <p className="text-xs text-white/50">Private teacher notes for this period (not shown to students).</p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-white/70">Session title</Label>
-            <Input
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setDirty(true);
-              }}
-              className="border-white/10 bg-white/5 text-white"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-white/70">Plan notes</Label>
-            <Textarea
-              value={planNotes}
-              onChange={(e) => {
-                setPlanNotes(e.target.value);
-                setDirty(true);
-              }}
-              placeholder="Objectives, activities, materials, and reminders for this period…"
-              className="min-h-[200px] border-white/10 bg-white/5 text-white"
-            />
-          </div>
-          <Button
-            type="button"
-            onClick={() => void saveContent()}
-            disabled={!canManageContent || !dirty || updateSession.isPending}
-            className="bg-teal-500/25 text-teal-100 hover:bg-teal-500/35"
-          >
-            {updateSession.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            Save changes
-          </Button>
-        </CardContent>
-      </Card>
-
-      {showPostLesson && reflectionEnabled ? (
-        <TeacherSessionReflectionPanel sessionId={sessionId} canWrite />
-      ) : null}
-
-      {/* Resources gated behind delivery */}
-      {canManageContent ? (
-        deliveryStatus === "completed" || deliveryStatus === "delivered" ? (
-          <>
-            {/* Assessment */}
-            <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-white">
-                  <ClipboardList className="h-4 w-4 text-teal-300" />
-                  Assessment
-                </CardTitle>
-                <p className="text-xs text-white/45">
-                  Exercises, questions, and tasks for this session. Leo can generate items from your session content.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <TeacherSessionAssessmentPanel
+      {isActiveClassTaught ? (
+        <>
+          <TeacherSessionAfterClassWorkflow
+            deliveryStatus={deliveryStatus}
+            classLabel={classLabel || "this class"}
+            showReflectStep={reflectionEnabled}
+            notebook={
+              <>
+                <AfterClassStepHeading
+                  title="Notes for students' notebooks"
+                  description="Structured revision notes for the board and for students to copy."
+                  icon={NotebookPen}
+                />
+                <SessionBoardNotesPanel
                   sessionId={sessionId}
-                  initialItems={(session as unknown as { assessmentItems?: import("@/hooks/teacher/useLessonsLeo").LessonAssessmentItem[] }).assessmentItems ?? []}
+                  initialNotes={notebookNotes}
+                  notebookNotesPublished={notebookNotesPublished}
                   canWrite={canManageContent}
                   leoEnabled={leoEnabled}
+                  onSaved={(saved, published) => {
+                    setNotebookNotes(saved);
+                    setNotebookNotesPublished(published);
+                  }}
                 />
-              </CardContent>
-            </Card>
-
-            {resourcesEnabled ? (
-              <TeacherSessionResourcesPanel
-                sessionId={sessionId}
-                canWrite={canManageContent}
-                studentPublished={session?.studentVisibility === "published"}
-              />
-            ) : null}
-
-            {flashcardsEnabled ? (
-              <TeacherSessionFlashcardsPanel
-                sessionId={sessionId}
-                canWrite={canManageContent}
-                leoEnabled={leoEnabled}
-                studentPublished={session.studentVisibility === "published"}
-              />
-            ) : null}
-
-            {/* Learn Resources (Did You Know + more) */}
-            <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-white">
-                  <Globe className="h-4 w-4 text-amber-400" />
-                  Learn Resources
-                </CardTitle>
-                <p className="text-xs text-white/45">
-                  Curiosity facts and resources pushed to EduSentrix Learn for students.
+              </>
+            }
+            wrapUp={
+              <>
+                <AfterClassStepHeading
+                  title="Wrap up this class"
+                  description="Confirm attendance and mark the delivery complete when you are done."
+                  icon={CheckCircle2}
+                />
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs",
+                        session.delivery?.attendanceBeforeId
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : "bg-white/5 text-white/40",
+                      )}
+                    >
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      Pre-lesson {session.delivery?.attendanceBeforeId ? "recorded" : "not yet"}
+                    </div>
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs",
+                        session.delivery?.attendanceAfterId
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : "bg-white/5 text-white/40",
+                      )}
+                    >
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      Post-lesson {session.delivery?.attendanceAfterId ? "recorded" : "not yet"}
+                    </div>
+                  </div>
+                  {deliveryStatus === "delivered" ? (
+                    <Button
+                      type="button"
+                      onClick={() => void markComplete()}
+                      disabled={completeDelivery.isPending || !deliveryId}
+                      className="bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Mark complete for {classLabel || "this class"}
+                    </Button>
+                  ) : deliveryStatus === "completed" ? (
+                    <p className="text-sm text-emerald-200/90">
+                      This delivery is complete. Continue with sharing and follow-up below.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-white/55">
+                      Finish teaching in presenter mode, then return here to mark complete.
+                    </p>
+                  )}
+                </div>
+              </>
+            }
+            share={
+              <>
+                <AfterClassStepHeading
+                  title="Share with students and families"
+                  description="Publish the session when content is reviewed and ready."
+                  icon={Globe}
+                />
+                <div className="space-y-3">
+                  <LessonQualityStrip
+                    blocks={contentBlocks}
+                    requireTeacherReviewForAiContent={requireAiReview}
+                  />
+                  {requireAiReview && session.unreviewedAiBlockCount > 0 ? (
+                    <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>
+                        Review {session.unreviewedAiBlockCount} AI-generated block
+                        {session.unreviewedAiBlockCount === 1 ? "" : "s"} before publishing.
+                      </p>
+                    </div>
+                  ) : null}
+                  <PremiumSelect
+                    value={session.studentVisibility}
+                    onValueChange={(v) =>
+                      void patchVisibility({ studentVisibility: v as "hidden" | "published" })
+                    }
+                    disabled={!canManageContent}
+                  >
+                    <PremiumSelectTrigger>
+                      <PremiumSelectValue />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      <PremiumSelectItem value="hidden">Hidden</PremiumSelectItem>
+                      <PremiumSelectItem value="published">Published to students</PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
+                  {canManageContent && parentSummaryEnabled ? (
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                      <div>
+                        <Label className="text-white/80">Parent summary</Label>
+                        <p className="text-xs text-white/45">
+                          Visible to parents when your school enables it.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={session.parentVisibility}
+                        onCheckedChange={(checked) =>
+                          void patchVisibility({ parentVisibility: checked })
+                        }
+                      />
+                    </div>
+                  ) : null}
+                  {canManageContent ? (
+                    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                      <div>
+                        <Label className="text-white/80">Admin visibility</Label>
+                        <p className="text-xs text-white/45">Include in school admin lesson views.</p>
+                      </div>
+                      <Switch
+                        checked={session.adminVisibility}
+                        onCheckedChange={(checked) =>
+                          void patchVisibility({ adminVisibility: checked })
+                        }
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            }
+            reflect={
+              reflectionEnabled ? (
+                <TeacherSessionReflectionPanel sessionId={sessionId} canWrite={canManageContent} />
+              ) : undefined
+            }
+            followUp={
+              canManageContent && followUpUnlocked ? (
+                <div className="space-y-6">
+                  <AfterClassStepHeading
+                    title="Follow-up for this session"
+                    description="Assessment, resources, flashcards, and assignments after you have taught."
+                    icon={ClipboardList}
+                  />
+                  <TeacherSessionAssessmentPanel
+                    sessionId={sessionId}
+                    initialItems={
+                      (session as unknown as {
+                        assessmentItems?: import("@/hooks/teacher/useLessonsLeo").LessonAssessmentItem[];
+                      }).assessmentItems ?? []
+                    }
+                    canWrite={canManageContent}
+                    leoEnabled={leoEnabled}
+                  />
+                  {resourcesEnabled ? (
+                    <TeacherSessionResourcesPanel
+                      sessionId={sessionId}
+                      canWrite={canManageContent}
+                      studentPublished={session.studentVisibility === "published"}
+                    />
+                  ) : null}
+                  {flashcardsEnabled ? (
+                    <TeacherSessionFlashcardsPanel
+                      sessionId={sessionId}
+                      canWrite={canManageContent}
+                      leoEnabled={leoEnabled}
+                      studentPublished={session.studentVisibility === "published"}
+                    />
+                  ) : null}
+                  <TeacherSessionLearnResourcesPanel
+                    sessionId={sessionId}
+                    sessionTitle={title}
+                    canWrite={canManageContent}
+                    leoEnabled={leoEnabled}
+                  />
+                  <TeacherSessionExplorePanel
+                    sessionId={sessionId}
+                    classGroupId={session.activeClassGroupId}
+                    canWrite={canManageContent}
+                    leoEnabled={leoEnabled}
+                  />
+                  {deliveryStatus === "completed" ? (
+                    <TeacherSessionAssignmentsPanel
+                      sessionId={sessionId}
+                      canWrite={canManageContent}
+                      leoEnabled={leoEnabled}
+                    />
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-white/55">
+                  Mark the delivery complete to unlock follow-up tools for this class.
                 </p>
-              </CardHeader>
-              <CardContent>
-                <TeacherSessionLearnResourcesPanel
-                  sessionId={sessionId}
-                  canWrite={canManageContent}
-                  leoEnabled={leoEnabled}
-                />
-              </CardContent>
-            </Card>
+              )
+            }
+          />
 
-            {deliveryStatus === "completed" ? (
-              <TeacherSessionAssignmentsPanel
-                sessionId={sessionId}
-                canWrite={canManageContent}
-                leoEnabled={leoEnabled}
-              />
-            ) : null}
-          </>
-        ) : (
+          <TeacherSessionTaughtArchive
+            classLabel={classLabel || "this class"}
+            contentBlocks={contentBlocks}
+            title={title}
+            planNotes={planNotes}
+          />
+        </>
+      ) : (
+        <>
           <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
-                <Lock className="h-5 w-5 text-white/30" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white/75">Resources unlock after delivery</p>
-                <p className="mt-0.5 text-xs text-white/40">
-                  Assessment, flashcards, and Learn resources become available once you have taught and delivered this session.
-                </p>
-              </div>
+            <CardHeader>
+              <CardTitle className="text-lg text-white">Lesson content</CardTitle>
+              <p className="text-xs text-white/50">
+                Prepare blocks for this session. Leo drafts require review before publishing.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <LessonQualityStrip
+                blocks={contentBlocks}
+                requireTeacherReviewForAiContent={requireAiReview}
+              />
+              {canManageContent ? (
+                <LessonContentBlocksEditor
+                  blocks={contentBlocks}
+                  onChange={(next) => {
+                    setContentBlocks(next);
+                    setDirty(true);
+                  }}
+                  leoEnabled={leoEnabled}
+                  leoLoading={generateContent.isPending}
+                  onGenerateWithLeo={leoEnabled ? generateWithLeo : undefined}
+                  schoolId={schoolId}
+                />
+              ) : (
+                <LessonContentBlocksRenderer blocks={contentBlocks} viewMode="teacher" />
+              )}
             </CardContent>
           </Card>
-        )
-      ) : null}
+
+          <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">Session plan</CardTitle>
+              <p className="text-xs text-white/50">
+                Private teacher notes for this period (not shown to students).
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-white/70">Session title</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setDirty(true);
+                  }}
+                  disabled={!canManageContent}
+                  className="border-white/10 bg-white/5 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-white/70">Plan notes</Label>
+                <Textarea
+                  value={planNotes}
+                  onChange={(e) => {
+                    setPlanNotes(e.target.value);
+                    setDirty(true);
+                  }}
+                  disabled={!canManageContent}
+                  placeholder="Objectives, activities, materials, and reminders for this period…"
+                  className="min-h-[160px] border-white/10 bg-white/5 text-white"
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={() => void saveContent()}
+                disabled={!canManageContent || !dirty || updateSession.isPending}
+                className="bg-teal-500/25 text-teal-100 hover:bg-teal-500/35"
+              >
+                {updateSession.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save session
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">Visibility</CardTitle>
+              <p className="text-xs text-white/50">
+                Optional pre-publish setup. Full sharing controls unlock after you teach.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {requireAiReview && session.unreviewedAiBlockCount > 0 ? (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>
+                    Review {session.unreviewedAiBlockCount} AI-generated block
+                    {session.unreviewedAiBlockCount === 1 ? "" : "s"} before publishing.
+                  </p>
+                </div>
+              ) : null}
+              <PremiumSelect
+                value={session.studentVisibility}
+                onValueChange={(v) =>
+                  void patchVisibility({ studentVisibility: v as "hidden" | "published" })
+                }
+                disabled={!canManageContent}
+              >
+                <PremiumSelectTrigger>
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="hidden">Hidden</PremiumSelectItem>
+                  <PremiumSelectItem value="published">Published to students</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
+            </CardContent>
+          </Card>
+
+          {canManageContent ? (
+            <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
+              <CardContent className="flex items-center gap-4 p-6">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
+                  <Lock className="h-5 w-5 text-emerald-300/60" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white/75">After class unlocks when you teach</p>
+                  <p className="mt-0.5 text-xs text-white/40">
+                    Notebook notes, wrap-up, sharing, reflection, and follow-up resources appear in a
+                    guided flow once this class delivery has started.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </>
+      )}
 
       {/* Pre-lesson attendance modal */}
       <TeachAttendanceModal

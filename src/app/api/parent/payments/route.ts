@@ -8,6 +8,7 @@ import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { Payment } from "@/models/Payment";
 import { Invoice } from "@/models/Invoice";
+import { LearnPaymentIntent } from "@/models/LearnPaymentIntent";
 
 type GuardianLink = {
   studentId: mongoose.Types.ObjectId;
@@ -42,11 +43,33 @@ type PaymentSummaryRow = {
   paymentDate?: Date;
 };
 
+type LearnPaymentRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  amountMinor?: number;
+  status: string;
+  paymentMethod?: string;
+  paystackReference?: string | null;
+  createdAt?: Date;
+  initiatedAt?: Date;
+  succeededAt?: Date | null;
+};
+
 type PaymentQuery = {
   studentId: { $in: mongoose.Types.ObjectId[] };
   schoolId: mongoose.Types.ObjectId;
   status: "completed";
   paymentDate?: {
+    $gte: Date;
+    $lte: Date;
+  };
+};
+
+type LearnPaymentQuery = {
+  studentId: { $in: mongoose.Types.ObjectId[] };
+  schoolId: mongoose.Types.ObjectId;
+  parentUserId: mongoose.Types.ObjectId;
+  createdAt?: {
     $gte: Date;
     $lte: Date;
   };
@@ -117,30 +140,48 @@ export async function GET(req: NextRequest) {
       schoolId: context.schoolId,
       status: "completed",
     };
+    const learnFilter: LearnPaymentQuery = {
+      studentId: { $in: studentIds },
+      schoolId: context.schoolId,
+      parentUserId: context.userId,
+    };
 
     // Date filters
     if (year && month) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0);
+      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
       filter.paymentDate = { $gte: startDate, $lte: endDate };
+      learnFilter.createdAt = { $gte: startDate, $lte: endDate };
     } else if (year) {
       const startDate = new Date(parseInt(year), 0, 1);
-      const endDate = new Date(parseInt(year), 11, 31);
+      const endDate = new Date(parseInt(year), 11, 31, 23, 59, 59, 999);
       filter.paymentDate = { $gte: startDate, $lte: endDate };
+      learnFilter.createdAt = { $gte: startDate, $lte: endDate };
     }
 
     // Get total count
-    const totalCount = await Payment.countDocuments(filter);
+    const [feeTotalCount, learnTotalCount] = await Promise.all([
+      Payment.countDocuments(filter),
+      LearnPaymentIntent.countDocuments(learnFilter),
+    ]);
+    const totalCount = feeTotalCount + learnTotalCount;
 
     // Fetch payments
-    const payments = await Payment.find(filter)
-      .select(
-        "studentId amountMinor paymentDate paymentMethod paystackReference externalReference receiptNumber invoiceId notes"
-      )
-      .sort({ paymentDate: -1 })
-      .skip(offset)
-      .limit(limit)
-      .lean<PaymentRow[]>();
+    const fetchLimit = offset + limit;
+    const [payments, learnPayments] = await Promise.all([
+      Payment.find(filter)
+        .select(
+          "studentId amountMinor paymentDate paymentMethod paystackReference externalReference receiptNumber invoiceId notes"
+        )
+        .sort({ paymentDate: -1, createdAt: -1 })
+        .limit(fetchLimit)
+        .lean<PaymentRow[]>(),
+      LearnPaymentIntent.find(learnFilter)
+        .select("_id studentId amountMinor status paymentMethod paystackReference createdAt initiatedAt succeededAt")
+        .sort({ createdAt: -1 })
+        .limit(fetchLimit)
+        .lean<LearnPaymentRow[]>(),
+    ]);
 
     // Get invoice titles
     const invoiceIds = payments
@@ -154,33 +195,66 @@ export async function GET(req: NextRequest) {
     );
 
     // Format payments
-    const formattedPayments = payments.map((p) => ({
-      id: String(p._id),
-      wardId: String(p.studentId),
-      wardName: studentMap.get(String(p.studentId)) || "Unknown",
-      amount: toMajorUnits(Number(p.amountMinor || 0)),
-      date: p.paymentDate?.toISOString() || "",
-      method: p.paymentMethod || "cash",
-      reference:
-        p.paystackReference || p.externalReference || p.receiptNumber || "",
-      invoiceTitle: p.invoiceId
-        ? invoiceMap.get(String(p.invoiceId)) || "School Fees"
-        : "School Fees",
-      notes: p.notes || "",
-    }));
+    const formattedPayments = [
+      ...payments.map((p) => ({
+        id: String(p._id),
+        type: "fee" as const,
+        status: "completed",
+        wardId: String(p.studentId),
+        wardName: studentMap.get(String(p.studentId)) || "Unknown",
+        amount: toMajorUnits(Number(p.amountMinor || 0)),
+        date: p.paymentDate?.toISOString() || "",
+        method: p.paymentMethod || "cash",
+        reference: p.paystackReference || p.externalReference || p.receiptNumber || "",
+        invoiceTitle: p.invoiceId ? invoiceMap.get(String(p.invoiceId)) || "School Fees" : "School Fees",
+        notes: p.notes || "",
+        receiptViewUrl: `/api/parent/receipts/fee/${String(p._id)}/download?disposition=inline`,
+        receiptDownloadUrl: `/api/parent/receipts/fee/${String(p._id)}/download`,
+      })),
+      ...learnPayments.map((p) => {
+        const issued = p.status === "succeeded";
+        return {
+          id: String(p._id),
+          type: "learn" as const,
+          status: p.status,
+          wardId: String(p.studentId),
+          wardName: studentMap.get(String(p.studentId)) || "Unknown",
+          amount: toMajorUnits(Number(p.amountMinor || 0)),
+          date: (p.succeededAt || p.createdAt || p.initiatedAt)?.toISOString() || "",
+          method: p.paymentMethod || "paystack",
+          reference: p.paystackReference || "",
+          invoiceTitle: "EduSentrix Learn",
+          notes: issued ? "Learn access payment" : "Learn payment is still being confirmed",
+          receiptViewUrl: issued ? `/api/parent/receipts/learn/${String(p._id)}/download?disposition=inline` : "",
+          receiptDownloadUrl: issued ? `/api/parent/receipts/learn/${String(p._id)}/download` : "",
+        };
+      }),
+    ]
+      .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+      .slice(offset, offset + limit);
 
     // Calculate summaries
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const thisYearStart = new Date(now.getFullYear(), 0, 1);
 
-    const allPayments = await Payment.find({
-      studentId: { $in: studentIds },
-      schoolId: context.schoolId,
-      status: "completed",
-    })
-      .select("amountMinor paymentDate")
-      .lean<PaymentSummaryRow[]>();
+    const [allPayments, allLearnPayments] = await Promise.all([
+      Payment.find({
+        studentId: { $in: studentIds },
+        schoolId: context.schoolId,
+        status: "completed",
+      })
+        .select("amountMinor paymentDate")
+        .lean<PaymentSummaryRow[]>(),
+      LearnPaymentIntent.find({
+        studentId: { $in: studentIds },
+        schoolId: context.schoolId,
+        parentUserId: context.userId,
+        status: "succeeded",
+      })
+        .select("amountMinor succeededAt createdAt")
+        .lean<Array<{ amountMinor?: number; succeededAt?: Date | null; createdAt?: Date }>>(),
+    ]);
 
     let totalAmount = 0;
     let thisMonthAmount = 0;
@@ -194,6 +268,13 @@ export async function GET(req: NextRequest) {
       if (date >= thisYearStart) thisYearAmount += amount;
       if (date >= thisMonthStart) thisMonthAmount += amount;
     });
+    allLearnPayments.forEach((p) => {
+      const amount = toMajorUnits(Number(p.amountMinor || 0));
+      totalAmount += amount;
+      const date = new Date(p.succeededAt || p.createdAt || 0);
+      if (date >= thisYearStart) thisYearAmount += amount;
+      if (date >= thisMonthStart) thisMonthAmount += amount;
+    });
 
     return NextResponse.json({
       success: true,
@@ -204,7 +285,7 @@ export async function GET(req: NextRequest) {
           name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
         })),
         summary: {
-          totalPayments: allPayments.length,
+          totalPayments: allPayments.length + allLearnPayments.length,
           totalAmount,
           thisMonthAmount,
           thisYearAmount,

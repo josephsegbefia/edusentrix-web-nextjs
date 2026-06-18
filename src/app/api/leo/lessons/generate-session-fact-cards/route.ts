@@ -6,8 +6,15 @@ import {
   requireLessonsLeoTeacherContext,
   runLessonsLeoCompletion,
 } from "@/lib/leo/lessons-draft-shared";
-import { LessonSession } from "@/models/LessonSession";
+import { loadSessionForFlashcardManage } from "@/lib/lessons/flashcard-access";
 import { normalizeContentBlocks } from "@/lib/lessons/content-blocks";
+import {
+  buildFactCardSystemInstruction,
+  buildFactCardUserPrompt,
+  dedupeFactCardCandidates,
+  parseLeoFactCardResponse,
+} from "@/lib/lessons/fact-card-generation";
+import { LearnFactCard } from "@/models/LearnFactCard";
 
 const BodySchema = z.object({
   sessionId: z.string().min(1),
@@ -41,15 +48,26 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
     }
 
-    const session = await LessonSession.findOne({
-      _id: sessionOid,
-      schoolId: ctx.schoolId,
-      ownerTeacherId: ctx.teacherId,
-    }).lean();
+    const loaded = await loadSessionForFlashcardManage(
+      sessionOid,
+      ctx.schoolId,
+      ctx.teacherId,
+      ctx.isAdmin,
+    );
 
-    if (!session) {
+    if (!loaded) {
       return Response.json({ success: false, error: "Session not found" }, { status: 404 });
     }
+
+    const { session } = loaded;
+    const count = parsed.data.count;
+
+    const existingRows = await LearnFactCard.find({
+      schoolId: ctx.schoolId,
+      sessionId: sessionOid,
+    })
+      .select("fact detail")
+      .lean<Array<{ fact: string; detail: string }>>();
 
     const blocks = normalizeContentBlocks(session.contentBlocks ?? []);
     const contentSummary = blocks
@@ -60,67 +78,62 @@ export async function POST(req: Request) {
       )
       .join("\n\n");
 
-    const count = parsed.data.count;
+    let factCards: ReturnType<typeof dedupeFactCardCandidates>["unique"] = [];
+    let skippedDuplicates = 0;
+    let attempts = 0;
+    let lastError = "Leo did not return usable fact cards";
+    let usage: { promptTokens?: number; completionTokens?: number; totalTokens?: number } = {};
 
-    const result = await runLessonsLeoCompletion({
-      context: ctx,
-      model: "gpt-4o",
-      systemInstruction: `Return JSON only:
-{
-  "factCards": [
-    {
-      "fact": string (one short, curiosity-provoking sentence — the "hook"),
-      "detail": string (2-3 sentences explaining the fact or its real-world relevance),
-      "tags": string[] (1-3 subject/topic tags)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      attempts = attempt + 1;
+      const result = await runLessonsLeoCompletion({
+        context: ctx,
+        systemInstruction: buildFactCardSystemInstruction(count),
+        userPrompt: buildFactCardUserPrompt({
+          title: session.title,
+          subjectName: session.subjectNameSnapshot ?? "unknown subject",
+          contentSummary,
+          count,
+          existingCards: existingRows,
+          retryAttempt: attempt > 0 ? attempt : undefined,
+        }),
+        maxTokens: 2500,
+      });
+
+      if (!result.ok) {
+        lastError = result.error;
+        continue;
+      }
+
+      usage = result.usage;
+      const parsedCards = parseLeoFactCardResponse(result.data);
+      const deduped = dedupeFactCardCandidates(parsedCards, existingRows);
+      skippedDuplicates += deduped.skipped;
+
+      if (deduped.unique.length >= count) {
+        factCards = deduped.unique.slice(0, count);
+        break;
+      }
+      if (deduped.unique.length > 0) {
+        factCards = deduped.unique;
+        break;
+      }
+      lastError = "Generated facts repeated cards already in this session.";
     }
-  ]
-}
-Rules:
-- Produce exactly ${count} fact cards.
-- Each "fact" must be grounded in the session content — do not invent unrelated trivia.
-- Write for the learner's grade level — interesting, accessible, and encouraging curiosity.
-- The "fact" should spark a "wow, I didn't know that!" reaction — connect the topic to the real world, history, nature, technology, or everyday life in Ghana.
-- The "detail" should explain why the fact is true or interesting — 2-3 short sentences.
-- Do not repeat facts across cards.
-- Use safe, encouraging, age-appropriate language. No abusive, frightening, or discouraging wording.`,
-      userPrompt: `Generate ${count} "Did You Know" curiosity fact cards for learners based on this lesson session.
-
-Session title: ${session.title}
-Subject: ${session.subjectNameSnapshot ?? "unknown subject"}
-
-Session content summary:
-${contentSummary || "(no content blocks yet — use the session title and subject as context)"}`,
-      maxTokens: 2500,
-    });
-
-    if (!result.ok) {
-      return Response.json({ success: false, error: result.error }, { status: 502 });
-    }
-
-    const data = result.data as { factCards?: unknown[] };
-    const rawCards = Array.isArray(data.factCards) ? data.factCards : [];
-
-    const factCards = rawCards
-      .filter((c): c is Record<string, unknown> => typeof c === "object" && c !== null)
-      .map((c, i) => ({
-        fact: String(c.fact || `Fact ${i + 1}`).slice(0, 500),
-        detail: String(c.detail || "").slice(0, 2000),
-        tags: Array.isArray(c.tags) ? (c.tags as unknown[]).map((t) => String(t)).slice(0, 3) : [],
-      }));
 
     if (factCards.length === 0) {
-      return Response.json(
-        { success: false, error: "Leo did not return any fact cards. Try again." },
-        { status: 502 },
-      );
+      return Response.json({ success: false, error: lastError }, { status: 502 });
     }
 
     return Response.json({
       success: true,
       isDraft: true,
       disclaimer: LESSONS_LEO_DISCLAIMER,
-      data: { factCards },
-      usage: result.usage,
+      data: {
+        factCards,
+        meta: { skippedDuplicates, attempts, existingCount: existingRows.length },
+      },
+      usage,
     });
   } catch (e: unknown) {
     if (e instanceof Response) return e;

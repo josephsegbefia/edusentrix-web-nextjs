@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 
 export interface PaymentRecord {
   id: string;
+  type?: "fee" | "learn";
+  status?: string;
   wardId: string;
   wardName: string;
   amount: number;
@@ -11,6 +13,8 @@ export interface PaymentRecord {
   reference: string;
   invoiceTitle: string;
   notes: string;
+  receiptViewUrl?: string;
+  receiptDownloadUrl?: string;
 }
 
 export interface WardOption {

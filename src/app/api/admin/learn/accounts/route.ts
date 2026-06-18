@@ -128,7 +128,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    if (error instanceof NextResponse) return error;
+    if (error instanceof Response) return error;
     console.error("[admin/learn/accounts:GET]", error);
     return NextResponse.json(
       { success: false, error: "Failed to load Learn accounts." },
@@ -141,17 +141,26 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await requireSchoolAdmin();
 
-    const { requireSchoolFeature, enforceSchoolLimit } = await import("@/lib/subscriptions/guards"); // eslint-disable-line @typescript-eslint/no-unused-vars
+    const { requireSchoolFeature, enforceLearnSeatLimit } = await import("@/lib/subscriptions/guards");
     const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
-    const { LIMIT_KEYS } = await import("@/lib/subscriptions/limit-keys");
     const learnGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.LEARN_MANAGE);
-    if (learnGate) return learnGate;
-    const seatResult = await enforceSchoolLimit({ schoolId: ctx.schoolId, limitKey: LIMIT_KEYS.learnSeats });
-    if (!seatResult.allowed) {
-      return NextResponse.json({ success: false, error: seatResult.reason ?? "Learn seat limit reached." }, { status: 403 });
+    if (!learnGate.allowed) {
+      return NextResponse.json(
+        { success: false, error: learnGate.reason },
+        { status: learnGate.statusCode },
+      );
     }
 
-    const parsed = CreateLearnAccountSchema.safeParse(await req.json());
+    const seatResult = await enforceLearnSeatLimit({ schoolId: ctx.schoolId });
+    if (!seatResult.allowed) {
+      return NextResponse.json(
+        { success: false, error: seatResult.reason ?? "Learn seat limit reached." },
+        { status: seatResult.statusCode ?? 403 },
+      );
+    }
+
+    const raw = await req.json().catch(() => null);
+    const parsed = CreateLearnAccountSchema.safeParse(raw);
     if (!parsed.success || !Types.ObjectId.isValid(parsed.data.studentId)) {
       return NextResponse.json(
         { success: false, error: "Invalid student id." },
@@ -174,7 +183,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: result.data });
   } catch (error) {
-    if (error instanceof NextResponse) return error;
+    if (error instanceof Response) return error;
     console.error("[admin/learn/accounts:POST]", error);
     return NextResponse.json(
       { success: false, error: "Failed to create Learn account." },

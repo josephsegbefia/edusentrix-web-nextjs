@@ -9,6 +9,7 @@ import { GlassPanel } from "@/components/ui/glass-panel";
 import { Input } from "@/components/ui/input";
 import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -37,12 +38,14 @@ type EligibleStudentsPayload = {
     planName?: string | null;
     hasLessonFeatures: boolean;
   };
+  gradeRange: string;
   students: EligibleStudent[];
   summary: {
     eligibleStudents: number;
     withAccounts: number;
     withoutAccounts: number;
     withGuardians: number;
+    eligibleGradeCount: number;
   };
   pagination: {
     page: number;
@@ -71,10 +74,12 @@ function credentialKey(row: CreatedCredential) {
 }
 
 export function AdminEligibleStudentsClient() {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [data, setData] = React.useState<EligibleStudentsPayload | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState<string | null>(null);
   const [bulkCreating, setBulkCreating] = React.useState(false);
+  const [bulkCreatingAll, setBulkCreatingAll] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [credentials, setCredentials] = React.useState<CreatedCredential[]>([]);
@@ -196,32 +201,128 @@ export function AdminEligibleStudentsClient() {
     }
   }
 
+  async function createBulkAll() {
+    const withoutAccounts = data?.summary.withoutAccounts ?? 0;
+    if (!withoutAccounts) return;
+
+    const result = await confirm({
+      title: "Enable Learn for all eligible students?",
+      description: `This will create Learn accounts for ${withoutAccounts} student${
+        withoutAccounts === 1 ? "" : "s"
+      } in ${data?.gradeRange || "the eligible grade range"} who do not already have accounts. One-time passwords will appear on this page after creation.`,
+      confirmLabel: "Enable all",
+      intent: "default",
+    });
+    if (result !== "confirm") return;
+
+    setBulkCreatingAll(true);
+    try {
+      const response = await fetch("/api/admin/learn/accounts/bulk-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allEligible: true }),
+      });
+      const payload = (await response.json()) as ApiResponse<{
+        results: Array<
+          | { studentId: string; success: true; data: CreatedCredential }
+          | { studentId: string; success: false; error: string }
+        >;
+        created: number;
+        failed: number;
+        requested: number;
+      }>;
+      if (!response.ok || !payload.success) {
+        throw new Error(
+          payload.success ? "Failed to enable all eligible accounts." : payload.error
+        );
+      }
+      const created = payload.data.results
+        .filter(
+          (row): row is { studentId: string; success: true; data: CreatedCredential } =>
+            row.success
+        )
+        .map((row) => row.data);
+      setCredentials((current) => {
+        const existing = new Set(current.map(credentialKey));
+        const next = created.filter((row) => !existing.has(credentialKey(row)));
+        return [...next, ...current];
+      });
+      toast.success(
+        `Enabled ${payload.data.created} Learn account${
+          payload.data.created === 1 ? "" : "s"
+        } for eligible students.`
+      );
+      if (payload.data.failed) {
+        toast.error(
+          `${payload.data.failed} account${
+            payload.data.failed === 1 ? "" : "s"
+          } could not be created.`
+        );
+      }
+      await load();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to enable all eligible accounts."
+      );
+    } finally {
+      setBulkCreatingAll(false);
+    }
+  }
+
   const students = data?.students || [];
   const selectedCount = selectedIds.size;
+  const selectableStudents = students.filter((student) => !student.account);
+  const allPageSelected =
+    selectableStudents.length > 0 &&
+    selectableStudents.every((student) => selectedIds.has(student.id));
 
   return (
     <div className="p-6 text-white md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Eligible Learn Students"
-          subtitle="Create EduSentrix Learn accounts for active students in this school. Parent payments and school fees remain separate."
+          subtitle={
+            data?.gradeRange
+              ? `Create EduSentrix Learn accounts for active students in ${data.gradeRange}. Parent payments and school fees remain separate.`
+              : "Create EduSentrix Learn accounts for active students in this school. Parent payments and school fees remain separate."
+          }
           backHref="/admin/learn"
           backLabel="Learn overview"
           icon={Users}
           actions={
-            <Button
-              type="button"
-              disabled={!selectedCount || bulkCreating}
-              onClick={() => void createBulk()}
-              className="rounded-xl bg-teal-400 text-slate-950 hover:bg-teal-300"
-            >
-              {bulkCreating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <UserPlus className="mr-2 h-4 w-4" />
-              )}
-              Create selected
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                disabled={
+                  !data?.summary.withoutAccounts || bulkCreatingAll || bulkCreating
+                }
+                onClick={() => void createBulkAll()}
+                className="rounded-xl bg-teal-400 text-slate-950 hover:bg-teal-300"
+              >
+                {bulkCreatingAll ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Users className="mr-2 h-4 w-4" />
+                )}
+                Enable all eligible
+              </Button>
+              <Button
+                type="button"
+                disabled={!selectedCount || bulkCreating || bulkCreatingAll}
+                onClick={() => void createBulk()}
+                variant="outline"
+                className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+              >
+                {bulkCreating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="mr-2 h-4 w-4" />
+                )}
+                Create selected ({selectedCount})
+              </Button>
+            </div>
           }
         />
 
@@ -242,6 +343,18 @@ export function AdminEligibleStudentsClient() {
             </p>
           </GlassPanel>
         ) : null}
+
+        {data && data.eligibility.eligible && data.summary.eligibleGradeCount === 0 ? (
+          <GlassPanel className="p-6" glow="amber">
+            <h2 className="text-lg font-semibold text-white">No matching grades found</h2>
+            <p className="mt-2 text-sm text-white/60">
+              Learn eligibility requires active grades named or coded as Primary 4 / Grade 4
+              through JHS 3. Add or rename grades in your school setup, then return here.
+            </p>
+          </GlassPanel>
+        ) : null}
+
+        {confirmationDialog}
 
         {credentials.length > 0 ? (
           <GlassPanel className="space-y-4 p-6" glow="both">
@@ -315,7 +428,23 @@ export function AdminEligibleStudentsClient() {
               <table className="w-full min-w-[760px] text-sm">
                 <thead className="bg-white/5 text-left text-xs uppercase tracking-[0.16em] text-white/40">
                   <tr>
-                    <th className="w-12 px-4 py-3" />
+                    <th className="w-12 px-4 py-3">
+                      <Checkbox
+                        checked={allPageSelected}
+                        disabled={!selectableStudents.length}
+                        onCheckedChange={(next) => {
+                          setSelectedIds((current) => {
+                            const copy = new Set(current);
+                            if (next) {
+                              selectableStudents.forEach((student) => copy.add(student.id));
+                            } else {
+                              selectableStudents.forEach((student) => copy.delete(student.id));
+                            }
+                            return copy;
+                          });
+                        }}
+                      />
+                    </th>
                     <th className="px-4 py-3">Student</th>
                     <th className="px-4 py-3">Class</th>
                     <th className="px-4 py-3">Guardians</th>
@@ -394,7 +523,8 @@ export function AdminEligibleStudentsClient() {
             <div className="rounded-2xl border border-white/10 bg-white/5 py-12 text-center">
               <p className="font-medium text-white">No eligible students found.</p>
               <p className="mt-1 text-sm text-white/50">
-                Students must be active and assigned to a grade and class group.
+                Students must be active, assigned to a class group, and in{" "}
+                {data?.gradeRange || "Primary 4 / Grade 4 through JHS 3"}.
               </p>
             </div>
           )}

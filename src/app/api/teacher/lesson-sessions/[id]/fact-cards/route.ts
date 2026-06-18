@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { LessonSession } from "@/models/LessonSession";
 import { LearnFactCard } from "@/models/LearnFactCard";
 import { canManageLessonSessionContent } from "@/lib/lessons/session-access";
+import { dedupeFactCardCandidates } from "@/lib/lessons/fact-card-generation";
 import { assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
 function toObjectIdOrNull(id: string) {
@@ -17,20 +18,30 @@ function toObjectIdOrNull(id: string) {
   }
 }
 
-const CreateFactCardSchema = z.object({
-  fact: z.string().trim().min(1).max(500),
-  detail: z.string().trim().min(1).max(2000),
-  tags: z.array(z.string().trim().max(60)).max(5).default([]),
+const IllustrationFieldsSchema = z.object({
+  illustrationUrl: z.string().trim().url().max(2000).optional().nullable(),
+  illustrationUploadThingKey: z.string().trim().max(500).optional().nullable(),
+  illustrationPrompt: z.string().trim().max(220).optional().nullable(),
 });
+
+const CreateFactCardSchema = z
+  .object({
+    fact: z.string().trim().min(1).max(500),
+    detail: z.string().trim().min(1).max(2000),
+    tags: z.array(z.string().trim().max(60)).max(5).default([]),
+  })
+  .merge(IllustrationFieldsSchema);
 
 const BulkFactCardsSchema = z.object({
   cards: z
     .array(
-      z.object({
-        fact: z.string().trim().min(1).max(500),
-        detail: z.string().trim().min(1).max(2000),
-        tags: z.array(z.string().trim().max(60)).max(5).default([]),
-      }),
+      z
+        .object({
+          fact: z.string().trim().min(1).max(500),
+          detail: z.string().trim().min(1).max(2000),
+          tags: z.array(z.string().trim().max(60)).max(5).default([]),
+        })
+        .merge(IllustrationFieldsSchema),
     )
     .min(1)
     .max(10),
@@ -70,6 +81,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           fact: c.fact,
           detail: c.detail,
           tags: c.tags ?? [],
+          illustrationUrl: c.illustrationUrl ?? null,
+          illustrationPrompt: c.illustrationPrompt ?? null,
           status: c.status,
           publishedToLearn: c.publishedToLearn,
           publishedAt: c.publishedAt?.toISOString() ?? null,
@@ -120,8 +133,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Bulk create
     const bulkParsed = BulkFactCardsSchema.safeParse(raw);
     if (bulkParsed.success) {
+      const existingRows = await LearnFactCard.find({
+        schoolId: context.schoolId,
+        sessionId,
+      })
+        .select("fact detail")
+        .lean<Array<{ fact: string; detail: string }>>();
+
+      const { unique, skipped } = dedupeFactCardCandidates(bulkParsed.data.cards, existingRows);
+      if (unique.length === 0) {
+        return Response.json(
+          {
+            success: false,
+            error:
+              skipped > 0
+                ? "All fact cards duplicate ones already published for this session."
+                : "No valid fact cards to publish.",
+          },
+          { status: 400 },
+        );
+      }
+
       const created = await LearnFactCard.insertMany(
-        bulkParsed.data.cards.map((c) => ({
+        unique.map((c) => ({
           schoolId: context.schoolId,
           sessionId,
           classGroupId: session.classGroupId,
@@ -130,12 +164,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           fact: c.fact,
           detail: c.detail,
           tags: c.tags,
+          illustrationUrl: c.illustrationUrl ?? null,
+          illustrationUploadThingKey: c.illustrationUploadThingKey ?? null,
+          illustrationPrompt: c.illustrationPrompt ?? null,
           status: "published",
           publishedToLearn: true,
           publishedAt: new Date(),
         })),
       );
-      return Response.json({ success: true, data: { ids: created.map((c) => String(c._id)) } });
+      return Response.json({
+        success: true,
+        data: { ids: created.map((c) => String(c._id)), skippedDuplicates: skipped },
+      });
     }
 
     // Single create
@@ -144,15 +184,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const msg = parsed.error.issues.map((i) => i.message).join(", ") || "Invalid data";
       return Response.json({ success: false, error: `Validation failed: ${msg}` }, { status: 400 });
     }
+    const { unique } = dedupeFactCardCandidates([parsed.data], await LearnFactCard.find({
+      schoolId: context.schoolId,
+      sessionId,
+    })
+      .select("fact detail")
+      .lean());
+    if (unique.length === 0) {
+      return Response.json(
+        { success: false, error: "This fact card duplicates one already published." },
+        { status: 400 },
+      );
+    }
+
+    const card = unique[0]!;
     const created = await LearnFactCard.create({
       schoolId: context.schoolId,
       sessionId,
       classGroupId: session.classGroupId,
       subjectOfferingId: session.subjectOfferingId,
       teacherId: context.teacherId,
-      fact: parsed.data.fact,
-      detail: parsed.data.detail,
-      tags: parsed.data.tags,
+      fact: card.fact,
+      detail: card.detail,
+      tags: card.tags,
+      illustrationUrl: parsed.data.illustrationUrl ?? null,
+      illustrationUploadThingKey: parsed.data.illustrationUploadThingKey ?? null,
+      illustrationPrompt: parsed.data.illustrationPrompt ?? null,
       status: "published",
       publishedToLearn: true,
       publishedAt: new Date(),

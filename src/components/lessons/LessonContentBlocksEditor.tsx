@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  ADVANCED_LESSON_CONTENT_BLOCK_TYPES,
+  LEGACY_LESSON_CONTENT_BLOCK_TYPES,
   LESSON_CONTENT_BLOCK_LABELS,
   LESSON_CONTENT_BLOCK_TYPES,
+  isAdvancedLessonBlockType,
   type LessonContentBlock,
   type LessonContentBlockType,
 } from "@/types/lesson-content-blocks";
@@ -27,6 +30,7 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { LessonContentBlocksRenderer } from "@/components/lessons/LessonContentBlocksRenderer";
+import { AdvancedBlockEditor } from "@/components/lessons/blocks/LessonBlockEditors";
 import { cn } from "@/lib/utils";
 
 export type SessionTarget = { id: string; title: string };
@@ -38,13 +42,13 @@ type Props = {
   leoEnabled?: boolean;
   leoLoading?: boolean;
   readOnly?: boolean;
-  /** When provided, each block shows a "Move to session →" action. */
+  schoolId?: string;
   sessionTargets?: SessionTarget[];
   onMoveBlock?: (blockId: string, targetSessionId: string) => void;
 };
 
 function newBlock(type: LessonContentBlockType, order: number): LessonContentBlock {
-  return {
+  const base: LessonContentBlock = {
     id: crypto.randomUUID(),
     type,
     title: null,
@@ -55,6 +59,59 @@ function newBlock(type: LessonContentBlockType, order: number): LessonContentBlo
     teacherReviewed: true,
     resourceUrl: null,
   };
+
+  if (type === "illustration") {
+    return {
+      ...base,
+      assetMeta: {
+        assetKind: "illustration",
+        assetStatus: "missing",
+        required: true,
+        source: "teacher",
+      },
+    };
+  }
+
+  if (type === "diagram") {
+    return {
+      ...base,
+      diagramMeta: { diagramType: "fraction_bar", data: { numerator: 1, denominator: 2 } },
+      assetMeta: {
+        assetKind: "diagram",
+        assetStatus: "approved",
+        source: "system",
+        required: true,
+      },
+    };
+  }
+
+  if (type === "asset_plan") {
+    return {
+      ...base,
+      bodyHtml: "<p>Suggested assets for this lesson.</p>",
+      assetMeta: { assetKind: "illustration", assetStatus: "planned", required: false, source: "system" },
+    };
+  }
+
+  if (type === "math_expression") {
+    return {
+      ...base,
+      mathMeta: { format: "latex", latex: "", plainText: "", validationStatus: "not_checked" },
+    };
+  }
+
+  if (type === "bilingual_text" || type === "vocabulary" || type === "pronunciation") {
+    return {
+      ...base,
+      languageMeta: {
+        requiresLanguageReview: true,
+        languageReviewStatus: "needs_review",
+        mediumOfInstruction: "bilingual",
+      },
+    };
+  }
+
+  return base;
 }
 
 export function LessonContentBlocksEditor({
@@ -64,6 +121,7 @@ export function LessonContentBlocksEditor({
   leoEnabled = false,
   leoLoading = false,
   readOnly = false,
+  schoolId,
   sessionTargets,
   onMoveBlock,
 }: Props) {
@@ -71,15 +129,20 @@ export function LessonContentBlocksEditor({
 
   const updateBlock = (id: string, patch: Partial<LessonContentBlock>) => {
     onChange(
-      blocks.map((b) =>
-        b.id === id
-          ? {
-              ...b,
-              ...patch,
-              teacherReviewed: patch.teacherReviewed ?? (b.aiGenerated ? patch.bodyHtml !== undefined ? false : b.teacherReviewed : b.teacherReviewed),
-            }
-          : b,
-      ),
+      blocks.map((b) => {
+        if (b.id !== id) return b;
+        const next = { ...b, ...patch };
+        if (b.aiGenerated && patch.teacherReviewed === undefined) {
+          const contentChanged =
+            patch.bodyHtml !== undefined ||
+            patch.mathMeta !== undefined ||
+            patch.languageMeta !== undefined ||
+            patch.assetMeta !== undefined ||
+            patch.resourceUrl !== undefined;
+          if (contentChanged) next.teacherReviewed = false;
+        }
+        return next;
+      }),
     );
   };
 
@@ -92,7 +155,17 @@ export function LessonContentBlocksEditor({
   };
 
   const markAllReviewed = () => {
-    onChange(blocks.map((b) => (b.aiGenerated ? { ...b, teacherReviewed: true } : b)));
+    onChange(
+      blocks.map((b) =>
+        b.aiGenerated
+          ? {
+              ...b,
+              teacherReviewed: true,
+              reviewMeta: { ...b.reviewMeta, aiReviewStatus: "approved" },
+            }
+          : b,
+      ),
+    );
   };
 
   const unreviewed = blocks.filter((b) => b.aiGenerated && !b.teacherReviewed).length;
@@ -147,7 +220,7 @@ export function LessonContentBlocksEditor({
       </div>
 
       {preview ? (
-        <LessonContentBlocksRenderer blocks={blocks} />
+        <LessonContentBlocksRenderer blocks={blocks} viewMode="teacher" />
       ) : (
         <div className="space-y-3">
           {blocks.map((block) => (
@@ -166,7 +239,7 @@ export function LessonContentBlocksEditor({
                   onValueChange={(v) => updateBlock(block.id, { type: v as LessonContentBlockType })}
                   disabled={readOnly}
                 >
-                  <PremiumSelectTrigger className="h-8 w-[140px]">
+                  <PremiumSelectTrigger className="h-8 w-[160px]">
                     <PremiumSelectValue />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -234,17 +307,26 @@ export function LessonContentBlocksEditor({
                   disabled={readOnly}
                   className="border-white/10 bg-black/20 text-white"
                 />
-                <Textarea
-                  value={block.bodyHtml.replace(/<[^>]+>/g, " ").trim()}
-                  onChange={(e) =>
-                    updateBlock(block.id, {
-                      bodyHtml: `<p>${e.target.value.replace(/</g, "&lt;")}</p>`,
-                    })
-                  }
-                  placeholder="Content…"
-                  disabled={readOnly}
-                  className="min-h-[100px] border-white/10 bg-black/20 text-white"
-                />
+                {isAdvancedLessonBlockType(block.type) ? (
+                  <AdvancedBlockEditor
+                    block={block}
+                    readOnly={readOnly}
+                    schoolId={schoolId}
+                    onChange={(patch) => updateBlock(block.id, patch)}
+                  />
+                ) : (
+                  <Textarea
+                    value={block.bodyHtml.replace(/<[^>]+>/g, " ").trim()}
+                    onChange={(e) =>
+                      updateBlock(block.id, {
+                        bodyHtml: `<p>${e.target.value.replace(/</g, "&lt;")}</p>`,
+                      })
+                    }
+                    placeholder="Content…"
+                    disabled={readOnly}
+                    className="min-h-[100px] border-white/10 bg-black/20 text-white"
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -252,20 +334,37 @@ export function LessonContentBlocksEditor({
       )}
 
       {!readOnly ? (
-        <div className="flex flex-wrap gap-2">
-          <Label className="w-full text-xs text-white/50">Add block</Label>
-          {LESSON_CONTENT_BLOCK_TYPES.slice(0, 4).map((t) => (
-            <Button
-              key={t}
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => addBlock(t)}
-              className="border-white/10 bg-white/5 text-xs text-white/70"
-            >
-              + {LESSON_CONTENT_BLOCK_LABELS[t]}
-            </Button>
-          ))}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Label className="w-full text-xs text-white/50">Add block</Label>
+            {LEGACY_LESSON_CONTENT_BLOCK_TYPES.slice(0, 4).map((t) => (
+              <Button
+                key={t}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => addBlock(t)}
+                className="border-white/10 bg-white/5 text-xs text-white/70"
+              >
+                + {LESSON_CONTENT_BLOCK_LABELS[t]}
+              </Button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Label className="w-full text-xs text-white/50">Advanced blocks</Label>
+            {ADVANCED_LESSON_CONTENT_BLOCK_TYPES.map((t) => (
+              <Button
+                key={t}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => addBlock(t)}
+                className="border-teal-400/20 bg-teal-500/5 text-xs text-teal-100/90"
+              >
+                + {LESSON_CONTENT_BLOCK_LABELS[t]}
+              </Button>
+            ))}
+          </div>
         </div>
       ) : null}
     </div>

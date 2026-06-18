@@ -5,6 +5,12 @@ import { Types } from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { normalizeContentBlocks } from "@/lib/lessons/content-blocks";
 import {
+  buildSessionFlashcardSystemInstruction,
+  buildSessionFlashcardUserPrompt,
+  dedupeFlashcardCandidates,
+  parseLeoFlashcardResponse,
+} from "@/lib/lessons/flashcard-generation";
+import {
   publishedClassDeckQuery,
   publishedStudentLeoDeckQuery,
 } from "@/lib/learn/student-deck-access";
@@ -28,19 +34,6 @@ export type ResolvedSessionFlashcards = {
   cards: SessionFlashcardRow[];
   source: "teacher_class" | "leo_student";
 };
-
-const LEO_STUDENT_FLASHCARD_SYSTEM = `You are Leo, a warm learning companion for Ghanaian school students.
-Return valid JSON only:
-{
-  "cards": [
-    { "front": string (short question or prompt), "back": string (clear answer) }
-  ]
-}
-Rules:
-- Cards must match the lesson content provided.
-- Age-appropriate, encouraging language.
-- Front and back each max 280 characters.
-- No unsafe or discouraging content.`;
 
 function stripHtml(html: string, maxLen = 400) {
   const text = html
@@ -136,14 +129,19 @@ async function generateLeoFlashcardDrafts(
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: LEO_STUDENT_FLASHCARD_SYSTEM },
+        {
+          role: "system",
+          content: `You are Leo, a warm learning companion for Ghanaian school students.\n${buildSessionFlashcardSystemInstruction(maxCards)}`,
+        },
         {
           role: "user",
-          content: `Create exactly ${maxCards} revision flashcards for this class lesson.
-Title: ${session.title}
-Plan notes: ${session.planNotes?.slice(0, 1200) || "(none)"}
-Lesson content:
-${contentSummary || "(summary from lesson title only)"}`,
+          content: buildSessionFlashcardUserPrompt({
+            title: session.title,
+            planNotes: session.planNotes?.slice(0, 1200) || "",
+            contentSummary: contentSummary || "(summary from lesson title only)",
+            maxCards,
+            existingCards: [],
+          }),
         },
       ],
       temperature: 0.65,
@@ -163,19 +161,10 @@ ${contentSummary || "(summary from lesson title only)"}`,
       data = JSON.parse(match[0]);
     }
 
-    const cards = (data as { cards?: Array<{ front?: string; back?: string }> })?.cards;
-    if (!Array.isArray(cards)) return null;
+    const parsed = parseLeoFlashcardResponse(data);
+    const { unique } = dedupeFlashcardCandidates(parsed, []);
 
-    const normalized = cards
-      .map((card) => ({
-        front: String(card.front ?? "").trim().slice(0, 400),
-        back: String(card.back ?? "").trim().slice(0, 400),
-      }))
-      .filter((card) => card.front.length > 0 && card.back.length > 0);
-
-    return normalized.length >= LEO_STUDENT_FLASHCARD_MIN
-      ? normalized.slice(0, maxCards)
-      : null;
+    return unique.length >= LEO_STUDENT_FLASHCARD_MIN ? unique.slice(0, maxCards) : null;
   } catch (e) {
     console.error("[leo-session-flashcards] OpenAI", e);
     return null;

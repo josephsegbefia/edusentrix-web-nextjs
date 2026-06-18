@@ -40,6 +40,7 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import {
   LessonWeekPlanCreateError,
   useCreateLessonWeekPlan,
@@ -182,6 +183,8 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
   const autoSplitKeyRef = React.useRef<string | null>(null);
 
   const { data: classesData } = useTeacherClasses();
+  const { data: teacherContext } = useTeacherContext();
+  const schoolId = teacherContext?.data?.school?._id;
   const proposeSplit = useProposeWeekSplit();
   const generateContent = useGenerateSessionContent();
   const classOptions = classesData?.data.classes ?? [];
@@ -1109,6 +1112,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                       }
                     : undefined
                 }
+                schoolId={schoolId}
               />
             ) : null}
           </CardContent>

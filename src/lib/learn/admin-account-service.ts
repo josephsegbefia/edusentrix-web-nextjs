@@ -6,9 +6,13 @@ import {
   hashLearnPassword,
 } from "@/lib/learn/account-credentials";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
+import {
+  isLearnEligibleGrade,
+  LEARN_GRADE_RANGE_LABEL,
+} from "@/lib/learn/grade-eligibility";
 import { AuditEvent } from "@/models/AuditEvent";
 import { ClassGroup } from "@/models/ClassGroup";
-import { Grade } from "@/models/Grade";
+import { Grade, type IGrade } from "@/models/Grade";
 import { Guardian } from "@/models/Guardian";
 import { LearnStudentAccount } from "@/models/LearnStudentAccount";
 import { Notification } from "@/models/Notification";
@@ -148,9 +152,11 @@ export async function createLearnAccountForStudent(input: CreateLearnAccountInpu
     };
   }
 
-  const [gradeExists, classGroupExists, existingAccount, guardians] =
+  const [grade, classGroupExists, existingAccount, guardians] =
     await Promise.all([
-      Grade.exists({ _id: student.gradeId, schoolId: input.schoolId }),
+      Grade.findOne({ _id: student.gradeId, schoolId: input.schoolId })
+        .select("_id name code")
+        .lean<Pick<IGrade, "_id" | "name" | "code"> | null>(),
       ClassGroup.exists({
         _id: student.classGroupId,
         schoolId: input.schoolId,
@@ -166,11 +172,19 @@ export async function createLearnAccountForStudent(input: CreateLearnAccountInpu
         .lean<GuardianForDelivery[]>(),
     ]);
 
-  if (!gradeExists || !classGroupExists) {
+  if (!grade || !classGroupExists) {
     return {
       ok: false as const,
       status: 400,
       error: "Student grade or class group does not belong to this school.",
+    };
+  }
+
+  if (!isLearnEligibleGrade(grade)) {
+    return {
+      ok: false as const,
+      status: 400,
+      error: `Learn accounts are only available for students in ${LEARN_GRADE_RANGE_LABEL}.`,
     };
   }
 

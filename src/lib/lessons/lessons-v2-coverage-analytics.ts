@@ -125,7 +125,7 @@ export async function getV2CoverageAnalytics(input: {
       ...byWeekDeliveryAgg.map((r) => String(r._id)),
       ...byWeekCoverageAgg.map((r) => String(r._id)),
     ]),
-  ].map((id) => new Types.ObjectId(id));
+  ].map((id) => new mongoose.Types.ObjectId(id));
 
   const weekPlans = weekIds.length
     ? await LessonWeekPlan.find({ _id: { $in: weekIds }, schoolId: input.schoolId })

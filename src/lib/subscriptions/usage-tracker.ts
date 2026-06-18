@@ -60,7 +60,6 @@ export async function checkUsageBalance(
 
   const balance = await UsageBalance.findOne({
     schoolId: schoolIdObj,
-    subscriptionId: sub._id,
     balanceType: type,
   }).lean<{
     includedQuantity: number;
@@ -116,7 +115,7 @@ export async function trackSubscriptionUsage({
   if (!sub) return { success: true, remaining: Infinity };
 
   const balance = await UsageBalance.findOneAndUpdate(
-    { schoolId: schoolIdObj, subscriptionId: sub._id, balanceType: type },
+    { schoolId: schoolIdObj, balanceType: type },
     { $inc: { usedQuantity: amount } },
     { new: true }
   ).lean<{
@@ -217,7 +216,7 @@ export async function reserveUsageCredits(
 
   // Atomically deduct (reserve)
   await UsageBalance.findOneAndUpdate(
-    { schoolId: schoolIdObj, subscriptionId: sub?._id, balanceType: type },
+    { schoolId: schoolIdObj, balanceType: type },
     { $inc: { usedQuantity: amount } }
   );
 
@@ -260,7 +259,6 @@ export async function finalizeUsageCredits(
     await UsageBalance.findOneAndUpdate(
       {
         schoolId: schoolIdObj,
-        subscriptionId: new mongoose.Types.ObjectId(reservation.subscriptionId),
         balanceType: reservation.type,
       },
       { $inc: { usedQuantity: -diff } }
@@ -298,7 +296,6 @@ export async function refundUsageCredits(
   await UsageBalance.findOneAndUpdate(
     {
       schoolId: schoolIdObj,
-      subscriptionId: new mongoose.Types.ObjectId(reservation.subscriptionId),
       balanceType: reservation.type,
     },
     { $inc: { usedQuantity: -reservation.reservedAmount } }

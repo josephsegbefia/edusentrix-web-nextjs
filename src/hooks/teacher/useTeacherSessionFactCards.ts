@@ -2,11 +2,22 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+export type FactCardPublishPayload = {
+  fact: string;
+  detail: string;
+  tags?: string[];
+  illustrationUrl?: string | null;
+  illustrationUploadThingKey?: string | null;
+  illustrationPrompt?: string | null;
+};
+
 export type FactCardDto = {
   id: string;
   fact: string;
   detail: string;
   tags: string[];
+  illustrationUrl?: string | null;
+  illustrationPrompt?: string | null;
   status: "draft" | "published";
   publishedToLearn: boolean;
   publishedAt: string | null;
@@ -61,7 +72,7 @@ export function useCreateSessionFactCard(sessionId: string) {
 export function useBulkCreateSessionFactCards(sessionId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (cards: Array<{ fact: string; detail: string; tags?: string[] }>) => {
+    mutationFn: async (cards: FactCardPublishPayload[]) => {
       const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/fact-cards`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import { isDatabaseConnectionError } from "@/lib/api/database-errors";
 import { verifyLearnPassword } from "@/lib/learn/account-credentials";
 import { recordLearnMobileActivity } from "@/lib/learn/mobile-activity";
 import { getRequestMeta } from "@/lib/learn/mobile-auth";
@@ -183,6 +184,17 @@ export async function POST(request: NextRequest) {
         friendlyMessage: "Please enter your username and password.",
         status: 400,
         details: error.flatten(),
+      });
+    }
+
+    if (isDatabaseConnectionError(error)) {
+      console.error("[learn/mobile/auth/login] database unavailable", error);
+      return mobileApiFailure({
+        code: "DATABASE_UNAVAILABLE",
+        message: "Database connection is unavailable.",
+        friendlyMessage:
+          "EduSentrix Learn cannot reach the school database right now. Please try again shortly.",
+        status: 503,
       });
     }
 

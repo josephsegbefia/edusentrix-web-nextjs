@@ -6,8 +6,9 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { LessonFlashcard, type ILessonFlashcard } from "@/models/LessonFlashcard";
 import { getOrCreateSessionFlashcardDeck } from "@/lib/lessons/flashcard-deck-session";
-import { loadSessionForFlashcardManage } from "@/lib/lessons/flashcard-access";
+import { canTeacherManageFlashcard, loadSessionForFlashcardManage } from "@/lib/lessons/flashcard-access";
 import { formatFlashcard, formatFlashcardDeck } from "@/lib/lessons/format-flashcards";
+import { dedupeFlashcardCandidates } from "@/lib/lessons/flashcard-generation";
 import type { TeacherLessonFlashcardsResponse } from "@/types/lesson-flashcards";
 import { assertLessonsFeatureEnabled, assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
@@ -42,6 +43,10 @@ const BulkCardsSchema = z.object({
     )
     .min(1)
     .max(30),
+});
+
+const BulkDeleteSchema = z.object({
+  cardIds: z.array(z.string().min(1)).min(1).max(50),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -154,6 +159,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         sessionId,
         context.teacherId,
       );
+      const existingRows = (await LessonFlashcard.find({
+        schoolId: context.schoolId,
+        deckId: deckDoc._id,
+      })
+        .select("front back")
+        .lean()) as Array<{ front: string; back: string }>;
+
+      const { unique, skipped } = dedupeFlashcardCandidates(
+        bulkParsed.data.cards,
+        existingRows.map((row) => ({ front: row.front, back: row.back })),
+      );
+
+      if (unique.length === 0) {
+        return Response.json(
+          {
+            success: false,
+            error:
+              skipped > 0
+                ? "All suggested cards duplicate ones already in this deck."
+                : "No valid flashcards to save.",
+          },
+          { status: 400 },
+        );
+      }
+
       const maxOrderDoc = (await LessonFlashcard.findOne({
         schoolId: context.schoolId,
         deckId: deckDoc._id,
@@ -163,7 +193,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .lean()) as { order?: number } | null;
       let nextOrder = (maxOrderDoc?.order ?? -1) + 1;
       const createdIds: string[] = [];
-      for (const card of bulkParsed.data.cards) {
+      for (const card of unique) {
         const created = await LessonFlashcard.create({
           schoolId: context.schoolId,
           sessionId,
@@ -176,7 +206,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         });
         createdIds.push(String(created._id));
       }
-      return Response.json({ success: true, data: { ids: createdIds } });
+      return Response.json({
+        success: true,
+        data: { ids: createdIds, skippedDuplicates: skipped },
+      });
     }
 
     const parsed = CreateCardSchema.safeParse(raw);
@@ -223,6 +256,109 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (e instanceof Response) return e;
     console.error("[lesson-sessions flashcards POST]", e);
     const message = e instanceof Error ? e.message : "Failed to create flashcard";
+    return Response.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const context = await requireTeacher();
+    await connectToDatabase();
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const featureGate = assertLessonsFeatureEnabled(
+      moduleGate.settings,
+      "enableFlashcards",
+      "Lesson flashcards",
+    );
+    if (!featureGate.ok) {
+      return Response.json({ success: false, error: featureGate.error }, { status: featureGate.status });
+    }
+    if (!can(context.permissions, PERMISSIONS.lessonFlashcardsManage)) {
+      return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const sessionId = toObjectIdOrNull(id);
+    if (!sessionId) {
+      return Response.json({ success: false, error: "Invalid session ID" }, { status: 400 });
+    }
+
+    const loaded = await loadSessionForFlashcardManage(
+      sessionId,
+      context.schoolId,
+      context.teacherId,
+      context.isAdmin,
+    );
+    if (!loaded) {
+      return Response.json({ success: false, error: "Session not found" }, { status: 404 });
+    }
+
+    const raw = await req.json().catch(() => null);
+    const parsed = BulkDeleteSchema.safeParse(raw);
+    if (!parsed.success) {
+      const msg = parsed.error.issues?.map((i) => i.message).join(", ") || "Invalid data";
+      return Response.json({ success: false, error: `Validation failed: ${msg}` }, { status: 400 });
+    }
+
+    const deckDoc = await getOrCreateSessionFlashcardDeck(
+      context.schoolId,
+      sessionId,
+      context.teacherId,
+    );
+
+    const cardObjectIds = parsed.data.cardIds
+      .map((cardId) => toObjectIdOrNull(cardId))
+      .filter((oid): oid is mongoose.Types.ObjectId => oid !== null);
+
+    if (cardObjectIds.length === 0) {
+      return Response.json({ success: false, error: "No valid card IDs" }, { status: 400 });
+    }
+
+    const cards = (await LessonFlashcard.find({
+      _id: { $in: cardObjectIds },
+      schoolId: context.schoolId,
+      deckId: deckDoc._id,
+    }).lean()) as ILessonFlashcard[];
+
+    if (cards.length === 0) {
+      return Response.json({ success: false, error: "No matching flashcards found" }, { status: 404 });
+    }
+
+    const deletableIds: mongoose.Types.ObjectId[] = [];
+    for (const card of cards) {
+      const allowed = await canTeacherManageFlashcard({
+        card,
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+        isAdmin: context.isAdmin,
+      });
+      if (allowed) deletableIds.push(card._id);
+    }
+
+    if (deletableIds.length === 0) {
+      return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const result = await LessonFlashcard.deleteMany({
+      _id: { $in: deletableIds },
+      schoolId: context.schoolId,
+      deckId: deckDoc._id,
+    });
+
+    return Response.json({
+      success: true,
+      data: {
+        deleted: result.deletedCount ?? 0,
+        skipped: parsed.data.cardIds.length - (result.deletedCount ?? 0),
+      },
+    });
+  } catch (e: unknown) {
+    if (e instanceof Response) return e;
+    console.error("[lesson-sessions flashcards DELETE]", e);
+    const message = e instanceof Error ? e.message : "Failed to delete flashcards";
     return Response.json({ success: false, error: message }, { status: 500 });
   }
 }

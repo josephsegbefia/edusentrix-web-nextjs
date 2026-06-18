@@ -9,6 +9,8 @@ import { LearnStudentAccount } from "@/models/LearnStudentAccount";
 import { Student } from "@/models/Student";
 import type { LearnMobileStudentContext } from "@/lib/learn/mobile-auth";
 
+const USABLE_LEARN_ACCOUNT_STATUSES = ["pending_first_login", "active", "locked"] as const;
+
 /** Grade label used in class-scoped Explore generation keys. */
 export async function resolveGradeLevelForClassGroup(input: {
   schoolId: Types.ObjectId;
@@ -38,8 +40,8 @@ export async function resolveGradeLevelForClassGroup(input: {
 }
 
 /**
- * Minimal mobile auth context for background Explore workers (delivery complete, etc.).
- * Uses the first active student in the class with a Learn account.
+ * Minimal mobile auth context for background Explore workers.
+ * Prefers any student in the class with a Learn account (including pending first login).
  */
 export async function buildExploreWorkerContextForClass(input: {
   schoolId: Types.ObjectId;
@@ -47,31 +49,43 @@ export async function buildExploreWorkerContextForClass(input: {
 }): Promise<LearnMobileStudentContext | null> {
   await connectToDatabase();
 
-  const student = await Student.findOne({
+  const students = await Student.find({
     schoolId: input.schoolId,
     classGroupId: input.classGroupId,
     status: "active",
   })
-    .select("_id schoolId gradeId classGroupId userId")
-    .sort({ updatedAt: -1 })
-    .lean<{
-      _id: Types.ObjectId;
-      schoolId: Types.ObjectId;
-      gradeId?: Types.ObjectId | null;
-      classGroupId?: Types.ObjectId | null;
-    } | null>();
+    .select("_id schoolId gradeId classGroupId")
+    .lean<
+      Array<{
+        _id: Types.ObjectId;
+        schoolId: Types.ObjectId;
+        gradeId?: Types.ObjectId | null;
+        classGroupId?: Types.ObjectId | null;
+      }>
+    >();
 
-  if (!student) return null;
+  if (!students.length) return null;
+
+  const studentMap = new Map(students.map((row) => [String(row._id), row]));
+  const studentIds = students.map((row) => row._id);
 
   const account = await LearnStudentAccount.findOne({
     schoolId: input.schoolId,
-    studentId: student._id,
-    status: "active",
+    studentId: { $in: studentIds },
+    status: { $in: USABLE_LEARN_ACCOUNT_STATUSES },
   })
-    .select("_id mustChangePassword")
-    .lean<{ _id: Types.ObjectId; mustChangePassword?: boolean } | null>();
+    .select("_id studentId mustChangePassword")
+    .sort({ updatedAt: -1 })
+    .lean<{
+      _id: Types.ObjectId;
+      studentId: Types.ObjectId;
+      mustChangePassword?: boolean;
+    } | null>();
 
   if (!account) return null;
+
+  const student = studentMap.get(String(account.studentId));
+  if (!student) return null;
 
   return {
     accountId: account._id,

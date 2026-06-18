@@ -15,6 +15,9 @@ export interface ILearnFactCard {
   /** 2-3 sentences of context or explanation. */
   detail: string;
   tags: string[];
+  illustrationUrl?: string | null;
+  illustrationUploadThingKey?: string | null;
+  illustrationPrompt?: string | null;
   status: LearnFactCardStatus;
   publishedToLearn: boolean;
   publishedAt?: Date | null;
@@ -38,6 +41,9 @@ const learnFactCardSchema = new Schema<ILearnFactCard>(
     fact: { type: String, trim: true, required: true, maxlength: 500 },
     detail: { type: String, trim: true, required: true, maxlength: 2000 },
     tags: [{ type: String, trim: true, maxlength: 60 }],
+    illustrationUrl: { type: String, trim: true, maxlength: 2000, default: null },
+    illustrationUploadThingKey: { type: String, trim: true, maxlength: 500, default: null },
+    illustrationPrompt: { type: String, trim: true, maxlength: 220, default: null },
     status: {
       type: String,
       enum: ["draft", "published"],

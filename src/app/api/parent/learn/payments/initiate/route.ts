@@ -5,7 +5,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
-import { getOrCreateLearnPlatformSettings } from "@/lib/learn/platform-settings";
+import { resolveParentLearnPriceForSchool } from "@/lib/learn/parent-pricing";
 import { getPaystackKeyMode, initializeTransaction } from "@/lib/paystack";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
           .select("_id schoolId status gradeId classGroupId")
           .lean<StudentRow | null>(),
         getSchoolLearnEligibility(ctx.schoolId),
-        getOrCreateLearnPlatformSettings(),
+        resolveParentLearnPriceForSchool(ctx.schoolId),
         LearnStudentAccount.findOne({ schoolId: ctx.schoolId, studentId })
           .select("_id status")
           .lean<AccountRow | null>(),

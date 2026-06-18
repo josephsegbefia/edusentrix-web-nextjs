@@ -517,6 +517,17 @@ export const ourFileRouter = {
       buildUploadResponse(metadata, file)
     ),
 
+  lessonIllustration: f({
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("lessons/illustrations", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
   noticeAttachment: f({
     pdf: { maxFileSize: "8MB", maxFileCount: 1 },
     image: { maxFileSize: "8MB", maxFileCount: 1 },

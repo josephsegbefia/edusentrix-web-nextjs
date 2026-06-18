@@ -87,6 +87,7 @@ const subscriptionAddOnSchema = new Schema<ISubscriptionAddOn>(
       index: true,
     },
     quantity: { type: Number, required: true, min: 1 },
+    /** For learn_seats: per-seat parent billing reference in minor units. Otherwise package total. */
     priceMinor: { type: Number, required: true, min: 0, default: 0 },
     status: {
       type: String,
@@ -109,6 +110,14 @@ const subscriptionAddOnSchema = new Schema<ISubscriptionAddOn>(
 subscriptionAddOnSchema.index({ schoolId: 1, status: 1 });
 subscriptionAddOnSchema.index({ schoolId: 1, addonType: 1 });
 subscriptionAddOnSchema.index({ schoolId: 1, createdAt: -1 });
+subscriptionAddOnSchema.index(
+  { schoolId: 1, addonType: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ["pending", "paid"] } },
+    name: "uniq_school_active_addon_type",
+  },
+);
 
 export const SubscriptionAddOn: Model<ISubscriptionAddOn> =
   (models.SubscriptionAddOn as Model<ISubscriptionAddOn>) ||

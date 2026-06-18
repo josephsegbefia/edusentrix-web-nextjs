@@ -250,7 +250,8 @@ export function SessionBoardNotesPanel({
               Share with students
             </Label>
             <p className="mt-0.5 text-xs text-white/45">
-              Students see these notes in their lesson after you teach this session.
+              Students see these notes in EduSentrix Learn and their lesson view after you teach
+              this session.
             </p>
           </div>
           <Switch checked={published} onCheckedChange={(v) => void handlePublishToggle(v)} />

@@ -235,7 +235,14 @@ export async function PATCH(
           requireTeacherReviewForAiContent: settings.requireTeacherReviewForAiContent,
         });
         if (!publishGate.ok) {
-          return Response.json({ success: false, error: publishGate.error }, { status: 400 });
+          return Response.json(
+            {
+              success: false,
+              error: publishGate.error,
+              blockingReasons: publishGate.blockingReasons,
+            },
+            { status: 400 },
+          );
         }
         if (!can(context.permissions, PERMISSIONS.lessonsPublish)) {
           return Response.json({ success: false, error: "Forbidden" }, { status: 403 });

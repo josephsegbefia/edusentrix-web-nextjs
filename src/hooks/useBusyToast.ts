@@ -4,16 +4,16 @@ import { useRef } from "react";
 import { useBusy } from "@/providers/busy-provider";
 import { useToast } from "./useToast";
 
-type Labels = {
+type Labels<T = unknown> = {
   loading: string;
-  success: string;
+  success: string | ((result: T) => string);
   error: string | ((e: Error) => string);
 };
 
 type ToastApi = ReturnType<typeof useToast>;
 
 export type BusyToast = Omit<ToastApi, "promise"> & {
-  promise: <T>(p: Promise<T>, labels: Labels) => Promise<T>;
+  promise: <T>(p: Promise<T>, labels: Labels<T>) => Promise<T>;
   show: (message: string) => void;
   hide: () => void;
 };
@@ -24,11 +24,13 @@ export function useBusyToast(): BusyToast {
   const toastIdRef = useRef<string | number | null>(null);
 
   /** Just like toast.promise, but disables the page while pending */
-  const busyPromise = async <T>(p: Promise<T>, labels: Labels): Promise<T> => {
+  const busyPromise = async <T>(p: Promise<T>, labels: Labels<T>): Promise<T> => {
     beginBusy();
     try {
       const result = await p;
-      success(labels.success);
+      const successMsg =
+        typeof labels.success === "function" ? labels.success(result) : labels.success;
+      success(successMsg);
       return result;
     } catch (err) {
       const errorMsg =

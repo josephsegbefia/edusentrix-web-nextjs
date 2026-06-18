@@ -3,12 +3,12 @@ import { Types } from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
+import { getLearnEligibleStudentsSummary } from "@/lib/learn/grade-eligibility";
 import { ClassGroup } from "@/models/ClassGroup";
 import { LearnAccess } from "@/models/LearnAccess";
 import { LearnActivityEvent } from "@/models/LearnActivityEvent";
 import { LearnPaymentIntent } from "@/models/LearnPaymentIntent";
 import { LearnStudentAccount } from "@/models/LearnStudentAccount";
-import { Student } from "@/models/Student";
 
 type ClassActivityRow = {
   _id: Types.ObjectId;
@@ -26,11 +26,11 @@ export async function GET() {
     await connectToDatabase();
 
     const eligibility = await getSchoolLearnEligibility(ctx.schoolId);
+    const eligibleSummary = await getLearnEligibleStudentsSummary(ctx.schoolId);
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - 7);
 
     const [
-      eligibleStudents,
       activeAccounts,
       pendingFirstLogin,
       activeAccess,
@@ -38,12 +38,6 @@ export async function GET() {
       activityThisWeek,
       classActivityRows,
     ] = await Promise.all([
-      Student.countDocuments({
-        schoolId: ctx.schoolId,
-        status: "active",
-        gradeId: { $exists: true, $ne: null },
-        classGroupId: { $exists: true, $ne: null },
-      }),
       LearnStudentAccount.countDocuments({
         schoolId: ctx.schoolId,
         status: { $in: ["pending_first_login", "active", "locked"] },
@@ -93,9 +87,10 @@ export async function GET() {
       data: {
         eligibility,
         metrics: {
-          eligibleStudents,
+          eligibleStudents: eligibleSummary.eligibleStudents,
+          studentsWithoutAccounts: eligibleSummary.withoutAccounts,
+          gradeRange: eligibleSummary.gradeRange,
           activeAccounts,
-          studentsWithoutAccounts: Math.max(0, eligibleStudents - activeAccounts),
           pendingFirstLogin,
           activeAccess,
           pendingPayments,

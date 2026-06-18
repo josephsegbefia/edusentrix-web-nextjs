@@ -12,6 +12,7 @@ import { School } from "@/models/School";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { SubscriptionAddOn, ADDON_TYPES } from "@/models/SubscriptionAddOn";
 import { recordSubscriptionEvent } from "@/lib/subscriptions/record-event";
+import { markSchoolAddOnCredited } from "@/lib/subscriptions/credit-school-addon";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -79,29 +80,78 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: false, error: "School not found." }, { status: 404 });
   }
 
-  const addon = await SubscriptionAddOn.create({
-    schoolId: new mongoose.Types.ObjectId(schoolId),
-    subscriptionId: sub?._id ?? null,
+  const schoolObjectId = new mongoose.Types.ObjectId(schoolId);
+  const duplicate = await SubscriptionAddOn.findOne({
+    schoolId: schoolObjectId,
     addonType: parsed.data.addonType,
-    quantity: parsed.data.quantity,
-    priceMinor: parsed.data.priceMinor,
-    status: "pending",
-    note: parsed.data.note ?? null,
-    invoiceReference: parsed.data.invoiceReference ?? null,
-    createdByEmail: perm.actor.email ?? null,
-  });
+    status: { $in: ["pending", "paid"] },
+  })
+    .select("_id status")
+    .lean<{ _id: mongoose.Types.ObjectId; status: string } | null>();
+
+  if (duplicate) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `This school already has a ${duplicate.status} ${parsed.data.addonType.replace(/_/g, " ")} add-on. Resolve or remove it before adding another.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  let addon;
+  try {
+    addon = await SubscriptionAddOn.create({
+      schoolId: schoolObjectId,
+      subscriptionId: sub?._id ?? null,
+      addonType: parsed.data.addonType,
+      quantity: parsed.data.quantity,
+      priceMinor: parsed.data.priceMinor,
+      status: "pending",
+      note: parsed.data.note ?? null,
+      invoiceReference: parsed.data.invoiceReference ?? null,
+      createdByEmail: perm.actor.email ?? null,
+    });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
+      return NextResponse.json(
+        { success: false, error: "This school already has an unresolved add-on of this type." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+
+  let finalAddon = addon;
+
+  // Learn seats: grant capacity immediately. Price is per-seat billing reference; parents pay later.
+  if (parsed.data.addonType === "learn_seats") {
+    const credited = await markSchoolAddOnCredited({
+      addonId: addon._id,
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+      actorEmail: perm.actor.email ?? null,
+    });
+    if (!credited.ok) {
+      return NextResponse.json({ success: false, error: credited.error }, { status: 500 });
+    }
+    finalAddon = credited.addon;
+  }
 
   await recordSubscriptionEvent({
-    schoolId: new mongoose.Types.ObjectId(schoolId),
+    schoolId: schoolObjectId,
     subscriptionId: sub?._id ?? null,
     eventType: "addon_purchased",
     actorEmail: perm.actor.email ?? null,
-    summary: `Add-on created: ${addon.addonType} × ${addon.quantity}. Status: pending. Created by platform admin.`,
+    summary:
+      parsed.data.addonType === "learn_seats"
+        ? `Learn seats granted: ${addon.quantity} seats at ${addon.priceMinor} minor units per seat (parent billing reference).`
+        : `Add-on created: ${addon.addonType} × ${addon.quantity}. Status: pending. Created by platform admin.`,
     metadata: {
       addonId: String(addon._id),
       addonType: addon.addonType,
       quantity: addon.quantity,
       priceMinor: addon.priceMinor,
+      priceUnit: parsed.data.addonType === "learn_seats" ? "per_seat" : "total",
     },
   });
 
@@ -109,10 +159,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     {
       success: true,
       data: {
-        ...addon.toObject(),
-        _id: String(addon._id),
-        schoolId: String(addon.schoolId),
-        subscriptionId: addon.subscriptionId ? String(addon.subscriptionId) : null,
+        ...finalAddon.toObject(),
+        _id: String(finalAddon._id),
+        schoolId: String(finalAddon.schoolId),
+        subscriptionId: finalAddon.subscriptionId ? String(finalAddon.subscriptionId) : null,
       },
     },
     { status: 201 }

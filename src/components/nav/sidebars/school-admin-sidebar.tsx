@@ -338,6 +338,11 @@ const navSections: NavSection[] = [
         icon: FileSearch,
       },
       {
+        label: "Receipts",
+        href: "/admin/finance/receipts",
+        icon: Receipt,
+      },
+      {
         label: "Fees & Payments",
         href: "/admin/fees",
         icon: DollarSign,

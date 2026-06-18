@@ -11,20 +11,24 @@ import {
   Loader2,
   Presentation,
   RefreshCw,
+  type LucideIcon,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DateRangePicker } from "@/components/ui/custom-date-picker";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherLessonAnalytics } from "@/hooks/teacher/useTeacherLessonAnalytics";
 import { defaultLessonAnalyticsRange } from "@/lib/lessons/analytics-range";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { glassInsetClass, glassSecondaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 import { LessonsV2CoverageSection } from "@/components/lessons/LessonsV2CoverageSection";
 
-function StatCard({
+function StatTile({
   label,
   value,
   subtitle,
@@ -36,17 +40,83 @@ function StatCard({
   loading?: boolean;
 }) {
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-      <CardContent className="p-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
-        {loading ? (
-          <div className="mt-2 h-9 w-24 animate-pulse rounded bg-white/10" />
-        ) : (
-          <p className="mt-1 text-2xl font-semibold text-white">{value}</p>
-        )}
-        {subtitle && <p className="mt-1 text-xs text-white/50">{subtitle}</p>}
-      </CardContent>
-    </Card>
+    <div className={cn(glassInsetClass, "p-4 sm:p-5")}>
+      <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
+      {loading ? (
+        <div className="mt-2 h-9 w-24 animate-pulse rounded-lg bg-white/10" />
+      ) : (
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-white">{value}</p>
+      )}
+      {subtitle ? <p className="mt-1 text-xs leading-relaxed text-white/50">{subtitle}</p> : null}
+    </div>
+  );
+}
+
+function AnalyticsSection({
+  title,
+  icon: Icon,
+  description,
+  children,
+  footer,
+}: {
+  title: string;
+  icon: LucideIcon;
+  description?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <GlassPanel className="p-0" glow="both">
+      <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/70">
+          <Icon className="h-4 w-4 text-teal-300" />
+          {title}
+        </h2>
+        {description ? (
+          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/50">{description}</p>
+        ) : null}
+      </div>
+      <div className="space-y-4 p-5 sm:p-6">
+        {children}
+        {footer}
+      </div>
+    </GlassPanel>
+  );
+}
+
+function headerActions({
+  isFetching,
+  onRefresh,
+}: {
+  isFetching: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        asChild
+        className={cn("rounded-xl", glassSecondaryButtonClass)}
+      >
+        <Link href="/teacher/lesson-notes">
+          <BookOpen className="mr-2 h-4 w-4" />
+          Lesson notes
+        </Link>
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={onRefresh}
+        disabled={isFetching}
+        className={cn("rounded-xl", glassSecondaryButtonClass)}
+      >
+        <RefreshCw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
+        Refresh
+      </Button>
+    </>
   );
 }
 
@@ -62,7 +132,7 @@ export default function TeacherLessonAnalyticsPage() {
   const { data, isLoading, isFetching, error, refetch } = useTeacherLessonAnalytics(
     startDate,
     endDate,
-    canView
+    canView,
   );
 
   const rangeLabel =
@@ -72,17 +142,20 @@ export default function TeacherLessonAnalyticsPage() {
 
   if (!canView) {
     return (
-      <div className="space-y-6 p-6 text-white md:p-8">
-        <div>
-          <h1 className="text-2xl font-semibold">Lesson analytics</h1>
-          <p className="text-sm text-white/60">Analytics are unavailable without journal access.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-6 text-sm text-white/60">
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          backHref="/teacher/lessons"
+          backLabel="My lessons"
+          icon={BarChart3}
+          title="Lesson analytics"
+          subtitle="Analytics are unavailable without journal access."
+        />
+        <GlassPanel className="p-6">
+          <p className="text-sm text-white/60">
             Ask an admin to grant journal permissions to view lessons and engagement.
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
@@ -99,65 +172,32 @@ export default function TeacherLessonAnalyticsPage() {
   const quickFlashcardActive = data?.flashcards?.activeStudentsInRange ?? "—";
 
   return (
-    <div className="space-y-8 p-6 text-white md:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-200">
-            <BarChart3 className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Lesson analytics</h1>
-            <p className="text-sm text-white/55">Your lessons, student reads, flashcards, and reflections.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            asChild
-            className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-          >
-            <Link href="/teacher/lessons">
-              <Presentation className="mr-2 h-4 w-4" />
-              My lessons
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            asChild
-            className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-          >
-            <Link href="/teacher/lesson-notes">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Lesson notes
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => void refetch()}
-            disabled={isFetching}
-            className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-          >
-            <RefreshCw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        backHref="/teacher/lessons"
+        backLabel="My lessons"
+        icon={BarChart3}
+        title="Lesson analytics"
+        subtitle="Your lessons, student reads, flashcards, and reflections — scoped to the date range below."
+        badge={
+          rangeLabel ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {rangeLabel}
+            </span>
+          ) : undefined
+        }
+        actions={headerActions({ isFetching, onRefresh: () => void refetch() })}
+      />
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="text-lg text-white">Date range</CardTitle>
-          <p className="text-xs text-white/50">
-            Applies to activity on <span className="text-white/70">your</span> lessons, roster-weighted
-            coverage for your publishes in range, and reflections you completed.
+      <GlassPanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-white/90">Date range</h2>
+          <p className="mt-1 text-xs leading-relaxed text-white/50">
+            Applies to activity on <span className="text-white/70">your</span> lessons,
+            roster-weighted coverage for your publishes in range, and reflections you completed.
           </p>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className={cn(glassInsetClass, "p-4")}>
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
@@ -166,134 +206,122 @@ export default function TeacherLessonAnalyticsPage() {
             startLabel="From"
             endLabel="To"
           />
-          {rangeLabel && (
-            <p className="mt-3 text-xs text-white/45">
-              Selected window: <span className="text-white/70">{rangeLabel}</span>
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </GlassPanel>
 
-      {error && (
-        <Card className="border border-rose-500/30 bg-rose-500/10">
-          <CardContent className="p-4 text-sm text-rose-100">{error.message}</CardContent>
-        </Card>
-      )}
+      {error ? (
+        <GlassPanel className="border-rose-500/30 bg-rose-500/10 p-4" glow="none">
+          <p className="text-sm text-rose-100">{error.message}</p>
+        </GlassPanel>
+      ) : null}
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/55">
-          <BarChart3 className="h-4 w-4" />
-          Snapshot
-        </h2>
+      <AnalyticsSection title="Snapshot" icon={BarChart3}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <StatTile
             label="Coverage now"
             value={quickCoverage}
             subtitle="Curriculum coverage in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Session completion"
             value={quickSessionCompletion}
             subtitle="Studied ÷ lesson engagements"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Linked submissions"
             value={quickLinkedSubmissions}
             subtitle="Assignments/quizzes from lessons"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Flashcard learners"
             value={quickFlashcardActive}
             subtitle="Active reviewers in range"
             loading={isLoading}
           />
         </div>
-      </div>
+      </AnalyticsSection>
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/55">
-          <Presentation className="h-4 w-4" />
-          My lesson activity
-        </h2>
+      <AnalyticsSection
+        title="My lesson activity"
+        icon={Presentation}
+        footer={
+          isLoading || data ? (
+            <div className="flex flex-wrap gap-2 border-t border-white/10 pt-4">
+              <Badge className="border-0 bg-white/10 text-white/70">
+                Created draft: {isLoading ? "…" : my?.createdInRangeByStatus.draft}
+              </Badge>
+              <Badge className="border-0 bg-emerald-500/20 text-emerald-100">
+                Created published: {isLoading ? "…" : my?.createdInRangeByStatus.published}
+              </Badge>
+              <Badge className="border-0 bg-white/10 text-white/55">
+                Created archived: {isLoading ? "…" : my?.createdInRangeByStatus.archived}
+              </Badge>
+            </div>
+          ) : null
+        }
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <StatTile
             label="Lessons created"
             value={my?.createdInRange ?? "—"}
             subtitle="In selected range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Published (events)"
             value={my?.publishedEventsInRange ?? "—"}
             subtitle="Publish date in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Drafts pending"
             value={my?.draftsPending ?? "—"}
             subtitle="Unpublished now"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Reflections done"
             value={my?.reflectionsCompletedInRange ?? "—"}
             subtitle="Marked taught in range"
             loading={isLoading}
           />
         </div>
-        {(isLoading || data) && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant="outline" className="border-white/20 text-white/70">
-              Created draft: {isLoading ? "…" : my?.createdInRangeByStatus.draft}
-            </Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-200">
-              Created published: {isLoading ? "…" : my?.createdInRangeByStatus.published}
-            </Badge>
-            <Badge variant="outline" className="border-white/20 text-white/60">
-              Created archived: {isLoading ? "…" : my?.createdInRangeByStatus.archived}
-            </Badge>
-          </div>
-        )}
-      </div>
+      </AnalyticsSection>
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/55">
-          <Presentation className="h-4 w-4" />
-          Student lesson reads (my classes)
-        </h2>
-        <p className="mb-4 max-w-3xl text-xs text-white/50">
-          Counts only students engaging with <span className="text-white/70">your</span> published
-          lessons. Session and learner completion rates match the admin definitions.
-        </p>
+      <AnalyticsSection
+        title="Student lesson reads"
+        icon={Presentation}
+        description="Counts only students engaging with your published lessons. Session and learner completion rates match the admin definitions."
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
+          <StatTile
             label="Read engagements"
             value={data?.studentLessons?.engagementsInRange ?? "—"}
             subtitle="Student–lesson rows with activity in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Learners active"
             value={data?.studentLessons?.distinctStudentsInRange ?? "—"}
             subtitle="Distinct students on your lessons"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Marked studied"
             value={data?.studentLessons?.completionsInRange ?? "—"}
             subtitle="Completion events in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Learners completed"
             value={data?.studentLessons?.distinctStudentsCompletedInRange ?? "—"}
             subtitle="Distinct students who marked studied"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Session completion"
             value={
               data?.studentLessons?.completionRateAmongEngagementsPercent != null
@@ -303,7 +331,7 @@ export default function TeacherLessonAnalyticsPage() {
             subtitle="Studied ÷ engagements (in range)"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Learner completion"
             value={
               data?.studentLessons?.learnerCompletionRatePercent != null
@@ -314,38 +342,33 @@ export default function TeacherLessonAnalyticsPage() {
             loading={isLoading}
           />
         </div>
-      </div>
+      </AnalyticsSection>
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/55">
-          <GraduationCap className="h-4 w-4" />
-          Curriculum completion (your publishes)
-        </h2>
-        <p className="mb-4 max-w-3xl text-xs text-white/50">
-          Same definition as school admin, limited to lessons you teach. Published in range, one
-          slot per active student in the lesson class; coverage is studied completions in range ÷
-          slots.
-        </p>
+      <AnalyticsSection
+        title="Curriculum completion"
+        icon={GraduationCap}
+        description="Same definition as school admin, limited to lessons you teach. Published in range, one slot per active student in the lesson class; coverage is studied completions in range ÷ slots."
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <StatTile
             label="Published lessons"
             value={data?.curriculumCompletionInRange?.publishedLessonsInRange ?? "—"}
             subtitle="Yours, published, date in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Student slots"
             value={data?.curriculumCompletionInRange?.studentSlotsTotal ?? "—"}
             subtitle="Roster sum across those lessons"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Studied completions"
             value={data?.curriculumCompletionInRange?.completionsForPublishedLessonsInRange ?? "—"}
             subtitle="Marked studied in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Coverage"
             value={
               data?.curriculumCompletionInRange?.coveragePercent != null
@@ -356,57 +379,50 @@ export default function TeacherLessonAnalyticsPage() {
             loading={isLoading}
           />
         </div>
-      </div>
+      </AnalyticsSection>
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/55">
-          <Layers className="h-4 w-4" />
-          Flashcards (my decks)
-        </h2>
+      <AnalyticsSection title="Flashcards" icon={Layers} description="Your lesson flashcard decks and student review activity in range.">
         <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
+          <StatTile
             label="Total cards"
             value={data?.flashcards.totalCards ?? "—"}
             subtitle="Across your lesson decks"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Review sessions"
             value={data?.flashcards.reviewSessionsInRange ?? "—"}
             subtitle="Progress rows with last review in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Active students"
             value={data?.flashcards.activeStudentsInRange ?? "—"}
             subtitle="Distinct learners reviewing your decks"
             loading={isLoading}
           />
         </div>
-      </div>
+      </AnalyticsSection>
 
-      <div>
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/55">
-          <BookOpen className="h-4 w-4" />
-          Lesson tasks (assignments & quizzes)
-        </h2>
-        <p className="mb-4 max-w-3xl text-xs text-white/50">
-          Includes only tasks linked to your lessons via lesson-to-task creation flow.
-        </p>
+      <AnalyticsSection
+        title="Lesson tasks"
+        icon={BookOpen}
+        description="Includes only tasks linked to your lessons via the lesson-to-task creation flow."
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
+          <StatTile
             label="Linked tasks created"
             value={data?.lessonTasks.linkedTasksCreatedInRange ?? "—"}
             subtitle="Created in selected range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Linked tasks published"
             value={data?.lessonTasks.linkedTasksPublishedInRange ?? "—"}
             subtitle="Published date in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Quizzes / Assignments"
             value={
               data?.lessonTasks
@@ -416,25 +432,25 @@ export default function TeacherLessonAnalyticsPage() {
             subtitle="Quiz count / assignment-like count"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Submissions"
             value={data?.lessonTasks.submissionsInRange ?? "—"}
             subtitle="Submitted/late/graded in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Learners submitted"
             value={data?.lessonTasks.distinctLearnersSubmittedInRange ?? "—"}
             subtitle="Distinct students"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Graded submissions"
             value={data?.lessonTasks.gradedSubmissionsInRange ?? "—"}
             subtitle="Status graded in range"
             loading={isLoading}
           />
-          <StatCard
+          <StatTile
             label="Avg graded score"
             value={
               data?.lessonTasks.averageScorePercentInRange != null
@@ -445,15 +461,15 @@ export default function TeacherLessonAnalyticsPage() {
             loading={isLoading}
           />
         </div>
-      </div>
+      </AnalyticsSection>
 
       <LessonsV2CoverageSection v2Coverage={data?.v2Coverage} loading={isLoading} />
 
-      {isLoading && !data && (
-        <div className="flex justify-center py-6">
-          <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+      {isLoading && !data ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-teal-300/40" />
         </div>
-      )}
-    </div>
+      ) : null}
+    </WorkspacePageShell>
   );
 }

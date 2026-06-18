@@ -27,4 +27,29 @@ describe("buildTeachingDeckFromSessionInput", () => {
     assert.equal(deck.slides.at(-1)?.type, "timer");
     assert.ok(deck.slides.length >= 3);
   });
+
+  it("maps diagram blocks with diagramMeta for teach slides", () => {
+    const deck = buildTeachingDeckFromSessionInput({
+      title: "Fractions",
+      scheduledDate: "2026-02-10",
+      startTime: "09:00",
+      endTime: "09:40",
+      contentBlocks: [
+        {
+          id: "d1",
+          type: "diagram",
+          title: "Two thirds",
+          bodyHtml: "",
+          order: 0,
+          aiGenerated: false,
+          teacherReviewed: true,
+          diagramMeta: { diagramType: "fraction_bar", data: { numerator: 2, denominator: 3 } },
+        },
+      ],
+    });
+
+    const contentSlide = deck.slides[1];
+    assert.equal(contentSlide?.contentBlockType, "diagram");
+    assert.equal(contentSlide?.diagramMeta?.diagramType, "fraction_bar");
+  });
 });

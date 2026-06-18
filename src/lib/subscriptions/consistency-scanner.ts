@@ -153,7 +153,6 @@ export async function runEntitlementConsistencyScan(opts?: {
 
         const balances = await UsageBalance.find({
           schoolId: school._id,
-          subscriptionId: sub._id,
         })
           .select("balanceType usedQuantity")
           .lean<Array<{ balanceType: string; usedQuantity: number }>>();

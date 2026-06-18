@@ -1,3 +1,5 @@
+import type { LessonContentBlockType, LessonDiagramMeta } from "@/types/lesson-content-blocks";
+
 export const TEACHING_SLIDE_TYPES = [
   "title",
   "content_block",
@@ -19,6 +21,8 @@ export type TeachingSlide = {
   bodyHtml?: string | null;
   speakerNotes?: string | null;
   contentBlockId?: string | null;
+  contentBlockType?: LessonContentBlockType | null;
+  diagramMeta?: LessonDiagramMeta | null;
   estimatedMinutes?: number | null;
   resourceUrl?: string | null;
   timerMinutes?: number | null;

@@ -90,3 +90,25 @@ export function useTeacherDeleteSessionFlashcard(sessionId: string | null) {
     },
   });
 }
+
+export function useTeacherBulkDeleteSessionFlashcards(sessionId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (cardIds: string[]) => {
+      const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}/flashcards`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardIds }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Failed to delete cards");
+      return data as {
+        success: boolean;
+        data: { deleted: number; skipped: number };
+      };
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["teacher-session-flashcards", sessionId] });
+    },
+  });
+}

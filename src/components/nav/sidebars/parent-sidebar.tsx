@@ -136,6 +136,11 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           icon: FileText,
         },
         {
+          label: "Receipts",
+          href: "/parent/receipts",
+          icon: FileText,
+        },
+        {
           label: "School store",
           href: "/parent/store",
           icon: ShoppingBag,

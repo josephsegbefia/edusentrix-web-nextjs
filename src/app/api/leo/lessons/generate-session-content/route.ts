@@ -1,6 +1,5 @@
 import { z } from "zod";
 import mongoose from "mongoose";
-import { LESSON_CONTENT_BLOCK_TYPES } from "@/types/lesson-content-blocks";
 import {
   findLessonNoteForTeacher,
   lessonNoteTeachingMetadata,
@@ -15,6 +14,8 @@ import {
   enrichSliceWithSchemeItems,
 } from "@/lib/lessons/note-sections";
 import { normalizeContentBlocks } from "@/lib/lessons/content-blocks";
+import { buildSubjectAwareGenerationRules } from "@/lib/lessons/ai-content-plan";
+import { resolveLessonSubjectMode } from "@/lib/lessons/subject-mode-resolver";
 import {
   summarizeContentBlocksForHandoff,
   type PriorSessionHandoff,
@@ -158,6 +159,12 @@ export async function POST(req: Request) {
       (note.schemeItemIds ?? []) as string[],
     );
     const teachingMetadata = await lessonNoteTeachingMetadata(note);
+    const subjectResolution = resolveLessonSubjectMode({
+      subjectName: teachingMetadata.subjectOfferingName || teachingMetadata.subjectName,
+      subjectCode: teachingMetadata.subjectCode,
+      curriculum: teachingMetadata.gradeBand,
+      gradeName: teachingMetadata.gradeName,
+    });
     const sliceJson = JSON.stringify(slice);
 
     const isDouble = parsed.data.session.isDoublePeriod ?? false;
@@ -166,23 +173,12 @@ export async function POST(req: Request) {
     const maxBlocks = isDouble ? 18 : 14;
     const minChars = isDouble ? 2500 : 1500;
 
+    const subjectRules = buildSubjectAwareGenerationRules(subjectResolution.subjectMode);
+
     const result = await runLessonsLeoCompletion({
       context: ctx,
-      systemInstruction: `Return JSON only:
-{
-  "contentBlocks": [
-    {
-      "type": one of ${JSON.stringify(LESSON_CONTENT_BLOCK_TYPES)},
-      "title": string (short, specific heading — not a generic label),
-      "bodyHtml": string (HTML using <p>, <ul>, <li>, <strong>, <em> only; English only),
-      "order": number (0-based),
-      "estimatedMinutes": number (optional),
-      "aiGenerated": true,
-      "teacherReviewed": false,
-      "resourceUrl": string | null (only for resource_embed)
-    }
-  ]
-}
+      systemInstruction: `${subjectRules}
+Subject mode for this session: ${subjectResolution.subjectMode} (${subjectResolution.confidence} confidence).
 Rules — REQUIRED STRUCTURE (produce ${minBlocks}–${maxBlocks} blocks for this ${parsed.data.session.durationMinutes}-minute ${isDouble ? "double-period" : "single-period"} lesson):
 1. STARTER block (type "explanation"):
    ${isFollowOnSession
@@ -261,8 +257,8 @@ ${sliceJson}`,
       0,
     );
     const hasTeachingShape =
-      blockTypes.has("explanation") &&
-      blockTypes.has("example") &&
+      (blockTypes.has("explanation") || blockTypes.has("bilingual_text")) &&
+      (blockTypes.has("example") || blockTypes.has("worked_example") || blockTypes.has("math_expression")) &&
       blockTypes.has("activity") &&
       blockTypes.has("check");
     if (!hasTeachingShape) {

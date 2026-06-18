@@ -572,10 +572,16 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const isPlainText = typeof children === "string" || typeof children === "number";
+
   return (
     <div className={cn(glassInsetClass, "p-3")}>
       <h3 className="text-sm font-semibold text-teal-100">{title}</h3>
-      <p className="mt-2 whitespace-pre-wrap text-sm text-white/75">{children}</p>
+      {isPlainText ? (
+        <p className="mt-2 whitespace-pre-wrap text-sm text-white/75">{children}</p>
+      ) : (
+        <div className="mt-2 whitespace-pre-wrap text-sm text-white/75">{children}</div>
+      )}
     </div>
   );
 }

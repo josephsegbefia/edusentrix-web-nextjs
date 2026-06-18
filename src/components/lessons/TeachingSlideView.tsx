@@ -1,7 +1,9 @@
 "use client";
 
+import { LessonDiagramView } from "@/components/lessons/diagrams/LessonDiagramView";
 import { cn } from "@/lib/utils";
 import type { TeachingSlide } from "@/types/teaching-deck";
+import "katex/dist/katex.min.css";
 
 export const TEACHING_SLIDE_TYPE_LABELS: Record<string, string> = {
   title: "Lesson Start",
@@ -10,7 +12,7 @@ export const TEACHING_SLIDE_TYPE_LABELS: Record<string, string> = {
   check: "Quick Check",
   discussion: "Discussion",
   exit_ticket: "Exit Ticket",
-  resource: "Resource",
+  resource: "Visual",
   timer: "Timer",
   plan_notes: "Teacher Notes",
 };
@@ -27,9 +29,26 @@ export const TEACHING_SLIDE_TYPE_COLORS: Record<string, string> = {
   plan_notes: "text-white/40",
 };
 
+function isImageResourceUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url) || url.includes("utfs.io");
+}
+
+function SlideBody({ bodyHtml }: { bodyHtml: string }) {
+  return (
+    <div
+      className="teaching-slide-body prose prose-invert mx-auto max-w-3xl text-left text-lg prose-p:leading-relaxed [&_.katex]:text-white"
+      dangerouslySetInnerHTML={{ __html: bodyHtml }}
+    />
+  );
+}
+
 export function TeachingSlideView({ slide }: { slide: TeachingSlide }) {
   const typeLabel = TEACHING_SLIDE_TYPE_LABELS[slide.type] ?? slide.type;
   const typeColor = TEACHING_SLIDE_TYPE_COLORS[slide.type] ?? "text-white/60";
+  const showDiagram =
+    slide.contentBlockType === "diagram" && slide.diagramMeta?.diagramType;
+  const bodyHasImage = Boolean(slide.bodyHtml?.includes("<img"));
 
   if (slide.type === "timer") {
     return (
@@ -39,12 +58,7 @@ export function TeachingSlideView({ slide }: { slide: TeachingSlide }) {
         {slide.timerMinutes ? (
           <p className="mt-4 text-6xl font-bold text-teal-300">{slide.timerMinutes} min</p>
         ) : null}
-        {slide.bodyHtml ? (
-          <div
-            className="prose prose-invert mx-auto mt-6 max-w-2xl text-lg"
-            dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-          />
-        ) : null}
+        {slide.bodyHtml ? <SlideBody bodyHtml={slide.bodyHtml} /> : null}
       </div>
     );
   }
@@ -55,10 +69,9 @@ export function TeachingSlideView({ slide }: { slide: TeachingSlide }) {
         <p className={cn("text-xs uppercase tracking-widest", typeColor)}>{typeLabel}</p>
         <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">{slide.title}</h2>
         {slide.bodyHtml ? (
-          <div
-            className="prose prose-invert mx-auto mt-8 max-w-2xl text-left text-lg"
-            dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-          />
+          <div className="mt-8">
+            <SlideBody bodyHtml={slide.bodyHtml} />
+          </div>
         ) : null}
         {slide.type === "check" ? (
           <div className="mt-8 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-6 py-4">
@@ -83,10 +96,9 @@ export function TeachingSlideView({ slide }: { slide: TeachingSlide }) {
           <p className="mt-2 text-sm text-amber-300/70">{slide.estimatedMinutes} min</p>
         ) : null}
         {slide.bodyHtml ? (
-          <div
-            className="prose prose-invert mx-auto mt-8 max-w-3xl text-left text-lg"
-            dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-          />
+          <div className="mt-8">
+            <SlideBody bodyHtml={slide.bodyHtml} />
+          </div>
         ) : null}
         <div className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-6 py-3">
           <p className="text-sm text-amber-200/80">Allow time for student activity.</p>
@@ -99,15 +111,19 @@ export function TeachingSlideView({ slide }: { slide: TeachingSlide }) {
     <div className="max-w-4xl text-center">
       <p className={cn("text-xs uppercase tracking-widest", typeColor)}>{typeLabel}</p>
       <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{slide.title}</h2>
+      {showDiagram ? (
+        <div className="mx-auto mt-8 max-w-lg">
+          <LessonDiagramView diagramMeta={slide.diagramMeta} />
+        </div>
+      ) : null}
       {slide.bodyHtml ? (
-        <div
-          className="prose prose-invert mx-auto mt-8 max-w-3xl text-left text-lg prose-p:leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: slide.bodyHtml }}
-        />
+        <div className="mt-8">
+          <SlideBody bodyHtml={slide.bodyHtml} />
+        </div>
       ) : slide.speakerNotes ? (
         <p className="mt-8 text-lg text-white/60">See speaker notes →</p>
       ) : null}
-      {slide.resourceUrl ? (
+      {slide.resourceUrl && !bodyHasImage && !isImageResourceUrl(slide.resourceUrl) ? (
         <p className="mt-6">
           <a
             href={slide.resourceUrl}

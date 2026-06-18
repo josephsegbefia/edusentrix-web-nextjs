@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Check,
   Globe,
+  ImageIcon,
   Lightbulb,
   Loader2,
   Plus,
@@ -15,11 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LessonIllustrationPreview } from "@/components/lessons/LessonIllustrationPreview";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { useGenerateSessionFactCards } from "@/hooks/teacher/useLessonsLeo";
 import {
   type FactCardDto,
+  type FactCardPublishPayload,
   useBulkCreateSessionFactCards,
   useDeleteSessionFactCard,
   useTeacherSessionFactCards,
@@ -27,17 +30,50 @@ import {
 
 type Props = {
   sessionId: string;
+  sessionTitle: string;
   canWrite: boolean;
   leoEnabled: boolean;
 };
 
+type IllustrationReview = "none" | "suggested" | "draft" | "approved" | "rejected";
+
 type PendingFactCard = {
+  localId: string;
   fact: string;
   detail: string;
   tags: string[];
+  illustrationSuggested?: boolean;
+  illustrationPrompt?: string | null;
+  illustrationGenerationBrief?: string | null;
+  illustrationUrl?: string | null;
+  illustrationUploadThingKey?: string | null;
+  illustrationReview: IllustrationReview;
 };
 
-export function TeacherSessionLearnResourcesPanel({ sessionId, canWrite, leoEnabled }: Props) {
+function newLocalId() {
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toPublishPayload(card: PendingFactCard): FactCardPublishPayload {
+  const payload: FactCardPublishPayload = {
+    fact: card.fact,
+    detail: card.detail,
+    tags: card.tags,
+  };
+  if (card.illustrationReview === "approved" && card.illustrationUrl) {
+    payload.illustrationUrl = card.illustrationUrl;
+    payload.illustrationUploadThingKey = card.illustrationUploadThingKey ?? null;
+    payload.illustrationPrompt = card.illustrationPrompt ?? null;
+  }
+  return payload;
+}
+
+export function TeacherSessionLearnResourcesPanel({
+  sessionId,
+  sessionTitle,
+  canWrite,
+  leoEnabled,
+}: Props) {
   const busyToast = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const generateMut = useGenerateSessionFactCards();
@@ -49,9 +85,16 @@ export function TeacherSessionLearnResourcesPanel({ sessionId, canWrite, leoEnab
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [newFact, setNewFact] = React.useState("");
   const [newDetail, setNewDetail] = React.useState("");
+  const [illustrationLoadingId, setIllustrationLoadingId] = React.useState<string | null>(null);
 
   const savedCards = data?.data.cards ?? [];
   const hasPending = pendingCards.length > 0;
+
+  const updatePendingCard = (localId: string, patch: Partial<PendingFactCard>) => {
+    setPendingCards((prev) =>
+      prev.map((card) => (card.localId === localId ? { ...card, ...patch } : card)),
+    );
+  };
 
   const handleGenerate = async () => {
     if (hasPending) {
@@ -63,39 +106,79 @@ export function TeacherSessionLearnResourcesPanel({ sessionId, canWrite, leoEnab
       });
       if (!ok) return;
     }
-    const cards = await busyToast.promise(
-      generateMut.mutateAsync({ sessionId, count: 3 }),
-      {
-        loading: "Leo is thinking of interesting facts…",
-        success: "Fact cards ready — review and publish to Learn",
-        error: (e) => (e instanceof Error ? e.message : "Generation failed"),
+    const result = await busyToast.promise(generateMut.mutateAsync({ sessionId, count: 3 }), {
+      loading: "Leo is thinking of interesting facts…",
+      success: (value) => {
+        const skipped = value.skippedDuplicates;
+        if (skipped > 0) {
+          return `${value.cards.length} unique facts ready · ${skipped} duplicate${skipped === 1 ? "" : "s"} skipped`;
+        }
+        return "Fact cards ready — review and publish to Learn";
       },
+      error: (e) => (e instanceof Error ? e.message : "Generation failed"),
+    });
+    setPendingCards(
+      result.cards.map((card) => ({
+        localId: newLocalId(),
+        fact: card.fact,
+        detail: card.detail,
+        tags: card.tags ?? [],
+        illustrationSuggested: card.illustrationSuggested,
+        illustrationPrompt: card.illustrationPrompt ?? null,
+        illustrationReview: card.illustrationSuggested ? "suggested" : "none",
+      })),
     );
-    setPendingCards(cards);
+  };
+
+  const generateIllustrationDraft = async (card: PendingFactCard) => {
+    if (!card.fact.trim() || !card.detail.trim()) return;
+    setIllustrationLoadingId(card.localId);
+    try {
+      const res = await fetch("/api/leo/lessons/generate-illustration-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fact: card.fact,
+          detail: card.detail,
+          prompt: card.illustrationPrompt ?? undefined,
+          sessionTitle,
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Illustration draft failed");
+      }
+      updatePendingCard(card.localId, {
+        illustrationUrl: json.data?.imageUrl ?? null,
+        illustrationUploadThingKey: json.data?.uploadThingKey ?? null,
+        illustrationGenerationBrief: json.data?.generationPrompt ?? null,
+        illustrationReview: "draft",
+      });
+      busyToast.success("Illustration draft ready — review before publishing");
+    } catch (e) {
+      busyToast.error(e instanceof Error ? e.message : "Illustration draft failed");
+    } finally {
+      setIllustrationLoadingId(null);
+    }
   };
 
   const acceptCard = async (card: PendingFactCard) => {
-    await busyToast.promise(
-      bulkSaveMut.mutateAsync([card]),
-      {
-        loading: "Publishing to Learn…",
-        success: "Card published to EduSentrix Learn",
-        error: (e) => (e instanceof Error ? e.message : "Failed to publish"),
-      },
-    );
-    setPendingCards((prev) => prev.filter((p) => p.fact !== card.fact));
+    await busyToast.promise(bulkSaveMut.mutateAsync([toPublishPayload(card)]), {
+      loading: "Publishing to Learn…",
+      success: "Card published to EduSentrix Learn",
+      error: (e) => (e instanceof Error ? e.message : "Failed to publish"),
+    });
+    setPendingCards((prev) => prev.filter((p) => p.localId !== card.localId));
   };
 
   const acceptAll = async () => {
     if (pendingCards.length === 0) return;
-    await busyToast.promise(
-      bulkSaveMut.mutateAsync(pendingCards),
-      {
-        loading: "Publishing all cards to Learn…",
-        success: "All fact cards published to EduSentrix Learn",
-        error: (e) => (e instanceof Error ? e.message : "Failed to publish"),
-      },
-    );
+    const payloads = pendingCards.map(toPublishPayload);
+    await busyToast.promise(bulkSaveMut.mutateAsync(payloads), {
+      loading: "Publishing all cards to Learn…",
+      success: "All fact cards published to EduSentrix Learn",
+      error: (e) => (e instanceof Error ? e.message : "Failed to publish"),
+    });
     setPendingCards([]);
   };
 
@@ -214,13 +297,93 @@ export function TeacherSessionLearnResourcesPanel({ sessionId, canWrite, leoEnab
               </div>
             </div>
             <div className="space-y-2.5">
-              {pendingCards.map((card, i) => (
+              {pendingCards.map((card) => (
                 <div
-                  key={i}
+                  key={card.localId}
                   className="rounded-xl border border-violet-400/15 bg-violet-900/20 p-3 space-y-2"
                 >
                   <p className="text-sm font-semibold text-amber-100">{card.fact}</p>
                   <p className="text-sm text-white/65">{card.detail}</p>
+                  {card.illustrationReview === "suggested" && card.illustrationPrompt ? (
+                    <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+                      <p className="font-medium">Leo suggests an illustration</p>
+                      <p className="mt-1 text-white/60">{card.illustrationPrompt}</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 h-7 border-amber-400/30 bg-amber-500/10 text-amber-100"
+                        disabled={illustrationLoadingId === card.localId}
+                        onClick={() => void generateIllustrationDraft(card)}
+                      >
+                        {illustrationLoadingId === card.localId ? (
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ImageIcon className="mr-1.5 h-3.5 w-3.5" />
+                        )}
+                        Generate illustration draft
+                      </Button>
+                    </div>
+                  ) : null}
+                  {card.illustrationUrl && card.illustrationReview === "draft" ? (
+                    <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-2">
+                      <LessonIllustrationPreview
+                        src={card.illustrationUrl}
+                        alt="Draft illustration for fact card"
+                      />
+                      {card.illustrationGenerationBrief ? (
+                        <details className="rounded-lg border border-white/10 bg-black/25 px-3 py-2 text-xs text-white/55">
+                          <summary className="cursor-pointer font-medium text-white/70">
+                            Leo illustration brief
+                          </summary>
+                          <p className="mt-2 whitespace-pre-wrap leading-relaxed text-white/50">
+                            {card.illustrationGenerationBrief}
+                          </p>
+                        </details>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 bg-emerald-500/20 text-emerald-100"
+                          onClick={() =>
+                            updatePendingCard(card.localId, { illustrationReview: "approved" })
+                          }
+                        >
+                          <Check className="mr-1 h-3.5 w-3.5" />
+                          Accept illustration
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-rose-300/80"
+                          onClick={() =>
+                            updatePendingCard(card.localId, {
+                              illustrationReview: "rejected",
+                              illustrationUrl: null,
+                              illustrationUploadThingKey: null,
+                              illustrationGenerationBrief: null,
+                            })
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                  {card.illustrationReview === "approved" && card.illustrationUrl ? (
+                    <div className="space-y-2">
+                      <LessonIllustrationPreview
+                        src={card.illustrationUrl}
+                        alt="Approved illustration for fact card"
+                      />
+                      <p className="text-[11px] text-emerald-300/80">
+                        <Check className="mr-1 inline h-3 w-3" />
+                        Illustration approved — will publish with this card
+                      </p>
+                    </div>
+                  ) : null}
                   {card.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {card.tags.map((tag) => (
@@ -249,7 +412,9 @@ export function TeacherSessionLearnResourcesPanel({ sessionId, canWrite, leoEnab
                       type="button"
                       size="sm"
                       variant="ghost"
-                      onClick={() => setPendingCards((prev) => prev.filter((_, j) => j !== i))}
+                      onClick={() =>
+                        setPendingCards((prev) => prev.filter((p) => p.localId !== card.localId))
+                      }
                       className="text-rose-300/60 hover:text-rose-300"
                     >
                       <X className="mr-1.5 h-3.5 w-3.5" />
@@ -331,6 +496,13 @@ export function TeacherSessionLearnResourcesPanel({ sessionId, canWrite, leoEnab
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-sm font-semibold text-amber-100">{card.fact}</p>
                     <p className="text-sm text-white/60">{card.detail}</p>
+                    {card.illustrationUrl ? (
+                      <LessonIllustrationPreview
+                        src={card.illustrationUrl}
+                        alt="Fact card illustration"
+                        className="mt-2"
+                      />
+                    ) : null}
                     <div className="flex items-center gap-2 pt-0.5">
                       <span className="flex items-center gap-1 text-[10px] text-emerald-300/70">
                         <Check className="h-3 w-3" />

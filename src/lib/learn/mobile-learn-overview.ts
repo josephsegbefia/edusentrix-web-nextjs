@@ -7,7 +7,8 @@ import {
   findCoveredLessonSessions,
 } from "@/lib/learn/covered-lesson-sessions";
 import { findReadyExploreAdventure } from "@/lib/learn/explore/explore-generation.service";
-import { buildLearnQuestBoardSummary } from "@/lib/learn/mobile-learn-quest-summary";
+import { buildMobileFactCardsList } from "@/lib/learn/mobile-fact-cards";
+import { buildMobileLessonNotebooksList } from "@/lib/learn/mobile-lesson-sessions";
 import { buildMobileLearnWeakTopics } from "@/lib/learn/mobile-learn-weak-topics";
 import type {
   MobileLearnNextBestAction,
@@ -456,6 +457,8 @@ export async function buildMobileLearnOverview(
       practiceAndRevision: {
         weakTopics: [],
         flashcardDecks: [],
+        didYouKnowCards: [],
+        notebookSessions: [],
         revisionBank: {
           count: 0,
           message: "Revision Bank will fill gently when Leo saves topics for you.",
@@ -874,6 +877,32 @@ export async function buildMobileLearnOverview(
     catchUpSummary: questSummary.catchUpSummary,
   };
 
+  const [factCardsResult, notebookResult] = await Promise.all([
+    buildMobileFactCardsList(context),
+    buildMobileLessonNotebooksList(context),
+  ]);
+
+  const didYouKnowCards = (factCardsResult.ok ? factCardsResult.data.cards : [])
+    .slice(0, 3)
+    .map((card) => ({
+      id: card.id,
+      fact: card.fact,
+      sessionTitle: card.sessionTitle,
+      subjectName: card.subjectName,
+      illustrationUrl: card.illustrationUrl,
+      route: "/(student)/did-you-know/[cardId]",
+    }));
+
+  const notebookSessions = (notebookResult.ok ? notebookResult.data.sessions : [])
+    .slice(0, 3)
+    .map((session) => ({
+      id: session.id,
+      title: session.title,
+      subjectName: session.subjectName,
+      coveredLabel: session.coveredLabel,
+      route: "/(student)/notebooks/[sessionId]",
+    }));
+
   const overview: MobileStudentLearnOverview = {
     header: {
       greeting: `Good afternoon, ${displayName}`,
@@ -901,6 +930,8 @@ export async function buildMobileLearnOverview(
     practiceAndRevision: {
       weakTopics,
       flashcardDecks: deckSummaries,
+      didYouKnowCards,
+      notebookSessions,
       revisionBank: {
         count: revisionBankRows.length,
         message:

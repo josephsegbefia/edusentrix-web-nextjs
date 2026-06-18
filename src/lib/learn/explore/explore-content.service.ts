@@ -355,7 +355,7 @@ export async function loadExploreSnapshotForAdventure(adventureId: Types.ObjectI
   return { adventure, snapshot };
 }
 
-const READY_STATUSES = ["ready", "teacher_review_recommended", "teacher_approved"] as const;
+const READY_STATUSES = ["teacher_approved"] as const;
 
 export async function loadFallbackExploreAdventures(input: {
   auth: LearnMobileStudentContext;

@@ -1,7 +1,8 @@
 import type { LessonContentBlock, LessonContentBlockType } from "@/types/lesson-content-blocks";
-import { LESSON_CONTENT_BLOCK_LABELS } from "@/types/lesson-content-blocks";
+import { LESSON_CONTENT_BLOCK_LABELS, isTeacherOnlyLessonBlockType } from "@/types/lesson-content-blocks";
 import type { TeachingDeck, TeachingSlide, TeachingSlideType } from "@/types/teaching-deck";
 import { sanitizeLessonHtml } from "@/lib/lessons/content-safety";
+import { renderLessonMathLatex } from "@/lib/lessons/katex-utils";
 
 export type TeachingDeckSessionInput = {
   title: string;
@@ -31,23 +32,55 @@ function mapBlockTypeToSlide(type: LessonContentBlockType): TeachingSlideType {
     case "exit_ticket":
       return "exit_ticket";
     case "resource_embed":
+    case "illustration":
+    case "audio":
       return "resource";
     default:
       return "content_block";
   }
 }
 
-function slideFromBlock(block: LessonContentBlock): TeachingSlide {
+function buildSlideBodyHtml(block: LessonContentBlock): string | null {
+  const base = sanitizeLessonHtml(block.bodyHtml);
+
+  if (block.type === "math_expression" || block.type === "worked_example") {
+    const latex = block.mathMeta?.latex?.trim();
+    if (latex) {
+      const rendered = renderLessonMathLatex(latex, { displayMode: true });
+      if (rendered.html) {
+        return `${block.mathMeta?.plainText ? `<p>${block.mathMeta.plainText}</p>` : ""}${rendered.html}${base ? `<div>${base}</div>` : ""}`;
+      }
+    }
+  }
+
+  if (block.type === "illustration" && block.resourceUrl) {
+    const alt = block.assetMeta?.altText || block.title || "Lesson illustration";
+    const caption = block.assetMeta?.caption || block.accessibilityMeta?.caption;
+    return `${base || ""}<figure><img src="${block.resourceUrl}" alt="${alt.replace(/"/g, "&quot;")}" style="max-width:100%;height:auto;" />${caption ? `<figcaption>${caption}</figcaption>` : ""}</figure>`;
+  }
+
+  if (block.type === "diagram") {
+    return base || `<p>${block.title || "Visual diagram"}</p>`;
+  }
+
+  return base || null;
+}
+
+function slideFromBlock(block: LessonContentBlock): TeachingSlide | null {
+  if (isTeacherOnlyLessonBlockType(block.type)) return null;
+
   const type = mapBlockTypeToSlide(block.type);
   return {
     id: newSlideId(),
     type,
     title: block.title?.trim() || LESSON_CONTENT_BLOCK_LABELS[block.type],
-    bodyHtml: sanitizeLessonHtml(block.bodyHtml),
+    bodyHtml: buildSlideBodyHtml(block),
     speakerNotes: block.aiGenerated
       ? "Leo draft — confirm accuracy before relying on this in class."
       : null,
     contentBlockId: block.id,
+    contentBlockType: block.type,
+    diagramMeta: block.diagramMeta ?? null,
     estimatedMinutes: block.estimatedMinutes ?? null,
     resourceUrl: block.resourceUrl ?? null,
     timerMinutes:
@@ -70,7 +103,8 @@ export function buildTeachingDeckFromSessionInput(
 
   const blocks = [...(session.contentBlocks ?? [])].sort((a, b) => a.order - b.order);
   for (const block of blocks) {
-    slides.push(slideFromBlock(block));
+    const slide = slideFromBlock(block);
+    if (slide) slides.push(slide);
   }
 
   if (session.planNotes?.trim() && blocks.length === 0) {

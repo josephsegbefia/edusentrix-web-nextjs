@@ -25,6 +25,8 @@ export interface MobileStudentLearnOverview {
   practiceAndRevision: {
     weakTopics: MobileLearnWeakTopic[];
     flashcardDecks: MobileLearnFlashcardDeck[];
+    didYouKnowCards: MobileLearnFactCardPreview[];
+    notebookSessions: MobileLearnNotebookPreview[];
     revisionBank: {
       count: number;
       message: string;
@@ -127,6 +129,23 @@ export interface MobileLearnFlashcardDeck {
   subjectName: string;
   masteredCards: number;
   totalCards: number;
+  route: string;
+}
+
+export interface MobileLearnFactCardPreview {
+  id: string;
+  fact: string;
+  sessionTitle: string;
+  subjectName: string;
+  illustrationUrl?: string | null;
+  route: string;
+}
+
+export interface MobileLearnNotebookPreview {
+  id: string;
+  title: string;
+  subjectName: string;
+  coveredLabel: string;
   route: string;
 }
 

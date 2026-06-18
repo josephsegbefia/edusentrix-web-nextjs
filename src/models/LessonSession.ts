@@ -1,5 +1,15 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
-import type { LessonContentBlockType } from "@/types/lesson-content-blocks";
+import {
+  LESSON_CONTENT_BLOCK_TYPES,
+  type LessonAccessibilityMeta,
+  type LessonAssetMeta,
+  type LessonContentBlockType,
+  type LessonDiagramMeta,
+  type LessonLanguageMeta,
+  type LessonMathMeta,
+  type LessonReviewMeta,
+  type LessonSubjectMode,
+} from "@/types/lesson-content-blocks";
 import type { TeachingDeck } from "@/types/teaching-deck";
 
 export type LessonSessionStatus = "draft" | "ready" | "published" | "archived";
@@ -22,6 +32,13 @@ export interface ILessonContentBlock {
   aiGenerated: boolean;
   teacherReviewed: boolean;
   resourceUrl?: string | null;
+  subjectMode?: LessonSubjectMode;
+  languageMeta?: LessonLanguageMeta | null;
+  mathMeta?: LessonMathMeta | null;
+  assetMeta?: LessonAssetMeta | null;
+  reviewMeta?: LessonReviewMeta | null;
+  accessibilityMeta?: LessonAccessibilityMeta | null;
+  diagramMeta?: LessonDiagramMeta | null;
 }
 
 export type LessonAssessmentItemType =
@@ -97,26 +114,23 @@ const contentBlockSchema = new Schema<ILessonContentBlock>(
     id: { type: String, required: true, trim: true },
     type: {
       type: String,
-      enum: [
-        "explanation",
-        "example",
-        "activity",
-        "discussion",
-        "check",
-        "resource_embed",
-        "exit_ticket",
-        "teacher_note",
-        "did_you_know",
-      ],
+      enum: LESSON_CONTENT_BLOCK_TYPES,
       required: true,
     },
     title: { type: String, trim: true, maxlength: 200, default: null },
-    bodyHtml: { type: String, required: true, maxlength: 24_000 },
+    bodyHtml: { type: String, required: true, maxlength: 24_000, default: "" },
     order: { type: Number, required: true, min: 0 },
     estimatedMinutes: { type: Number, min: 0, max: 180, default: null },
     aiGenerated: { type: Boolean, default: false },
     teacherReviewed: { type: Boolean, default: false },
     resourceUrl: { type: String, trim: true, maxlength: 2000, default: null },
+    subjectMode: { type: String, trim: true, maxlength: 40, default: null },
+    languageMeta: { type: Schema.Types.Mixed, default: null },
+    mathMeta: { type: Schema.Types.Mixed, default: null },
+    assetMeta: { type: Schema.Types.Mixed, default: null },
+    reviewMeta: { type: Schema.Types.Mixed, default: null },
+    accessibilityMeta: { type: Schema.Types.Mixed, default: null },
+    diagramMeta: { type: Schema.Types.Mixed, default: null },
   },
   { _id: false },
 );
@@ -143,6 +157,8 @@ const teachingSlideSchema = new Schema(
     bodyHtml: { type: String, maxlength: 24_000, default: null },
     speakerNotes: { type: String, maxlength: 8000, default: null },
     contentBlockId: { type: String, default: null },
+    contentBlockType: { type: String, default: null },
+    diagramMeta: { type: Schema.Types.Mixed, default: null },
     estimatedMinutes: { type: Number, min: 0, max: 180, default: null },
     resourceUrl: { type: String, maxlength: 2000, default: null },
     timerMinutes: { type: Number, min: 0, max: 120, default: null },

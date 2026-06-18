@@ -26,9 +26,17 @@ import {
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  Trash2,
   XCircle,
   Zap,
 } from "lucide-react";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +71,7 @@ const EVENT_ICON: Record<string, React.ComponentType<{ className?: string }>> = 
   pilot_ended: ShieldAlert,
   access_mode_override: ShieldAlert,
   addon_purchased: Sparkles,
+  addon_removed: Trash2,
   addon_credited: Sparkles,
   usage_event: Zap,
   renewal_requested: RefreshCw,
@@ -86,9 +95,23 @@ const EVENT_TONE: Record<string, string> = {
   renewal_confirmed: "text-emerald-300",
   payment_recorded: "text-cyan-300",
   addon_purchased: "text-violet-300",
+  addon_removed: "text-rose-300",
   addon_credited: "text-violet-300",
   subscription_upgraded: "text-teal-300",
 };
+
+const EVENT_FILTER_OPTIONS = [
+  { value: "all", label: "All events" },
+  { value: "subscription_assigned", label: "Assigned" },
+  { value: "subscription_updated", label: "Updated" },
+  { value: "subscription_renewed", label: "Renewed" },
+  { value: "subscription_suspended", label: "Suspended" },
+  { value: "grace_period_started", label: "Grace period" },
+  { value: "addon_purchased", label: "Add-on purchased" },
+  { value: "addon_removed", label: "Add-on removed" },
+  { value: "payment_recorded", label: "Payment recorded" },
+  { value: "access_mode_override", label: "Access override" },
+] as const;
 
 function EventRow({ event, platformMode }: { event: EventRow; platformMode?: boolean }) {
   const Icon = EVENT_ICON[event.eventType] ?? Activity;
@@ -179,21 +202,21 @@ export function SubscriptionEventLog({
         <p className="text-xs font-semibold text-white/50">{title}</p>
         <div className="flex items-center gap-2">
           {platformMode && (
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/50 outline-none"
+            <PremiumSelect
+              value={filter || "all"}
+              onValueChange={(value) => setFilter(value === "all" ? "" : value)}
             >
-              <option value="">All events</option>
-              <option value="subscription_assigned">Assigned</option>
-              <option value="subscription_updated">Updated</option>
-              <option value="subscription_renewed">Renewed</option>
-              <option value="subscription_suspended">Suspended</option>
-              <option value="grace_period_started">Grace period</option>
-              <option value="addon_purchased">Add-on purchased</option>
-              <option value="payment_recorded">Payment recorded</option>
-              <option value="access_mode_override">Access override</option>
-            </select>
+              <PremiumSelectTrigger className="h-8 min-w-[9.5rem] border-white/15 bg-white/5 px-2.5 text-[11px] text-white">
+                <PremiumSelectValue placeholder="All events" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {EVENT_FILTER_OPTIONS.map((option) => (
+                  <PremiumSelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
           )}
           <button
             type="button"

@@ -41,11 +41,7 @@ import {
   type ExploreCompleteRewardPayload,
 } from "@/lib/learn/explore/explore-completion-rewards";
 
-const READY_ADVENTURE_STATUSES = [
-  "ready",
-  "teacher_review_recommended",
-  "teacher_approved",
-] as const;
+const READY_ADVENTURE_STATUSES = ["teacher_approved"] as const;
 
 const IN_PROGRESS_JOB_STATUSES: ExploreGenerationJobStatus[] = [
   "pending",

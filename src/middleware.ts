@@ -33,6 +33,7 @@ const DEMO_PUBLIC_PREFIXES = [
   "/legal/",
   "/api/account/legal-acceptance",
   "/api/public/contact",
+  "/api/learn/mobile/",
   "/api/demo/",
   "/favicon.ico",
   "/_next",
@@ -59,6 +60,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/auth/dev-teacher-login",
   "/api/banks/search",
   "/api/public/contact",
+  "/api/learn/mobile(.*)", // EduSentrix Learn mobile API handles its own student auth
   "/api/public/admissions(.*)", // public admission application APIs
   "/api/public/students/parent-documents(.*)", // public parent document upload APIs
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
@@ -116,32 +118,39 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
   // Allow all public routes to pass before touching Clerk auth. This is
   // especially important for UploadThing callbacks/handshakes and webhooks.
+  const exactPublicPaths = new Set([
+    "/",
+    "/about",
+    "/contact",
+    "/terms",
+    "/privacy",
+    "/enroll",
+    "/auth/callback",
+    "/favicon.ico",
+    "/api/auth/dev-teacher-login",
+    "/api/banks/search",
+    "/api/public/contact",
+    "/api/account/legal-acceptance",
+  ]);
+  const publicPrefixes = [
+    "/sign-in",
+    "/sign-up",
+    "/legal/",
+    "/apply",
+    "/upload/parent-document",
+    "/api/learn/mobile",
+    "/api/public/admissions",
+    "/api/public/students/parent-documents",
+    "/api/uploadthing",
+    "/api/webhooks/brevo",
+    "/platform-bootstrap",
+    "/api/platform/bootstrap",
+  ];
+
   const isPublic =
     isPublicRoute(req) ||
-    [
-      "/",
-      "/sign-in",
-      "/sign-up",
-      "/api/auth/dev-teacher-login",
-      "/about",
-      "/contact",
-      "/terms",
-      "/privacy",
-      "/legal/",
-      "/apply",
-      "/auth/callback",
-      "/favicon.ico",
-      "/api/banks/search",
-      "/api/public/contact",
-      "/api/public/admissions",
-      "/api/public/students/parent-documents",
-      "/upload/parent-document",
-      "/api/uploadthing",
-      "/api/webhooks/brevo",
-      "/api/account/legal-acceptance",
-      "/platform-bootstrap",
-      "/api/platform/bootstrap",
-    ].some((p) => pathname === p || pathname.startsWith(p));
+    exactPublicPaths.has(pathname) ||
+    publicPrefixes.some((p) => pathname === p || pathname.startsWith(p));
 
   if (isPublic) {
     return;
@@ -150,6 +159,9 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   const { userId } = await auth();
 
   if (!userId) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 

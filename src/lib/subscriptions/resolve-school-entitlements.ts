@@ -255,7 +255,7 @@ export async function resolveSchoolEntitlements(
   const limits = deriveLimits(
     planCode,
     sub?.includedLimitsSnapshot ?? null,
-    null
+    sub?.schoolOverrides?.limits ?? null,
   );
 
   // ---------- Usage balances ----------

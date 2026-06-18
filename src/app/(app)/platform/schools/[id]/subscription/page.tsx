@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Save,
   Sparkles,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +34,7 @@ import { SubscriptionBillingGuideButton } from "@/components/subscriptions/Subsc
 import { cn } from "@/lib/utils";
 import { PLAN_META } from "@/lib/subscriptions/plan-codes";
 import { ACCESS_MODE_LABELS } from "@/lib/subscriptions/access-mode";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type PlanOption = {
   _id: string;
@@ -868,25 +870,23 @@ function PlatformPlanChangePanel({
           </p>
         ) : null}
 
-        <div className={cn(glassInsetClass, "grid grid-cols-2 gap-2 p-1")}>
-          {(["term", "annual"] as const).map((cadence) => (
-            <button
-              key={cadence}
-              type="button"
-              onClick={() => {
-                setTargetBillingCadence(cadence);
-                setQuote(null);
-              }}
-              className={cn(
-                "rounded-lg px-3 py-2 text-xs font-medium capitalize transition",
-                targetBillingCadence === cadence
-                  ? "bg-cyan-400/15 text-cyan-100"
-                  : "text-white/40 hover:bg-white/5 hover:text-white/70"
-              )}
-            >
-              {cadence === "term" ? "Termly" : "Annual"}
-            </button>
-          ))}
+        <div>
+          <label className="mb-1.5 block text-[10px] text-white/40">Target billing cadence</label>
+          <PremiumSelect
+            value={targetBillingCadence}
+            onValueChange={(value) => {
+              setTargetBillingCadence(value as "term" | "annual");
+              setQuote(null);
+            }}
+          >
+            <PremiumSelectTrigger className="w-full">
+              <PremiumSelectValue />
+            </PremiumSelectTrigger>
+            <PremiumSelectContent>
+              <PremiumSelectItem value="term">Termly</PremiumSelectItem>
+              <PremiumSelectItem value="annual">Annual</PremiumSelectItem>
+            </PremiumSelectContent>
+          </PremiumSelect>
         </div>
 
         <textarea
@@ -1124,37 +1124,33 @@ function AccessModePanel({
         </p>
       ) : null}
 
-      <div className="space-y-1.5 mb-3">
-        {ACCESS_MODES.map((m) => (
-          <label key={m.value} className="flex cursor-pointer items-center gap-3 rounded-xl p-2 transition hover:bg-white/5">
-            <input
-              type="radio"
-              name="accessMode"
-              value={m.value}
-              checked={mode === m.value}
-              onChange={() => setMode(m.value)}
-              className="accent-teal-400"
-            />
-            <div>
-              <p className={cn("text-xs font-medium", m.tone)}>{m.label}</p>
-              <p className="text-[10px] text-white/30">{m.desc}</p>
-            </div>
-          </label>
-        ))}
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl p-2 transition hover:bg-white/5">
-          <input
-            type="radio"
-            name="accessMode"
-            value=""
-            checked={mode === ""}
-            onChange={() => setMode("")}
-            className="accent-teal-400"
-          />
-          <div>
-            <p className="text-xs font-medium text-white/50">Clear override</p>
-            <p className="text-[10px] text-white/30">Let the system resolve naturally</p>
-          </div>
-        </label>
+      <div className="mb-3">
+        <label className="mb-1.5 block text-[10px] text-white/40">Access mode</label>
+        <PremiumSelect
+          value={mode || "inherit"}
+          onValueChange={(value) => setMode(value === "inherit" ? "" : value)}
+        >
+          <PremiumSelectTrigger className="w-full">
+            <PremiumSelectValue placeholder="Choose access mode" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            {ACCESS_MODES.map((m) => (
+              <PremiumSelectItem key={m.value} value={m.value}>
+                {m.label}
+              </PremiumSelectItem>
+            ))}
+            <PremiumSelectItem value="inherit">Clear override</PremiumSelectItem>
+          </PremiumSelectContent>
+        </PremiumSelect>
+        {mode ? (
+          <p className="mt-1.5 text-[10px] text-white/30">
+            {ACCESS_MODES.find((m) => m.value === mode)?.desc}
+          </p>
+        ) : (
+          <p className="mt-1.5 text-[10px] text-white/30">
+            Let the system resolve access mode naturally from subscription status.
+          </p>
+        )}
       </div>
 
       <textarea
@@ -1215,14 +1211,46 @@ const ADDON_STATUS_TONE: Record<string, string> = {
 };
 
 function AddOnsPanel({ schoolId }: { schoolId: string }) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [addons, setAddons] = React.useState<AddOnRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [showCreate, setShowCreate] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
+  const [workingId, setWorkingId] = React.useState<string | null>(null);
   const [newType, setNewType] = React.useState("leo_credits");
   const [newQty, setNewQty] = React.useState("100");
   const [newPrice, setNewPrice] = React.useState("0");
   const [newNote, setNewNote] = React.useState("");
+  const [eligibleSummary, setEligibleSummary] = React.useState<{
+    eligibleStudents: number;
+    withoutAccounts: number;
+    gradeRange: string;
+    eligibleGradeCount: number;
+  } | null>(null);
+  const [eligibleLoading, setEligibleLoading] = React.useState(false);
+
+  const isLearnSeats = newType === "learn_seats";
+  const unresolvedAddOn = addons.find(
+    (addon) =>
+      addon.addonType === newType &&
+      (addon.status === "pending" || addon.status === "paid"),
+  );
+  const seatQty = Math.max(0, parseInt(newQty, 10) || 0);
+  const seatPrice = Math.max(0, parseFloat(newPrice) || 0);
+  const seatReferenceTotal = isLearnSeats ? seatQty * seatPrice : 0;
+
+  const loadEligibleSummary = React.useCallback(async () => {
+    setEligibleLoading(true);
+    try {
+      const res = await fetch(`/api/platform/schools/${schoolId}/learn-eligible-students`);
+      const json = await res.json();
+      if (json.success) setEligibleSummary(json.data);
+    } catch {
+      // silent
+    } finally {
+      setEligibleLoading(false);
+    }
+  }, [schoolId]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -1239,8 +1267,18 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
 
   React.useEffect(() => { load(); }, [load]);
 
+  React.useEffect(() => {
+    if (showCreate && newType === "learn_seats") {
+      void loadEligibleSummary();
+    }
+  }, [showCreate, newType, loadEligibleSummary]);
+
   async function onCreate() {
     if (!newQty || creating) return;
+    if (unresolvedAddOn) {
+      toast.error(`Resolve or remove the existing ${unresolvedAddOn.status} add-on first.`);
+      return;
+    }
     setCreating(true);
     try {
       const res = await fetch(`/api/platform/schools/${schoolId}/addons`, {
@@ -1255,7 +1293,11 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
       });
       const json = await res.json();
       if (json.success) {
-        toast.success("Add-on created.");
+        toast.success(
+          newType === "learn_seats"
+            ? `${parseInt(newQty, 10)} Learn seats granted. Parents pay per seat — school is not blocked on the reference total.`
+            : "Add-on created.",
+        );
         setShowCreate(false);
         setNewType("leo_credits");
         setNewQty("100");
@@ -1270,18 +1312,58 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
   }
 
   async function onCredit(addonId: string) {
-    const res = await fetch(`/api/platform/schools/${schoolId}/addons/${addonId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "credited" }),
+    setWorkingId(addonId);
+    try {
+      const res = await fetch(`/api/platform/schools/${schoolId}/addons/${addonId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "credited" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Add-on credited to balance.");
+        load();
+      } else {
+        toast.error(typeof json.error === "string" ? json.error : "Failed to credit add-on.");
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setWorkingId(null);
+    }
+  }
+
+  async function onRemovePending(addon: AddOnRow) {
+    const result = await confirm({
+      title: "Remove pending add-on?",
+      description: `This removes the pending ${ADDON_LABELS[addon.addonType] ?? addon.addonType} add-on before it is paid or credited.`,
+      confirmLabel: "Remove add-on",
+      intent: "destructive",
     });
-    const json = await res.json();
-    if (json.success) { toast.success("Add-on credited to balance."); load(); }
-    else toast.error("Failed to credit add-on.");
+    if (result !== "confirm") return;
+
+    setWorkingId(addon._id);
+    try {
+      const res = await fetch(`/api/platform/schools/${schoolId}/addons/${addon._id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Pending add-on removed.");
+        load();
+      } else {
+        toast.error(typeof json.error === "string" ? json.error : "Failed to remove add-on.");
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setWorkingId(null);
+    }
   }
 
   return (
     <div className={cn(glassPanelClass, "px-5 py-4")}>
+      {confirmationDialog}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
       <div className="mb-3 flex items-center justify-between">
         <p className="text-xs font-semibold text-white/50">Add-ons</p>
@@ -1300,29 +1382,65 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-[10px] text-white/40">Type</label>
-              <select
-                value={newType}
-                onChange={(e) => setNewType(e.target.value)}
-                className="mt-0.5 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white outline-none"
-              >
-                {Object.entries(ADDON_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
+              <PremiumSelect value={newType} onValueChange={setNewType}>
+                <PremiumSelectTrigger className="mt-0.5 w-full">
+                  <PremiumSelectValue placeholder="Select add-on type" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  {Object.entries(ADDON_LABELS).map(([k, v]) => (
+                    <PremiumSelectItem key={k} value={k}>
+                      {v}
+                    </PremiumSelectItem>
+                  ))}
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div>
-              <label className="block text-[10px] text-white/40">Quantity</label>
-              <input
-                type="number"
-                min="1"
-                value={newQty}
-                onChange={(e) => setNewQty(e.target.value)}
-                className="mt-0.5 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white outline-none"
-              />
+              <label className="block text-[10px] text-white/40">
+                {isLearnSeats ? "Number of seats" : "Quantity"}
+              </label>
+              <div className="mt-0.5 flex gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  value={newQty}
+                  onChange={(e) => setNewQty(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white outline-none"
+                />
+                {isLearnSeats ? (
+                  <button
+                    type="button"
+                    disabled={eligibleLoading || !eligibleSummary?.eligibleStudents}
+                    onClick={() => {
+                      if (eligibleSummary?.eligibleStudents) {
+                        setNewQty(String(eligibleSummary.eligibleStudents));
+                      }
+                    }}
+                    className="shrink-0 rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2 py-1.5 text-[10px] text-cyan-100 transition hover:bg-cyan-500/20 disabled:opacity-50"
+                  >
+                    Match eligible
+                  </button>
+                ) : null}
+              </div>
+              {isLearnSeats ? (
+                <p className="mt-1 text-[10px] leading-relaxed text-white/40">
+                  {eligibleLoading
+                    ? "Counting eligible students..."
+                    : eligibleSummary
+                      ? `${eligibleSummary.eligibleStudents.toLocaleString()} active students in ${eligibleSummary.gradeRange}${
+                          eligibleSummary.withoutAccounts
+                            ? ` (${eligibleSummary.withoutAccounts.toLocaleString()} without accounts)`
+                            : ""
+                        }.`
+                      : "Eligible students are active learners from Primary 4 / Grade 4 through JHS 3."}
+                </p>
+              ) : null}
             </div>
           </div>
           <div>
-            <label className="block text-[10px] text-white/40">Price (GHS)</label>
+            <label className="block text-[10px] text-white/40">
+              {isLearnSeats ? "Price per seat (GHS)" : "Price (GHS)"}
+            </label>
             <input
               type="number"
               min="0"
@@ -1331,6 +1449,17 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
               onChange={(e) => setNewPrice(e.target.value)}
               className="mt-0.5 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white outline-none"
             />
+            {isLearnSeats ? (
+              <p className="mt-1 text-[10px] leading-relaxed text-white/40">
+                Billing reference for parent collection — not an upfront school invoice. Seats are
+                granted immediately; parents pay per ward when the school enables Learn access.
+                {seatReferenceTotal > 0 ? (
+                  <span className="mt-0.5 block text-white/55">
+                    Reference total if all {seatQty} seats are sold: GHS {seatReferenceTotal.toLocaleString()}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="block text-[10px] text-white/40">Note</label>
@@ -1342,14 +1471,20 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
               className="mt-0.5 w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white outline-none placeholder:text-white/25"
             />
           </div>
+          {unresolvedAddOn ? (
+            <p className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1.5 text-[10px] leading-relaxed text-amber-100">
+              This school already has a {unresolvedAddOn.status} {ADDON_LABELS[newType] ?? newType} add-on.
+              Remove or credit it before adding another one.
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={onCreate}
-            disabled={creating}
+            disabled={creating || Boolean(unresolvedAddOn)}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-teal-400/30 bg-teal-500/15 py-1.5 text-xs text-teal-100 transition hover:bg-teal-500/25 disabled:opacity-50"
           >
             {creating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Create add-on
+            {isLearnSeats ? "Grant Learn seats" : "Create add-on"}
           </button>
         </div>
       )}
@@ -1367,6 +1502,18 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
               <div className="min-w-0">
                 <p className="text-xs text-white/70">
                   {ADDON_LABELS[a.addonType] ?? a.addonType} × {a.quantity.toLocaleString()}
+                  {a.addonType === "learn_seats" && a.priceMinor > 0 ? (
+                    <span className="text-white/45">
+                      {" "}
+                      · GHS {(a.priceMinor / 100).toLocaleString()}/seat
+                      {a.quantity > 0 ? (
+                        <span>
+                          {" "}
+                          (ref. GHS {((a.priceMinor * a.quantity) / 100).toLocaleString()})
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </p>
                 {a.note && <p className="text-[10px] text-white/30">{a.note}</p>}
               </div>
@@ -1374,15 +1521,31 @@ function AddOnsPanel({ schoolId }: { schoolId: string }) {
                 <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px]", ADDON_STATUS_TONE[a.status] ?? "")}>
                   {a.status}
                 </span>
-                {a.status === "paid" && (
+                {(a.status === "paid" || (a.addonType === "learn_seats" && a.status === "pending")) && (
                   <button
                     type="button"
                     onClick={() => onCredit(a._id)}
-                    className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-200 transition hover:bg-emerald-500/20"
+                    disabled={workingId === a._id}
+                    className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-50"
                   >
-                    Credit
+                    {workingId === a._id ? "Working..." : a.addonType === "learn_seats" ? "Grant" : "Credit"}
                   </button>
                 )}
+                {a.status === "pending" ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemovePending(a)}
+                    disabled={workingId === a._id}
+                    aria-label={`Remove ${ADDON_LABELS[a.addonType] ?? a.addonType} add-on`}
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-rose-400/20 bg-rose-500/10 text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50"
+                  >
+                    {workingId === a._id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                ) : null}
               </div>
             </div>
           ))}

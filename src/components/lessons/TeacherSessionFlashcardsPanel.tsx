@@ -4,8 +4,12 @@ import * as React from "react";
 import { Layers, Plus, Pencil, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { findDuplicateFlashcardIds } from "@/lib/lessons/flashcard-generation";
+import { TeacherSessionFlashcardsBulkBar } from "@/components/lessons/TeacherSessionFlashcardsBulkBar";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import {
   PremiumDropdownMenu,
@@ -21,6 +25,7 @@ import {
   useTeacherUpdateSessionFlashcard,
   useTeacherDeleteSessionFlashcard,
   useTeacherBulkCreateSessionFlashcards,
+  useTeacherBulkDeleteSessionFlashcards,
 } from "@/hooks/teacher/useTeacherSessionFlashcards";
 import { useGenerateSessionFlashcards } from "@/hooks/teacher/useLessonsLeo";
 import type { LessonFlashcardDto } from "@/types/lesson-flashcards";
@@ -45,8 +50,10 @@ export function TeacherSessionFlashcardsPanel({
   const bulkMut = useTeacherBulkCreateSessionFlashcards(sessionId);
   const updateMut = useTeacherUpdateSessionFlashcard(sessionId);
   const deleteMut = useTeacherDeleteSessionFlashcard(sessionId);
+  const bulkDeleteMut = useTeacherBulkDeleteSessionFlashcards(sessionId);
   const generateLeo = useGenerateSessionFlashcards();
 
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [showAdd, setShowAdd] = React.useState(false);
   const [newFront, setNewFront] = React.useState("");
   const [newBack, setNewBack] = React.useState("");
@@ -55,6 +62,42 @@ export function TeacherSessionFlashcardsPanel({
   const [editBack, setEditBack] = React.useState("");
 
   const cards = data?.data.cards || [];
+  const duplicateIds = React.useMemo(() => findDuplicateFlashcardIds(cards), [cards]);
+  const selectedCount = selectedIds.size;
+  const allSelected = cards.length > 0 && cards.every((c) => selectedIds.has(c.id));
+  const someSelected = cards.some((c) => selectedIds.has(c.id));
+
+  React.useEffect(() => {
+    setSelectedIds((prev) => {
+      const valid = new Set(cards.map((c) => c.id));
+      const next = new Set([...prev].filter((id) => valid.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [cards]);
+
+  const toggleCard = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(cards.map((c) => c.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectDuplicates = () => {
+    setSelectedIds(new Set(duplicateIds));
+  };
+
   const publishedHint =
     !studentPublished
       ? "Students see flashcards when this session is published to them."
@@ -80,53 +123,80 @@ export function TeacherSessionFlashcardsPanel({
     setShowAdd(false);
   };
 
+  const CARD_BY_CARD_TOTAL = 8;
+
   /**
-   * Card-by-card generation: generate one card at a time, save each to the DB
-   * after it appears so the teacher sees them appearing sequentially.
+   * Card-by-card: each call gets a slot focus + existing deck from the server,
+   * with duplicate detection and retries before save.
    */
   const generateCardByCard = async (total: number) => {
     let generated = 0;
-    for (let i = 0; i < total; i++) {
-      let drafted: Array<{ front: string; back: string }> = [];
+    let skipped = 0;
+    let failed = 0;
+
+    for (let slotIndex = 0; slotIndex < total; slotIndex++) {
       try {
-        drafted = await generateLeo.mutateAsync({ sessionId, maxCards: 1 });
-      } catch {
-        break;
-      }
-      if (!drafted.length) break;
-      try {
-        await bulkMut.mutateAsync(drafted);
+        const result = await generateLeo.mutateAsync({
+          sessionId,
+          maxCards: 1,
+          slotIndex,
+          totalSlots: total,
+        });
+        skipped += result.skippedDuplicates;
+        if (!result.cards.length) {
+          failed += 1;
+          continue;
+        }
+        const saveRes = await bulkMut.mutateAsync(result.cards);
+        const saveSkipped = (saveRes as { data?: { skippedDuplicates?: number } })?.data
+          ?.skippedDuplicates;
+        if (typeof saveSkipped === "number") skipped += saveSkipped;
         generated += 1;
       } catch {
-        break;
+        failed += 1;
       }
     }
+
     if (generated > 0) {
-      busyToast.success(
-        `${generated} flashcard${generated === 1 ? "" : "s"} generated and saved`,
-      );
+      const parts = [
+        `${generated} unique flashcard${generated === 1 ? "" : "s"} saved`,
+        skipped > 0 ? `${skipped} duplicate${skipped === 1 ? "" : "s"} skipped` : null,
+        failed > 0 ? `${failed} slot${failed === 1 ? "" : "s"} could not produce a new card` : null,
+      ].filter(Boolean);
+      busyToast.success(parts.join(" · "));
     } else {
-      busyToast.error("Leo could not generate cards. Try again or add them manually.");
+      busyToast.error(
+        "Leo could not add new cards without repeating what you already have. Try bulk generate or add cards manually.",
+      );
     }
   };
 
-  const generateWithLeo = async (mode: "one-by-one" | "bulk" = "one-by-one") => {
+  const generateWithLeo = async (mode: "one-by-one" | "bulk" = "bulk") => {
     if (mode === "bulk") {
       await busyToast.promise(
         (async () => {
-          const drafted = await generateLeo.mutateAsync({ sessionId, maxCards: 10 });
-          if (!drafted.length) throw new Error("Leo did not return any cards.");
-          await bulkMut.mutateAsync(drafted);
+          const result = await generateLeo.mutateAsync({ sessionId, maxCards: 10 });
+          if (!result.cards.length) {
+            throw new Error("Leo did not return any unique cards for this lesson.");
+          }
+          const saveRes = await bulkMut.mutateAsync(result.cards);
+          const saveSkipped = (saveRes as { data?: { skippedDuplicates?: number } })?.data
+            ?.skippedDuplicates;
+          const skipped = result.skippedDuplicates + (saveSkipped ?? 0);
+          if (skipped > 0) {
+            return `${result.cards.length} cards saved · ${skipped} duplicate${skipped === 1 ? "" : "s"} skipped`;
+          }
+          return `${result.cards.length} unique flashcards saved`;
         })(),
         {
-          loading: "Leo is generating all flashcards…",
-          success: "Flashcards saved",
+          loading: "Leo is drafting a varied flashcard set…",
+          success: (msg) => msg,
           error: (e) => (e instanceof Error ? e.message : "Generation failed"),
         },
       );
     } else {
-      busyToast.show("Generating flashcards one by one…");
-      await generateCardByCard(8);
+      busyToast.show("Generating varied flashcards one by one…");
+      await generateCardByCard(CARD_BY_CARD_TOTAL);
       busyToast.hide();
     }
   };
@@ -146,6 +216,28 @@ export function TeacherSessionFlashcardsPanel({
       },
     );
     setEditing(null);
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    const r = await confirm({
+      title: `Remove ${ids.length} flashcard${ids.length === 1 ? "" : "s"}?`,
+      description: "Students will no longer see the selected cards.",
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
+      intent: "destructive",
+    });
+    if (r !== "confirm") return;
+    await busyToast.promise(bulkDeleteMut.mutateAsync(ids), {
+      loading: "Removing cards…",
+      success: (res) => {
+        const deleted = res.data?.deleted ?? ids.length;
+        return `${deleted} card${deleted === 1 ? "" : "s"} removed`;
+      },
+      error: (e) => (e instanceof Error ? e.message : "Failed"),
+    });
+    clearSelection();
   };
 
   const handleDelete = async (c: LessonFlashcardDto) => {
@@ -198,15 +290,11 @@ export function TeacherSessionFlashcardsPanel({
                     </Button>
                   </PremiumDropdownMenuTrigger>
                   <PremiumDropdownMenuContent align="end">
-                    <PremiumDropdownMenuItem
-                      onClick={() => void generateWithLeo("one-by-one")}
-                    >
-                      Card by card (watch them appear)
+                    <PremiumDropdownMenuItem onClick={() => void generateWithLeo("bulk")}>
+                      Generate varied set (recommended)
                     </PremiumDropdownMenuItem>
-                    <PremiumDropdownMenuItem
-                      onClick={() => void generateWithLeo("bulk")}
-                    >
-                      Generate all at once
+                    <PremiumDropdownMenuItem onClick={() => void generateWithLeo("one-by-one")}>
+                      Add one by one ({CARD_BY_CARD_TOTAL} slots)
                     </PremiumDropdownMenuItem>
                   </PremiumDropdownMenuContent>
                 </PremiumDropdownMenu>
@@ -242,11 +330,67 @@ export function TeacherSessionFlashcardsPanel({
               No flashcards yet. Add pairs manually or generate them with Leo.
             </div>
           ) : (
-            <ul className="space-y-3">
-              {cards.map((c) => (
-                <li key={c.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="space-y-3">
+              {canWrite ? (
+                <TeacherSessionFlashcardsBulkBar
+                  selectedCount={selectedCount}
+                  duplicateCount={duplicateIds.length}
+                  onClearSelection={clearSelection}
+                  onSelectDuplicates={selectDuplicates}
+                  onDeleteSelected={() => void handleBulkDelete()}
+                  isDeleting={bulkDeleteMut.isPending}
+                />
+              ) : null}
+
+              {canWrite && cards.length > 1 ? (
+                <div className="flex items-center gap-2 px-1">
+                  <Checkbox
+                    id="flashcards-select-all"
+                    checked={allSelected}
+                    indeterminate={someSelected && !allSelected}
+                    onCheckedChange={(value) => toggleSelectAll(value === true)}
+                    className="border-white/20 data-[state=checked]:border-fuchsia-400 data-[state=checked]:bg-fuchsia-500"
+                  />
+                  <Label
+                    htmlFor="flashcards-select-all"
+                    className="cursor-pointer text-xs text-white/55"
+                  >
+                    Select all ({cards.length})
+                  </Label>
+                </div>
+              ) : null}
+
+              <ul className="space-y-3">
+              {cards.map((c) => {
+                const isSelected = selectedIds.has(c.id);
+                const isDuplicate = duplicateIds.includes(c.id);
+                return (
+                <li
+                  key={c.id}
+                  className={cn(
+                    "rounded-2xl border bg-white/5 p-4 transition-colors",
+                    isSelected
+                      ? "border-fuchsia-400/35 bg-fuchsia-500/10"
+                      : "border-white/10",
+                  )}
+                >
                   <div className="flex items-start justify-between gap-2">
+                    {canWrite ? (
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(value) => toggleCard(c.id, value === true)}
+                        aria-label={`Select flashcard: ${c.front.slice(0, 40)}`}
+                        className="mt-0.5 border-white/20 data-[state=checked]:border-fuchsia-400 data-[state=checked]:bg-fuchsia-500"
+                      />
+                    ) : null}
                     <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isDuplicate ? (
+                          <span className="rounded-md border border-amber-400/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-200">
+                            Duplicate
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-sm text-white/90">{c.front}</p>
                       <p className="text-sm text-white/70">{c.back}</p>
                     </div>
@@ -282,8 +426,10 @@ export function TeacherSessionFlashcardsPanel({
                     )}
                   </div>
                 </li>
-              ))}
-            </ul>
+              );
+              })}
+              </ul>
+            </div>
           )}
         </CardContent>
       </Card>

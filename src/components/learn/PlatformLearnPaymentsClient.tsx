@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
@@ -45,28 +45,47 @@ function shortDate(value: string | null) {
 export function PlatformLearnPaymentsClient() {
   const [payments, setPayments] = React.useState<PaymentRow[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [verifyingId, setVerifyingId] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    try {
+      const response = await fetch("/api/platform/learn/payments", { cache: "no-store" });
+      const payload = (await response.json()) as ApiResponse;
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.success ? "Failed to load payments." : payload.error);
+      }
+      setPayments(payload.data.payments);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load payments.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const response = await fetch("/api/platform/learn/payments", { cache: "no-store" });
-        const payload = (await response.json()) as ApiResponse;
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.success ? "Failed to load payments." : payload.error);
-        }
-        if (!cancelled) setPayments(payload.data.payments);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to load payments.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
     void load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }, [load]);
+
+  async function verifyPayment(paymentId: string) {
+    setVerifyingId(paymentId);
+    try {
+      const response = await fetch(`/api/platform/learn/payments/${paymentId}/verify`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as
+        | { success: true; data?: { status?: string; message?: string } }
+        | { success: false; error: string };
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.success ? "Failed to verify payment." : payload.error);
+      }
+      toast.success(payload.data?.status === "succeeded" ? "Learn payment verified." : payload.data?.message || "Verification checked.");
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to verify payment.");
+    } finally {
+      setVerifyingId(null);
+    }
+  }
 
   const revenue = payments
     .filter((payment) => payment.status === "succeeded")
@@ -104,11 +123,31 @@ export function PlatformLearnPaymentsClient() {
                       <p className="font-semibold text-white">{payment.studentName}</p>
                       <p className="mt-1 text-sm text-white/50">{payment.schoolName}</p>
                     </div>
-                    <div className="grid gap-3 text-sm sm:grid-cols-4 lg:min-w-[680px]">
+                    <div className="grid gap-3 text-sm sm:grid-cols-5 lg:min-w-[760px]">
                       <Info label="Amount" value={money(payment.amountMinor, payment.currency)} />
                       <Info label="Status" value={payment.status.replace(/_/g, " ")} />
                       <Info label="Created" value={shortDate(payment.createdAt)} />
                       <Info label="Reference" value={payment.paystackReference || "Not assigned"} />
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/35">Action</p>
+                        {payment.paystackReference && payment.status !== "succeeded" ? (
+                          <button
+                            type="button"
+                            onClick={() => void verifyPayment(payment.id)}
+                            disabled={verifyingId === payment.id}
+                            className="mt-1 inline-flex items-center gap-1 rounded-lg border border-cyan-300/20 bg-cyan-400/10 px-2 py-1 text-[11px] font-medium text-cyan-100 transition hover:bg-cyan-400/15 disabled:opacity-50"
+                          >
+                            {verifyingId === payment.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3" />
+                            )}
+                            Verify
+                          </button>
+                        ) : (
+                          <p className="mt-1 text-white/40">None</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

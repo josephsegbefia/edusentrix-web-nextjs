@@ -26,6 +26,8 @@ import {
   Users,
   TrendingUp,
   Banknote,
+  Download,
+  Eye,
 } from "lucide-react";
 import { useParentPayments } from "@/hooks/parent/useParentPayments";
 import type { PaymentRecord } from "@/hooks/parent/useParentPayments";
@@ -52,8 +54,19 @@ function getMethodLabel(method: string): string {
     mobile_money: "Mobile Money",
     momo: "Mobile Money",
     cheque: "Cheque",
+    paystack: "Paystack",
   };
   return labels[method.toLowerCase()] || method;
+}
+
+function statusTone(status: string) {
+  if (status === "completed" || status === "succeeded") {
+    return "bg-emerald-500/10 text-emerald-100 border-emerald-300/25";
+  }
+  if (status === "failed" || status === "cancelled" || status === "expired") {
+    return "bg-rose-500/10 text-rose-100 border-rose-300/25";
+  }
+  return "bg-amber-500/10 text-amber-100 border-amber-300/25";
 }
 
 /* --------------------------------------------------------------------------------
@@ -135,11 +148,22 @@ function SummaryCard({
 function PaymentRow({ payment }: { payment: PaymentRecord }) {
   const methodKey = payment.method.toLowerCase();
   const MethodIcon = METHOD_ICONS[methodKey] || CreditCard;
+  const status = payment.status || "completed";
+  const successful = status === "completed" || status === "succeeded";
 
   return (
     <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-500/30">
-        <CheckCircle2 className="h-6 w-6 text-emerald-300" />
+      <div
+        className={cn(
+          "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border",
+          successful ? "border-emerald-500/30 bg-emerald-500/20" : "border-amber-500/30 bg-amber-500/15",
+        )}
+      >
+        {successful ? (
+          <CheckCircle2 className="h-6 w-6 text-emerald-300" />
+        ) : (
+          <CreditCard className="h-6 w-6 text-amber-200" />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -148,12 +172,17 @@ function PaymentRow({ payment }: { payment: PaymentRecord }) {
           <Badge variant="outline" className="bg-white/5 text-white/60 border-white/20 text-[10px]">
             {payment.wardName}
           </Badge>
+          <Badge variant="outline" className={cn("text-[10px] capitalize", statusTone(status))}>
+            {status.replace(/_/g, " ")}
+          </Badge>
         </div>
         <div className="flex items-center gap-3 mt-1 text-xs text-white/50">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {format(parseISO(payment.date), "MMM d, yyyy")}
-          </span>
+          {payment.date ? (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {format(parseISO(payment.date), "MMM d, yyyy")}
+            </span>
+          ) : null}
           <span className="flex items-center gap-1">
             <MethodIcon className="h-3 w-3" />
             {getMethodLabel(payment.method)}
@@ -166,8 +195,34 @@ function PaymentRow({ payment }: { payment: PaymentRecord }) {
         </div>
       </div>
 
-      <div className="text-right shrink-0">
+      <div className="shrink-0 text-right">
         <p className="text-lg font-bold text-emerald-300">{formatCurrencyFromMajor(payment.amount)}</p>
+        {payment.receiptViewUrl || payment.receiptDownloadUrl ? (
+          <div className="mt-2 flex justify-end gap-2">
+            {payment.receiptViewUrl ? (
+              <a
+                href={payment.receiptViewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-white/70 transition hover:bg-white/10"
+              >
+                <Eye className="h-3 w-3" />
+                View
+              </a>
+            ) : null}
+            {payment.receiptDownloadUrl ? (
+              <a
+                href={payment.receiptDownloadUrl}
+                className="inline-flex items-center gap-1 rounded-lg border border-teal-300/20 bg-teal-400/10 px-2 py-1 text-[11px] font-medium text-teal-100 transition hover:bg-teal-400/15"
+              >
+                <Download className="h-3 w-3" />
+                PDF
+              </a>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-amber-100/65">Receipt pending</p>
+        )}
       </div>
     </div>
   );

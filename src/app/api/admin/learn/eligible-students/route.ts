@@ -3,6 +3,11 @@ import { Types } from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
+import {
+  buildLearnEligibleStudentFilter,
+  getLearnEligibleGradeIdsForSchool,
+  LEARN_GRADE_RANGE_LABEL,
+} from "@/lib/learn/grade-eligibility";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Guardian } from "@/models/Guardian";
@@ -73,12 +78,34 @@ export async function GET(req: NextRequest) {
         success: true,
         data: {
           eligibility,
+          gradeRange: LEARN_GRADE_RANGE_LABEL,
           students: [],
           summary: {
             eligibleStudents: 0,
             withAccounts: 0,
             withoutAccounts: 0,
             withGuardians: 0,
+            eligibleGradeCount: 0,
+          },
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        },
+      });
+    }
+
+    const eligibleGradeIds = await getLearnEligibleGradeIdsForSchool(ctx.schoolId);
+    if (!eligibleGradeIds.length) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          eligibility,
+          gradeRange: LEARN_GRADE_RANGE_LABEL,
+          students: [],
+          summary: {
+            eligibleStudents: 0,
+            withAccounts: 0,
+            withoutAccounts: 0,
+            withGuardians: 0,
+            eligibleGradeCount: 0,
           },
           pagination: { page, limit, total: 0, totalPages: 0 },
         },
@@ -86,10 +113,10 @@ export async function GET(req: NextRequest) {
     }
 
     const query: Record<string, unknown> = {
-      schoolId: ctx.schoolId,
-      status: "active",
-      gradeId: { $exists: true, $ne: null },
-      classGroupId: { $exists: true, $ne: null },
+      ...buildLearnEligibleStudentFilter({
+        schoolId: ctx.schoolId,
+        eligibleGradeIds,
+      }),
     };
 
     if (search) {
@@ -103,12 +130,12 @@ export async function GET(req: NextRequest) {
     }
 
     const [allActiveStudents, accounts] = await Promise.all([
-      Student.find({
-        schoolId: ctx.schoolId,
-        status: "active",
-        gradeId: { $exists: true, $ne: null },
-        classGroupId: { $exists: true, $ne: null },
-      })
+      Student.find(
+        buildLearnEligibleStudentFilter({
+          schoolId: ctx.schoolId,
+          eligibleGradeIds,
+        }),
+      )
         .select("_id")
         .lean<Array<{ _id: Types.ObjectId }>>(),
       LearnStudentAccount.find({ schoolId: ctx.schoolId })
@@ -211,12 +238,14 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         eligibility,
+        gradeRange: LEARN_GRADE_RANGE_LABEL,
         students: rows,
         summary: {
           eligibleStudents: allActiveStudents.length,
           withAccounts: activeAccountCount,
           withoutAccounts: Math.max(0, allActiveStudents.length - activeAccountCount),
           withGuardians,
+          eligibleGradeCount: eligibleGradeIds.length,
         },
         pagination: {
           page,

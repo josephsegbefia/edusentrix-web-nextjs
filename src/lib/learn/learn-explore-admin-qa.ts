@@ -15,6 +15,7 @@ import type {
   ExploreSourceContext,
   GuidedAdventureContentV2,
 } from "@/lib/learn/explore/explore-types";
+import { validateGuidedAdventureContentV2 } from "@/lib/learn/explore/explore-schemas";
 import { ClassGroup } from "@/models/ClassGroup";
 import { ExploreAdventure, type IExploreAdventure } from "@/models/ExploreAdventure";
 import { ExploreContentReview } from "@/models/ExploreContentReview";
@@ -437,4 +438,55 @@ export async function applyExploreAdminReviewAction(input: {
     reviewStatus: adventure.reviewStatus,
     action: input.action,
   };
+}
+
+export async function updateLazyExploreContentForAdminQa(input: {
+  schoolId: Types.ObjectId;
+  adventureId: string;
+  content: GuidedAdventureContentV2;
+  scope?: { classGroupIds?: Types.ObjectId[] };
+}): Promise<ExploreAdminQaDetail | null> {
+  await connectToDatabase();
+
+  const objectIdHex = parseExploreAdventureId(input.adventureId);
+  if (!objectIdHex) {
+    throw new Error("Invalid adventure id.");
+  }
+
+  const query: Record<string, unknown> = {
+    _id: new Types.ObjectId(objectIdHex),
+    schoolId: input.schoolId,
+  };
+
+  if (scope?.classGroupIds?.length) {
+    query.classGroupId = { $in: scope.classGroupIds };
+  }
+
+  const adventure = await ExploreAdventure.findOne(query);
+  if (!adventure) {
+    throw new Error("Explore adventure not found.");
+  }
+
+  const validation = validateGuidedAdventureContentV2(input.content);
+  if (!validation.ok) {
+    throw new Error(validation.message);
+  }
+
+  const snapshot = await ExploreContentSnapshot.findById(adventure.currentSnapshotId);
+  if (!snapshot) {
+    throw new Error("Explore content snapshot not found.");
+  }
+
+  snapshot.content = validation.data;
+  await snapshot.save();
+
+  adventure.title = validation.data.title;
+  adventure.subjectName = validation.data.subjectName;
+  adventure.sourceLessonTitle = validation.data.sourceLessonTitle;
+  adventure.difficulty = validation.data.difficulty;
+  adventure.estimatedMinutes = validation.data.estimatedMinutes;
+  adventure.missionType = validation.data.missionType;
+  await adventure.save();
+
+  return getLazyExploreDetailForAdminQa(input.schoolId, input.adventureId, input.scope);
 }

@@ -6,6 +6,7 @@ import {
   applyExploreAdminReviewAction,
   getLazyExploreDetailForAdminQa,
   listSchoolLazyExploreForAdminQa,
+  updateLazyExploreContentForAdminQa,
   type ExploreAdminQaDetail,
   type ExploreAdminQaListItem,
   type ExploreAdminReviewActionInput,
@@ -318,5 +319,19 @@ export async function applyTeacherExploreAdminReview(input: {
     adventureId: input.adventureId,
     action: input.action,
     notes: input.notes,
+  });
+}
+
+export async function updateTeacherExploreContent(
+  teacher: TeacherLearnContext,
+  adventureId: string,
+  content: ExploreAdminQaDetail["content"]
+) {
+  const classGroupIds = await getTeacherLearnClassIds(teacher);
+  return updateLazyExploreContentForAdminQa({
+    schoolId: teacher.schoolId,
+    adventureId,
+    content,
+    scope: { classGroupIds },
   });
 }

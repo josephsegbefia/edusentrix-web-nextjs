@@ -1,10 +1,6 @@
 import mongoose from "mongoose";
-import { after } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
-import { buildExploreWorkerContextForClass } from "@/lib/learn/explore/explore-class-context";
-import { scheduleExploreGenerationForDeliveredSession } from "@/lib/learn/explore/explore-delivery-schedule.service";
-import { runExploreGenerationForClaimedJob } from "@/lib/learn/explore/explore-lazy-generate.service";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { LessonDelivery } from "@/models/LessonDelivery";
@@ -124,35 +120,6 @@ export async function POST(
           $addToSet: { publishToClassGroupIds: session.classGroupId },
         }
       );
-    }
-
-    const exploreSchedule = await scheduleExploreGenerationForDeliveredSession({
-      schoolId: context.schoolId,
-      classGroupId: session.classGroupId,
-      sessionId: session._id,
-      subjectOfferingId: session.subjectOfferingId,
-    });
-
-    if (exploreSchedule.runInBackground && exploreSchedule.jobId) {
-      const workerContext = await buildExploreWorkerContextForClass({
-        schoolId: context.schoolId,
-        classGroupId: session.classGroupId,
-      });
-
-      if (workerContext) {
-        const jobId = exploreSchedule.jobId;
-        after(async () => {
-          try {
-            await connectToDatabase();
-            await runExploreGenerationForClaimedJob({
-              auth: workerContext,
-              jobId,
-            });
-          } catch (error) {
-            console.error("[lesson-deliveries complete] explore generation:", error);
-          }
-        });
-      }
     }
 
     return Response.json({

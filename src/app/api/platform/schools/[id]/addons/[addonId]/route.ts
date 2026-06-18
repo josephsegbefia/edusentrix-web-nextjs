@@ -1,10 +1,5 @@
 /**
  * PATCH /api/platform/schools/[id]/addons/[addonId]
- *
- * Update add-on status. Primarily used for:
- *   - paid → confirmed payment
- *   - paid → credited → applies to UsageBalance
- *   - any → cancelled
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -12,21 +7,11 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { SubscriptionAddOn, type AddOnType } from "@/models/SubscriptionAddOn";
-import { UsageBalance, type UsageBalanceType } from "@/models/UsageBalance";
-import { SchoolSubscription } from "@/models/SchoolSubscription";
+import { SubscriptionAddOn } from "@/models/SubscriptionAddOn";
+import { markSchoolAddOnCredited } from "@/lib/subscriptions/credit-school-addon";
 import { recordSubscriptionEvent } from "@/lib/subscriptions/record-event";
 
 type Params = { params: Promise<{ id: string; addonId: string }> };
-
-const ADDON_TO_USAGE_TYPE: Partial<Record<AddOnType, UsageBalanceType>> = {
-  leo_credits: "leo_credits",
-  learn_seats: "learn_seats",
-  meeting_minutes: "meeting_participant_minutes",
-  storage_gb: "storage_bytes",
-  sms_credits: "sms_credits",
-  whatsapp_credits: "whatsapp_credits",
-};
 
 const PatchAddOnSchema = z.object({
   status: z.enum(["pending", "paid", "credited", "cancelled", "refunded"]),
@@ -73,6 +58,31 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     );
   }
 
+  if (parsed.data.status === "credited" && addon.status !== "credited") {
+    const credited = await markSchoolAddOnCredited({
+      addonId,
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+      actorEmail: perm.actor.email ?? null,
+    });
+    if (!credited.ok) {
+      return NextResponse.json({ success: false, error: credited.error }, { status: 409 });
+    }
+
+    if (parsed.data.paymentReference) credited.addon.paymentReference = parsed.data.paymentReference;
+    if (parsed.data.note) credited.addon.note = parsed.data.note;
+    if (parsed.data.paymentReference || parsed.data.note) await credited.addon.save();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...credited.addon.toObject(),
+        _id: String(credited.addon._id),
+        schoolId: String(credited.addon.schoolId),
+        subscriptionId: credited.addon.subscriptionId ? String(credited.addon.subscriptionId) : null,
+      },
+    });
+  }
+
   const update: Record<string, unknown> = {
     status: parsed.data.status,
   };
@@ -80,49 +90,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (parsed.data.paymentReference) update.paymentReference = parsed.data.paymentReference;
   if (parsed.data.note) update.note = parsed.data.note;
 
-  // When crediting — apply to UsageBalance
-  if (parsed.data.status === "credited" && addon.status !== "credited") {
-    update.creditedAt = new Date();
-
-    const usageType = ADDON_TO_USAGE_TYPE[addon.addonType];
-    if (usageType) {
-      const sub = await SchoolSubscription.findOne({ schoolId: new mongoose.Types.ObjectId(schoolId) })
-        .select("_id")
-        .lean<{ _id: mongoose.Types.ObjectId } | null>();
-
-      if (sub) {
-        // Convert storage_gb to bytes
-        const quantity =
-          addon.addonType === "storage_gb"
-            ? addon.quantity * 1024 * 1024 * 1024
-            : addon.quantity;
-
-        await UsageBalance.findOneAndUpdate(
-          {
-            schoolId: new mongoose.Types.ObjectId(schoolId),
-            subscriptionId: sub._id,
-            balanceType: usageType,
-          },
-          { $inc: { purchasedQuantity: quantity } },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-      }
-    }
-
-    await recordSubscriptionEvent({
-      schoolId: new mongoose.Types.ObjectId(schoolId),
-      subscriptionId: addon.subscriptionId ?? null,
-      eventType: "addon_credited",
-      actorEmail: perm.actor.email ?? null,
-      summary: `Add-on credited: ${addon.addonType} × ${addon.quantity}. Applied to usage balance.`,
-      metadata: {
-        addonId: String(addon._id),
-        addonType: addon.addonType,
-        quantity: addon.quantity,
-        usageType,
-      },
-    });
-  } else if (parsed.data.status === "cancelled") {
+  if (parsed.data.status === "cancelled") {
     update.cancelledAt = new Date();
   }
 
@@ -141,4 +109,58 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       subscriptionId: updated!.subscriptionId ? String(updated!.subscriptionId) : null,
     },
   });
+}
+
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
+
+  const { id: schoolId, addonId } = await params;
+  if (
+    !mongoose.Types.ObjectId.isValid(schoolId) ||
+    !mongoose.Types.ObjectId.isValid(addonId)
+  ) {
+    return NextResponse.json({ success: false, error: "Invalid ID." }, { status: 400 });
+  }
+
+  await connectToDatabase();
+
+  const schoolObjectId = new mongoose.Types.ObjectId(schoolId);
+  const addon = await SubscriptionAddOn.findOne({
+    _id: addonId,
+    schoolId: schoolObjectId,
+  });
+
+  if (!addon) {
+    return NextResponse.json({ success: false, error: "Add-on not found." }, { status: 404 });
+  }
+
+  if (addon.status !== "pending") {
+    return NextResponse.json(
+      { success: false, error: "Only pending add-ons can be removed." },
+      { status: 409 },
+    );
+  }
+
+  await SubscriptionAddOn.deleteOne({
+    _id: addon._id,
+    schoolId: schoolObjectId,
+    status: "pending",
+  });
+
+  await recordSubscriptionEvent({
+    schoolId: schoolObjectId,
+    subscriptionId: addon.subscriptionId ?? null,
+    eventType: "addon_removed",
+    actorEmail: perm.actor.email ?? null,
+    summary: `Pending add-on removed: ${addon.addonType} × ${addon.quantity}.`,
+    metadata: {
+      addonId: String(addon._id),
+      addonType: addon.addonType,
+      quantity: addon.quantity,
+      priceMinor: addon.priceMinor,
+    },
+  });
+
+  return NextResponse.json({ success: true });
 }

@@ -13,7 +13,10 @@
 
 import type { FeatureKey } from "./feature-keys";
 import type { LimitKey } from "./limit-keys";
+import { LIMIT_KEYS } from "./limit-keys";
 import { resolveSchoolEntitlements } from "./resolve-school-entitlements";
+import { formatLearnSeatDeniedMessage } from "@/lib/learn/learn-seat-limit-messages";
+import { resolveLearnSeatEntitlement } from "@/lib/learn/learn-seat-limits";
 import type { SchoolAccessMode } from "./access-mode";
 import { canCreateInAccessMode } from "./access-mode";
 import mongoose from "mongoose";
@@ -132,12 +135,72 @@ export async function enforceSchoolLimit(opts: {
         }).catch(() => {});
       }).catch(() => {});
     }
+
+    const reason =
+      limitKey === LIMIT_KEYS.learnSeats && limit <= 0
+        ? formatLearnSeatDeniedMessage({
+            current,
+            limit,
+            planBase: limit,
+            addonSeats: 0,
+          })
+        : limitKey === LIMIT_KEYS.learnSeats
+          ? `You have used all ${limit} Learn seats (${current} in use). Purchase additional Learn seats or disable unused accounts.`
+          : `You have reached the ${limitKey} limit for your current plan (${limit}). Upgrade your subscription to increase this limit.`;
+
     return {
       allowed: false,
-      reason: `You have reached the ${limitKey} limit for your current plan (${limit}). Upgrade your subscription to increase this limit.`,
+      reason,
       current,
       limit,
-      statusCode: 429,
+      statusCode: limit <= 0 ? 403 : 429,
+    };
+  }
+
+  return { allowed: true, current, limit };
+}
+
+/**
+ * Enforces Learn seat capacity using active account count and plan + add-on seats.
+ */
+export async function enforceLearnSeatLimit(opts: {
+  schoolId: string | mongoose.Types.ObjectId;
+  increment?: number;
+}): Promise<LimitGuardResult> {
+  const increment = opts.increment ?? 1;
+
+  if (!ENFORCEMENT_ENABLED || !API_GATES_ENABLED) {
+    return { allowed: true, current: 0, limit: null };
+  }
+
+  const entitlement = await resolveLearnSeatEntitlement(opts.schoolId);
+  const { current, limit } = entitlement;
+
+  if (limit !== null && current + increment > limit) {
+    if (DENIED_ACCESS_AUDIT_ENABLED) {
+      import("./record-event").then(({ recordSubscriptionEvent }) => {
+        recordSubscriptionEvent({
+          schoolId: opts.schoolId,
+          eventType: "entitlement_audit",
+          summary: `Learn seat limit exceeded: ${current + increment}/${limit}.`,
+          metadata: {
+            limitKey: LIMIT_KEYS.learnSeats,
+            current,
+            limit,
+            increment,
+            addonSeats: entitlement.addonSeats,
+            denyReason: limit <= 0 ? "LEARN_SEATS_NOT_INCLUDED" : "LIMIT_EXCEEDED",
+          },
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
+    return {
+      allowed: false,
+      reason: formatLearnSeatDeniedMessage(entitlement),
+      current,
+      limit,
+      statusCode: limit <= 0 ? 403 : 429,
     };
   }
 

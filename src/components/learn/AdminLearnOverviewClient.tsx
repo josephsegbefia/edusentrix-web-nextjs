@@ -35,6 +35,7 @@ type OverviewPayload = {
     activeAccess: number;
     pendingPayments: number;
     activityThisWeek: number;
+    gradeRange?: string;
   };
   topClasses: Array<{
     classGroupId: string;
@@ -87,7 +88,11 @@ export function AdminLearnOverviewClient() {
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="EduSentrix Learn"
-          subtitle="School-level Learn access management, account readiness, and adoption visibility."
+          subtitle={
+            data?.metrics.gradeRange
+              ? `School-level Learn access for ${data.metrics.gradeRange}. Account readiness and adoption visibility.`
+              : "School-level Learn access management, account readiness, and adoption visibility."
+          }
           icon={BookOpenCheck}
           actions={
             <div className="flex flex-wrap gap-2">
@@ -180,7 +185,9 @@ export function AdminLearnOverviewClient() {
                   <div>
                     <h2 className="text-lg font-semibold text-white">Account readiness</h2>
                     <p className="mt-1 text-sm text-white/55">
-                      Create accounts for students who are eligible but not yet provisioned.
+                      Create accounts for students in{" "}
+                      {data.metrics.gradeRange || "Primary 4 / Grade 4 through JHS 3"} who are
+                      eligible but not yet provisioned.
                     </p>
                   </div>
                   <Users className="h-5 w-5 text-teal-200" />

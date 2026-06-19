@@ -11,6 +11,8 @@ export type CoveredLessonSessionRow = {
   subjectId?: Types.ObjectId | null;
   scheduledDate: Date;
   ownerTeacherId?: Types.ObjectId | null;
+  learnTeacherPriority?: boolean;
+  learnTeacherPriority?: boolean;
   durationMinutes?: number;
   contentBlocks?: Array<{ bodyHtml?: string }>;
   status?: string;
@@ -27,7 +29,7 @@ export type FindCoveredLessonSessionsInput = {
   select?: string;
 };
 
-const DEFAULT_SELECT =
+  "_id title subjectOfferingId scheduledDate ownerTeacherId durationMinutes contentBlocks status studentVisibility learnTeacherPriority";
   "_id title subjectOfferingId scheduledDate ownerTeacherId durationMinutes contentBlocks status studentVisibility";
 
 function defaultSinceDays(days: number) {

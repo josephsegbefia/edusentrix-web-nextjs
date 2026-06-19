@@ -60,6 +60,7 @@ export function formatLessonSessionDetail(input: {
     studentVisibility: s.studentVisibility,
     parentVisibility: s.parentVisibility,
     adminVisibility: s.adminVisibility,
+    learnTeacherPriority: Boolean(s.learnTeacherPriority),
     noteSectionAllocation: {
       schemeItemIds: (s.noteSectionAllocation?.schemeItemIds ?? []).map((id) => String(id)),
       noteSectionKeys: s.noteSectionAllocation?.noteSectionKeys ?? [],

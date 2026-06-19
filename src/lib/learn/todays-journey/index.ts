@@ -1,4 +1,5 @@
 export { generateTodaysJourney } from "./generate-todays-journey";
+export { buildCatchUpVault, saveJourneyForLater } from "./catch-up";
 export { loadSubjectJourneyDetail } from "./load-subject-journey";
 export { serializeTodayJourney, serializeSubjectJourneySummary } from "./serialize-todays-journey";
 export {

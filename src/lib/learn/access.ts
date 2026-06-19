@@ -63,10 +63,34 @@ export async function getStudentLearnAccess(input: {
         : new Types.ObjectId(input.accountId);
   }
 
-  const access = await LearnAccess.findOne(accessQuery)
+  let access = await LearnAccess.findOne(accessQuery)
     .sort({ expiresAt: -1 })
     .select("source status expiresAt")
     .lean<Pick<ILearnAccess, "source" | "status" | "expiresAt"> | null>();
+
+  if (!access && input.accountId) {
+    access = await LearnAccess.findOne({
+      schoolId,
+      studentId,
+      status: "active",
+      expiresAt: { $gt: now },
+    })
+      .sort({ expiresAt: -1 })
+      .select("source status expiresAt")
+      .lean<Pick<ILearnAccess, "source" | "status" | "expiresAt"> | null>();
+  }
+
+  if (!access && input.accountId) {
+    access = await LearnAccess.findOne({
+      schoolId,
+      studentId,
+      status: "active",
+      expiresAt: { $gt: now },
+    })
+      .sort({ expiresAt: -1 })
+      .select("source status expiresAt")
+      .lean<Pick<ILearnAccess, "source" | "status" | "expiresAt"> | null>();
+  }
 
   const accessStatus = mapAccessStatus(schoolEligibility.eligible, access);
   const hasAccess = schoolEligibility.eligible && accessStatus === "active";

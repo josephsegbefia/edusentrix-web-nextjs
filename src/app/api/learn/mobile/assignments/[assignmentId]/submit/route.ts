@@ -7,6 +7,22 @@ import { mobileApiFailure, mobileApiSuccess } from "@/lib/learn/mobile-api-respo
 const BodySchema = z.object({
   answerText: z.string().optional(),
   completedChecklistItemIds: z.array(z.string()).optional(),
+  questionResponses: z
+    .array(
+      z.object({
+        questionId: z.string().min(1).max(80),
+        selectedChoiceId: z.string().min(1).max(80),
+      })
+    )
+    .optional(),
+  questionResponses: z
+    .array(
+      z.object({
+        questionId: z.string().min(1).max(80),
+        selectedChoiceId: z.string().min(1).max(80),
+      })
+    )
+    .optional(),
 });
 
 export async function POST(

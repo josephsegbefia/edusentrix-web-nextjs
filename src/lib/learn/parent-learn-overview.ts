@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
+import { getStudentJourneyOversight, type LearnStudentJourneyOversight } from "@/lib/learn/journey-oversight";
 import { resolveParentLearnPriceForSchool } from "@/lib/learn/parent-pricing";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
@@ -114,6 +115,7 @@ export type ParentLearnWardSummary = {
     flashcardsReviewed: number;
     revisionSessions: number;
   };
+  journeyOversight?: LearnStudentJourneyOversight | null;
 };
 
 export type ParentLearnOverview = {
@@ -314,6 +316,13 @@ export async function getParentLearnOverview(
       activity: activityBucket(activityRows, studentId),
     };
   });
+
+  if (onlyStudentId && wards.length) {
+    wards[0]!.journeyOversight = await getStudentJourneyOversight({
+      schoolId,
+      studentId: onlyStudentId,
+    });
+  }
 
   return {
     pricePerStudentPerTermMinor: settings.pricePerStudentPerTermMinor,

@@ -89,6 +89,7 @@ export type LessonSessionDetailDto = LessonWeekPlanSessionDto & {
   studentVisibility: "hidden" | "published";
   parentVisibility: boolean;
   adminVisibility: boolean;
+  learnTeacherPriority?: boolean;
   noteSectionAllocation: {
     schemeItemIds: string[];
     noteSectionKeys: string[];

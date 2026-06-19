@@ -5,6 +5,7 @@ import { Compass, Eye, Globe, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { TeacherSessionExploreReviewModal } from "@/components/lessons/TeacherSessionExploreReviewModal";
+import { LearnStudentReadyHint } from "@/components/lessons/LearnStudentReadyHint";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -179,6 +180,22 @@ export function TeacherSessionExplorePanel({
         onSaved={() => void load()}
       />
       <div className={cn(glassInsetClass, "space-y-4 px-4 py-4")}>
+      <LearnStudentReadyHint
+        status={
+          isPublished
+            ? "ready"
+            : isReady || isGenerating
+              ? "needs_action"
+              : "optional"
+        }
+        message={
+          isPublished
+            ? "Explore is live in students' Today's Journey."
+            : isReady
+              ? "Review and publish Explore so students can open it from Learn."
+              : "Optional — generate Explore when you want a deeper mission in Learn."
+        }
+      />
       <div className="flex items-start gap-3">
         <div className="rounded-xl border border-violet-400/20 bg-violet-500/10 p-2">
           <Compass className="h-5 w-5 text-violet-200" />

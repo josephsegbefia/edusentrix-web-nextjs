@@ -68,6 +68,7 @@ import {
   AfterClassStepHeading,
   TeacherSessionAfterClassWorkflow,
 } from "@/components/lessons/TeacherSessionAfterClassWorkflow";
+import { TeacherSessionLearnPackageSummary } from "@/components/lessons/TeacherSessionLearnPackageSummary";
 import { TeacherSessionTaughtArchive } from "@/components/lessons/TeacherSessionTaughtArchive";
 
 type Props = {
@@ -93,6 +94,7 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
     aiGenerated: boolean;
   } | null>(null);
   const [notebookNotesPublished, setNotebookNotesPublished] = React.useState(false);
+  const [learnTeacherPriority, setLearnTeacherPriority] = React.useState(false);
   const impactQuery = useSessionDeleteImpact(sessionId, showDeleteModal);
   const deleteSession = useDeleteLessonSession(sessionId);
 
@@ -129,6 +131,7 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
     setPlanNotes(session.planNotes || "");
     setTitle(session.title);
     setContentBlocks(session.contentBlocks ?? []);
+    setLearnTeacherPriority(Boolean(session.learnTeacherPriority));
     setDirty(false);
   }, [session, activeClassGroupId]);
 
@@ -215,6 +218,17 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
       loading: "Updating visibility…",
       success: "Visibility updated",
       error: (e) => (e instanceof Error ? e.message : "Failed to update visibility"),
+    });
+  };
+
+  const patchLearnPriority = async (value: boolean) => {
+    setLearnTeacherPriority(value);
+    await busyToast.promise(updateSession.mutateAsync({ learnTeacherPriority: value }), {
+      loading: "Updating Learn priority…",
+      success: value
+        ? "This lesson will appear earlier in students' Today's Journey"
+        : "Learn priority removed",
+      error: (e) => (e instanceof Error ? e.message : "Failed to update"),
     });
   };
 
@@ -412,6 +426,17 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
             deliveryStatus={deliveryStatus}
             classLabel={classLabel || "this class"}
             showReflectStep={reflectionEnabled}
+            learnPackage={
+              <TeacherSessionLearnPackageSummary
+                sessionId={sessionId}
+                classGroupId={session.activeClassGroupId ?? session.classGroupId}
+                classLabel={classLabel || "this class"}
+                canWrite={canManageContent}
+                learnTeacherPriority={learnTeacherPriority}
+                onPriorityChange={(value) => void patchLearnPriority(value)}
+                prioritySaving={updateSession.isPending}
+              />
+            }
             notebook={
               <>
                 <AfterClassStepHeading

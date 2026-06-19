@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
-import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  buildStudentHomeworkVisibilityInput,
+  buildStudentVisibleHomeworkFilter,
+} from "@/lib/learn/student-homework-visibility";
 import { Homework } from "@/models/Homework";
 import { Student } from "@/models/Student";
 import { requireTeacherStudioFeature } from "@/lib/features/teacherStudio";
@@ -24,30 +27,13 @@ export async function GET() {
       return Response.json({ success: false, error: "Student not found" }, { status: 404 });
     }
 
-    const period = await AcademicPeriod.findOne({
-      schoolId: context.schoolId,
-      isCurrent: true,
-    })
-      .select("_id")
-      .lean() as { _id: mongoose.Types.ObjectId } | null;
+    const period = await buildStudentHomeworkVisibilityInput(
+      context.schoolId,
+      student._id,
+      student.classGroupId
+    );
 
-    const query: Record<string, unknown> = {
-      schoolId: context.schoolId,
-      status: { $in: ["published", "closed"] },
-      classGroupIds: student.classGroupId,
-    };
-
-    if (period?._id) {
-      query.academicPeriodId = period._id;
-    }
-
-    query.$or = [
-      { targetStudentIds: { $exists: false } },
-      { targetStudentIds: { $size: 0 } },
-      { targetStudentIds: new mongoose.Types.ObjectId(String(student._id)) },
-    ];
-
-    const assignments = await Homework.find(query)
+    const assignments = await Homework.find(buildStudentVisibleHomeworkFilter(period))
       .sort({ dueDate: 1 })
       .populate("subjectId", "name")
       .lean();

@@ -13,6 +13,8 @@ export interface ILearnStudentMobileSettings {
   dailyGoalMinutes: number;
   offlineDownloadsEnabled: boolean;
   leoTutorHintsFirst: boolean;
+  leoReadAloudEnabled: boolean;
+  leoReadAloudEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +36,7 @@ const learnStudentMobileSettingsSchema = new Schema<ILearnStudentMobileSettings>
     reducedMotionEnabled: { type: Boolean, default: false },
     dailyGoalMinutes: { type: Number, default: 20, min: 5, max: 120 },
     offlineDownloadsEnabled: { type: Boolean, default: false },
+    leoReadAloudEnabled: { type: Boolean, default: true },
     leoTutorHintsFirst: { type: Boolean, default: true },
   },
   { timestamps: true }

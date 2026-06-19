@@ -10,6 +10,10 @@ import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
+import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
+import type { LearnStudentJourneyOversight } from "@/lib/learn/journey-oversight";
+import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
+import type { LearnStudentJourneyOversight } from "@/lib/learn/journey-oversight";
 
 type StudentDetail = {
   student: {
@@ -26,6 +30,7 @@ type StudentDetail = {
     occurredAt: string;
     topic: string | null;
     score: number | null;
+  journeyOversight: LearnStudentJourneyOversight;
     durationSeconds: number | null;
   }>;
 };
@@ -96,6 +101,8 @@ export function TeacherLearnStudentClient({ studentId }: { studentId: string }) 
                 <Info label="First login" value={data.student.mustChangePassword ? "Pending" : "Complete"} />
                 <Info label="Last login" value={shortDate(data.student.lastLoginAt)} />
               </div>
+            <LearnJourneyOversightPanel mode="student" oversight={data.journeyOversight} />
+
             </GlassPanel>
 
             <GlassPanel className="p-5" glow="cyan">

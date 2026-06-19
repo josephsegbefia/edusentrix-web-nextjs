@@ -60,6 +60,7 @@ type SessionPatch = {
   contentBlocks?: LessonContentBlock[];
   markAllAiReviewed?: boolean;
   assessmentItems?: LessonAssessmentItem[];
+  learnTeacherPriority?: boolean;
 };
 
 export function useUpdateTeacherLessonSession(

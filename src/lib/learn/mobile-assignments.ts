@@ -3,12 +3,24 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import type { LearnMobileStudentContext } from "@/lib/learn/mobile-auth";
 import { getStudentLearnAccess } from "@/lib/learn/access";
 import { recordLearnMobileActivity } from "@/lib/learn/mobile-activity";
-import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  buildStudentHomeworkVisibilityInput,
+  buildStudentVisibleHomeworkFilter,
+} from "@/lib/learn/student-homework-visibility";
 import { Homework } from "@/models/Homework";
 import { Subject } from "@/models/Subject";
-import { Submission } from "@/models/Submission";
-import { Teacher } from "@/models/Teacher";
-import { User } from "@/models/User";
+import { SubjectOffering } from "@/models/SubjectOffering";
+} from "@/lib/learn/student-homework-visibility";
+import { Homework } from "@/models/Homework";
+import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
+type HomeworkQuestionRow = {
+  id: string;
+  prompt: string;
+  points: number;
+  explanation?: string;
+  choices: Array<{ id: string; text: string; isCorrect?: boolean }>;
+};
 
 type HomeworkRow = {
   _id: Types.ObjectId;
@@ -21,9 +33,54 @@ type HomeworkRow = {
   status: string;
   attachments: Array<{ name: string; url: string; type: string }>;
   maxScore: number;
+  quizTimeLimitMinutes?: number | null;
+  questions?: HomeworkQuestionRow[];
 };
 
 type SubmissionRow = {
+  homeworkId: Types.ObjectId;
+  status: string;
+  submittedAt?: Date | null;
+  content?: string;
+  questionResponses?: Array<{
+    questionId: string;
+    selectedChoiceId?: string | null;
+  }>;
+};
+
+function serializeStudentQuestions(questions: HomeworkQuestionRow[] = []) {
+  return questions.map((question, questionIndex) => ({
+    id: question.id || `question_${questionIndex + 1}`,
+    prompt: question.prompt,
+    points: question.points ?? 1,
+    choices: (question.choices || []).map((choice, choiceIndex) => ({
+      id: choice.id || `choice_${choiceIndex + 1}`,
+      text: choice.text,
+    })),
+  }));
+}
+
+function serializeSubmissionSnapshot(submission: SubmissionRow | undefined) {
+  if (!submission) return null;
+
+  const hasResponses = (submission.questionResponses || []).some(
+    (response) => Boolean(response.selectedChoiceId)
+  );
+  const hasAnswerText = Boolean(submission.content?.trim());
+
+  if (!hasResponses && !hasAnswerText && !submission.submittedAt) {
+    return null;
+  }
+
+  return {
+    answerText: submission.content || "",
+    questionResponses: (submission.questionResponses || []).map((response) => ({
+      questionId: response.questionId,
+      selectedChoiceId: response.selectedChoiceId || null,
+    })),
+    submittedAt: submission.submittedAt ? submission.submittedAt.toISOString() : null,
+  };
+}
   homeworkId: Types.ObjectId;
   status: string;
   submittedAt?: Date | null;
@@ -72,17 +129,19 @@ function mapResources(attachments: HomeworkRow["attachments"]) {
   }));
 }
 
-async function serializeAssignment(
-  homework: HomeworkRow,
-  submission: SubmissionRow | undefined,
-  subjectName: string,
-  teacherName: string
+  teacherName: string,
+  options?: { includeQuestions?: boolean; includeSubmission?: boolean }
 ) {
   const status = mapAssignmentStatus(homework, submission);
   const checklist = defaultChecklist();
   if (status === "in_progress" || status === "submitted" || status === "graded") {
     checklist[0].completed = true;
   }
+
+  const questions = homework.questions || [];
+  const questionCount = questions.length;
+  const includeQuestions = options?.includeQuestions ?? false;
+  const includeSubmission = options?.includeSubmission ?? false;
 
   return {
     id: String(homework._id),
@@ -92,6 +151,10 @@ async function serializeAssignment(
     teacherName,
     dueAt: homework.dueDate.toISOString(),
     status,
+    assignmentType: homework.type,
+    maxScore: homework.maxScore,
+    quizTimeLimitMinutes: homework.quizTimeLimitMinutes ?? null,
+    questionCount,
     instructions: homework.instructions,
     estimatedMinutes: Math.min(Math.max(Math.round(homework.maxScore / 2), 10), 45),
     resources: mapResources(homework.attachments || []),
@@ -109,29 +172,50 @@ async function serializeAssignment(
       "What should I revise before answering?",
       "Give me a hint without writing the full answer.",
     ],
-  };
+    ...(includeQuestions && questionCount > 0
+      ? { questions: serializeStudentQuestions(questions) }
+      : {}),
+    ...(includeSubmission
+      ? { submission: serializeSubmissionSnapshot(submission) }
+      : {}),
+      "Break this task into smaller steps.",
+      "What should I revise before answering?",
+      "Give me a hint without writing the full answer.",
+async function resolveSubjectName(
+  schoolId: Types.ObjectId,
+  subjectId: Types.ObjectId,
+  fallback = "Subject"
+) {
+  const offering = await SubjectOffering.findOne({
+    schoolId,
+    subjectId,
+  })
+    .select("displayName shortName")
+    .lean<{ displayName?: string; shortName?: string } | null>();
+
+  if (offering?.shortName || offering?.displayName) {
+    return offering.shortName || offering.displayName || fallback;
+  }
+
+  const subject = await Subject.findOne({ _id: subjectId, schoolId })
+    .select("name")
+    .lean<{ name?: string } | null>();
+
+  return subject?.name || fallback;
 }
 
 async function loadVisibleHomework(context: LearnMobileStudentContext) {
-  const period = await AcademicPeriod.findOne({
-    schoolId: context.schoolId,
-    isCurrent: true,
-  })
-    .select("_id")
-    .lean<{ _id: Types.ObjectId } | null>();
+  if (!context.classGroupId) return [];
 
-  const query: Record<string, unknown> = {
-    schoolId: context.schoolId,
-    status: { $in: ["published", "closed"] },
-    classGroupIds: context.classGroupId,
-    $or: [
-      { targetStudentIds: { $exists: false } },
-      { targetStudentIds: { $size: 0 } },
-      { targetStudentIds: context.studentId },
-    ],
-  };
+  const visibility = await buildStudentHomeworkVisibilityInput(
+    context.schoolId,
+    context.studentId,
+    context.classGroupId
+  );
 
-  if (period?._id) {
+  return Homework.find(buildStudentVisibleHomeworkFilter(visibility))
+    .sort({ dueDate: 1 })
+    .lean<HomeworkRow[]>();
     query.academicPeriodId = period._id;
   }
 
@@ -169,26 +253,34 @@ export async function buildMobileAssignmentsList(context: LearnMobileStudentCont
   const homeworkIds = rows.map((r) => r._id);
 
   const submissions = await Submission.find({
-    schoolId: context.schoolId,
+    .select("homeworkId status submittedAt content questionResponses")
     studentId: context.studentId,
     homeworkId: { $in: homeworkIds },
   })
     .select("homeworkId status submittedAt")
     .lean<SubmissionRow[]>();
-
-  const submissionMap = new Map(submissions.map((s) => [String(s.homeworkId), s]));
-
-  const subjectIds = [...new Set(rows.map((r) => String(r.subjectId)))].map((id) => new Types.ObjectId(id));
-  const subjects = await Subject.find({ _id: { $in: subjectIds }, schoolId: context.schoolId })
-    .select("name")
-    .lean<Array<{ _id: Types.ObjectId; name?: string }>>();
-  const subjectMap = new Map(subjects.map((s) => [String(s._id), s.name || "Subject"]));
+  const subjectNames = new Map<string, string>();
+  await Promise.all(
+    subjectIds.map(async (subjectId) => {
+      const name = await resolveSubjectName(
+        context.schoolId,
+        subjectId,
+        "Subject"
+      );
+      subjectNames.set(String(subjectId), name);
+    })
+  );
 
   const assignments = await Promise.all(
     rows.map(async (homework) => {
       const teacherName = await teacherDisplayName(homework.teacherId);
+      const subjectName = subjectNames.get(String(homework.subjectId)) || "Subject";
+  const assignments = await Promise.all(
+    rows.map(async (homework) => {
+      const teacherName = await teacherDisplayName(homework.teacherId);
       const subjectName = subjectMap.get(String(homework.subjectId)) || "Subject";
-      return serializeAssignment(
+        teacherName,
+        { includeQuestions: false, includeSubmission: false }
         homework,
         submissionMap.get(String(homework._id)),
         subjectName,
@@ -237,14 +329,13 @@ export async function buildMobileAssignmentDetail(
 
   if (!context.classGroupId) {
     return { ok: false as const, code: "NO_STUDENT_PROFILE", message: "Profile not found.", status: 404 };
-  }
-
-  const homework = await Homework.findOne({
-    _id: new Types.ObjectId(assignmentId),
-    schoolId: context.schoolId,
-    status: { $in: ["published", "closed"] },
-    classGroupIds: context.classGroupId,
-    $or: [
+    ...buildStudentVisibleHomeworkFilter(
+      await buildStudentHomeworkVisibilityInput(
+        context.schoolId,
+        context.studentId,
+        context.classGroupId
+      )
+    ),
       { targetStudentIds: { $exists: false } },
       { targetStudentIds: { $size: 0 } },
       { targetStudentIds: context.studentId },
@@ -256,22 +347,25 @@ export async function buildMobileAssignmentDetail(
   }
 
   const submission = await Submission.findOne({
-    schoolId: context.schoolId,
+    .select("homeworkId status submittedAt content questionResponses")
     studentId: context.studentId,
     homeworkId: homework._id,
-  })
-    .select("homeworkId status submittedAt")
-    .lean<SubmissionRow | null>();
-
-  const subject = await Subject.findOne({ _id: homework.subjectId, schoolId: context.schoolId })
-    .select("name")
-    .lean<{ name?: string } | null>();
+  const subject = await resolveSubjectName(
+    context.schoolId,
+    homework.subjectId,
+    "Subject"
+  );
 
   const teacherName = await teacherDisplayName(homework.teacherId);
 
   return {
     ok: true as const,
     data: await serializeAssignment(
+      homework,
+      submission ?? undefined,
+      subject,
+      teacherName,
+      { includeQuestions: true, includeSubmission: true }
       homework,
       submission ?? undefined,
       subject?.name || "Subject",
@@ -320,18 +414,99 @@ export async function startMobileAssignment(
 
   return detail;
 }
-
-export async function submitMobileAssignment(
-  context: LearnMobileStudentContext,
-  assignmentId: string,
-  body: { answerText?: string; completedChecklistItemIds?: string[] }
+  body: {
+    answerText?: string;
+    completedChecklistItemIds?: string[];
+    questionResponses?: Array<{ questionId: string; selectedChoiceId: string }>;
+  }
 ) {
   const detail = await buildMobileAssignmentDetail(context, assignmentId);
   if (!detail.ok) return detail;
 
   const now = new Date();
-  const homework = await Homework.findById(assignmentId).select("dueDate").lean<{ dueDate: Date } | null>();
-  const isLate = homework ? homework.dueDate < now : false;
+  const homework = await Homework.findById(assignmentId)
+    .select("dueDate type latePolicy maxScore questions")
+    .lean<{
+      dueDate: Date;
+      type: string;
+      latePolicy?: string;
+      maxScore: number;
+      questions?: HomeworkQuestionRow[];
+    } | null>();
+
+  if (!homework) {
+    return { ok: false as const, code: "ASSIGNMENT_NOT_FOUND", message: "Assignment not found.", status: 404 };
+  }
+
+  const assignmentQuestions = serializeStudentQuestions(homework.questions || []);
+  const normalizedResponses = body.questionResponses || [];
+  const isLate =
+    homework.type !== "quiz" && homework.dueDate ? homework.dueDate < now : false;
+
+  if (homework.type !== "quiz" && isLate && homework.latePolicy === "reject") {
+    return {
+      ok: false as const,
+      code: "LATE_SUBMISSION_REJECTED",
+      message: "Late submissions are not allowed.",
+      status: 400,
+    };
+  }
+
+  let questionResponses: Array<{
+    questionId: string;
+    selectedChoiceId: string | null;
+    isCorrect?: boolean;
+    pointsAwarded?: number;
+  }> = [];
+  let autoScore: number | null = null;
+
+  if (assignmentQuestions.length > 0) {
+    const responseMap = new Map(
+      normalizedResponses.map((response) => [response.questionId, response.selectedChoiceId])
+    );
+
+    const missingQuestion = assignmentQuestions.find((question) => !responseMap.get(question.id));
+    if (missingQuestion) {
+      return {
+        ok: false as const,
+        code: "INCOMPLETE_QUIZ",
+        message: "Answer all questions before submitting.",
+        status: 400,
+      };
+    }
+
+    const sourceQuestions = homework.questions || [];
+    let earnedPoints = 0;
+    let totalPoints = 0;
+
+    questionResponses = assignmentQuestions.map((question, index) => {
+      const selectedChoiceId = responseMap.get(question.id) || null;
+      const sourceQuestion = sourceQuestions[index];
+      const selectedChoice = (sourceQuestion?.choices || []).find(
+        (choice) => choice.id === selectedChoiceId
+      );
+      const isCorrect = Boolean(selectedChoice?.isCorrect);
+      const points = question.points ?? 1;
+      totalPoints += points;
+      const pointsAwarded = isCorrect ? points : 0;
+      earnedPoints += pointsAwarded;
+
+      return {
+        questionId: question.id,
+        selectedChoiceId,
+        isCorrect,
+        pointsAwarded,
+      };
+    });
+
+    autoScore =
+      totalPoints > 0
+        ? Number((((earnedPoints / totalPoints) * homework.maxScore) || 0).toFixed(2))
+        : 0;
+  }
+
+  const status =
+    assignmentQuestions.length > 0 ? "graded" : isLate ? "late" : "submitted";
 
   await Submission.findOneAndUpdate(
     {
@@ -341,9 +516,14 @@ export async function submitMobileAssignment(
     },
     {
       $set: {
-        status: isLate ? "late" : "submitted",
+        status,
         content: body.answerText?.trim() || "",
+        questionResponses,
         submittedAt: now,
+        isLate,
+        score: autoScore ?? undefined,
+        gradedAt: assignmentQuestions.length > 0 ? now : undefined,
+        publishedAt: assignmentQuestions.length > 0 ? now : undefined,
       },
       $inc: { attempts: 1 },
     },
@@ -352,6 +532,11 @@ export async function submitMobileAssignment(
 
   return {
     ok: true as const,
+    data: {
+      assignmentId,
+      submitted: true,
+      submittedAt: now.toISOString(),
+      score: autoScore,
     data: {
       assignmentId,
       submitted: true,

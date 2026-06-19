@@ -11,6 +11,8 @@ import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
+import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
+import type { LearnStudentJourneyOversight } from "@/lib/learn/journey-oversight";
 
 type Ward = {
   studentId: string;
@@ -43,6 +45,7 @@ type Ward = {
     flashcardsReviewed: number;
     revisionSessions: number;
   };
+  journeyOversight?: LearnStudentJourneyOversight | null;
 };
 
 type ApiResponse =
@@ -279,7 +282,12 @@ export function ParentLearnWardClient({ studentId }: { studentId: string }) {
             <p className="mt-2 text-sm text-white/55">{error}</p>
           </GlassPanel>
         ) : ward ? (
-          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <>
+            {ward.journeyOversight ? (
+              <LearnJourneyOversightPanel mode="student" oversight={ward.journeyOversight} />
+            ) : null}
+
+            <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
             <GlassPanel className="p-6" glow="teal">
               <h2 className="text-lg font-semibold text-white">Access summary</h2>
               <div className="mt-4 space-y-3 text-sm text-white/65">
@@ -322,6 +330,7 @@ export function ParentLearnWardClient({ studentId }: { studentId: string }) {
               </div>
             </GlassPanel>
           </div>
+          </>
         ) : (
           <GlassPanel className="p-8 text-center" glow="cyan">
             <p className="font-medium text-white">Ward not found.</p>

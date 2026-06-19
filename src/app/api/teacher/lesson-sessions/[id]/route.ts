@@ -56,6 +56,7 @@ const PatchSchema = z.object({
   contentBlocks: z.array(z.record(z.string(), z.unknown())).optional(),
   markAllAiReviewed: z.boolean().optional(),
   assessmentItems: z.array(AssessmentItemSchema).optional(),
+  learnTeacherPriority: z.boolean().optional(),
 });
 
 export async function GET(
@@ -261,6 +262,9 @@ export async function PATCH(
     }
     if (parsed.data.adminVisibility !== undefined) {
       session.adminVisibility = parsed.data.adminVisibility;
+    }
+    if (parsed.data.learnTeacherPriority !== undefined) {
+      session.learnTeacherPriority = parsed.data.learnTeacherPriority;
     }
 
     if (contentChanged && (wasPublished || session.studentVisibility === "published")) {

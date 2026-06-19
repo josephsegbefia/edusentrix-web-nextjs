@@ -20,6 +20,14 @@ import {
   loadMobileStudentBundle,
   serializeMobileLoginStudent,
 } from "@/lib/learn/mobile-student-profile";
+import {
+  buildStudentHomeworkVisibilityInput,
+  buildStudentVisibleHomeworkFilter,
+} from "@/lib/learn/student-homework-visibility";
+import {
+  buildStudentHomeworkVisibilityInput,
+  buildStudentVisibleHomeworkFilter,
+} from "@/lib/learn/student-homework-visibility";
 import { Homework } from "@/models/Homework";
 import { LearnActivityEvent } from "@/models/LearnActivityEvent";
 import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
@@ -677,23 +685,31 @@ export async function buildMobileLearnOverview(
         totalCards: total,
         route: "/(student)/flashcards/[deckId]",
       };
-    })
-  );
+  const homeworkVisibility = context.classGroupId
+    ? await buildStudentHomeworkVisibilityInput(
+        context.schoolId,
+        context.studentId,
+        context.classGroupId
+      )
+    : null;
 
-  const now = new Date();
-  const homeworkRows = await Homework.find({
-    schoolId: context.schoolId,
-    status: "published",
-    classGroupIds: context.classGroupId,
-    dueDate: { $gte: now },
-  })
-    .sort({ dueDate: 1 })
-    .limit(5)
-    .select("_id title dueDate subjectId")
-    .lean<
-      Array<{
-        _id: Types.ObjectId;
-        title: string;
+  const homeworkRows = homeworkVisibility
+    ? await Homework.find({
+        ...buildStudentVisibleHomeworkFilter(homeworkVisibility),
+        dueDate: { $gte: now },
+      })
+        .sort({ dueDate: 1 })
+        .limit(5)
+        .select("_id title dueDate subjectId")
+        .lean<
+          Array<{
+            _id: Types.ObjectId;
+            title: string;
+            dueDate: Date;
+            subjectId: Types.ObjectId;
+          }>
+        >()
+    : [];
         dueDate: Date;
         subjectId: Types.ObjectId;
       }>

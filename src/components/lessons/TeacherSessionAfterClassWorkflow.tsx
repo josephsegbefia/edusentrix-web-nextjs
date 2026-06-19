@@ -42,6 +42,7 @@ type Props = {
   deliveryStatus: LessonDeliveryStatus;
   classLabel: string;
   showReflectStep: boolean;
+  learnPackage?: React.ReactNode;
   notebook: React.ReactNode;
   wrapUp: React.ReactNode;
   share: React.ReactNode;
@@ -53,6 +54,7 @@ export function TeacherSessionAfterClassWorkflow({
   deliveryStatus,
   classLabel,
   showReflectStep,
+  learnPackage,
   notebook,
   wrapUp,
   share,
@@ -101,6 +103,8 @@ export function TeacherSessionAfterClassWorkflow({
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {learnPackage ? <div>{learnPackage}</div> : null}
+
         <div className="flex gap-1 overflow-x-auto pb-1">
           {visibleSteps.map((step, index) => {
             const Icon = step.icon;

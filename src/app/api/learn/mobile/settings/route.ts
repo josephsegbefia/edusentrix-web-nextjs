@@ -14,6 +14,8 @@ const PatchSchema = z
     dailyGoalMinutes: z.number().int().min(5).max(120).optional(),
     offlineDownloadsEnabled: z.boolean().optional(),
     leoTutorHintsFirst: z.boolean().optional(),
+    leoReadAloudEnabled: z.boolean().optional(),
+    leoReadAloudEnabled: z.boolean().optional(),
   })
   .strict();
 

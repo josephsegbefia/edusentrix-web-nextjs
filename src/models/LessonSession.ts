@@ -103,6 +103,8 @@ export interface ILessonSession {
   boardNotes?: ILessonBoardNotes | null;
   /** When true, notebook notes are visible to students after the class session is taught. */
   notebookNotesPublished?: boolean;
+  /** When true, boosts this lesson in EduSentrix Learn Today's Journey ordering. */
+  learnTeacherPriority?: boolean;
   /** Set when migrated from legacy `Lesson` for URL redirects. */
   legacyLessonId?: Types.ObjectId | null;
   createdAt?: Date;
@@ -262,6 +264,7 @@ const lessonSessionSchema = new Schema<ILessonSession>(
     assessmentItems: { type: [assessmentItemSchema], default: [] },
     boardNotes: { type: boardNotesSchema, default: null },
     notebookNotesPublished: { type: Boolean, default: false },
+    learnTeacherPriority: { type: Boolean, default: false },
     teachingDeck: { type: teachingDeckSchema, default: null },
     aiMetadata: { type: aiMetadataSchema, default: () => ({}) },
     legacyLessonId: { type: Schema.Types.ObjectId, ref: "Lesson", default: null, index: true },

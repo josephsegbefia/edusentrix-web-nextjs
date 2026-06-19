@@ -8,6 +8,8 @@ import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
+import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
+import type { LearnSchoolJourneyOversight } from "@/lib/learn/journey-oversight";
 
 type ActivityPayload = {
   rangeDays: number;
@@ -20,6 +22,7 @@ type ActivityPayload = {
   events: Array<{ eventType: string; label: string; count: number }>;
   classBreakdown: Array<{ classGroupId: string; classGroupName: string; count: number }>;
   gradeBreakdown: Array<{ gradeId: string; gradeName: string; count: number }>;
+  journeyOversight: LearnSchoolJourneyOversight;
 };
 
 type ApiResponse =
@@ -76,6 +79,12 @@ export function AdminLearnActivityClient() {
               <Metric label="First login pending" value={data.metrics.pendingFirstLogin} />
               <Metric label="Total activity" value={data.metrics.totalActivity} />
             </div>
+
+            <LearnJourneyOversightPanel
+              mode="aggregate"
+              title="School Today's Journey"
+              oversight={data.journeyOversight}
+            />
 
             <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
               <GlassPanel className="p-6" glow="both">

@@ -6,6 +6,10 @@ import { LearnActivityEvent, type LearnActivityEventType } from "@/models/LearnA
 import { LearnStudentAccount } from "@/models/LearnStudentAccount";
 import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import {
+  getClassJourneyOversight,
+  getStudentJourneyOversight,
+} from "@/lib/learn/journey-oversight";
 
 export type TeacherLearnContext = {
   schoolId: Types.ObjectId;
@@ -266,12 +270,18 @@ export async function getTeacherLearnClassDetail(
 
   const accountMap = new Map(accounts.map((account) => [String(account.studentId), account.status]));
   const activityMap = new Map(studentActivity.map((row) => [String(row._id), row.count]));
+  const journeyOversight = await getClassJourneyOversight({
+    schoolId: ctx.schoolId,
+    classGroupId,
+    studentIds,
+  });
 
   return {
     classGroup: {
       id: String(classGroup._id),
       name: classGroup.name,
     },
+    journeyOversight,
     students: students.map((student) => ({
       id: String(student._id),
       name: fullName(student),
@@ -305,7 +315,7 @@ export async function getTeacherLearnStudentDetail(
     .lean<StudentRow | null>();
   if (!student) return null;
 
-  const [account, eventRows, recentEvents] = await Promise.all([
+  const [account, eventRows, recentEvents, journeyOversight] = await Promise.all([
     LearnStudentAccount.findOne({ schoolId: ctx.schoolId, studentId })
       .select("status mustChangePassword lastLoginAt")
       .lean<{ status: string; mustChangePassword: boolean; lastLoginAt?: Date | null } | null>(),
@@ -337,6 +347,10 @@ export async function getTeacherLearnStudentDetail(
           durationSeconds?: number | null;
         }>
       >(),
+    getStudentJourneyOversight({
+      schoolId: ctx.schoolId,
+      studentId,
+    }),
   ]);
 
   return {
@@ -361,5 +375,6 @@ export async function getTeacherLearnStudentDetail(
       score: event.score ?? null,
       durationSeconds: event.durationSeconds ?? null,
     })),
+    journeyOversight,
   };
 }

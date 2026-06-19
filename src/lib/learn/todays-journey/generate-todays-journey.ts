@@ -42,6 +42,7 @@ type SessionRow = {
   subjectId?: Types.ObjectId | null;
   scheduledDate: Date;
   ownerTeacherId?: Types.ObjectId | null;
+  learnTeacherPriority?: boolean;
 };
 
 type HomeworkSummaryRow = {
@@ -148,6 +149,14 @@ async function upsertJourneyForSession(input: {
     classGroupId: context.classGroupId!,
   });
 
+  const basePriority = input.isCatchUp ? 40 : 100 - displayOrder;
+  const priorityScore = session.learnTeacherPriority ? basePriority + 15 : basePriority;
+  const priorityReason = session.learnTeacherPriority
+    ? "teacher_priority"
+    : input.isCatchUp
+      ? "started_but_incomplete"
+      : "taught_today";
+
   const defaultSteps = buildDefaultJourneySteps({
     hasFlashcards: deck != null,
     hasAssignment: assignmentIds.length > 0,
@@ -201,8 +210,8 @@ async function upsertJourneyForSession(input: {
         status,
         required: !input.isCatchUp,
         displayOrder,
-        priorityScore: input.isCatchUp ? 40 : 100 - displayOrder,
-        priorityReason: input.isCatchUp ? "started_but_incomplete" : "taught_today",
+        priorityScore,
+        priorityReason,
         steps,
         linkedFlashcardDeckId: deck?._id ?? existing?.linkedFlashcardDeckId ?? null,
         linkedAssignmentIds: assignmentIds.length > 0 ? assignmentIds : existing?.linkedAssignmentIds ?? [],

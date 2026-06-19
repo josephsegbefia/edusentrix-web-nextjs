@@ -10,6 +10,12 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function firstParagraph(text: string, max = 320): string {
+  const para = text.split(/\n\n+/)[0]?.trim() || text.trim();
+  if (para.length <= max) return para;
+  return `${para.slice(0, max).trim()}…`;
+}
+
 export type SessionAssignmentSeedQuestion = {
   id: string;
   prompt: string;
@@ -89,12 +95,12 @@ export async function buildSessionAssignmentSeed(input: {
     .filter(Boolean)
     .join("\n\n");
   const plan = input.session.planNotes?.trim() || "";
-  const merged = [plan, blockText].filter(Boolean).join("\n\n");
-  const instructions = (
-    merged.length > 0
-      ? `Based on taught session: ${topic}\n\n${merged}`
-      : `Based on taught session: ${topic}`
-  ).slice(0, 8000);
+  const sessionRef = `Based on taught session: ${topic}.`;
+  const teacherHint = plan
+    ? firstParagraph(plan)
+    : blockText
+      ? firstParagraph(blockText)
+      : "";
 
   const typeLabel =
     input.type === "quiz"
@@ -125,6 +131,14 @@ export async function buildSessionAssignmentSeed(input: {
       questionSeedSource = "flashcards";
     }
   }
+
+  const instructions = (
+    questions.length > 0
+      ? `${sessionRef} Complete the question${questions.length === 1 ? "" : "s"} below.`
+      : teacherHint
+        ? `${sessionRef}\n\n${teacherHint}`
+        : sessionRef
+  ).slice(0, 8000);
 
   return {
     sessionId: String(input.session._id),

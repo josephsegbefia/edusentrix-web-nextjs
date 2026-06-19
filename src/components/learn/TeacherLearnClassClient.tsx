@@ -10,6 +10,8 @@ import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
+import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
+import type { LearnClassJourneyOversight } from "@/lib/learn/journey-oversight";
 
 type ClassDetail = {
   classGroup: { id: string; name: string };
@@ -21,6 +23,7 @@ type ClassDetail = {
     activityCount: number;
   }>;
   events: Array<{ eventType: string; label: string; count: number }>;
+  journeyOversight: LearnClassJourneyOversight;
 };
 
 type ApiResponse =
@@ -72,7 +75,10 @@ export function TeacherLearnClassClient({ classGroupId }: { classGroupId: string
             <p className="mt-3 text-sm text-white/55">Loading class activity...</p>
           </GlassPanel>
         ) : data ? (
-          <div className="grid gap-5 lg:grid-cols-[1fr_0.75fr]">
+          <>
+            <LearnJourneyOversightPanel mode="aggregate" oversight={data.journeyOversight} />
+
+            <div className="grid gap-5 lg:grid-cols-[1fr_0.75fr]">
             <GlassPanel className="p-6" glow="both">
               <h2 className="text-lg font-semibold text-white">Students</h2>
               <div className="mt-4 space-y-3">
@@ -119,6 +125,7 @@ export function TeacherLearnClassClient({ classGroupId }: { classGroupId: string
               </div>
             </GlassPanel>
           </div>
+          </>
         ) : null}
       </WorkspacePageShell>
     </div>

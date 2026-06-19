@@ -52,6 +52,38 @@ function latePolicyLabel(policy: string, penaltyPercent: number | null | undefin
   return "Accept late work";
 }
 
+/** Session-linked assignments often store the full lesson plan in instructions — keep the overview concise. */
+function briefAssignmentInstructions(instructions: string, hasQuestions: boolean) {
+  const trimmed = instructions.trim();
+  if (!trimmed) return "No instructions provided.";
+
+  const sessionLine = trimmed.match(/^Based on taught session:[^\n.]*/)?.[0];
+  const looksLikeSessionDump =
+    Boolean(sessionLine) && trimmed.length > (sessionLine?.length ?? 0) + 80;
+
+  if (hasQuestions && sessionLine) {
+    return `${sessionLine}. Students answer the questions below.`;
+  }
+
+  if (looksLikeSessionDump && sessionLine) {
+    const remainder = trimmed.slice(sessionLine.length).trim();
+    const firstBlock = remainder.split(/\n\n+/)[0]?.trim() || "";
+    const shortHint =
+      firstBlock.length > 280 ? `${firstBlock.slice(0, 280).trim()}…` : firstBlock;
+    return shortHint ? `${sessionLine}.\n\n${shortHint}` : `${sessionLine}.`;
+  }
+
+  if (hasQuestions && trimmed.length > 240) {
+    return `${trimmed.slice(0, 240).trim()}…`;
+  }
+
+  if (trimmed.length > 600) {
+    return `${trimmed.slice(0, 600).trim()}…`;
+  }
+
+  return trimmed;
+}
+
 export default function TeacherAssignmentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -379,88 +411,89 @@ export default function TeacherAssignmentDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <div className="space-y-6">
+          {questionList.length > 0 ? (
+            <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="inline-flex items-center gap-2 text-lg">
+                  <ClipboardCheck className="h-5 w-5 text-white/60" />
+                  Questions sent to students
+                </CardTitle>
+                <p className="text-sm text-white/55">
+                  {questionList.length} question{questionList.length === 1 ? "" : "s"} ·{" "}
+                  {totalQuestionPoints} point{totalQuestionPoints === 1 ? "" : "s"} total
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {questionList.map((question, index) => (
+                  <div
+                    key={question.id || index}
+                    className="rounded-xl border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium leading-relaxed text-white">
+                        {index + 1}. {question.prompt}
+                      </p>
+                      <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/55">
+                        {question.points} pt{question.points === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <ul className="space-y-2">
+                      {(question.choices || []).map((choice) => (
+                        <li
+                          key={choice.id}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-sm",
+                            choice.isCorrect
+                              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                              : "border-white/10 bg-white/5 text-white/75",
+                          )}
+                        >
+                          <span className="flex items-start gap-2">
+                            {choice.isCorrect ? (
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                            ) : (
+                              <span className="mt-0.5 h-4 w-4 shrink-0" />
+                            )}
+                            <span>{choice.text}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {question.explanation ? (
+                      <p className="mt-3 text-xs leading-relaxed text-teal-100/75">
+                        {question.explanation}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="inline-flex items-center gap-2 text-lg">
+                  <ClipboardCheck className="h-5 w-5 text-white/60" />
+                  Questions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-5 text-sm text-white/55">
+                  No auto-graded questions for this assignment. Students respond with written work
+                  in the submission area.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
             <CardHeader>
               <CardTitle className="inline-flex items-center gap-2 text-lg">
                 <BookOpenText className="h-5 w-5 text-white/60" />
-                Instructions
+                {questionList.length > 0 ? "Session context" : "Instructions"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm leading-relaxed text-white/75 whitespace-pre-wrap">
-              {assignment.instructions}
-            </CardContent>
-          </Card>
-
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="inline-flex items-center gap-2 text-lg">
-                <ClipboardCheck className="h-5 w-5 text-white/60" />
-                Question Blueprint
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {questionList.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-5 text-sm text-white/55">
-                  No auto-graded questions added for this assignment.
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                        Total Questions
-                      </p>
-                      <p className="mt-1.5 text-lg font-semibold text-white">
-                        {questionList.length}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                        Question Points
-                      </p>
-                      <p className="mt-1.5 text-lg font-semibold text-white">
-                        {totalQuestionPoints}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">
-                        Avg Choices
-                      </p>
-                      <p className="mt-1.5 text-lg font-semibold text-white">
-                        {Math.round(
-                          questionList.reduce(
-                            (sum, question) => sum + (question.choices?.length || 0),
-                            0
-                          ) / questionList.length
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {questionList.slice(0, 4).map((question, index) => (
-                      <div
-                        key={question.id || index}
-                        className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="line-clamp-1 text-sm text-white/80">
-                            {index + 1}. {question.prompt}
-                          </p>
-                          <span className="text-xs text-white/50">
-                            {question.points} pt
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    {questionList.length > 4 && (
-                      <p className="text-xs text-white/45">
-                        +{questionList.length - 4} more questions
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
+              {briefAssignmentInstructions(assignment.instructions, questionList.length > 0)}
             </CardContent>
           </Card>
         </div>

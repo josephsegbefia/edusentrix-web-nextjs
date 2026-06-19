@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = {
   dailyGoalMinutes: 20,
   offlineDownloadsEnabled: false,
   leoTutorHintsFirst: true,
+  leoReadAloudEnabled: true,
 };
 
 export type MobileSettingsPatch = Partial<typeof DEFAULT_SETTINGS>;
@@ -88,6 +89,7 @@ export async function buildMobileSettings(context: LearnMobileStudentContext) {
       dailyGoalMinutes: doc.dailyGoalMinutes,
       offlineDownloadsEnabled: doc.offlineDownloadsEnabled,
       leoTutorHintsFirst: doc.leoTutorHintsFirst,
+      leoReadAloudEnabled: doc.leoReadAloudEnabled,
       supportContact: {
         schoolName: bundle.school.name,
         teacherName: "Your class teacher",

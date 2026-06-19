@@ -18,6 +18,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { useTeacherSessionAssignments } from "@/hooks/teacher/useTeacherSessionAssignments";
 import { useGenerateSessionPractice } from "@/hooks/teacher/useLessonsLeo";
 import { writeSessionStudioSeed } from "@/lib/lessons/session-studio-seed-storage";
+import { LearnStudentReadyHint } from "@/components/lessons/LearnStudentReadyHint";
 type PracticeSeedQuestion = {
   id: string;
   prompt: string;
@@ -181,6 +182,22 @@ export function TeacherSessionAssignmentsPanel({ sessionId, canWrite, leoEnabled
         )}
       </CardHeader>
       <CardContent className="space-y-4">
+        <LearnStudentReadyHint
+          status={
+            (summary?.published ?? 0) > 0
+              ? "ready"
+              : (summary?.total ?? 0) > 0
+                ? "needs_action"
+                : "optional"
+          }
+          message={
+            (summary?.published ?? 0) > 0
+              ? "Published tasks can appear in the Today's Journey assignment step."
+              : (summary?.total ?? 0) > 0
+                ? "Publish a linked task so students see it inside Learn."
+                : "Optional — link homework or practice if you want an assignment step."
+          }
+        />
         {summary && (
           <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/75">
             {summary.total} linked task{summary.total === 1 ? "" : "s"} · {summary.quizCount}{" "}

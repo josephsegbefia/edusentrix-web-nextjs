@@ -6,6 +6,7 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { LearnActivityEvent, type LearnActivityEventType } from "@/models/LearnActivityEvent";
 import { LearnStudentAccount } from "@/models/LearnStudentAccount";
+import { getSchoolJourneyOversight } from "@/lib/learn/journey-oversight";
 
 type CountByTypeRow = {
   _id: LearnActivityEventType;
@@ -42,7 +43,7 @@ export async function GET() {
     const start = new Date();
     start.setDate(start.getDate() - 30);
 
-    const [activeAccounts, inactiveAccounts, pendingFirstLogin, eventRows, classRows, gradeRows] =
+    const [activeAccounts, inactiveAccounts, pendingFirstLogin, eventRows, classRows, gradeRows, journeyOversight] =
       await Promise.all([
         LearnStudentAccount.countDocuments({
           schoolId: ctx.schoolId,
@@ -85,6 +86,7 @@ export async function GET() {
           { $sort: { count: -1 } },
           { $limit: 10 },
         ]),
+        getSchoolJourneyOversight(ctx.schoolId),
       ]);
 
     const [classes, grades] = await Promise.all([
@@ -123,6 +125,7 @@ export async function GET() {
           gradeName: gradeMap.get(String(row._id)) || "Grade",
           count: row.count,
         })),
+        journeyOversight,
       },
     });
   } catch (error) {

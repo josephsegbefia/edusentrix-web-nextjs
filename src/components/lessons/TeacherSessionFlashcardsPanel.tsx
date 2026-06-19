@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { findDuplicateFlashcardIds } from "@/lib/lessons/flashcard-generation";
 import { TeacherSessionFlashcardsBulkBar } from "@/components/lessons/TeacherSessionFlashcardsBulkBar";
+import { LearnStudentReadyHint } from "@/components/lessons/LearnStudentReadyHint";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import {
   PremiumDropdownMenu,
@@ -62,6 +63,7 @@ export function TeacherSessionFlashcardsPanel({
   const [editBack, setEditBack] = React.useState("");
 
   const cards = data?.data.cards || [];
+  const deck = data?.data.deck;
   const duplicateIds = React.useMemo(() => findDuplicateFlashcardIds(cards), [cards]);
   const selectedCount = selectedIds.size;
   const allSelected = cards.length > 0 && cards.every((c) => selectedIds.has(c.id));
@@ -102,6 +104,20 @@ export function TeacherSessionFlashcardsPanel({
     !studentPublished
       ? "Students see flashcards when this session is published to them."
       : null;
+
+  const learnFlashcardStatus =
+    deck?.status === "published" && cards.length > 0
+      ? "ready"
+      : cards.length > 0
+        ? "needs_action"
+        : "optional";
+
+  const learnFlashcardMessage =
+    learnFlashcardStatus === "ready"
+      ? "Flashcards are ready for the Today's Journey flashcard step."
+      : learnFlashcardStatus === "needs_action"
+        ? "Publish the deck so students see flashcards in EduSentrix Learn."
+        : "Optional — add flashcards if you want them in Today's Journey.";
 
   const openEdit = (c: LessonFlashcardDto) => {
     setEditing(c);
@@ -312,6 +328,7 @@ export function TeacherSessionFlashcardsPanel({
           )}
         </CardHeader>
         <CardContent className="space-y-4">
+          <LearnStudentReadyHint status={learnFlashcardStatus} message={learnFlashcardMessage} />
           {publishedHint && (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/90">
               {publishedHint}

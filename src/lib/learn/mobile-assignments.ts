@@ -8,12 +8,12 @@ import {
   buildStudentVisibleHomeworkFilter,
 } from "@/lib/learn/student-homework-visibility";
 import { Homework } from "@/models/Homework";
+import { Submission } from "@/models/Submission";
 import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
-} from "@/lib/learn/student-homework-visibility";
-import { Homework } from "@/models/Homework";
-import { Subject } from "@/models/Subject";
-import { SubjectOffering } from "@/models/SubjectOffering";
+import { Teacher } from "@/models/Teacher";
+import { User } from "@/models/User";
+
 type HomeworkQuestionRow = {
   id: string;
   prompt: string;
@@ -81,11 +81,6 @@ function serializeSubmissionSnapshot(submission: SubmissionRow | undefined) {
     submittedAt: submission.submittedAt ? submission.submittedAt.toISOString() : null,
   };
 }
-  homeworkId: Types.ObjectId;
-  status: string;
-  submittedAt?: Date | null;
-};
-
 async function teacherDisplayName(teacherId: Types.ObjectId) {
   const teacher = await Teacher.findById(teacherId).select("userId").lean<{ userId?: Types.ObjectId } | null>();
   if (!teacher?.userId) return "Your teacher";
@@ -118,7 +113,7 @@ function defaultChecklist() {
   ];
 }
 
-function mapResources(attachments: HomeworkRow["attachments"]) {
+function mapResources(attachments: HomeworkRow["attachments"] = []) {
   return attachments.map((file, index) => ({
     id: `resource-${index}`,
     title: file.name,
@@ -129,6 +124,10 @@ function mapResources(attachments: HomeworkRow["attachments"]) {
   }));
 }
 
+async function serializeAssignment(
+  homework: HomeworkRow,
+  submission: SubmissionRow | undefined,
+  subjectName: string,
   teacherName: string,
   options?: { includeQuestions?: boolean; includeSubmission?: boolean }
 ) {
@@ -178,9 +177,9 @@ function mapResources(attachments: HomeworkRow["attachments"]) {
     ...(includeSubmission
       ? { submission: serializeSubmissionSnapshot(submission) }
       : {}),
-      "Break this task into smaller steps.",
-      "What should I revise before answering?",
-      "Give me a hint without writing the full answer.",
+  };
+}
+
 async function resolveSubjectName(
   schoolId: Types.ObjectId,
   subjectId: Types.ObjectId,
@@ -216,10 +215,6 @@ async function loadVisibleHomework(context: LearnMobileStudentContext) {
   return Homework.find(buildStudentVisibleHomeworkFilter(visibility))
     .sort({ dueDate: 1 })
     .lean<HomeworkRow[]>();
-    query.academicPeriodId = period._id;
-  }
-
-  return Homework.find(query).sort({ dueDate: 1 }).lean<HomeworkRow[]>();
 }
 
 export async function buildMobileAssignmentsList(context: LearnMobileStudentContext) {
@@ -253,21 +248,25 @@ export async function buildMobileAssignmentsList(context: LearnMobileStudentCont
   const homeworkIds = rows.map((r) => r._id);
 
   const submissions = await Submission.find({
-    .select("homeworkId status submittedAt content questionResponses")
     studentId: context.studentId,
     homeworkId: { $in: homeworkIds },
   })
-    .select("homeworkId status submittedAt")
+    .select("homeworkId status submittedAt content questionResponses")
     .lean<SubmissionRow[]>();
+
+  const submissionMap = new Map(submissions.map((submission) => [String(submission.homeworkId), submission]));
+  const subjectIds = Array.from(
+    new Map(rows.map((row) => [String(row.subjectId), row.subjectId])).entries()
+  );
   const subjectNames = new Map<string, string>();
   await Promise.all(
-    subjectIds.map(async (subjectId) => {
+    subjectIds.map(async ([subjectKey, subjectId]) => {
       const name = await resolveSubjectName(
         context.schoolId,
         subjectId,
         "Subject"
       );
-      subjectNames.set(String(subjectId), name);
+      subjectNames.set(subjectKey, name);
     })
   );
 
@@ -275,16 +274,12 @@ export async function buildMobileAssignmentsList(context: LearnMobileStudentCont
     rows.map(async (homework) => {
       const teacherName = await teacherDisplayName(homework.teacherId);
       const subjectName = subjectNames.get(String(homework.subjectId)) || "Subject";
-  const assignments = await Promise.all(
-    rows.map(async (homework) => {
-      const teacherName = await teacherDisplayName(homework.teacherId);
-      const subjectName = subjectMap.get(String(homework.subjectId)) || "Subject";
-        teacherName,
-        { includeQuestions: false, includeSubmission: false }
+      return serializeAssignment(
         homework,
         submissionMap.get(String(homework._id)),
         subjectName,
-        teacherName
+        teacherName,
+        { includeQuestions: false, includeSubmission: false }
       );
     })
   );
@@ -329,17 +324,16 @@ export async function buildMobileAssignmentDetail(
 
   if (!context.classGroupId) {
     return { ok: false as const, code: "NO_STUDENT_PROFILE", message: "Profile not found.", status: 404 };
-    ...buildStudentVisibleHomeworkFilter(
-      await buildStudentHomeworkVisibilityInput(
-        context.schoolId,
-        context.studentId,
-        context.classGroupId
-      )
-    ),
-      { targetStudentIds: { $exists: false } },
-      { targetStudentIds: { $size: 0 } },
-      { targetStudentIds: context.studentId },
-    ],
+  }
+
+  const visibility = await buildStudentHomeworkVisibilityInput(
+    context.schoolId,
+    context.studentId,
+    context.classGroupId
+  );
+  const homework = await Homework.findOne({
+    _id: new Types.ObjectId(assignmentId),
+    ...buildStudentVisibleHomeworkFilter(visibility),
   }).lean<HomeworkRow | null>();
 
   if (!homework) {
@@ -347,9 +341,12 @@ export async function buildMobileAssignmentDetail(
   }
 
   const submission = await Submission.findOne({
-    .select("homeworkId status submittedAt content questionResponses")
     studentId: context.studentId,
     homeworkId: homework._id,
+  })
+    .select("homeworkId status submittedAt content questionResponses")
+    .lean<SubmissionRow | null>();
+
   const subject = await resolveSubjectName(
     context.schoolId,
     homework.subjectId,
@@ -366,10 +363,6 @@ export async function buildMobileAssignmentDetail(
       subject,
       teacherName,
       { includeQuestions: true, includeSubmission: true }
-      homework,
-      submission ?? undefined,
-      subject?.name || "Subject",
-      teacherName
     ),
   };
 }
@@ -414,6 +407,10 @@ export async function startMobileAssignment(
 
   return detail;
 }
+
+export async function submitMobileAssignment(
+  context: LearnMobileStudentContext,
+  assignmentId: string,
   body: {
     answerText?: string;
     completedChecklistItemIds?: string[];
@@ -537,10 +534,6 @@ export async function startMobileAssignment(
       submitted: true,
       submittedAt: now.toISOString(),
       score: autoScore,
-    data: {
-      assignmentId,
-      submitted: true,
-      submittedAt: now.toISOString(),
     },
   };
 }

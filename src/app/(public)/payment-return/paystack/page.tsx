@@ -11,7 +11,7 @@ function safeParentNext(value: string | null) {
   return value;
 }
 
-export default function PaystackReturnPage() {
+function PaystackReturnContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -41,5 +41,13 @@ export default function PaystackReturnPage() {
         <p className="mt-1 text-sm text-white/55">Confirming your payment session.</p>
       </div>
     </main>
+  );
+}
+
+export default function PaystackReturnPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <PaystackReturnContent />
+    </React.Suspense>
   );
 }

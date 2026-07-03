@@ -12,8 +12,6 @@ import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
 import type { LearnStudentJourneyOversight } from "@/lib/learn/journey-oversight";
-import { LearnJourneyOversightPanel } from "@/components/learn/LearnJourneyOversightPanel";
-import type { LearnStudentJourneyOversight } from "@/lib/learn/journey-oversight";
 
 type StudentDetail = {
   student: {
@@ -30,9 +28,9 @@ type StudentDetail = {
     occurredAt: string;
     topic: string | null;
     score: number | null;
-  journeyOversight: LearnStudentJourneyOversight;
     durationSeconds: number | null;
   }>;
+  journeyOversight: LearnStudentJourneyOversight;
 };
 
 type ApiResponse =

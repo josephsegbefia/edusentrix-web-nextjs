@@ -24,10 +24,6 @@ import {
   buildStudentHomeworkVisibilityInput,
   buildStudentVisibleHomeworkFilter,
 } from "@/lib/learn/student-homework-visibility";
-import {
-  buildStudentHomeworkVisibilityInput,
-  buildStudentVisibleHomeworkFilter,
-} from "@/lib/learn/student-homework-visibility";
 import { Homework } from "@/models/Homework";
 import { LearnActivityEvent } from "@/models/LearnActivityEvent";
 import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
@@ -685,6 +681,9 @@ export async function buildMobileLearnOverview(
         totalCards: total,
         route: "/(student)/flashcards/[deckId]",
       };
+    })
+  );
+
   const homeworkVisibility = context.classGroupId
     ? await buildStudentHomeworkVisibilityInput(
         context.schoolId,
@@ -710,10 +709,6 @@ export async function buildMobileLearnOverview(
           }>
         >()
     : [];
-        dueDate: Date;
-        subjectId: Types.ObjectId;
-      }>
-    >();
 
   const assignments = await Promise.all(
     homeworkRows.map(async (row) => {

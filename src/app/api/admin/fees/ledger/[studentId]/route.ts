@@ -127,7 +127,7 @@ export async function GET(
     studentId,
   }).lean();
 
-  // Build rows: posted invoices + completed payments + pending payments + credit entries
+  // Build rows: posted bills + completed payments + pending payments + credit entries
   const rows: LedgerRow[] = [];
 
   for (const inv of invoices) {
@@ -136,7 +136,7 @@ export async function GET(
         id: `inv:${inv._id}`,
         kind: "invoice_issued",
         date: inv.issueDate,
-        title: `Invoice Issued • ${inv.invoiceNumber}`,
+        title: `Bill Issued • ${inv.invoiceNumber}`,
         subtitle: inv.academicPeriodId
           ? `${inv.academicPeriodId.yearLabel} • ${inv.academicPeriodId.term}`
           : null,

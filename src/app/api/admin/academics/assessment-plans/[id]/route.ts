@@ -122,6 +122,9 @@ export async function PATCH(
     existing.academicPeriodId = new mongoose.Types.ObjectId(parsedBody.data.academicPeriodId);
     existing.gradingPolicyId = new mongoose.Types.ObjectId(parsedBody.data.gradingPolicyId);
     existing.appliesToGradeId = new mongoose.Types.ObjectId(parsedBody.data.appliesToGradeId);
+    existing.appliesToGradeIds = [
+      ...new Set([...(parsedBody.data.appliesToGradeIds ?? []), parsedBody.data.appliesToGradeId]),
+    ].map((gradeId) => new mongoose.Types.ObjectId(gradeId));
     existing.appliesToClassGroupIds = parsedBody.data.appliesToClassGroupIds.map(
       (classGroupId) => new mongoose.Types.ObjectId(classGroupId)
     );

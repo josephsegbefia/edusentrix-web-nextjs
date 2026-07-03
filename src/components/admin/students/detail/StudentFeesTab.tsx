@@ -380,11 +380,15 @@ export function StudentFeesTab({
         : "text-cyan-200"
     );
 
+    const title = isInvoice
+      ? safeStr(row.title).replace(/^Invoice Issued\b/, "Bill Issued")
+      : row.title;
     const subtitle = row.subtitle ?? null;
 
     return {
       icon,
       badge,
+      title,
       clickable,
       paymentId: paymentId ? String(paymentId) : null,
       isPendingApproval,
@@ -1002,7 +1006,7 @@ export function StudentFeesTab({
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
                                 <div className="truncate text-sm font-semibold text-white">
-                                  {safeStr(row.title)}
+                                  {safeStr(ui.title)}
                                 </div>
                                 {ui.badge}
                               </div>

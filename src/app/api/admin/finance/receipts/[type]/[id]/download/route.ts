@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { ensureReceiptVerification } from "@/lib/finance/receipt-verification";
 import { learnReceiptNumber, renderLearnReceiptPdf } from "@/lib/learn/receipt-pdf";
+import { getAppUrl } from "@/lib/utils/getAppUrl";
+import { Invoice } from "@/models/Invoice";
 import { LearnPaymentIntent } from "@/models/LearnPaymentIntent";
 import { Payment } from "@/models/Payment";
 import { School } from "@/models/School";
@@ -14,6 +17,7 @@ type Params = { params: Promise<{ type: string; id: string }> };
 type ReceiptPaymentRow = {
   _id: Types.ObjectId;
   studentId: Types.ObjectId;
+  invoiceId?: Types.ObjectId | null;
   amountMinor?: number;
   status: string;
   paystackReference?: string | null;
@@ -33,6 +37,13 @@ function contentDisposition(req: Request, filename: string) {
   return `${disposition}; filename="${filename}"`;
 }
 
+function absoluteAssetUrl(value?: string | null) {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("/")) return `${getAppUrl().replace(/\/$/, "")}${value}`;
+  return value;
+}
+
 export async function GET(req: Request, { params }: Params) {
   try {
     const { type, id } = await params;
@@ -43,7 +54,10 @@ export async function GET(req: Request, { params }: Params) {
     const admin = await requireSchoolAdmin();
     await connectToDatabase();
 
-    const school = await School.findById(admin.schoolId).select("name").lean<{ name?: string | null } | null>();
+    const school = await School.findById(admin.schoolId)
+      .select("name logo")
+      .lean<{ name?: string | null; logo?: string | null } | null>();
+    const schoolName = school?.name || "School";
 
     if (type === "learn") {
       const payment = await LearnPaymentIntent.findOne({
@@ -63,23 +77,45 @@ export async function GET(req: Request, { params }: Params) {
           .lean<{ firstName?: string | null; lastName?: string | null; email?: string | null } | null>(),
       ]);
       const payerName = [payer?.firstName, payer?.lastName].filter(Boolean).join(" ").trim() || payer?.email || null;
+      const receiptNumber = learnReceiptNumber(String(payment._id));
+      const issuedAt = payment.succeededAt || payment.updatedAt || new Date();
+      const verification = await ensureReceiptVerification({
+        schoolId: admin.schoolId,
+        schoolName,
+        issuedBy: admin.userId,
+        receiptNumber,
+        receiptTitle: "EduSentrix Learn Payment Receipt",
+        issuedAt,
+        amountPaidMinor: payment.amountMinor,
+        balanceMinor: 0,
+        studentName: nameOf(student),
+        payerName,
+        paymentReference: payment.paystackReference || null,
+        sourceEntityType: "LearnPaymentIntent",
+        sourceEntityId: String(payment._id),
+      });
+      const verificationPath = `/verify/receipt/${encodeURIComponent(verification.verificationId)}`;
       const pdf = await renderLearnReceiptPdf({
-        receiptNumber: learnReceiptNumber(String(payment._id)),
+        receiptNumber,
         title: "Learn Payment Receipt",
-        schoolName: school?.name || "School",
+        schoolName,
+        schoolLogoUrl: absoluteAssetUrl(school?.logo),
         studentName: nameOf(student),
         payerName,
         amountMinor: payment.amountMinor,
+        balanceMinor: 0,
         currency: payment.currency,
         status: payment.status,
         reference: payment.paystackReference,
-        issuedAt: payment.succeededAt || payment.updatedAt,
+        issuedAt,
         description: "EduSentrix Learn access",
+        verificationId: verification.verificationId,
+        verificationUrl: `${getAppUrl().replace(/\/$/, "")}${verificationPath}`,
       });
       return new NextResponse(pdf, {
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": contentDisposition(req, `${learnReceiptNumber(String(payment._id))}.pdf`),
+          "Content-Disposition": contentDisposition(req, `${receiptNumber}.pdf`),
         },
       });
     }
@@ -96,17 +132,43 @@ export async function GET(req: Request, { params }: Params) {
       .select("firstName middleName lastName")
       .lean<{ firstName?: string | null; middleName?: string | null; lastName?: string | null } | null>();
     const receiptNumber = payment.receiptNumber || `FEE-${String(payment._id).slice(-8).toUpperCase()}`;
+    const invoice = payment.invoiceId
+      ? await Invoice.findOne({ _id: payment.invoiceId, schoolId: admin.schoolId })
+          .select("totalOutstandingMinor")
+          .lean<{ totalOutstandingMinor?: number | null } | null>()
+      : null;
+    const issuedAt = payment.paymentDate || payment.createdAt || new Date();
+    const verification = await ensureReceiptVerification({
+      schoolId: admin.schoolId,
+      schoolName,
+      issuedBy: admin.userId,
+      receiptNumber,
+      receiptTitle: "School Fee Payment Receipt",
+      issuedAt,
+      amountPaidMinor: payment.amountMinor || 0,
+      balanceMinor: Math.max(0, Number(invoice?.totalOutstandingMinor || 0)),
+      studentName: nameOf(student),
+      payerName: null,
+      paymentReference: payment.paystackReference || payment.externalReference || payment.receiptNumber || null,
+      sourceEntityType: "Payment",
+      sourceEntityId: String(payment._id),
+    });
+    const verificationPath = `/verify/receipt/${encodeURIComponent(verification.verificationId)}`;
     const pdf = await renderLearnReceiptPdf({
       receiptNumber,
       title: "School Fee Payment Receipt",
-      schoolName: school?.name || "School",
+      schoolName,
+      schoolLogoUrl: absoluteAssetUrl(school?.logo),
       studentName: nameOf(student),
       amountMinor: payment.amountMinor || 0,
+      balanceMinor: Math.max(0, Number(invoice?.totalOutstandingMinor || 0)),
       currency: "GHS",
       status: payment.status,
       reference: payment.paystackReference || payment.externalReference || payment.receiptNumber,
-      issuedAt: payment.paymentDate || payment.createdAt,
+      issuedAt,
       description: "School fee payment",
+      verificationId: verification.verificationId,
+      verificationUrl: `${getAppUrl().replace(/\/$/, "")}${verificationPath}`,
     });
     return new NextResponse(pdf, {
       headers: {

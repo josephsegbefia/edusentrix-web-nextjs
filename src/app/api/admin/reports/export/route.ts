@@ -151,8 +151,8 @@ async function buildFeesOverview(ctx: ReportBuilderContext): Promise<ReportBuild
       ["Outstanding (GHS)", formatAmount(outstandingMinor)],
       ["Collection Rate (%)", collectionRate.toFixed(2)],
       ["Payments Count", paymentsCount],
-      ["Invoices Count", invoicesCount],
-      ["Overdue Invoices", overdueCount],
+      ["Bills Count", invoicesCount],
+      ["Overdue Bills", overdueCount],
     ],
   };
 }

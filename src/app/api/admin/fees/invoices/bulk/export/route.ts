@@ -125,13 +125,13 @@ export async function POST(req: NextRequest) {
     return new NextResponse(csvContent, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="invoices-export-${new Date().toISOString().split("T")[0]}.csv"`,
+        "Content-Disposition": `attachment; filename="bills-export-${new Date().toISOString().split("T")[0]}.csv"`,
       },
     });
   } catch (error) {
-    console.error("Error exporting invoices:", error);
+    console.error("Error exporting bills:", error);
     return NextResponse.json(
-      { error: "Failed to export invoices" },
+      { error: "Failed to export bills" },
       { status: 500 }
     );
   }

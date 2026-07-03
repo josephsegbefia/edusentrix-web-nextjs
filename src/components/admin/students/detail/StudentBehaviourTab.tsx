@@ -204,7 +204,9 @@ export function StudentBehaviourTab({ student }: Props) {
                             "border-red-500/30 bg-red-500/10 text-red-200",
                           event.status === "late" &&
                             "border-amber-500/30 bg-amber-500/10 text-amber-200",
-                          !["present", "absent", "late"].includes(
+                          event.status === "excused" &&
+                            "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
+                          !["present", "absent", "late", "excused"].includes(
                             event.status
                           ) && "border-white/20 bg-white/5 text-white/70"
                         )}

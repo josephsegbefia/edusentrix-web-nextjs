@@ -27,6 +27,7 @@ type PaymentIntentRow = {
   studentId: mongoose.Types.ObjectId;
   invoiceId: mongoose.Types.ObjectId;
   amountMinor?: number;
+  parentPayableMinor?: number;
   status?: string;
   failureReason?: string | null;
 };
@@ -75,7 +76,11 @@ async function postVerifiedPaystackPaymentToLedger(args: {
     String(metadata.studentId || "") === String(args.paymentIntent.studentId) &&
     String(metadata.invoiceId || "") === String(args.paymentIntent.invoiceId);
 
-  if (!metadataMatches || verifiedAmountMinor !== Number(args.paymentIntent.amountMinor || 0)) {
+  const expectedPaystackAmountMinor = Math.round(
+    Number(args.paymentIntent.parentPayableMinor || args.paymentIntent.amountMinor || 0)
+  );
+
+  if (!metadataMatches || verifiedAmountMinor !== expectedPaystackAmountMinor) {
     return {
       posted: false,
       terminalStatus: "pending",
@@ -181,6 +186,8 @@ export async function GET(req: NextRequest) {
           invoiceId: String(payment.invoiceId),
           amountMinor: Number(payment.amountMinor || 0),
           paymentDate: payment.paymentDate?.toISOString() || null,
+          receiptViewUrl: `/api/parent/receipts/fee/${String(payment._id)}/download?disposition=inline`,
+          receiptDownloadUrl: `/api/parent/receipts/fee/${String(payment._id)}/download`,
           message: "Payment confirmed.",
         },
       });
@@ -191,7 +198,7 @@ export async function GET(req: NextRequest) {
       studentId: { $in: studentIds },
       paystackReference: reference,
     })
-      .select("_id schoolId studentId invoiceId amountMinor status failureReason")
+      .select("_id schoolId studentId invoiceId amountMinor parentPayableMinor status failureReason")
       .lean<PaymentIntentRow | null>();
 
     if (!paymentIntent) {
@@ -232,6 +239,8 @@ export async function GET(req: NextRequest) {
               invoiceId: String(postedPayment.invoiceId),
               amountMinor: Number(postedPayment.amountMinor || 0),
               paymentDate: postedPayment.paymentDate?.toISOString() || null,
+              receiptViewUrl: `/api/parent/receipts/fee/${String(postedPayment._id)}/download?disposition=inline`,
+              receiptDownloadUrl: `/api/parent/receipts/fee/${String(postedPayment._id)}/download`,
               message: "Payment confirmed.",
             },
           });

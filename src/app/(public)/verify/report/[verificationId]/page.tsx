@@ -27,6 +27,12 @@ type VerificationPayload = {
     rowCount: number | null;
     totalOutstandingMinor: number | null;
     overdueInvoiceCount: number | null;
+    receiptNumber: string | null;
+    amountPaidMinor: number | null;
+    balanceMinor: number | null;
+    studentName: string | null;
+    payerName: string | null;
+    paymentReference: string | null;
   };
   createdAt: string | null;
 };
@@ -46,6 +52,7 @@ function fmtDate(value: string | null) {
 
 function labelizeReportType(type: string) {
   if (type === "simple_snapshot") return "Simple Report Snapshot";
+  if (type === "payment_receipt") return "Payment Receipt";
   if (type === "overdue_report") return "Overdue Risk Report";
   if (type === "term_report") return "Academic Term Report";
   if (type === "weekly_report") return "Weekly Report";
@@ -114,6 +121,7 @@ export default function ReportVerificationPage() {
   }, [verificationId]);
 
   const isValid = data?.status === "issued";
+  const isReceipt = data?.reportType === "payment_receipt";
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-10 sm:py-14">
@@ -125,7 +133,7 @@ export default function ReportVerificationPage() {
                 EduSentrix Verification
               </p>
               <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
-                Report Authenticity Check
+                {isReceipt ? "Receipt Authenticity Check" : "Report Authenticity Check"}
               </h1>
             </div>
             <ShieldCheck className="h-7 w-7 text-sky-300" />
@@ -164,13 +172,13 @@ export default function ReportVerificationPage() {
                     }`}
                   >
                     {isValid
-                      ? "This report is authentic and currently valid."
+                      ? `This ${isReceipt ? "receipt" : "report"} is authentic and currently valid.`
                       : "This verification record exists but is not active."}
                   </p>
                 </div>
                 <p className="mt-2 text-xs text-white/75">
                   This page confirms issuance metadata only. It intentionally does
-                  not expose report contents.
+                  not expose protected document contents.
                 </p>
               </div>
 
@@ -180,7 +188,7 @@ export default function ReportVerificationPage() {
                   <p className="mt-1 text-sm font-medium text-white">{data.schoolName}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs text-white/50">Report Type</p>
+                  <p className="text-xs text-white/50">Document Type</p>
                   <p className="mt-1 text-sm font-medium text-white">
                     {labelizeReportType(data.reportType)}
                   </p>
@@ -192,9 +200,11 @@ export default function ReportVerificationPage() {
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs text-white/50">Range</p>
+                  <p className="text-xs text-white/50">{isReceipt ? "Receipt" : "Range"}</p>
                   <p className="mt-1 text-sm font-medium text-white">
-                    {fmtDate(data.range.startDate)} to {fmtDate(data.range.endDate)}
+                    {isReceipt
+                      ? data.meta.receiptNumber || data.range.periodLabel || "N/A"
+                      : `${fmtDate(data.range.startDate)} to ${fmtDate(data.range.endDate)}`}
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
@@ -219,28 +229,45 @@ export default function ReportVerificationPage() {
 
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <p className="text-xs text-white/50">Context</p>
-                <p className="mt-1 text-sm text-white/80">
-                  Label: {data.reportLabel} | Source: {data.range.source || "N/A"}
-                  {data.range.periodLabel ? ` | Period: ${data.range.periodLabel}` : ""}
-                </p>
-                <p className="mt-1 text-xs text-white/55">
-                  Template version {data.meta.version}. Included sections:{" "}
-                  {data.meta.categories.join(", ")}.
-                </p>
-                {data.meta.rowCount !== null ||
-                data.meta.totalOutstandingMinor !== null ||
-                data.meta.overdueInvoiceCount !== null ? (
-                  <p className="mt-1 text-xs text-white/55">
-                    Records:{" "}
-                    {data.meta.rowCount !== null ? data.meta.rowCount : "N/A"} | Overdue
-                    invoices:{" "}
-                    {data.meta.overdueInvoiceCount !== null
-                      ? data.meta.overdueInvoiceCount
-                      : "N/A"}{" "}
-                    | Outstanding:{" "}
-                    {formatMoneyMinor(data.meta.totalOutstandingMinor)}
-                  </p>
-                ) : null}
+                {isReceipt ? (
+                  <>
+                    <p className="mt-1 text-sm text-white/80">
+                      Student: {data.meta.studentName || "N/A"} | Payer:{" "}
+                      {data.meta.payerName || "N/A"}
+                    </p>
+                    <p className="mt-1 text-xs text-white/55">
+                      Amount paid: {formatMoneyMinor(data.meta.amountPaidMinor)} | Balance:
+                      {" "}
+                      {formatMoneyMinor(data.meta.balanceMinor)} | Reference:{" "}
+                      {data.meta.paymentReference || "N/A"}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-white/80">
+                      Label: {data.reportLabel} | Source: {data.range.source || "N/A"}
+                      {data.range.periodLabel ? ` | Period: ${data.range.periodLabel}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-white/55">
+                      Template version {data.meta.version}. Included sections:{" "}
+                      {data.meta.categories.join(", ")}.
+                    </p>
+                    {data.meta.rowCount !== null ||
+                    data.meta.totalOutstandingMinor !== null ||
+                    data.meta.overdueInvoiceCount !== null ? (
+                      <p className="mt-1 text-xs text-white/55">
+                        Records:{" "}
+                        {data.meta.rowCount !== null ? data.meta.rowCount : "N/A"} | Overdue
+                        invoices:{" "}
+                        {data.meta.overdueInvoiceCount !== null
+                          ? data.meta.overdueInvoiceCount
+                          : "N/A"}{" "}
+                        | Outstanding:{" "}
+                        {formatMoneyMinor(data.meta.totalOutstandingMinor)}
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </div>
             </div>
           ) : null}

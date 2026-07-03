@@ -222,7 +222,7 @@ export function RecordPaymentModal(props: {
   const overAlloc = manualAllocatedMinor > amountMinor;
 
   async function onSubmit() {
-    if (!invoiceId) return toast.error("No invoice selected for this term.");
+    if (!invoiceId) return toast.error("No bill selected for this term.");
     if (amountMinor <= 0) return toast.error("Enter a valid amount.");
     if (!paymentDateValue) return toast.error("Select a valid payment date.");
 
@@ -277,8 +277,8 @@ export function RecordPaymentModal(props: {
       title="Record Payment"
       subtitle={
         invoice
-          ? `Invoice: ${invoice.invoiceNumber}`
-          : "Select a term invoice first"
+          ? `Bill: ${invoice.invoiceNumber}`
+          : "Select a term bill first"
       }
     >
       <div className="space-y-6">

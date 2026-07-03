@@ -240,11 +240,15 @@ export default function FeesPage() {
             : item.installmentSchedule,
       })),
     };
-    await busy.promise(createInvoice.mutateAsync(fixedPayload), {
-      loading: "Creating invoice...",
-      success: "Invoice created successfully",
-      error: "Failed to create invoice",
-    });
+    const created = await busy
+      .promise(createInvoice.mutateAsync(fixedPayload), {
+        loading: "Creating bill...",
+        success: "Bill created successfully",
+        error: (error) => error.message || "Failed to create bill",
+      })
+      .catch(() => null);
+
+    if (!created) return;
     setShowCreateInvoiceModal(false);
   };
 
@@ -285,14 +289,14 @@ export default function FeesPage() {
       }).then(async (res) => {
         if (!res.ok) {
           const error = await res.json();
-          throw new Error(error.error || "Failed to create bulk invoices");
+          throw new Error(error.error || "Failed to create bulk bills");
         }
         return res.json();
       }),
       {
-        loading: `Creating ${payload.studentIds.length} invoices...`,
-        success: `Successfully created ${payload.studentIds.length} invoices`,
-        error: "Failed to create bulk invoices",
+        loading: `Creating ${payload.studentIds.length} bills...`,
+        success: `Successfully created ${payload.studentIds.length} bills`,
+        error: "Failed to create bulk bills",
       }
     );
     setShowBulkCreateInvoiceModal(false);
@@ -331,7 +335,7 @@ export default function FeesPage() {
           </p>
           <h1 className="text-3xl font-bold">Fees &amp; Payments</h1>
           <p className="text-muted-foreground">
-            Issue invoices, track collections, and stay ahead of defaulters.
+            Issue bills, track collections, and stay ahead of defaulters.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -340,7 +344,7 @@ export default function FeesPage() {
               if (isInvoiceCreationBlocked) {
                 busy.error(
                   blockedMessage ||
-                    "Cannot create invoices without an active academic period"
+                    "Cannot create bills without an active academic period"
                 );
                 return;
               }
@@ -351,7 +355,7 @@ export default function FeesPage() {
             }`}
           >
             <PlusCircle className="h-4 w-4 mr-2" />
-            Create Invoice
+            Create Bill
           </Button>
           <button
             type="button"
@@ -359,7 +363,7 @@ export default function FeesPage() {
               if (isInvoiceCreationBlocked) {
                 busy.error(
                   blockedMessage ||
-                    "Cannot create invoices without an active academic period"
+                    "Cannot create bills without an active academic period"
                 );
                 return;
               }
@@ -370,7 +374,7 @@ export default function FeesPage() {
             }`}
           >
             <PlusCircle className="h-4 w-4 transition-transform group-hover:scale-110" />
-            <span>Bulk Create Invoice</span>
+            <span>Bulk Create Bills</span>
           </button>
           <button
             type="button"
@@ -433,9 +437,9 @@ export default function FeesPage() {
         />
         <CardHeader className="relative z-10 flex items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-white">Invoice Status</CardTitle>
+            <CardTitle className="text-white">Bill Status</CardTitle>
             <p className="text-sm text-white/60">
-              Append-only invoice model with clear status counts.
+              Append-only bill model with clear status counts.
             </p>
           </div>
           <Link href="/admin/fees/invoices">
@@ -444,7 +448,7 @@ export default function FeesPage() {
               size="sm"
               className="text-white/80 hover:text-white"
             >
-              View invoices
+              View bills
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </Link>
@@ -600,7 +604,7 @@ export default function FeesPage() {
             <div className="space-y-1">
               <CardTitle className="text-white">Top Defaulters</CardTitle>
               <p className="text-sm text-white/60">
-                Highest outstanding balances across invoices.
+                Highest outstanding balances across bills.
               </p>
             </div>
             <Badge
@@ -635,7 +639,7 @@ export default function FeesPage() {
                         </p>
                         <p className="text-xs text-white/60">
                           {item.admissionNo || "—"} • {item.invoiceCount}{" "}
-                          invoice
+                          bill
                           {item.invoiceCount !== 1 ? "s" : ""}
                         </p>
                         {item.latestDueDate && (
@@ -743,18 +747,18 @@ export default function FeesPage() {
               href="/admin/fees/structures"
             />
             <QuickAction
-              title="View All Invoices"
-              description="Browse and manage all student invoices"
+              title="View All Bills"
+              description="Browse and manage all student bills"
               icon={Receipt}
               accent="bg-purple-500/20"
               href="/admin/fees/invoices"
             />
             {summary && summary.overdueCount > 0 && (
               <QuickAction
-                title={`${summary.overdueCount} Overdue Invoice${
+                title={`${summary.overdueCount} Overdue Bill${
                   summary.overdueCount !== 1 ? "s" : ""
                 }`}
-                description="Review invoices that require immediate attention"
+                description="Review bills that require immediate attention"
                 icon={AlertCircle}
                 accent="bg-orange-500/20"
                 href="/admin/fees/invoices?status=overdue"
@@ -769,7 +773,7 @@ export default function FeesPage() {
       <ResponsiveModal
         open={showCreateInvoiceModal}
         onClose={() => setShowCreateInvoiceModal(false)}
-        title="Create Invoice"
+        title="Create Bill"
         widthClass="max-w-4xl"
       >
         <CreateInvoiceModal
@@ -782,7 +786,7 @@ export default function FeesPage() {
       <ResponsiveModal
         open={showBulkCreateInvoiceModal}
         onClose={() => setShowBulkCreateInvoiceModal(false)}
-        title="Bulk Create Invoices"
+        title="Bulk Create Bills"
         widthClass="max-w-4xl"
       >
         <BulkCreateInvoiceModal

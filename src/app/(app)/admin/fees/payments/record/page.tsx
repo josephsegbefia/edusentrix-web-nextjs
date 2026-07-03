@@ -261,7 +261,7 @@ export default function RecordPaymentPage() {
                 Record Payment
               </h1>
               <p className="mt-0.5 text-sm text-white/45">
-                Record and allocate a payment against an invoice.
+                Record and allocate a payment against a bill.
               </p>
             </div>
           </div>
@@ -285,18 +285,18 @@ export default function RecordPaymentPage() {
 
         <div className="relative overflow-hidden rounded-4xl border border-white/8 bg-card/80 shadow-2xl shadow-black/50 backdrop-blur-2xl">
           <form onSubmit={handleSubmit}>
-            {/* Invoice section */}
+            {/* Bill section */}
             <div className="px-6 py-7 sm:px-8 sm:py-8">
               <div className="space-y-5">
-                <SectionLabel>Invoice Details</SectionLabel>
+                <SectionLabel>Bill Details</SectionLabel>
 
                 <div className="space-y-2">
-                  <FieldLabel htmlFor="invoiceId">Invoice ID *</FieldLabel>
+                  <FieldLabel htmlFor="invoiceId">Bill ID *</FieldLabel>
                   <Input
                     id="invoiceId"
                     value={invoiceId}
                     onChange={(e) => setInvoiceId(e.target.value)}
-                    placeholder="Enter or paste invoice ID"
+                    placeholder="Enter or paste bill ID"
                     required
                     className={inputClasses}
                   />
@@ -305,7 +305,7 @@ export default function RecordPaymentPage() {
                 {invoiceLoading && (
                   <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/5 p-4">
                     <Loader2 className="h-4 w-4 animate-spin text-white/40" />
-                    <span className="text-sm text-white/40">Loading invoice...</span>
+                    <span className="text-sm text-white/40">Loading bill...</span>
                   </div>
                 )}
 
@@ -430,7 +430,7 @@ export default function RecordPaymentPage() {
                       <Layers className="h-6 w-6 text-white/25" />
                     </div>
                     <p className="text-sm text-white/45">
-                      No allocations yet. Select an invoice to auto-allocate line items.
+                      No allocations yet. Select a bill to auto-allocate line items.
                     </p>
                   </div>
                 ) : (

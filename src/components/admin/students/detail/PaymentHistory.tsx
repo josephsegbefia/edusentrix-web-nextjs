@@ -252,7 +252,7 @@ export function PaymentHistory({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by receipt #, invoice #, or method..."
+                placeholder="Search by receipt #, bill #, or method..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-white/5 border-white/10"

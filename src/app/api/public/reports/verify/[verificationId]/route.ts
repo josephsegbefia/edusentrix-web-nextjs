@@ -68,6 +68,30 @@ export async function GET(_req: NextRequest, context: RouteContext) {
           typeof report.meta?.overdueInvoiceCount === "number"
             ? report.meta.overdueInvoiceCount
             : null,
+        receiptNumber:
+          typeof report.meta?.receiptNumber === "string"
+            ? report.meta.receiptNumber
+            : null,
+        amountPaidMinor:
+          typeof report.meta?.amountPaidMinor === "number"
+            ? report.meta.amountPaidMinor
+            : null,
+        balanceMinor:
+          typeof report.meta?.balanceMinor === "number"
+            ? report.meta.balanceMinor
+            : null,
+        studentName:
+          typeof report.meta?.studentName === "string"
+            ? report.meta.studentName
+            : null,
+        payerName:
+          typeof report.meta?.payerName === "string"
+            ? report.meta.payerName
+            : null,
+        paymentReference:
+          typeof report.meta?.paymentReference === "string"
+            ? report.meta.paymentReference
+            : null,
       },
       createdAt: report.createdAt ? new Date(report.createdAt).toISOString() : null,
     },

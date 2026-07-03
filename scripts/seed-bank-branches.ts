@@ -55,6 +55,24 @@ function normalize(s: string) {
     .trim();
 }
 
+async function createIndexIfNeeded(
+  keys: Record<string, 1 | -1 | "text">,
+  options?: Record<string, unknown>
+) {
+  try {
+    await BankBranch.collection.createIndex(keys, options);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Index already exists") ||
+        error.message.includes("already exists with a different name"))
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
 (async () => {
   const filePath = path.resolve(argv.file);
   if (!fs.existsSync(filePath)) {
@@ -164,13 +182,13 @@ function normalize(s: string) {
   console.log("Modified:", res.modifiedCount || 0);
 
   // Helpful indexes (idempotent)
-  await BankBranch.collection.createIndex({ sortCode: 1 }, { unique: true });
-  await BankBranch.collection.createIndex(
+  await createIndexIfNeeded({ sortCode: 1 }, { unique: true });
+  await createIndexIfNeeded(
     { bankName: "text", branchName: "text" },
     { name: "bank_branch_text" }
   );
-  await BankBranch.collection.createIndex({ bankName: 1 });
-  await BankBranch.collection.createIndex({ branchName: 1 });
+  await createIndexIfNeeded({ bankName: 1 });
+  await createIndexIfNeeded({ branchName: 1 });
 
   await disconnectDatabase();
   console.log("✅ Done.");

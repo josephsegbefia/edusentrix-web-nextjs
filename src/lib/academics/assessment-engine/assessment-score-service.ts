@@ -187,11 +187,6 @@ export async function bulkUpsertAssessmentScores(
         },
         update: {
           $set: {
-            academicPeriodId: item.academicPeriodId,
-            assessmentPlanId: item.assessmentPlanId,
-            classGroupId: item.classGroupId,
-            subjectId: item.subjectId,
-            teacherId: context.teacherId,
             score: record.score,
             maxScoreSnapshot: item.maxScore,
             percentage,

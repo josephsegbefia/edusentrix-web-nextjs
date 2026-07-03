@@ -114,6 +114,24 @@ export type UpdateSchoolPaymentSetupInput = {
   accountNumber: string;
 };
 
+export type SchoolFeePayerModePreference =
+  | "platform_default"
+  | "payer_pays"
+  | "school_absorbs";
+
+export type CheckoutFeeSettingsDTO = {
+  schoolFeePayerMode: SchoolFeePayerModePreference;
+  effectivePayerMode: "payer_pays" | "school_absorbs" | "waived";
+  policyPayerMode: "payer_pays" | "school_absorbs" | "waived";
+  example: {
+    invoiceAmountMinor: number;
+    parentPayableMinor: number;
+    platformFeeMinor: number;
+    estimatedSchoolNetMinor: number;
+  };
+  updatedAt: string | null;
+};
+
 export type InviteBillingOwnerInput = {
   ownerName: string;
   ownerEmail: string;
@@ -223,6 +241,46 @@ export function useUpdateSchoolPaymentSetup() {
         data
       );
       invalidateSetupReadiness(queryClient);
+    },
+  });
+}
+
+export function useCheckoutFeeSettings() {
+  return useQuery<CheckoutFeeSettingsDTO>({
+    queryKey: ["school-payment-setup", "checkout-fees"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/settings/payment-setup/checkout-fees", {
+        cache: "no-store",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to load checkout fee settings");
+      }
+      return json.data as CheckoutFeeSettingsDTO;
+    },
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+export function useUpdateCheckoutFeeSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { schoolFeePayerMode: SchoolFeePayerModePreference }) => {
+      const res = await fetch("/api/admin/settings/payment-setup/checkout-fees", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to update checkout fee settings");
+      }
+      return json.data as CheckoutFeeSettingsDTO;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["school-payment-setup", "checkout-fees"], data);
     },
   });
 }

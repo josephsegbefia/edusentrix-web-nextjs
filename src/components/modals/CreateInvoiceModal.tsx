@@ -148,7 +148,8 @@ export default function CreateInvoiceModal({
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const debouncedStudentSearch = useDebouncedValue(studentSearchQuery, 350);
-  const { data: feeStructuresData } = useFeeStructures({ isActive: true });
+  const { data: feeStructuresData, isLoading: feeStructuresLoading } =
+    useFeeStructures({ isActive: true });
 
   React.useEffect(() => {
     fetch("/api/admin/periods")
@@ -797,7 +798,10 @@ export default function CreateInvoiceModal({
                                     <ChevronDown className="h-4 w-4 opacity-50" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className={premiumMenuContent} align="start">
+                                <DropdownMenuContent
+                                  className={cn(premiumMenuContent, "max-h-72 overflow-y-auto")}
+                                  align="start"
+                                >
                                   <DropdownMenuItem
                                     onClick={() => handleFeeStructureSelect(index, "")}
                                     className={cn(
@@ -810,23 +814,35 @@ export default function CreateInvoiceModal({
                                       {!field.value && <Check className="h-4 w-4" />}
                                     </div>
                                   </DropdownMenuItem>
-                                  {feeStructures.map((structure) => (
-                                    <DropdownMenuItem
-                                      key={structure._id}
-                                      onClick={() => handleFeeStructureSelect(index, structure._id)}
-                                      className={cn(
-                                        premiumMenuItem,
-                                        field.value === structure._id && "bg-white/10"
-                                      )}
-                                    >
-                                      <div className="flex items-center justify-between w-full">
-                                        <span>{structure.name} ({structure.code})</span>
-                                        {field.value === structure._id && (
-                                          <Check className="h-4 w-4" />
-                                        )}
-                                      </div>
+                                  {feeStructuresLoading ? (
+                                    <DropdownMenuItem disabled className={premiumMenuItem}>
+                                      Loading fee structures...
                                     </DropdownMenuItem>
-                                  ))}
+                                  ) : feeStructures.length > 0 ? (
+                                    feeStructures.map((structure) => (
+                                      <DropdownMenuItem
+                                        key={structure._id}
+                                        onClick={() => handleFeeStructureSelect(index, structure._id)}
+                                        className={cn(
+                                          premiumMenuItem,
+                                          field.value === structure._id && "bg-white/10"
+                                        )}
+                                      >
+                                        <div className="flex w-full items-center justify-between gap-3">
+                                          <span className="truncate">
+                                            {structure.name} ({structure.code})
+                                          </span>
+                                          {field.value === structure._id && (
+                                            <Check className="h-4 w-4 shrink-0" />
+                                          )}
+                                        </div>
+                                      </DropdownMenuItem>
+                                    ))
+                                  ) : (
+                                    <DropdownMenuItem disabled className={premiumMenuItem}>
+                                      No active fee structures found
+                                    </DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             );

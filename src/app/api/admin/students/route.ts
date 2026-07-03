@@ -8,7 +8,9 @@ import { Student } from "@/models/Student";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Invoice } from "@/models/Invoice";
+import { StudentReportCard } from "@/models/StudentReportCard";
 import type {
+  AcademicBadge,
   FeeStatus,
   StudentListItem,
   StudentListResponse,
@@ -39,6 +41,16 @@ type StudentFeeRollup = {
   totalOutstandingMinor: number;
 };
 
+function isFeeStatus(value: string | null): value is FeeStatus {
+  return (
+    value === "none" ||
+    value === "cleared" ||
+    value === "owing" ||
+    value === "partial" ||
+    value === "unknown"
+  );
+}
+
 function deriveFeeStatus(rollup?: StudentFeeRollup): {
   feeStatus: FeeStatus;
   amountOwed: number | null;
@@ -61,6 +73,15 @@ function deriveFeeStatus(rollup?: StudentFeeRollup): {
   }
 
   return { feeStatus: "none", amountOwed: null };
+}
+
+function deriveAcademicBadge(average: number | null): AcademicBadge {
+  if (average === null) return "none";
+  if (average >= 95) return "top_1_percent";
+  if (average >= 90) return "top_5_percent";
+  if (average >= 85) return "top_10_percent";
+  if (average >= 80) return "honours";
+  return "none";
 }
 
 export async function GET(req: NextRequest) {
@@ -98,6 +119,10 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status") || null;
     const sex = searchParams.get("gender") || null;
     const tab = searchParams.get("tab") || "all";
+    const feeStatusParam = searchParams.get("feeStatus");
+    const feeStatus: FeeStatus | null = isFeeStatus(feeStatusParam)
+      ? feeStatusParam
+      : null;
     const enrollmentFrom = searchParams.get("enrollmentFrom") || null;
     const enrollmentTo = searchParams.get("enrollmentTo") || null;
 
@@ -105,7 +130,7 @@ export async function GET(req: NextRequest) {
     const sortOrderParam = searchParams.get("sortOrder") || "asc";
     const sortOrder: 1 | -1 = sortOrderParam === "desc" ? -1 : 1;
 
-    const query: Record<string, unknown> = { schoolId };
+    const query: Record<string, unknown> = { schoolId: schoolObjectId };
 
     if (gradeId) query.gradeId = gradeId;
     if (classGroupId) query.classGroupId = classGroupId;
@@ -148,16 +173,109 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    // Basic tab behaviour (fee / academic tabs will be refined when those systems exist)
     if (tab === "recent") {
       // recently added – handled via sort below (no extra filter needed)
     }
-    if (tab === "fee-defaulters") {
-      // once fee system exists, we’ll filter by actual debt.
-      // For now we just leave it as all students; UI will show 0 owing by default.
+    const effectiveFeeStatus =
+      tab === "fee-defaulters" && feeStatus !== "partial" && feeStatus !== "owing"
+        ? null
+        : feeStatus;
+    const shouldFilterByFeeStatus =
+      effectiveFeeStatus &&
+      effectiveFeeStatus !== "unknown" &&
+      effectiveFeeStatus !== "none" &&
+      (tab !== "fee-defaulters" || effectiveFeeStatus !== "cleared");
+    if (tab === "fee-defaulters" || shouldFilterByFeeStatus) {
+      const invoiceMatch: Record<string, unknown> = {
+        schoolId: schoolObjectId,
+        status: { $ne: "cancelled" },
+      };
+      if (
+        tab === "fee-defaulters" ||
+        effectiveFeeStatus === "partial" ||
+        effectiveFeeStatus === "owing"
+      ) {
+        invoiceMatch.totalOutstandingMinor = { $gt: 0 };
+      }
+
+      const owingStudentIds = await Invoice.aggregate([
+        {
+          $match: invoiceMatch,
+        },
+        {
+          $group: {
+            _id: "$studentId",
+            billCount: { $sum: 1 },
+            totalBilledMinor: { $sum: { $ifNull: ["$totalAmountMinor", 0] } },
+            totalPaidMinor: { $sum: { $ifNull: ["$totalPaidMinor", 0] } },
+            totalOutstandingMinor: {
+              $sum: { $ifNull: ["$totalOutstandingMinor", 0] },
+            },
+          },
+        },
+        {
+          $addFields: {
+            computedFeeStatus: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $and: [
+                        { $gt: ["$totalOutstandingMinor", 0] },
+                        { $gt: ["$totalPaidMinor", 0] },
+                      ],
+                    },
+                    then: "partial",
+                  },
+                  {
+                    case: { $gt: ["$totalOutstandingMinor", 0] },
+                    then: "owing",
+                  },
+                  {
+                    case: {
+                      $and: [
+                        { $gt: ["$totalBilledMinor", 0] },
+                        { $lte: ["$totalOutstandingMinor", 0] },
+                      ],
+                    },
+                    then: "cleared",
+                  },
+                ],
+                default: "none",
+              },
+            },
+          },
+        },
+        ...(tab === "fee-defaulters"
+          ? [{ $match: { totalOutstandingMinor: { $gt: 0 } } }]
+          : []),
+        ...(shouldFilterByFeeStatus
+          ? [{ $match: { computedFeeStatus: effectiveFeeStatus } }]
+          : []),
+      ]);
+      query._id = { $in: owingStudentIds.map((row) => row._id) };
     }
     if (tab === "top-performers") {
-      // once performance data exists we’ll filter here.
+      const topStudentIds = await StudentReportCard.aggregate([
+        {
+          $match: {
+            schoolId: schoolObjectId,
+            status: "released",
+            "termSummarySnapshot.averageFinalScore": { $gte: 80 },
+          },
+        },
+        { $sort: { releasedAt: -1, updatedAt: -1 } },
+        {
+          $group: {
+            _id: "$studentId",
+            latestAverage: {
+              $first: "$termSummarySnapshot.averageFinalScore",
+            },
+          },
+        },
+        { $match: { latestAverage: { $gte: 80 } } },
+      ]);
+      query._id = { $in: topStudentIds.map((row) => row._id) };
     }
 
     const sort: Record<string, 1 | -1> = {};
@@ -235,6 +353,32 @@ export async function GET(req: NextRequest) {
       ])
     );
 
+    const academicRollups = (await StudentReportCard.aggregate([
+      {
+        $match: {
+          schoolId: schoolObjectId,
+          studentId: { $in: studentIds },
+          status: "released",
+        },
+      },
+      { $sort: { releasedAt: -1, updatedAt: -1 } },
+      {
+        $group: {
+          _id: "$studentId",
+          latestAverage: {
+            $first: "$termSummarySnapshot.averageFinalScore",
+          },
+        },
+      },
+    ])) as Array<{ _id: unknown; latestAverage?: number | null }>;
+
+    const latestAverageByStudentId = new Map<string, number | null>(
+      academicRollups.map((rollup) => [
+        String(rollup._id),
+        typeof rollup.latestAverage === "number" ? rollup.latestAverage : null,
+      ])
+    );
+
     const data: StudentListItem[] = items.map((s: any) => {
       const grade = s.gradeId as any | null;
       const classGroup = s.classGroupId as any | null;
@@ -254,9 +398,8 @@ export async function GET(req: NextRequest) {
         feeRollupByStudentId.get(String(s._id))
       );
       const lastPaymentAt: string | null = null;
-      // Placeholder academic data until the academic summary is wired in:
-      const latestAverage: number | null = null;
-      const academicBadge = "none" as const;
+      const latestAverage = latestAverageByStudentId.get(String(s._id)) ?? null;
+      const academicBadge = deriveAcademicBadge(latestAverage);
 
       const result: StudentListItem = {
         id: String(s._id),

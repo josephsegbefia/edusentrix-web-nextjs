@@ -150,7 +150,7 @@ export async function POST(
     if (!invoiceId || !amount || amount <= 0) {
       await session.abortTransaction();
       return NextResponse.json(
-        { error: "Invoice ID and amount are required" },
+        { error: "Bill ID and amount are required" },
         { status: 400 }
       );
     }

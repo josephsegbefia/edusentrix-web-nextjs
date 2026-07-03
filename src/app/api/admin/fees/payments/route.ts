@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
     !mongoose.Types.ObjectId.isValid(body.invoiceId)
   ) {
     return NextResponse.json(
-      { error: "Invalid student or invoice ID" },
+      { error: "Invalid student or bill ID" },
       { status: 400 }
     );
   }

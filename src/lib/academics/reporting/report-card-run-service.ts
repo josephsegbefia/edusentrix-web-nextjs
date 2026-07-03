@@ -212,7 +212,6 @@ async function resolveReportRunScope(input: {
   const assessmentPlanDoc = await AssessmentPlan.findOne({
     schoolId: input.context.schoolId,
     academicPeriodId: period._id,
-    appliesToGradeId: access.classGroup.gradeId,
     appliesToClassGroupIds: input.classGroupId,
     status: "active",
   }).lean();
@@ -905,6 +904,20 @@ export async function compileHomeroomReportRun(
     status: { $in: [...SUBJECT_RESULT_COMPLETE_STATUSES] },
   }).lean();
 
+  const subjectIds = [...new Set(subjectResults.map((result) => String(result.subjectId)))];
+  const subjectNamesById = new Map(
+    subjectIds.length
+      ? (
+          await Subject.find({
+            _id: { $in: subjectIds.map((id) => new mongoose.Types.ObjectId(id)) },
+            schoolId: context.schoolId,
+          })
+            .select("_id name")
+            .lean()
+        ).map((subject) => [String(subject._id), subject.name])
+      : []
+  );
+
   const subjectResultsByStudent = new Map<string, typeof subjectResults>();
   for (const result of subjectResults) {
     const studentId = String(result.studentId);
@@ -930,6 +943,7 @@ export async function compileHomeroomReportRun(
     const subjectResultsSnapshot = studentSubjectResults.map((result) => ({
       _id: String(result._id),
       subjectId: String(result.subjectId),
+      subjectName: subjectNamesById.get(String(result.subjectId)) ?? "Subject",
       teacherId: String(result.teacherId),
       finalScore: result.finalScore,
       roundedFinalScore: result.roundedFinalScore,

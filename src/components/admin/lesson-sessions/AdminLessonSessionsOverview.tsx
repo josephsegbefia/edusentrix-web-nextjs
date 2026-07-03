@@ -401,7 +401,7 @@ export function AdminLessonSessionsOverview() {
                         variant="ghost"
                         className="h-8 border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
                       >
-                        <Link href={`/teacher/lessons/${session.id}`}>
+                        <Link href={`/admin/lessons/sessions/${session.id}`}>
                           View
                           <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                         </Link>

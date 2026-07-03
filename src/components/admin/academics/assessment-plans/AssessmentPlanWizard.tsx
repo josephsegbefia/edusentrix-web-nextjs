@@ -81,21 +81,32 @@ export function AssessmentPlanWizard({
   const grades = gradesData ?? [];
   const policies = (policiesData?.data ?? []).filter((policy) => policy.status !== "archived");
   const selectedPolicy = policies.find((policy) => policy._id === form.gradingPolicyId) ?? null;
+  const policyGradeIds = selectedPolicy?.appliesToGradeIds ?? [];
+  const availableGrades = policyGradeIds.length
+    ? grades.filter((grade) => policyGradeIds.includes(grade._id))
+    : grades;
 
   const { data: classGroupsData, isLoading: classGroupsLoading } = useQuery({
-    queryKey: ["assessment-plan-class-groups", form.appliesToGradeId],
-    enabled: open && Boolean(form.appliesToGradeId),
+    queryKey: ["assessment-plan-class-groups", form.appliesToGradeIds.join(",")],
+    enabled: open && form.appliesToGradeIds.length > 0,
     queryFn: async () => {
-      const res = await fetch(
-        `/api/admin/class-groups/search?gradeId=${encodeURIComponent(form.appliesToGradeId)}&limit=50`,
-        { cache: "no-store" }
+      const results = await Promise.all(
+        form.appliesToGradeIds.map(async (gradeId) => {
+          const res = await fetch(
+            `/api/admin/class-groups/search?gradeId=${encodeURIComponent(gradeId)}&limit=50`,
+            { cache: "no-store" }
+          );
+          const json = (await res.json()) as {
+            success?: boolean;
+            data?: Array<{ id: string; label: string; name: string; gradeId?: string | null }>;
+          };
+          if (!res.ok || !json.success) throw new Error("Failed to load class groups");
+          return json.data ?? [];
+        })
       );
-      const json = (await res.json()) as {
-        success?: boolean;
-        data?: Array<{ id: string; label: string; name: string }>;
-      };
-      if (!res.ok || !json.success) throw new Error("Failed to load class groups");
-      return json.data ?? [];
+      const byId = new Map<string, { id: string; label: string; name: string; gradeId?: string | null }>();
+      results.flat().forEach((classGroup) => byId.set(classGroup.id, classGroup));
+      return Array.from(byId.values());
     },
   });
 
@@ -108,10 +119,23 @@ export function AssessmentPlanWizard({
 
   React.useEffect(() => {
     if (!selectedPolicy) return;
-    setForm((current) => ({
-      ...current,
-      componentRules: syncComponentRules(selectedPolicy, current.componentRules),
-    }));
+    setForm((current) => {
+      const nextGradeIds = policyGradeIds.length
+        ? current.appliesToGradeIds.filter((gradeId) => policyGradeIds.includes(gradeId))
+        : current.appliesToGradeIds;
+      const gradesChanged = nextGradeIds.join("|") !== current.appliesToGradeIds.join("|");
+
+      return {
+        ...current,
+        appliesToGradeIds: nextGradeIds,
+        appliesToGradeId:
+          policyGradeIds.length && !policyGradeIds.includes(current.appliesToGradeId)
+            ? (nextGradeIds[0] ?? "")
+            : current.appliesToGradeId,
+        appliesToClassGroupIds: gradesChanged ? [] : current.appliesToClassGroupIds,
+        componentRules: syncComponentRules(selectedPolicy, current.componentRules),
+      };
+    });
   }, [selectedPolicy?._id]);
 
   const stepMeta = ASSESSMENT_PLAN_WIZARD_STEPS[currentStep - 1];
@@ -138,6 +162,28 @@ export function AssessmentPlanWizard({
         ? current.appliesToClassGroupIds.filter((id) => id !== classGroupId)
         : [...current.appliesToClassGroupIds, classGroupId],
     }));
+  }
+
+  function toggleGrade(gradeId: string) {
+    setForm((current) => {
+      const exists = current.appliesToGradeIds.includes(gradeId);
+      const appliesToGradeIds = exists
+        ? current.appliesToGradeIds.filter((id) => id !== gradeId)
+        : [...current.appliesToGradeIds, gradeId];
+
+      return {
+        ...current,
+        appliesToGradeIds,
+        appliesToGradeId: appliesToGradeIds[0] ?? "",
+        appliesToClassGroupIds: current.appliesToClassGroupIds.filter((classGroupId) =>
+          classGroupsData?.some(
+            (classGroup) =>
+              classGroup.id === classGroupId &&
+              (!classGroup.gradeId || appliesToGradeIds.includes(classGroup.gradeId))
+          )
+        ),
+      };
+    });
   }
 
   function goNext() {
@@ -316,25 +362,41 @@ export function AssessmentPlanWizard({
 
         {currentStep === 3 ? (
           <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label>Grade</Label>
-              <PremiumSelect
-                value={form.appliesToGradeId || undefined}
-                onValueChange={(value) =>
-                  updateForm({ appliesToGradeId: value, appliesToClassGroupIds: [] })
-                }
-              >
-                <PremiumSelectTrigger>
-                  <PremiumSelectValue placeholder="Select grade" />
-                </PremiumSelectTrigger>
-                <PremiumSelectContent>
-                  {grades.map((grade) => (
-                    <PremiumSelectItem key={grade._id} value={grade._id}>
-                      {grade.name}
-                    </PremiumSelectItem>
-                  ))}
-                </PremiumSelectContent>
-              </PremiumSelect>
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <Label>Grades</Label>
+                {policyGradeIds.length ? (
+                  <span className="text-xs text-white/40">
+                    Limited to the selected grading policy scope
+                  </span>
+                ) : null}
+              </div>
+              {availableGrades.length === 0 ? (
+                <p className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                  This grading policy does not currently match any active grade options.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {availableGrades.map((grade) => {
+                    const selected = form.appliesToGradeIds.includes(grade._id);
+                    return (
+                      <button
+                        key={grade._id}
+                        type="button"
+                        onClick={() => toggleGrade(grade._id)}
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-sm transition",
+                          selected
+                            ? "border-teal-400/30 bg-teal-500/15 text-teal-100"
+                            : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10"
+                        )}
+                      >
+                        {grade.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div>
               <Label className="mb-2 block">Class groups</Label>
@@ -343,8 +405,8 @@ export function AssessmentPlanWizard({
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading class groups…
                 </div>
-              ) : !form.appliesToGradeId ? (
-                <p className="text-sm text-white/55">Select a grade first.</p>
+              ) : form.appliesToGradeIds.length === 0 ? (
+                <p className="text-sm text-white/55">Select at least one grade first.</p>
               ) : (classGroupsData?.length ?? 0) === 0 ? (
                 <p className="text-sm text-white/55">No active class groups found for this grade.</p>
               ) : (
@@ -503,7 +565,13 @@ export function AssessmentPlanWizard({
               <p><span className="text-white/45">Name:</span> {form.name}</p>
               <p><span className="text-white/45">Period:</span> {periods.find((p) => p._id === form.academicPeriodId)?.yearLabel} · {periods.find((p) => p._id === form.academicPeriodId)?.term}</p>
               <p><span className="text-white/45">Policy:</span> {selectedPolicy?.name}</p>
-              <p><span className="text-white/45">Grade:</span> {grades.find((g) => g._id === form.appliesToGradeId)?.name}</p>
+              <p>
+                <span className="text-white/45">Grades:</span>{" "}
+                {form.appliesToGradeIds
+                  .map((gradeId) => grades.find((g) => g._id === gradeId)?.name)
+                  .filter(Boolean)
+                  .join(", ") || "None"}
+              </p>
               <p><span className="text-white/45">Class groups:</span> {form.appliesToClassGroupIds.length}</p>
               <div>
                 <p className="text-white/45">Component rules</p>

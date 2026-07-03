@@ -33,15 +33,16 @@ import {
   Wallet,
   Receipt,
   TrendingUp,
+  Download,
+  Eye,
 } from "lucide-react";
 import { useParentFees } from "@/hooks/parent/useParentFees";
 import type { WardFeeSummary, PendingInvoice, RecentPayment, FeeStatus } from "@/hooks/parent/useParentFees";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { formatCurrencyFromMajor, formatMoney } from "@/lib/fees/money";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ParentPaystackTestModeBanner } from "@/components/parent/ParentPaystackTestModeBanner";
 import type { PaystackKeyMode } from "@/types/paystack-key-mode";
+import { showPaymentReceiptToast } from "@/components/parent/PaymentReceiptToast";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -392,31 +393,80 @@ function FeesPageContent() {
     tone: "blue" | "emerald" | "amber" | "red";
     title: string;
     message: string;
+    receiptViewUrl?: string | null;
+    receiptDownloadUrl?: string | null;
   } | null>(null);
   const [checkoutPreview, setCheckoutPreview] =
     React.useState<CheckoutPreview | null>(null);
   const [checkoutSubmitting, setCheckoutSubmitting] = React.useState(false);
+  const [storedCheckoutReference, setStoredCheckoutReference] = React.useState<string | null>(null);
 
   const checkoutReference =
     searchParams.get("reference") || searchParams.get("trxref");
+  const effectiveCheckoutReference = checkoutReference || storedCheckoutReference;
 
   React.useEffect(() => {
-    if (!checkoutReference) {
+    if (checkoutReference) return;
+    try {
+      const stored = window.sessionStorage.getItem("edusentrix:lastPaystackReference");
+      if (stored) setStoredCheckoutReference(stored);
+    } catch {
+      // Storage may be unavailable; query params remain the primary path.
+    }
+  }, [checkoutReference]);
+
+  React.useEffect(() => {
+    if (!effectiveCheckoutReference) {
       return;
     }
 
+    // Total poll budget: ~60s with progressive backoff. Paystack callbacks
+    // usually beat the parent back to this page, but for local dev (no public
+    // webhook reachability) the server-side fallback in checkout-status needs
+    // a moment to verify with Paystack and post into the school ledger.
+    const POLL_DELAYS_MS = [
+      0, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000,
+    ];
+    const MAX_ATTEMPTS = POLL_DELAYS_MS.length;
+
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let toastFired = false;
+
     setCheckoutBanner({
       tone: "blue",
       title: "Confirming Payment",
       message: "We are checking the status of your recent payment.",
     });
 
-    (async () => {
+    const stripCheckoutParams = () => {
+      try {
+        const url = new URL(window.location.href);
+        let touched = false;
+        for (const key of ["reference", "trxref", "checkout"]) {
+          if (url.searchParams.has(key)) {
+            url.searchParams.delete(key);
+            touched = true;
+          }
+        }
+        if (touched) {
+          const next = `${url.pathname}${
+            url.searchParams.toString() ? `?${url.searchParams.toString()}` : ""
+          }`;
+          window.history.replaceState({}, "", next);
+        }
+        window.sessionStorage.removeItem("edusentrix:lastPaystackReference");
+      } catch {
+        // ignore — non-fatal
+      }
+    };
+
+    const pollOnce = async (attempt: number) => {
+      if (cancelled) return;
       try {
         const res = await fetch(
           `/api/parent/payments/checkout-status?reference=${encodeURIComponent(
-            checkoutReference
+            effectiveCheckoutReference
           )}`,
           { cache: "no-store" }
         );
@@ -433,13 +483,38 @@ function FeesPageContent() {
           "Your payment status is being updated.";
 
         if (status === "completed") {
+          const receiptViewUrl =
+            typeof json.data?.receiptViewUrl === "string"
+              ? json.data.receiptViewUrl
+              : null;
+          const receiptDownloadUrl =
+            typeof json.data?.receiptDownloadUrl === "string"
+              ? json.data.receiptDownloadUrl
+              : null;
+          const paidAmountMinor = Number(json.data?.amountMinor || 0);
+
           setCheckoutBanner({
             tone: "emerald",
             title: "Payment Confirmed",
             message:
-              "Your payment was received successfully. The fees summary will refresh now.",
+              "Your payment was received successfully. The fees summary is refreshing now.",
+            receiptViewUrl,
+            receiptDownloadUrl,
           });
+
+          if (!toastFired) {
+            toastFired = true;
+            showPaymentReceiptToast({
+              title: "Payment confirmed",
+              description: "We received your school fee payment. Your receipt is ready.",
+              amountMinor: paidAmountMinor || null,
+              receiptViewUrl,
+              receiptDownloadUrl,
+            });
+          }
+
           void refetch();
+          stripCheckoutParams();
           return;
         }
 
@@ -449,25 +524,105 @@ function FeesPageContent() {
             title: "Payment Not Completed",
             message,
           });
+          if (!toastFired) {
+            toastFired = true;
+            toast.error("Payment not completed", { description: message });
+          }
+          stripCheckoutParams();
           return;
         }
 
+        // Still pending — show progress and keep polling
         setCheckoutBanner({
           tone: status === "pending" ? "amber" : "blue",
           title:
-            status === "pending" ? "Payment Pending Confirmation" : "Awaiting Confirmation",
+            status === "pending"
+              ? "Payment Pending Confirmation"
+              : "Awaiting Confirmation",
           message,
         });
+
+        if (attempt + 1 >= MAX_ATTEMPTS) {
+          setCheckoutBanner({
+            tone: "amber",
+            title: "Still Confirming",
+            message:
+              "Your payment is taking longer than usual to confirm. It will appear here as soon as the gateway responds — refresh if it does not show shortly.",
+          });
+          return;
+        }
+
+        const nextDelay = POLL_DELAYS_MS[attempt + 1] ?? 5000;
+        timer = setTimeout(() => void pollOnce(attempt + 1), nextDelay);
       } catch (statusError) {
         if (cancelled) return;
-        setCheckoutBanner({
-          tone: "red",
-          title: "Unable to Confirm Payment",
-          message:
-            statusError instanceof Error
-              ? statusError.message
-              : "We could not confirm your payment yet.",
+        if (attempt + 1 >= MAX_ATTEMPTS) {
+          setCheckoutBanner({
+            tone: "red",
+            title: "Unable to Confirm Payment",
+            message:
+              statusError instanceof Error
+                ? statusError.message
+                : "We could not confirm your payment yet. Please refresh in a moment.",
+          });
+          return;
+        }
+        const nextDelay = POLL_DELAYS_MS[attempt + 1] ?? 5000;
+        timer = setTimeout(() => void pollOnce(attempt + 1), nextDelay);
+      }
+    };
+
+    timer = setTimeout(() => void pollOnce(0), POLL_DELAYS_MS[0] ?? 0);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [effectiveCheckoutReference, refetch]);
+
+  // Silent reconciliation: when the page mounts (and we're NOT actively
+  // confirming a fresh callback), reach out to the server to verify any
+  // payment intents that are still `awaiting_webhook`. This covers the
+  // case where the Paystack webhook never reached the platform (e.g.
+  // local dev / Paystack retry pending) or the parent closed the tab
+  // before the callback redirect.
+  React.useEffect(() => {
+    if (checkoutReference) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/parent/payments/reconcile-pending", {
+          cache: "no-store",
         });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) return;
+        if (cancelled) return;
+
+        const reconciled: Array<{
+          reference: string;
+          paymentId: string;
+          amountMinor?: number;
+          receiptViewUrl?: string;
+          receiptDownloadUrl?: string;
+        }> = Array.isArray(json.data?.reconciled) ? json.data.reconciled : [];
+
+        if (reconciled.length === 0) return;
+
+        for (const item of reconciled) {
+          showPaymentReceiptToast({
+            title: "Payment confirmed",
+            description: "We located a recent school fee payment and added it to your account.",
+            amountMinor: Number(item.amountMinor || 0) || null,
+            receiptReference: item.reference,
+            receiptViewUrl: item.receiptViewUrl ?? null,
+            receiptDownloadUrl: item.receiptDownloadUrl ?? null,
+          });
+        }
+
+        void refetch();
+      } catch {
+        // best-effort background reconciliation — never surface errors
       }
     })();
 
@@ -623,11 +778,6 @@ function FeesPageContent() {
 
   return (
     <div className="space-y-6">
-      <ParentPaystackTestModeBanner
-        paystackKeyMode={paystackKeyMode}
-        onlinePaymentsReady={onlinePaymentsReady}
-      />
-
       <Dialog
         open={Boolean(checkoutPreview)}
         onOpenChange={(open) => {
@@ -644,17 +794,6 @@ function FeesPageContent() {
             </DialogDescription>
           </DialogHeader>
 
-          {checkoutPreview?.paystackKeyMode === "test" && (
-            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
-              <AlertCircle className="h-4 w-4 text-amber-200" />
-              <AlertTitle>Test checkout</AlertTitle>
-              <AlertDescription className="text-amber-100/90">
-                Complete payment in Paystack with Test mode on to see this transaction in your
-                dashboard.
-              </AlertDescription>
-            </Alert>
-          )}
-
           {checkoutPreview && (
             <div className="space-y-4">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -666,9 +805,7 @@ function FeesPageContent() {
                 </p>
               </div>
 
-              {/* §25.13 — fee breakdown varies by payer mode */}
               {checkoutPreview.payerMode === "payer_pays" ? (
-                // Payer pays: parent pays base + service fee
                 <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-center justify-between gap-4 text-sm">
                     <span className="text-white/60">School charge</span>
@@ -690,51 +827,16 @@ function FeesPageContent() {
                       {formatMoney(checkoutPreview.parentPayableMinor)}
                     </span>
                   </div>
-                  <p className="text-xs text-white/45">
-                    {checkoutPreview.processorFeeNote}
-                  </p>
                 </div>
               ) : (
-                // School absorbs or waived: parent pays only the invoice amount
-                <>
-                  <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <span className="text-white/60">Total to pay</span>
-                      <span className="text-lg font-bold text-white">
-                        {formatMoney(checkoutPreview.parentPayableMinor)}
-                      </span>
-                    </div>
-                    {checkoutPreview.platformFeeMinor > 0 && (
-                      <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm">
-                        <span className="text-white/60">
-                          Estimated school settlement before processor fee
-                        </span>
-                        <span className="font-medium text-emerald-200">
-                          {formatMoney(checkoutPreview.estimatedSchoolNetMinor)}
-                        </span>
-                      </div>
-                    )}
+                <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span className="text-white/60">Total to pay</span>
+                    <span className="text-lg font-bold text-white">
+                      {formatMoney(checkoutPreview.parentPayableMinor)}
+                    </span>
                   </div>
-                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
-                        <AlertCircle className="h-4 w-4 text-amber-300" />
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <p className="font-medium text-amber-200">
-                          The school bears this service fee
-                        </p>
-                        <p className="text-amber-100/75">
-                          You will be charged only the invoice amount. The EduSentrix
-                          transaction fee is deducted from the school&apos;s settlement.
-                        </p>
-                        <p className="text-amber-100/65">
-                          {checkoutPreview.processorFeeNote}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
+                </div>
               )}
             </div>
           )}
@@ -871,6 +973,36 @@ function FeesPageContent() {
 	                  <p className="mt-1 text-sm text-white/70">
 	                    {checkoutBanner.message}
 	                  </p>
+	                  {checkoutBanner.tone === "emerald" &&
+	                    (checkoutBanner.receiptViewUrl || checkoutBanner.receiptDownloadUrl) && (
+	                      <div className="mt-3 flex flex-wrap gap-2">
+	                        {checkoutBanner.receiptViewUrl && (
+	                          <Button
+	                            asChild
+	                            size="sm"
+	                            variant="outline"
+	                            className="h-8 gap-2 border-white/15 bg-white/5 text-xs text-white hover:bg-white/10"
+	                          >
+	                            <Link href={checkoutBanner.receiptViewUrl} target="_blank">
+	                              <Eye className="h-3.5 w-3.5" />
+	                              View receipt
+	                            </Link>
+	                          </Button>
+	                        )}
+	                        {checkoutBanner.receiptDownloadUrl && (
+	                          <Button
+	                            asChild
+	                            size="sm"
+	                            className="h-8 gap-2 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
+	                          >
+	                            <Link href={checkoutBanner.receiptDownloadUrl}>
+	                              <Download className="h-3.5 w-3.5" />
+	                              Download PDF
+	                            </Link>
+	                          </Button>
+	                        )}
+	                      </div>
+	                    )}
 	                </div>
 	              </div>
 	            </Card>

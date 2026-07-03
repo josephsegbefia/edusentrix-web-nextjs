@@ -102,7 +102,6 @@ export async function resolveTeacherMarksScope(
   const assessmentPlanDoc = await AssessmentPlan.findOne({
     schoolId: context.schoolId,
     academicPeriodId: period._id,
-    appliesToGradeId: classGroup.gradeId,
     appliesToClassGroupIds: classGroupObjId,
     status: "active",
   }).lean();

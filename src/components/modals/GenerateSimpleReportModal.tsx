@@ -187,8 +187,8 @@ export function GenerateSimpleReportModal({
             ["Billed", formatCurrencyMinor(summary.fees.billedInRangeMinor)],
             ["Outstanding", formatCurrencyMinor(summary.fees.outstandingMinor)],
             ["Collection Rate", formatPercent(summary.fees.collectionRate)],
-            ["Invoices in Range", formatNumber(summary.fees.invoicesInRange)],
-            ["Overdue Invoices", formatNumber(summary.fees.overdueCount)],
+            ["Bills in Range", formatNumber(summary.fees.invoicesInRange)],
+            ["Overdue Bills", formatNumber(summary.fees.overdueCount)],
           ];
 
           const peopleMetrics: Array<[string, string]> = [

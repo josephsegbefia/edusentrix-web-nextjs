@@ -2,6 +2,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toMinorUnits } from "@/lib/fees/money";
 
+function toBillMessage(message: string) {
+  return message
+    .replace(/\bInvoices\b/g, "Bills")
+    .replace(/\binvoices\b/g, "bills")
+    .replace(/\bInvoice\b/g, "Bill")
+    .replace(/\binvoice\b/g, "bill");
+}
+
 export interface Invoice {
   _id: string;
   schoolId: string;
@@ -142,7 +150,7 @@ export function useInvoices(filters?: {
       if (filters?.limit) params.append("limit", String(filters.limit));
 
       const res = await fetch(`/api/admin/fees/invoices?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch invoices");
+      if (!res.ok) throw new Error("Failed to fetch bills");
       return res.json();
     },
     refetchOnWindowFocus: false,
@@ -156,7 +164,7 @@ export function useInvoice(id: string) {
     queryKey: ["invoice", id],
     queryFn: async () => {
       const res = await fetch(`/api/admin/fees/invoices/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch invoice");
+      if (!res.ok) throw new Error("Failed to fetch bill");
       return res.json();
     },
     enabled: !!id,
@@ -187,12 +195,12 @@ export function useCreateInvoice() {
             ? error.error
             : typeof error?.message === "string"
               ? error.message
-              : text.trim() || "Failed to create invoice";
-        throw new Error(message);
+              : text.trim() || "Failed to create bill";
+        throw new Error(toBillMessage(message));
       }
       const payload = await res.json().catch(() => null);
       if (!payload?.invoice) {
-        throw new Error("Invoice was created but the server returned an invalid response");
+        throw new Error("Bill was created but the server returned an invalid response");
       }
       return payload;
     },
@@ -214,7 +222,7 @@ export function useBulkIssueInvoices() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to bulk issue invoices");
+        throw new Error(error.error || "Failed to bulk issue bills");
       }
       return res.json();
     },
@@ -237,7 +245,7 @@ export function useIssueInvoice() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to issue invoice");
+        throw new Error(error.error || "Failed to issue bill");
       }
       return res.json();
     },
@@ -297,7 +305,7 @@ export function useBulkCancelInvoices() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to bulk cancel invoices");
+        throw new Error(error.error || "Failed to bulk withdraw bills");
       }
       return res.json();
     },
@@ -321,13 +329,13 @@ export function useBulkExportInvoices() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to export invoices");
+        throw new Error(error.error || "Failed to export bills");
       }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `invoices-export-${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `bills-export-${new Date().toISOString().split("T")[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -349,7 +357,7 @@ export function useCancelInvoice() {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to cancel invoice");
+        throw new Error(error.error || "Failed to withdraw bill");
       }
       return res.json();
     },

@@ -79,7 +79,7 @@ export function StudentCreditManager({
   const handleApplyCredit = async () => {
     if (!selectedInvoiceId || !amount || parseFloat(amount) <= 0) {
       toastError("Error", {
-        description: "Please select an invoice and enter an amount",
+        description: "Please select a bill and enter an amount",
       });
       return;
     }
@@ -225,7 +225,7 @@ export function StudentCreditManager({
       <ResponsiveModal
         open={showApplyModal}
         onClose={() => setShowApplyModal(false)}
-        title="Apply Credit to Invoice"
+        title="Apply Credit to Bill"
       >
         <div className="space-y-6">
           <div className="space-y-2">
@@ -239,11 +239,11 @@ export function StudentCreditManager({
 
           <div className="space-y-2">
             <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Select Invoice *
+              Select Bill *
             </Label>
             <Select value={selectedInvoiceId} onValueChange={setSelectedInvoiceId}>
               <SelectTrigger className="border border-white/10 bg-white/5 text-white">
-                <SelectValue placeholder="Select invoice" />
+                <SelectValue placeholder="Select bill" />
               </SelectTrigger>
               <SelectContent>
                 {invoices.map((invoice) => (
@@ -265,10 +265,10 @@ export function StudentCreditManager({
               </Label>
               <Select value={selectedLineItemId} onValueChange={setSelectedLineItemId}>
                 <SelectTrigger className="border border-white/10 bg-white/5 text-white">
-                  <SelectValue placeholder="Apply to entire invoice" />
+                  <SelectValue placeholder="Apply to entire bill" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Apply to entire invoice</SelectItem>
+                  <SelectItem value="none">Apply to entire bill</SelectItem>
                   {lineItems
                     .filter((item: any) => item.amountOutstandingMinor > 0)
                     .map((item: any) => (

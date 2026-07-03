@@ -54,7 +54,7 @@ export async function GET(
 
     if (invoiceId && !mongoose.Types.ObjectId.isValid(invoiceId)) {
       return NextResponse.json(
-        { error: "Invalid invoice ID" },
+        { error: "Invalid bill ID" },
         { status: 400 }
       );
     }

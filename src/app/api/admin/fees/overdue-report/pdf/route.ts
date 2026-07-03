@@ -390,7 +390,7 @@ export async function GET(req: NextRequest) {
         color: rgb(0.64, 0.13, 0.18),
       },
       {
-        label: "Overdue Invoices",
+        label: "Overdue Bills",
         value: String(snapshot.summary.overdueInvoiceCount),
         color: rgb(0.14, 0.22, 0.35),
       },

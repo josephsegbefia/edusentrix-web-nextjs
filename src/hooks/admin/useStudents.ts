@@ -63,10 +63,10 @@ export function useStudents({
       if (filters.gender && filters.gender !== "all")
         params.set("gender", filters.gender);
 
-      // feeStatus & performanceTier are placeholders for future backend logic
       if (filters.feeStatus && filters.feeStatus !== "all")
         params.set("feeStatus", filters.feeStatus);
 
+      // performanceTier is still reserved for future backend logic.
       if (filters.performanceTier && filters.performanceTier !== "all")
         params.set("performanceTier", filters.performanceTier);
 

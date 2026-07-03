@@ -752,7 +752,6 @@ export async function getTeacherGradebookV2(
     ? await AssessmentPlan.findOne({
         schoolId: context.schoolId,
         academicPeriodId: period._id,
-        appliesToGradeId: classGroup.gradeId,
         appliesToClassGroupIds: classGroupObjId,
         status: "active",
       }).lean()

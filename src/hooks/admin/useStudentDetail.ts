@@ -132,7 +132,7 @@ export type StudentDetailDTO = {
   attendanceEvents: {
     id: string;
     date: string;
-    status: "present" | "absent" | "late";
+    status: "present" | "absent" | "late" | "excused";
   }[];
 
   incidents: {

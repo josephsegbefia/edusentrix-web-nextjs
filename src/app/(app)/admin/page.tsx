@@ -1760,13 +1760,13 @@ export default function SchoolAdminOverviewPage() {
                     </div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Open Invoices</div>
+                    <div className="text-[11px] text-white/55">Open Bills</div>
                     <div className="text-sm font-medium text-white/90">
                       {collections.issuedOpenCount}
                     </div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Overdue Invoices</div>
+                    <div className="text-[11px] text-white/55">Overdue Bills</div>
                     <div className="text-sm font-medium text-rose-200">
                       {collections.overdueCount}
                     </div>
@@ -2340,7 +2340,7 @@ export default function SchoolAdminOverviewPage() {
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Overdue Invoices</div>
+                    <div className="text-[11px] text-white/55">Overdue Bills</div>
                     <div className="mt-1 text-sm font-semibold text-white">
                       {overdueInvoiceCount}
                     </div>

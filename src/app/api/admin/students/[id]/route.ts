@@ -25,6 +25,7 @@ import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { buildStudentAcademicProfileDTO } from "@/lib/academics/profile/buildStudentAcademicProfileDTO";
 
 function derivePerformanceTier(
   averageScore: number | null | undefined
@@ -365,7 +366,7 @@ export async function GET(
       attendanceEvents: [] as {
         id: string;
         date: string;
-        status: "present" | "absent" | "late";
+        status: "present" | "absent" | "late" | "excused";
       }[],
       incidents: [] as {
         id: string;
@@ -392,6 +393,46 @@ export async function GET(
       const periodId = currentPeriod._id;
       const termLabel = `${currentPeriod.yearLabel} – ${currentPeriod.term}`;
 
+      try {
+        const profile = await buildStudentAcademicProfileDTO({
+          schoolId,
+          studentId: id,
+          academicPeriodId: String(periodId),
+          visibilityMode: "admin",
+          allowProgressVisibility: true,
+        });
+
+        const profileAverage =
+          profile.summary.finalAverage ??
+          profile.summary.overallAverage ??
+          profile.summary.projectedAverage;
+
+        if (
+          profileAverage != null ||
+          profile.summary.totalSubjects > 0 ||
+          profile.subjectResults.length > 0
+        ) {
+          dto.academicSummary = {
+            latestTermLabel: profile.selectedPeriod.label ?? termLabel,
+            overallAverage: profileAverage ?? undefined,
+            classPosition: profile.summary.classPosition ?? undefined,
+            totalSubjects: profile.summary.totalSubjects || undefined,
+            performanceTier: profile.summary.performanceTier ?? undefined,
+            trend: profile.summary.trend,
+            isFromPreviousTerm:
+              profile.selectedPeriod.academicPeriodId != null &&
+              String(profile.selectedPeriod.academicPeriodId) !== String(periodId),
+            previousTermLabel:
+              profile.selectedPeriod.academicPeriodId != null &&
+              String(profile.selectedPeriod.academicPeriodId) !== String(periodId)
+                ? profile.selectedPeriod.label ?? undefined
+                : undefined,
+          };
+        }
+      } catch (error) {
+        console.warn("Failed to build student academic profile summary", error);
+      }
+
       // Look for a TermResult for this student in the current period
       const currentResult = (await TermResult.findOne({
         schoolId,
@@ -399,7 +440,7 @@ export async function GET(
         academicPeriodId: periodId,
       }).lean()) as any;
 
-      if (currentResult) {
+      if (dto.academicSummary?.overallAverage == null && currentResult) {
         // Determine trend by comparing with previous term
         let trend: "up" | "down" | "stable" = "stable";
         const allPeriods = await AcademicPeriod.find({ schoolId })
@@ -433,7 +474,7 @@ export async function GET(
             derivePerformanceTier(currentResult.averageScore),
           trend,
         };
-      } else {
+      } else if (dto.academicSummary?.overallAverage == null) {
         // No result for current period — fall back to the latest available result
         const latestResult = (await TermResult.findOne({
           schoolId,
@@ -548,6 +589,18 @@ export async function GET(
         presentPercent,
       };
     }
+
+    const attendanceEventsRaw = await StudentAttendance.find(attendanceMatch)
+      .select("_id date status")
+      .sort({ date: -1 })
+      .limit(20)
+      .lean();
+
+    dto.attendanceEvents = attendanceEventsRaw.map((event) => ({
+      id: String(event._id),
+      date: event.date.toISOString(),
+      status: event.status as "present" | "absent" | "late" | "excused",
+    }));
 
     // ── Populate feesSummary from bills + payments ──
     // Admin summaries should show assigned fee data even before a bill is issued.

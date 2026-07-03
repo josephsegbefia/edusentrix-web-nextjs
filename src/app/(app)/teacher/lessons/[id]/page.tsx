@@ -38,7 +38,7 @@ export default function TeacherLegacyLessonPage() {
 
   React.useEffect(() => {
     if (sessionId) {
-      router.replace(`/teacher/lesson-sessions/${sessionId}`);
+      router.replace(`/teacher/lessons/sessions/${sessionId}`);
     }
   }, [sessionId, router]);
 

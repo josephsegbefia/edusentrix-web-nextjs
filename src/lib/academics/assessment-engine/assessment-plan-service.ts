@@ -41,6 +41,7 @@ export const assessmentPlanBodySchema = z.object({
   academicPeriodId: objectIdSchema,
   gradingPolicyId: objectIdSchema,
   appliesToGradeId: objectIdSchema,
+  appliesToGradeIds: z.array(objectIdSchema).optional(),
   appliesToClassGroupIds: z.array(objectIdSchema).min(1),
   curriculumCode: z.string().trim().max(80).nullable().optional(),
   componentRules: z.array(componentRuleInputSchema).min(1),
@@ -78,6 +79,12 @@ export function serializeAssessmentPlan(
     academicPeriodId: String(row.academicPeriodId),
     gradingPolicyId: String(row.gradingPolicyId),
     appliesToGradeId: String(row.appliesToGradeId),
+    appliesToGradeIds: (row.appliesToGradeIds?.length
+      ? row.appliesToGradeIds
+      : row.appliesToGradeId
+        ? [row.appliesToGradeId]
+        : []
+    ).map(String),
     appliesToClassGroupIds: (row.appliesToClassGroupIds ?? []).map(String),
     curriculumCode: row.curriculumCode ?? null,
     status: row.status,
@@ -169,9 +176,34 @@ export async function assertGradeBelongsToSchool(
   return { ok: true as const };
 }
 
-export async function assertClassGroupsBelongToGrade(
+export async function assertGradesBelongToSchool(
   schoolId: mongoose.Types.ObjectId,
-  gradeId: string,
+  gradeIds: string[]
+) {
+  const uniqueGradeIds = [...new Set(gradeIds)];
+  if (!uniqueGradeIds.length) {
+    return { ok: false as const, error: "Select at least one grade." };
+  }
+
+  const objectIds = uniqueGradeIds.map((id) => new mongoose.Types.ObjectId(id));
+  const count = await Grade.countDocuments({
+    _id: { $in: objectIds },
+    schoolId,
+  });
+
+  if (count !== uniqueGradeIds.length) {
+    return {
+      ok: false as const,
+      error: "One or more grades do not belong to this school.",
+    };
+  }
+
+  return { ok: true as const };
+}
+
+export async function assertClassGroupsBelongToGrades(
+  schoolId: mongoose.Types.ObjectId,
+  gradeIds: string[],
   classGroupIds: string[]
 ) {
   if (!classGroupIds.length) {
@@ -182,16 +214,17 @@ export async function assertClassGroupsBelongToGrade(
   }
 
   const objectIds = classGroupIds.map((id) => new mongoose.Types.ObjectId(id));
+  const gradeObjectIds = [...new Set(gradeIds)].map((id) => new mongoose.Types.ObjectId(id));
   const count = await ClassGroup.countDocuments({
     _id: { $in: objectIds },
     schoolId,
-    gradeId: new mongoose.Types.ObjectId(gradeId),
+    gradeId: { $in: gradeObjectIds },
   });
 
   if (count !== classGroupIds.length) {
     return {
       ok: false as const,
-      error: "One or more class groups are invalid for the selected grade.",
+      error: "One or more class groups are invalid for the selected grades.",
     };
   }
 
@@ -206,12 +239,17 @@ export function buildAssessmentPlanDocument(
     status?: IAssessmentPlan["status"];
   }
 ) {
+  const appliesToGradeIds = [
+    ...new Set([...(input.appliesToGradeIds ?? []), input.appliesToGradeId]),
+  ];
+
   return {
     schoolId: options.schoolId,
     name: input.name,
     academicPeriodId: new mongoose.Types.ObjectId(input.academicPeriodId),
     gradingPolicyId: new mongoose.Types.ObjectId(input.gradingPolicyId),
     appliesToGradeId: new mongoose.Types.ObjectId(input.appliesToGradeId),
+    appliesToGradeIds: appliesToGradeIds.map((id) => new mongoose.Types.ObjectId(id)),
     appliesToClassGroupIds: input.appliesToClassGroupIds.map(
       (id) => new mongoose.Types.ObjectId(id)
     ),
@@ -337,7 +375,14 @@ export async function activateAssessmentPlan(options: {
     );
   }
 
+  const classGroupGrades = await ClassGroup.distinct("gradeId", {
+    _id: { $in: plan.appliesToClassGroupIds },
+    schoolId: options.schoolId,
+  });
+
   plan.status = "active";
+  plan.appliesToGradeIds = classGroupGrades;
+  plan.appliesToGradeId = classGroupGrades[0] ?? plan.appliesToGradeId;
   plan.approvedBy = options.userId;
   plan.approvedAt = new Date();
   await plan.save();
@@ -365,7 +410,8 @@ export async function listAssessmentPlans(options: {
     query.academicPeriodId = new mongoose.Types.ObjectId(options.academicPeriodId);
   }
   if (options.gradeId && options.gradeId !== "all") {
-    query.appliesToGradeId = new mongoose.Types.ObjectId(options.gradeId);
+    const gradeId = new mongoose.Types.ObjectId(options.gradeId);
+    query.$or = [{ appliesToGradeId: gradeId }, { appliesToGradeIds: gradeId }];
   }
   if (options.gradingPolicyId && options.gradingPolicyId !== "all") {
     query.gradingPolicyId = new mongoose.Types.ObjectId(options.gradingPolicyId);
@@ -380,12 +426,15 @@ export async function validateAssessmentPlanReferences(
   input: AssessmentPlanBodyInput,
   planStatus?: IAssessmentPlan["status"]
 ) {
+  const appliesToGradeIds = [
+    ...new Set([...(input.appliesToGradeIds ?? []), input.appliesToGradeId]),
+  ];
   const [periodCheck, gradeCheck, classGroupCheck, policyResult] = await Promise.all([
     assertAcademicPeriodBelongsToSchool(schoolId, input.academicPeriodId),
-    assertGradeBelongsToSchool(schoolId, input.appliesToGradeId),
-    assertClassGroupsBelongToGrade(
+    assertGradesBelongToSchool(schoolId, appliesToGradeIds),
+    assertClassGroupsBelongToGrades(
       schoolId,
-      input.appliesToGradeId,
+      appliesToGradeIds,
       input.appliesToClassGroupIds
     ),
     loadGradingPolicyForPlan(schoolId, input.gradingPolicyId),
@@ -395,6 +444,19 @@ export async function validateAssessmentPlanReferences(
   if (!gradeCheck.ok) return gradeCheck;
   if (!classGroupCheck.ok) return classGroupCheck;
   if (!policyResult.ok) return policyResult;
+
+  const policyGradeIds = (policyResult.policy.appliesToGradeIds ?? []).map(String);
+  if (policyGradeIds.length > 0) {
+    const outsidePolicyScope = appliesToGradeIds.filter(
+      (gradeId) => !policyGradeIds.includes(gradeId)
+    );
+    if (outsidePolicyScope.length > 0) {
+      return {
+        ok: false as const,
+        error: "One or more selected grades are outside the grading policy scope.",
+      };
+    }
+  }
 
   if (policyResult.policy.status === "archived") {
     return {

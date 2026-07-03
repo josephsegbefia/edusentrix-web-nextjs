@@ -170,14 +170,15 @@ export default function InvoicesPage() {
             : item.allowsInstallments,
       })),
     };
-    const result = (await busy.promise(
-      createInvoice.mutateAsync(fixedPayload),
-      {
+    const result = (await busy
+      .promise(createInvoice.mutateAsync(fixedPayload), {
         loading: "Creating bill...",
         success: "Bill created successfully",
-        error: "Failed to create bill",
-      }
-    )) as unknown as { invoice: { _id: string } };
+        error: (error) => error.message || "Failed to create bill",
+      })
+      .catch(() => null)) as { invoice: { _id: string } } | null;
+
+    if (!result) return;
     setShowCreateModal(false);
     // Navigate to the new invoice
     router.push(`/admin/fees/invoices/${result.invoice._id}`);

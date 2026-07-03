@@ -361,7 +361,7 @@ export function RecordTransactionModal({
           </Label>
           <Input
             id="reference"
-            placeholder="e.g., Receipt number, invoice ID"
+            placeholder="e.g., Receipt number, bill ID"
             {...form.register("reference")}
             className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
           />

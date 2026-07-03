@@ -2,7 +2,7 @@
 import { z } from "zod";
 
 export const AddAdjustmentSchema = z.object({
-  invoiceId: z.string().min(1, "Invoice ID is required"),
+  invoiceId: z.string().min(1, "Bill ID is required"),
   lineItems: z.array(
     z.object({
       name: z.string().min(1, "Name is required"),

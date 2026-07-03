@@ -251,7 +251,7 @@ export default function RecordPaymentModal({
               </h2>
               <div className="space-y-2">
                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                  Invoice *
+                  Bill *
                 </Label>
                 <Controller
                   name="invoiceId"
@@ -259,7 +259,7 @@ export default function RecordPaymentModal({
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger className="border border-white/10 bg-white/5 text-white">
-                        <SelectValue placeholder="Select invoice" />
+                        <SelectValue placeholder="Select bill" />
                       </SelectTrigger>
                       <SelectContent>
                         {invoices
@@ -583,7 +583,7 @@ export default function RecordPaymentModal({
               <div className="space-y-4">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                    Invoice
+                    Bill
                   </p>
                   <p className="text-sm text-white">
                     {selectedInvoice?.invoiceNumber}

@@ -20,9 +20,18 @@ import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { Student } from "@/models/Student";
+import { School } from "@/models/School";
+import { Message } from "@/models/Message";
+import { MessageThread } from "@/models/MessageThread";
+import { UserMembership } from "@/models/UserMembership";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
+import { reconcileInvoicePaymentState } from "@/lib/fees/reconcile-invoice-payment-state";
 import { formatMoney } from "@/lib/fees/money";
+import { ensureReceiptVerification } from "@/lib/finance/receipt-verification";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { learnReceiptNumber, renderLearnReceiptPdf } from "@/lib/learn/receipt-pdf";
+import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { buildTransferReconciliationUpdate } from "@/lib/finance/disbursements";
 import {
   recordDonationInLedger,
@@ -90,6 +99,9 @@ interface PaystackEvent {
       edusentrixTransactionFeeMinor?: number | string | null;
       edusentrixTransactionFeePercent?: number | string | null;
       edusentrixTransactionFeeCapMinor?: number | string | null;
+      invoiceAmountMinor?: number | string | null;
+      parentPayableMinor?: number | string | null;
+      payerMode?: "payer_pays" | "school_absorbs" | "waived" | string | null;
       type?: string;
       custom_fields?: Array<{
         display_name: string;
@@ -121,6 +133,33 @@ function verifyPaystackSignature(
     .update(payload)
     .digest("hex");
   return hash === signature;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function fullName(row: {
+  firstName?: string | null;
+  middleName?: string | null;
+  lastName?: string | null;
+} | null) {
+  return [row?.firstName, row?.middleName, row?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function absoluteAssetUrl(value?: string | null) {
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("/")) return `${getAppUrl().replace(/\/$/, "")}${value}`;
+  return value;
 }
 
 // ============================================================================
@@ -294,6 +333,233 @@ async function handleLearnAccessFailure(event: PaystackEvent) {
   });
 }
 
+async function sendFeePaymentFollowUps(args: {
+  schoolId: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  invoiceId: mongoose.Types.ObjectId;
+  paymentId: mongoose.Types.ObjectId;
+  parentUserId: mongoose.Types.ObjectId | null;
+  amountMinor: number;
+  balanceMinor: number;
+  receiptNumber: string;
+  reference: string;
+  paymentDate: Date;
+}) {
+  if (!args.parentUserId) return;
+
+  try {
+    const [school, student, parentUser] = await Promise.all([
+      School.findById(args.schoolId)
+        .select("name logo")
+        .lean<{ name?: string | null; logo?: string | null } | null>(),
+      Student.findOne({ _id: args.studentId, schoolId: args.schoolId })
+        .select("firstName middleName lastName")
+        .lean<{
+          firstName?: string | null;
+          middleName?: string | null;
+          lastName?: string | null;
+        } | null>(),
+      User.findById(args.parentUserId)
+        .select("firstName lastName email")
+        .lean<{
+          firstName?: string | null;
+          lastName?: string | null;
+          email?: string | null;
+        } | null>(),
+    ]);
+
+    const schoolName = school?.name || "School";
+    const studentName = fullName(student) || "your ward";
+    const payerName =
+      [parentUser?.firstName, parentUser?.lastName].filter(Boolean).join(" ").trim() ||
+      parentUser?.email ||
+      null;
+    const paidText = formatMoney(args.amountMinor);
+    const balanceText = formatMoney(args.balanceMinor);
+    const receiptPath = `/api/parent/receipts/fee/${String(args.paymentId)}/download`;
+    const receiptViewPath = `${receiptPath}?disposition=inline`;
+    const appUrl = getAppUrl().replace(/\/$/, "");
+    const receiptViewUrl = `${appUrl}${receiptViewPath}`;
+    const receiptDownloadUrl = `${appUrl}${receiptPath}`;
+    const notificationBody =
+      args.balanceMinor > 0
+        ? `We received ${paidText} for ${studentName}. Remaining balance: ${balanceText}.`
+        : `We received ${paidText} for ${studentName}. This invoice is now fully paid.`;
+
+    const existingNotification = await Notification.findOne({
+      schoolId: args.schoolId,
+      userId: args.parentUserId,
+      entityType: "Payment",
+      entityId: args.paymentId,
+    })
+      .select("_id")
+      .lean<{ _id: mongoose.Types.ObjectId } | null>();
+
+    if (!existingNotification) {
+      await Notification.create({
+        schoolId: args.schoolId,
+        userId: args.parentUserId,
+        type: "fee",
+        title: "Payment confirmed",
+        body: notificationBody,
+        priority: "normal",
+        wardId: args.studentId,
+        entityType: "Payment",
+        entityId: args.paymentId,
+        actionUrl: "/parent/receipts",
+        metadata: {
+          invoiceId: String(args.invoiceId),
+          receiptNumber: args.receiptNumber,
+          paystackReference: args.reference,
+          amountMinor: args.amountMinor,
+          balanceMinor: args.balanceMinor,
+        },
+      });
+    }
+
+    const senderMembership = await UserMembership.findOne({
+      schoolId: args.schoolId,
+      status: "active",
+      roles: { $in: ["billing_owner", "bursar", "school_admin"] },
+      userId: { $ne: args.parentUserId },
+    })
+      .sort({ updatedAt: -1 })
+      .select("userId roles")
+      .lean<{ userId: mongoose.Types.ObjectId; roles?: string[] } | null>();
+
+    if (senderMembership?.userId) {
+      const now = new Date();
+      const messageBody =
+        `${notificationBody}\n\nReceipt: ${args.receiptNumber}\nReference: ${args.reference}`;
+      const subject = `Payment receipt ${args.receiptNumber}`;
+      const existingThread = await MessageThread.findOne({
+        schoolId: args.schoolId,
+        studentId: args.studentId,
+        subject,
+        "participants.userId": { $all: [args.parentUserId, senderMembership.userId] },
+      })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId } | null>();
+      const threadId =
+        existingThread?._id ||
+        (
+          await MessageThread.create({
+            schoolId: args.schoolId,
+            studentId: args.studentId,
+            subject,
+            participants: [
+              { userId: args.parentUserId, role: "parent" },
+              {
+                userId: senderMembership.userId,
+                role: senderMembership.roles?.includes("bursar")
+                  ? "bursar"
+                  : senderMembership.roles?.includes("school_admin")
+                    ? "school_admin"
+                    : "staff",
+              },
+            ],
+            createdBy: senderMembership.userId,
+            lastMessageAt: now,
+            lastMessagePreview: notificationBody,
+          })
+        )._id;
+
+      await Message.create({
+        threadId,
+        schoolId: args.schoolId,
+        senderId: senderMembership.userId,
+        body: messageBody,
+        attachments: [
+          {
+            name: `${args.receiptNumber}.pdf`,
+            url: receiptPath,
+            type: "application/pdf",
+          },
+        ],
+        readBy: [{ userId: senderMembership.userId, readAt: now }],
+      });
+      await MessageThread.findByIdAndUpdate(threadId, {
+        $set: {
+          lastMessageAt: now,
+          lastMessagePreview: notificationBody,
+        },
+      });
+    }
+
+    if (parentUser?.email) {
+      const verification = await ensureReceiptVerification({
+        schoolId: args.schoolId,
+        schoolName,
+        issuedBy: args.parentUserId,
+        receiptNumber: args.receiptNumber,
+        receiptTitle: "School Fee Payment Receipt",
+        issuedAt: args.paymentDate,
+        amountPaidMinor: args.amountMinor,
+        balanceMinor: args.balanceMinor,
+        studentName,
+        payerName,
+        paymentReference: args.reference,
+        sourceEntityType: "Payment",
+        sourceEntityId: String(args.paymentId),
+      });
+      const verificationPath = `/verify/receipt/${encodeURIComponent(verification.verificationId)}`;
+      const pdf = await renderLearnReceiptPdf({
+        receiptNumber: args.receiptNumber,
+        title: "School Fee Payment Receipt",
+        schoolName,
+        schoolLogoUrl: absoluteAssetUrl(school?.logo),
+        studentName,
+        payerName,
+        amountMinor: args.amountMinor,
+        balanceMinor: args.balanceMinor,
+        currency: "GHS",
+        status: "completed",
+        reference: args.reference,
+        issuedAt: args.paymentDate,
+        description: "School fee payment",
+        verificationId: verification.verificationId,
+        verificationUrl: `${appUrl}${verificationPath}`,
+      });
+      const pdfBuffer = Buffer.from(pdf);
+
+      await sendTrackedBrevoEmail({
+        to: parentUser.email,
+        toName: payerName,
+        subject: `Payment receipt ${args.receiptNumber}`,
+        htmlContent: [
+          `<p>Your school fee payment for <strong>${escapeHtml(studentName)}</strong> has been confirmed.</p>`,
+          `<p><strong>Amount paid:</strong> ${escapeHtml(paidText)}<br/><strong>Remaining balance:</strong> ${escapeHtml(balanceText)}</p>`,
+          `<p>Your receipt is attached. You can also <a href="${escapeHtml(receiptViewUrl)}">view it online</a> or <a href="${escapeHtml(receiptDownloadUrl)}">download a copy</a>.</p>`,
+        ].join(""),
+        textContent: `Your school fee payment for ${studentName} has been confirmed. Amount paid: ${paidText}. Remaining balance: ${balanceText}. Receipt: ${args.receiptNumber}.`,
+        templateKey: "PAYMENT_RECEIPT",
+        schoolId: String(args.schoolId),
+        schoolName,
+        schoolLogo: school?.logo ?? null,
+        attachments: [
+          {
+            name: `${args.receiptNumber}.pdf`,
+            mimeType: "application/pdf",
+            sizeBytes: pdfBuffer.byteLength,
+            contentBase64: pdfBuffer.toString("base64"),
+          },
+        ],
+        relatedEntityType: "Payment",
+        relatedEntityId: String(args.paymentId),
+        recipientUserId: String(args.parentUserId),
+        recipientRole: "parent",
+        async: true,
+      });
+    }
+  } catch (followUpError) {
+    console.error("Paystack webhook: Fee payment follow-up failed", {
+      paymentId: String(args.paymentId),
+      reference: args.reference,
+      error: followUpError,
+    });
+  }
+}
+
 async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
   const { data } = event;
   const { reference, amount, status, metadata } = data;
@@ -330,11 +596,61 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
   const invoiceIdObj = new mongoose.Types.ObjectId(invoiceId);
   const studentIdObj = new mongoose.Types.ObjectId(studentId);
-  const amountMinor = Math.round(amount);
+  const gatewayAmountMinor = Math.max(0, Math.round(amount));
   const processorFeeMinor = Math.max(0, Math.round(Number(data.fees || 0)));
+  let intent: {
+    amountMinor?: number;
+    parentPayableMinor?: number;
+    payerMode?: "payer_pays" | "school_absorbs" | "waived";
+    initiatedBy?: mongoose.Types.ObjectId | null;
+  } | null = null;
+  let intentLockAcquired = false;
+
+  if (paymentIntentId) {
+    const lockedIntent = await PaymentIntent.findOneAndUpdate(
+      {
+        _id: paymentIntentId,
+        status: { $in: ["initiated", "awaiting_webhook"] },
+      },
+      {
+        $set: {
+          status: "processing",
+          failureReason: null,
+        },
+      },
+      { new: true }
+    )
+      .select("amountMinor parentPayableMinor payerMode initiatedBy")
+      .lean<typeof intent>();
+
+    if (lockedIntent) {
+      intent = lockedIntent;
+      intentLockAcquired = true;
+    } else {
+      intent = await PaymentIntent.findById(paymentIntentId)
+        .select("amountMinor parentPayableMinor payerMode initiatedBy")
+        .lean<typeof intent>();
+    }
+  }
+  const parentUserId =
+    intent?.initiatedBy ||
+    (metadata?.parentUserId && mongoose.Types.ObjectId.isValid(metadata.parentUserId)
+      ? new mongoose.Types.ObjectId(metadata.parentUserId)
+      : null);
+  const metadataInvoiceAmountMinor = Number(metadata?.invoiceAmountMinor || 0);
+  const amountMinor = Math.max(
+    0,
+    Math.round(
+      Number(intent?.amountMinor || 0) ||
+        (Number.isFinite(metadataInvoiceAmountMinor)
+          ? metadataInvoiceAmountMinor
+          : 0) ||
+        gatewayAmountMinor - platformFeeMinor
+    )
+  );
   const netSchoolAmountMinor = Math.max(
     0,
-    amountMinor - platformFeeMinor - processorFeeMinor
+    gatewayAmountMinor - platformFeeMinor - processorFeeMinor
   );
 
   // Idempotency: payment already exists for this Paystack reference
@@ -350,6 +666,16 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
     : existingPaymentRaw;
 
   if (existingPayment) {
+    await reconcileInvoicePaymentState({
+      schoolId: schoolIdObj,
+      invoiceId: invoiceIdObj,
+    }).catch((error) => {
+      console.error("Paystack webhook: existing payment rebalance failed", {
+        reference,
+        invoiceId,
+        error,
+      });
+    });
     if (paymentIntentId) {
       await PaymentIntent.findByIdAndUpdate(paymentIntentId, {
         $set: {
@@ -359,12 +685,21 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
           platformFeeMinor,
           processorFeeMinor,
           netSchoolAmountMinor,
+          parentPayableMinor: intent?.parentPayableMinor || gatewayAmountMinor,
           failureReason: null,
           expiresAt: null,
         },
       }).catch(() => undefined);
     }
     console.log(`Paystack webhook: Fee payment already recorded: ${reference}`);
+    return;
+  }
+
+  if (paymentIntentId && !intentLockAcquired) {
+    console.log("Paystack webhook: Fee payment is already being processed", {
+      reference,
+      paymentIntentId: String(paymentIntentId),
+    });
     return;
   }
 
@@ -477,6 +812,8 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
       platformFeeMinor,
       processorFeeMinor,
       netSchoolAmountMinor,
+      gatewayAmountMinor,
+      payerMode: intent?.payerMode || metadata?.payerMode || "school_absorbs",
       allocatedMinor,
       unallocatedMinor,
       paymentMethod: "paystack",
@@ -489,6 +826,7 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
     schoolIdObj,
     "paystack" as PaymentMethodForRef
   );
+  const receiptNumber = internalReference || learnReceiptNumber(String(paymentId));
 
   const now = new Date();
   await Payment.create({
@@ -514,12 +852,14 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
       gatewayResponse: data.gateway_response || null,
       currency: data.currency || null,
       fees: processorFeeMinor,
+      gatewayAmountMinor,
       paidAt: data.paid_at || null,
       createdAt: data.created_at || null,
       edusentrixTransactionFeeMinor: platformFeeMinor,
       netSchoolAmountMinor,
     },
     internalReference,
+    receiptNumber,
     status: "completed",
     approvalStatus: "not_required",
     receivedBy: null,
@@ -534,6 +874,7 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
         platformFeeMinor,
         processorFeeMinor,
         netSchoolAmountMinor,
+        parentPayableMinor: intent?.parentPayableMinor || gatewayAmountMinor,
         failureReason: null,
         expiresAt: null,
       },
@@ -541,15 +882,29 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
   }
 
   if (allocations.length > 0) {
-    await PaymentAllocation.insertMany(
+    await PaymentAllocation.bulkWrite(
       allocations.map((a) => ({
-        paymentId,
-        invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
-        amountMinor: a.amountMinor,
-        installmentScheduleId: null,
-        installmentNumber: null,
-        notes: null,
-      }))
+        updateOne: {
+          filter: {
+            paymentId,
+            invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
+            installmentScheduleId: null,
+            installmentNumber: null,
+          },
+          update: {
+            $setOnInsert: {
+              paymentId,
+              invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
+              amountMinor: a.amountMinor,
+              installmentScheduleId: null,
+              installmentNumber: null,
+              notes: null,
+            },
+          },
+          upsert: true,
+        },
+      })),
+      { ordered: false }
     );
   }
 
@@ -567,6 +922,7 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
       platformFeeMinor,
       processorFeeMinor,
       netSchoolAmountMinor,
+      gatewayAmountMinor,
       allocatedMinor,
       unallocatedMinor,
       automated: true,
@@ -595,6 +951,7 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
         payload: {
           metadata: {
             amountMinor,
+            gatewayAmountMinor,
             netSchoolAmountMinor,
             channel: data.channel,
           },
@@ -606,8 +963,24 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
     await auditSession.endSession();
   }
 
-  invoice.paidDate = invoice.totalOutstandingMinor <= 0 ? now : undefined;
-  await invoice.save();
+  const { invoice: reconciledInvoice } = await reconcileInvoicePaymentState({
+    schoolId: schoolIdObj,
+    invoiceId: invoice._id,
+  });
+  const finalInvoice = reconciledInvoice || invoice;
+
+  await sendFeePaymentFollowUps({
+    schoolId: schoolIdObj,
+    studentId: studentIdObj,
+    invoiceId: invoice._id,
+    paymentId,
+    parentUserId,
+    amountMinor,
+    balanceMinor: Math.max(0, Number(finalInvoice.totalOutstandingMinor || 0)),
+    receiptNumber,
+    reference,
+    paymentDate,
+  });
 
   try {
     const student = await Student.findById(studentId)

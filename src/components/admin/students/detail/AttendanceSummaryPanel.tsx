@@ -29,6 +29,7 @@ export function AttendanceSummaryPanel({ profile }: Props) {
       }),
     [profile]
   );
+  const rateStat = model.stats.find((stat) => stat.key === "rate");
 
   return (
     <GlassPanel className="p-4 sm:p-5" glow="teal">
@@ -49,9 +50,21 @@ export function AttendanceSummaryPanel({ profile }: Props) {
             </span>
           </div>
         </div>
-        {model.calculatedAtLabel ? (
-          <p className="text-[11px] text-white/45">{model.calculatedAtLabel}</p>
-        ) : null}
+        <div className="flex flex-col items-end gap-1 text-right">
+          {rateStat ? (
+            <div className="rounded-xl border border-teal-400/25 bg-teal-500/10 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-teal-100/70">
+                Attendance rate
+              </p>
+              <p className="text-xl font-semibold tabular-nums text-teal-100">
+                {rateStat.value}
+              </p>
+            </div>
+          ) : null}
+          {model.calculatedAtLabel ? (
+            <p className="text-[11px] text-white/45">{model.calculatedAtLabel}</p>
+          ) : null}
+        </div>
       </div>
 
       {model.showCompileWarning ? (

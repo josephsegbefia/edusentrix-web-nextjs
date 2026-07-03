@@ -54,7 +54,7 @@ export function useFeeStructures(filters?: {
       return res.json();
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: "always",
     refetchOnReconnect: false,
   });
 }

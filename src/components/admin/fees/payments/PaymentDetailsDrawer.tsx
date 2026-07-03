@@ -315,7 +315,7 @@ export function PaymentDetailsDrawer(props: {
                     </div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Invoice</div>
+                    <div className="text-white/50">Bill</div>
                     <div className="mt-1 font-medium text-white/85">
                       {p.invoiceId?.invoiceNumber || "—"}
                     </div>

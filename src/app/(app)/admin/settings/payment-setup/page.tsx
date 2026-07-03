@@ -50,6 +50,9 @@ import {
   useRemoveFinanceDelegate,
   useRevealPayoutAccount,
   usePlatformPayoutProposalDecision,
+  useCheckoutFeeSettings,
+  useUpdateCheckoutFeeSettings,
+  type SchoolFeePayerModePreference,
 } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
@@ -73,6 +76,10 @@ function statusBadgeClasses(tone: "slate" | "amber" | "blue" | "emerald" | "red"
 function relativeTime(value: string | null) {
   if (!value) return "Not recorded";
   return formatDistanceToNowStrict(parseISO(value), { addSuffix: true });
+}
+
+function formatMinor(value: number) {
+  return `GHS ${(Math.max(0, Math.round(value || 0)) / 100).toFixed(2)}`;
 }
 
 function accessModeLabel(
@@ -290,6 +297,8 @@ export default function PaymentSetupPage() {
   const removeFinanceDelegate = useRemoveFinanceDelegate();
   const revealPayout = useRevealPayoutAccount();
   const platformPayoutDecision = usePlatformPayoutProposalDecision();
+  const checkoutFees = useCheckoutFeeSettings();
+  const updateCheckoutFees = useUpdateCheckoutFeeSettings();
   const busy = useBusyToast();
 
   const [revealOpen, setRevealOpen] = React.useState(false);
@@ -453,6 +462,22 @@ export default function PaymentSetupPage() {
       error: (removeError) =>
         removeError.message || "Failed to remove finance delegate",
     });
+  }
+
+  async function handleCheckoutFeeModeChange(mode: SchoolFeePayerModePreference) {
+    if (updateCheckoutFees.isPending) return;
+
+    await busy.promise(
+      updateCheckoutFees.mutateAsync({ schoolFeePayerMode: mode }),
+      {
+        loading: "Saving checkout fee setting...",
+        success: "Checkout fee setting saved.",
+        error: (feeError) =>
+          feeError instanceof Error
+            ? feeError.message
+            : "Failed to save checkout fee setting",
+      }
+    );
   }
 
   if (isLoading) {
@@ -911,6 +936,107 @@ export default function PaymentSetupPage() {
               </AlertDescription>
             </Alert>
           )}
+
+          <Card className="border-white/10 bg-linear-to-br from-cyan-500/10 via-slate-950 to-slate-950 text-white">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
+                  <CreditCard className="h-5 w-5 text-cyan-200" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-white">Checkout fees</CardTitle>
+                  <CardDescription className="text-white/60">
+                    Choose who pays the EduSentrix service fee on school-fee checkout.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2">
+                {[
+                  {
+                    value: "platform_default" as const,
+                    label: "Use platform default",
+                    description: "Follow the billing policy set by EduSentrix.",
+                  },
+                  {
+                    value: "school_absorbs" as const,
+                    label: "School absorbs fee",
+                    description: "Parents pay only the invoice amount.",
+                  },
+                  {
+                    value: "payer_pays" as const,
+                    label: "Parent pays service fee",
+                    description: "The service fee is added at checkout.",
+                  },
+                ].map((option) => {
+                  const selected =
+                    checkoutFees.data?.schoolFeePayerMode === option.value ||
+                    (!checkoutFees.data &&
+                      option.value === "platform_default");
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => void handleCheckoutFeeModeChange(option.value)}
+                      disabled={checkoutFees.isLoading || updateCheckoutFees.isPending}
+                      className={cn(
+                        "rounded-2xl border p-3 text-left transition",
+                        selected
+                          ? "border-cyan-300/40 bg-cyan-400/15 text-white"
+                          : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                      )}
+                    >
+                      <span className="block text-sm font-semibold">
+                        {option.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-white/50">
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {checkoutFees.data ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">
+                    Example on {formatMinor(checkoutFees.data.example.invoiceAmountMinor)}
+                  </p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-white/60">Parent pays</span>
+                      <span className="font-semibold text-white">
+                        {formatMinor(checkoutFees.data.example.parentPayableMinor)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-white/60">Service fee</span>
+                      <span className="font-medium text-cyan-100">
+                        {formatMinor(checkoutFees.data.example.platformFeeMinor)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-white/45">
+                    Effective mode:{" "}
+                    {checkoutFees.data.effectivePayerMode === "payer_pays"
+                      ? "parent pays service fee"
+                      : checkoutFees.data.effectivePayerMode === "school_absorbs"
+                        ? "school absorbs service fee"
+                        : "service fee waived"}
+                    .
+                  </p>
+                </div>
+              ) : checkoutFees.isLoading ? (
+                <div className="h-28 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
+              ) : (
+                <p className="text-sm text-amber-200/85">
+                  Could not load checkout fee settings.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="border-white/10 bg-linear-to-br from-emerald-500/10 via-slate-950 to-slate-950 text-white">
             <CardHeader>

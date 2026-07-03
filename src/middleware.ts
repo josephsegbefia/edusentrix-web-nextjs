@@ -52,8 +52,10 @@ const isPublicRoute = createRouteMatcher([
   "/enroll", // enrollment form
   "/legal/(.*)", // legal acceptance gate — reachable without password check
   "/apply(.*)", // public school admission application + tracker pages
+  "/verify(.*)", // public document authenticity verification pages
   "/upload/parent-document(.*)", // tokenized guardian upload (not under /parent — avoids parent app layout)
   "/auth/callback", // our centralized router after login
+  "/payment-return(.*)", // public handoff after external payment checkout
   "/favicon.ico",
   "/sign-in(.*)",
   "/sign-up(.*)",
@@ -65,6 +67,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/public/students/parent-documents(.*)", // public parent document upload APIs
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
   "/api/webhooks/brevo(.*)", // Brevo outbound event + inbound parse webhooks
+  "/api/webhooks/paystack(.*)", // Paystack transaction webhooks verify their own HMAC signature
   "/api/cron(.*)", // Cron jobs authenticate with their own secrets
   // Secret URL + OTP-gated first platform admin bootstrap (see PLATFORM_ADMIN_BOOTSTRAP_SECRET)
   "/platform-bootstrap(.*)",
@@ -126,6 +129,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/privacy",
     "/enroll",
     "/auth/callback",
+    "/payment-return",
     "/favicon.ico",
     "/api/auth/dev-teacher-login",
     "/api/banks/search",
@@ -137,12 +141,15 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/sign-up",
     "/legal/",
     "/apply",
+    "/verify",
     "/upload/parent-document",
     "/api/learn/mobile",
     "/api/public/admissions",
     "/api/public/students/parent-documents",
     "/api/uploadthing",
     "/api/webhooks/brevo",
+    "/api/webhooks/paystack",
+    "/payment-return",
     "/platform-bootstrap",
     "/api/platform/bootstrap",
   ];

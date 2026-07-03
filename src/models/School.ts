@@ -110,6 +110,11 @@ export interface ISchool {
       updatedAt?: Date | null;
       updatedBy?: Types.ObjectId | null;
     };
+    checkoutFees?: {
+      schoolFeePayerMode?: "platform_default" | "payer_pays" | "school_absorbs";
+      updatedAt?: Date | null;
+      updatedBy?: Types.ObjectId | null;
+    };
   };
   createdAt: Date;
   updatedAt: Date;
@@ -263,6 +268,15 @@ const schoolSchema = new Schema<ISchool>(
         percent: { type: Number, default: null },
         capMinor: { type: Number, default: null },
         notes: { type: String, default: null, trim: true },
+        updatedAt: { type: Date, default: null },
+        updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+      },
+      checkoutFees: {
+        schoolFeePayerMode: {
+          type: String,
+          enum: ["platform_default", "payer_pays", "school_absorbs"],
+          default: "platform_default",
+        },
         updatedAt: { type: Date, default: null },
         updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
       },

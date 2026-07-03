@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
     }
 
     const studentId = parseObjectId(searchParams.get("studentId"), "student ID");
-    const invoiceId = parseObjectId(searchParams.get("invoiceId"), "invoice ID");
+    const invoiceId = parseObjectId(searchParams.get("invoiceId"), "bill ID");
     const academicPeriodId = parseObjectId(
       searchParams.get("academicPeriodId"),
       "academic period ID"

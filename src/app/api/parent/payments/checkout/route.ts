@@ -4,10 +4,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
-import {
-  computeTransactionFee,
-  resolveTransactionFeeConfigForSchool,
-} from "@/lib/billing/transaction-fees";
+import { resolveSchoolFeeCheckoutCharge } from "@/lib/fees/school-fee-checkout-charges";
 import { getPaystackKeyMode, initializeTransaction } from "@/lib/paystack";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { Guardian } from "@/models/Guardian";
@@ -72,6 +69,9 @@ type SchoolRow = {
       percent?: number | null;
       capMinor?: number | null;
     };
+    checkoutFees?: {
+      schoolFeePayerMode?: "platform_default" | "payer_pays" | "school_absorbs" | null;
+    } | null;
   };
 };
 
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     const body = BodySchema.parse(await req.json());
     if (!mongoose.Types.ObjectId.isValid(body.invoiceId)) {
       return NextResponse.json(
-        { success: false, error: "Invalid invoice ID" },
+        { success: false, error: "Invalid bill ID" },
         { status: 400 }
       );
     }
@@ -174,42 +174,16 @@ export async function POST(req: NextRequest) {
 
     const school = await School.findById(context.schoolId)
       .select(
-        "name bank billing.status billing.paymentSetup billing.paystack.subaccountCode billing.paystack.subaccountId billing.paystack.lastError billing.transactionFees.mode billing.transactionFees.percent billing.transactionFees.capMinor"
+        "name bank billing.status billing.paymentSetup billing.paystack.subaccountCode billing.paystack.subaccountId billing.paystack.lastError billing.checkoutFees.schoolFeePayerMode"
       )
       .lean<SchoolRow | null>();
     const subaccountCode = school?.billing?.paystack?.subaccountCode ?? null;
 
-    // Canonical payment charge resolution — §13A.12, §25.13
-    let platformChargeMinor = 0;
-    let parentPayerMode: "payer_pays" | "school_absorbs" | "waived" = "school_absorbs";
-    let parentPayableMinor = amountMinor;
-    try {
-      const { resolvePaymentChargePolicy } = await import(
-        "@/lib/subscriptions/resolve-payment-charge-policy"
-      );
-      const resolved = await resolvePaymentChargePolicy({
-        schoolId: context.schoolId,
-        category: "school_fee",
-        amountMinor,
-      });
-      platformChargeMinor = resolved.chargeMinor;
-      parentPayerMode = resolved.payerMode;
-      // If payer pays, parent pays base + platform fee; otherwise parent pays only the base
-      parentPayableMinor =
-        parentPayerMode === "payer_pays"
-          ? amountMinor + resolved.chargeMinor
-          : amountMinor;
-    } catch {
-      // Fallback to existing legacy fee calculation
-      const legacyBreakdown = computeTransactionFee(
-        amountMinor,
-        resolveTransactionFeeConfigForSchool(school?.billing?.transactionFees || null)
-      );
-      platformChargeMinor = legacyBreakdown.feeMinor;
-      // Legacy always uses school absorbs
-      parentPayerMode = "school_absorbs";
-      parentPayableMinor = amountMinor;
-    }
+    const feeCharge = await resolveSchoolFeeCheckoutCharge({
+      schoolId: context.schoolId,
+      amountMinor,
+      payerModePreference: school?.billing?.checkoutFees?.schoolFeePayerMode,
+    });
 
     if (!school || !isSchoolPaymentReady(school) || !subaccountCode) {
       const paymentSetupStatus = school
@@ -234,18 +208,12 @@ export async function POST(req: NextRequest) {
         data: {
           invoiceId: String(invoice._id),
           invoiceNumber: invoice.invoiceNumber || "School Fees",
-          amountMinor,
-          parentPayableMinor,
-          platformFeeMinor: platformChargeMinor,
-          estimatedSchoolNetMinor: Math.max(
-            0,
-            parentPayerMode === "payer_pays"
-              ? amountMinor
-              : amountMinor - platformChargeMinor
-          ),
-          processorFeeNote:
-            "Payment processor charges are calculated by the gateway at payment time and are deducted from the school's settlement.",
-          payerMode: parentPayerMode,
+          amountMinor: feeCharge.invoiceAmountMinor,
+          parentPayableMinor: feeCharge.parentPayableMinor,
+          platformFeeMinor: feeCharge.platformFeeMinor,
+          estimatedSchoolNetMinor: feeCharge.estimatedSchoolNetMinor,
+          processorFeeNote: "",
+          payerMode: feeCharge.payerMode,
           paystackKeyMode,
         },
       });
@@ -268,10 +236,10 @@ export async function POST(req: NextRequest) {
       schoolId: context.schoolId,
       studentId: invoice.studentId,
       invoiceId: invoice._id,
-      amountMinor,
-      platformFeeMinor: platformChargeMinor,
-      payerMode: parentPayerMode,
-      parentPayableMinor,
+      amountMinor: feeCharge.invoiceAmountMinor,
+      platformFeeMinor: feeCharge.platformFeeMinor,
+      payerMode: feeCharge.payerMode,
+      parentPayableMinor: feeCharge.parentPayableMinor,
       status: "initiated",
       paymentMethod: "paystack",
       idempotencyKey: randomUUID(),
@@ -285,7 +253,10 @@ export async function POST(req: NextRequest) {
     const callbackPath = normalizeParentReturnPath(body.returnPath) || "/parent/fees";
     const callbackUrlObject = mobileReturnUrl
       ? new URL(mobileReturnUrl)
-      : new URL(callbackPath, appUrl);
+      : new URL("/payment-return/paystack", appUrl);
+    if (!mobileReturnUrl) {
+      callbackUrlObject.searchParams.set("next", callbackPath);
+    }
     callbackUrlObject.searchParams.set("checkout", "paystack");
     const callbackUrl = callbackUrlObject.toString();
     const reference = `EDSX-FEE-${String(paymentIntent._id)}-${Date.now()}`;
@@ -293,25 +264,27 @@ export async function POST(req: NextRequest) {
     try {
       const init = await initializeTransaction({
         email: user.email,
-        amountMinor,
+        amountMinor: feeCharge.parentPayableMinor,
         reference,
         callbackUrl,
         currency: "GHS",
         subaccountCode,
         transactionChargeMinor:
-          feeBreakdown.feeMinor > 0 ? feeBreakdown.feeMinor : null,
-        bearer: feeBreakdown.feeMinor > 0 ? "subaccount" : undefined,
+          feeCharge.platformFeeMinor > 0 ? feeCharge.platformFeeMinor : null,
+        bearer: feeCharge.platformFeeMinor > 0 ? "subaccount" : undefined,
         metadata: {
           type: "fee_payment",
           schoolId: String(context.schoolId),
           invoiceId: String(invoice._id),
           studentId: String(invoice.studentId),
           paymentIntentId: String(paymentIntent._id),
+          parentUserId: String(context.userId),
+          invoiceAmountMinor: feeCharge.invoiceAmountMinor,
+          parentPayableMinor: feeCharge.parentPayableMinor,
+          payerMode: feeCharge.payerMode,
           invoiceNumber: invoice.invoiceNumber || null,
           schoolName: school?.name || null,
-          edusentrixTransactionFeeMinor: feeBreakdown.feeMinor,
-          edusentrixTransactionFeePercent: feeBreakdown.percent,
-          edusentrixTransactionFeeCapMinor: feeBreakdown.capMinor,
+          edusentrixTransactionFeeMinor: feeCharge.platformFeeMinor,
         },
       });
 
@@ -330,8 +303,10 @@ export async function POST(req: NextRequest) {
         data: {
           authorizationUrl: init.authorization_url,
           reference: init.reference,
-          amountMinor,
-          platformFeeMinor: feeBreakdown.feeMinor,
+          amountMinor: feeCharge.invoiceAmountMinor,
+          parentPayableMinor: feeCharge.parentPayableMinor,
+          platformFeeMinor: feeCharge.platformFeeMinor,
+          payerMode: feeCharge.payerMode,
           invoiceId: String(invoice._id),
           invoiceNumber: invoice.invoiceNumber || "School Fees",
           expiresAt: expiresAt.toISOString(),

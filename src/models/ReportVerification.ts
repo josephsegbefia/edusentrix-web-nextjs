@@ -3,6 +3,7 @@ import { Schema, model, models, Types } from "mongoose";
 export type ReportVerificationStatus = "issued" | "revoked";
 export type ReportVerificationType =
   | "simple_snapshot"
+  | "payment_receipt"
   | "overdue_report"
   | "term_report"
   | "weekly_report"
@@ -31,6 +32,12 @@ export interface IReportVerification {
     rowCount?: number | null;
     totalOutstandingMinor?: number | null;
     overdueInvoiceCount?: number | null;
+    receiptNumber?: string | null;
+    amountPaidMinor?: number | null;
+    balanceMinor?: number | null;
+    studentName?: string | null;
+    payerName?: string | null;
+    paymentReference?: string | null;
   };
   issuedAt: Date;
   revokedAt?: Date | null;
@@ -51,6 +58,7 @@ const reportVerificationSchema = new Schema<IReportVerification>(
       type: String,
       enum: [
         "simple_snapshot",
+        "payment_receipt",
         "overdue_report",
         "term_report",
         "weekly_report",
@@ -94,6 +102,12 @@ const reportVerificationSchema = new Schema<IReportVerification>(
       rowCount: { type: Number, default: null },
       totalOutstandingMinor: { type: Number, default: null },
       overdueInvoiceCount: { type: Number, default: null },
+      receiptNumber: { type: String, default: null },
+      amountPaidMinor: { type: Number, default: null },
+      balanceMinor: { type: Number, default: null },
+      studentName: { type: String, default: null },
+      payerName: { type: String, default: null },
+      paymentReference: { type: String, default: null },
     },
     issuedAt: { type: Date, default: Date.now, required: true },
     revokedAt: { type: Date, default: null },

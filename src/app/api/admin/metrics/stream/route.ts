@@ -10,16 +10,17 @@ import { Payment } from "@/models/Payment";
 import { Invoice } from "@/models/Invoice";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import mongoose from "mongoose";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 export const runtime = "nodejs"; // ensure node runtime for stream
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
-  await connectToDatabase();
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
 
-  const stream = new ReadableStream({
-    async start(controller) {
+    const stream = new ReadableStream({
+      async start(controller) {
       const enc = new TextEncoder();
       let closed = false;
       let ping: ReturnType<typeof setInterval> | null = null;
@@ -283,14 +284,22 @@ export async function GET(req: NextRequest) {
       ping = setInterval(() => {
         enqueue(`:\n\n`);
       }, 30000);
-    },
-  });
+      },
+    });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transfrom",
-      Connection: "keep-alive",
-    },
-  });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    if (error instanceof Response) return error;
+    console.error("Failed to open admin metrics stream:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to open admin metrics stream" },
+      { status: 500 }
+    );
+  }
 }

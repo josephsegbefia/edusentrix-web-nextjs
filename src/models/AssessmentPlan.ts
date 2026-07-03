@@ -17,6 +17,7 @@ export interface IAssessmentPlan {
   academicPeriodId: Types.ObjectId;
   gradingPolicyId: Types.ObjectId;
   appliesToGradeId: Types.ObjectId;
+  appliesToGradeIds: Types.ObjectId[];
   appliesToClassGroupIds: Types.ObjectId[];
   curriculumCode?: string | null;
   status: AssessmentPlanStatus;
@@ -62,6 +63,12 @@ const assessmentPlanSchema = new Schema<IAssessmentPlan>(
       required: true,
       index: true,
     },
+    appliesToGradeIds: {
+      type: [Schema.Types.ObjectId],
+      ref: "Grade",
+      default: [],
+      index: true,
+    },
     appliesToClassGroupIds: {
       type: [Schema.Types.ObjectId],
       ref: "ClassGroup",
@@ -101,6 +108,11 @@ assessmentPlanSchema.index(
 assessmentPlanSchema.index(
   { schoolId: 1, appliesToGradeId: 1, academicPeriodId: 1 },
   { name: "ae_assessment_plan_by_school_grade_period" }
+);
+
+assessmentPlanSchema.index(
+  { schoolId: 1, appliesToGradeIds: 1, academicPeriodId: 1 },
+  { name: "ae_assessment_plan_by_school_grades_period" }
 );
 
 assessmentPlanSchema.index(

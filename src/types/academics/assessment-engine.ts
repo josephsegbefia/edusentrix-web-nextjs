@@ -156,6 +156,7 @@ export type AssessmentPlanDTO = AssessmentEngineTenantFields & {
   academicPeriodId: string;
   gradingPolicyId: string;
   appliesToGradeId: string;
+  appliesToGradeIds: string[];
   appliesToClassGroupIds: string[];
   curriculumCode?: string | null;
   status: AssessmentPlanStatus;

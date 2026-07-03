@@ -114,7 +114,8 @@ export default function BulkCreateInvoiceModal({
   const [excludeModalLoading, setExcludeModalLoading] = React.useState(false);
 
   const debouncedSearch = useDebouncedValue(unifiedSearchQuery, 350);
-  const { data: feeStructuresData } = useFeeStructures({ isActive: true });
+  const { data: feeStructuresData, isLoading: feeStructuresLoading } =
+    useFeeStructures({ isActive: true });
 
   React.useEffect(() => {
     fetch("/api/admin/periods")
@@ -311,7 +312,7 @@ export default function BulkCreateInvoiceModal({
       await onSubmit(values);
       onClose();
     } catch (e: unknown) {
-      console.error("Bulk invoice creation error:", e);
+      console.error("Bulk bill creation error:", e);
     }
   }
 
@@ -576,7 +577,7 @@ export default function BulkCreateInvoiceModal({
           {currentStep === 1 && (
             <section className="space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
-                Bulk Invoice Details
+                Bulk Bill Details
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -677,7 +678,7 @@ export default function BulkCreateInvoiceModal({
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent
-                                  className={premiumMenuContent}
+                                  className={cn(premiumMenuContent, "max-h-72 overflow-y-auto")}
                                   align="start"
                                 >
                                   {pastPeriods.map((period: any) => (
@@ -1191,31 +1192,41 @@ export default function BulkCreateInvoiceModal({
                                       )}
                                     </div>
                                   </DropdownMenuItem>
-                                  {feeStructures.map((structure) => (
-                                    <DropdownMenuItem
-                                      key={structure._id}
-                                      onClick={() =>
-                                        handleFeeStructureSelect(
-                                          index,
-                                          structure._id
-                                        )
-                                      }
-                                      className={cn(
-                                        premiumMenuItem,
-                                        field.value === structure._id &&
-                                          "bg-white/10"
-                                      )}
-                                    >
-                                      <div className="flex items-center justify-between w-full">
-                                        <span>
-                                          {structure.name} ({structure.code})
-                                        </span>
-                                        {field.value === structure._id && (
-                                          <Check className="h-4 w-4" />
-                                        )}
-                                      </div>
+                                  {feeStructuresLoading ? (
+                                    <DropdownMenuItem disabled className={premiumMenuItem}>
+                                      Loading fee structures...
                                     </DropdownMenuItem>
-                                  ))}
+                                  ) : feeStructures.length > 0 ? (
+                                    feeStructures.map((structure) => (
+                                      <DropdownMenuItem
+                                        key={structure._id}
+                                        onClick={() =>
+                                          handleFeeStructureSelect(
+                                            index,
+                                            structure._id
+                                          )
+                                        }
+                                        className={cn(
+                                          premiumMenuItem,
+                                          field.value === structure._id &&
+                                            "bg-white/10"
+                                        )}
+                                      >
+                                        <div className="flex w-full items-center justify-between gap-3">
+                                          <span className="truncate">
+                                            {structure.name} ({structure.code})
+                                          </span>
+                                          {field.value === structure._id && (
+                                            <Check className="h-4 w-4 shrink-0" />
+                                          )}
+                                        </div>
+                                      </DropdownMenuItem>
+                                    ))
+                                  ) : (
+                                    <DropdownMenuItem disabled className={premiumMenuItem}>
+                                      No active fee structures found
+                                    </DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             );
@@ -1321,7 +1332,7 @@ export default function BulkCreateInvoiceModal({
               <div className="pt-4 border-t border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-white/80">
-                    Total Amount per Invoice:
+                    Total Amount per Bill:
                   </span>
                   <span className="text-lg font-bold text-white">
                     {formatMoney(toMinorUnits(totalAmount))}
@@ -1335,7 +1346,7 @@ export default function BulkCreateInvoiceModal({
           {currentStep === 3 && (
             <section className="space-y-6">
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
-                Review Bulk Invoice Creation
+                Review Bulk Bill Creation
               </h2>
 
               <div className="space-y-4">
@@ -1355,16 +1366,16 @@ export default function BulkCreateInvoiceModal({
 
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                    Number of Invoices
+                    Number of Bills
                   </p>
                   <p className="text-2xl font-bold text-white">
-                    {totalInvoices} invoice{totalInvoices !== 1 ? "s" : ""}
+                    {totalInvoices} bill{totalInvoices !== 1 ? "s" : ""}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                    Total Amount per Invoice
+                    Total Amount per Bill
                   </p>
                   <p className="text-2xl font-bold text-white">
                     {formatMoney(toMinorUnits(totalAmount))}
@@ -1477,7 +1488,7 @@ export default function BulkCreateInvoiceModal({
             className="bg-brand hover:bg-brand/90 text-white"
           >
             <Check className="h-4 w-4 mr-2" />
-            Create {totalInvoices} Invoice{totalInvoices !== 1 ? "s" : ""}
+            Create {totalInvoices} Bill{totalInvoices !== 1 ? "s" : ""}
           </Button>
         ) : (
           <Button
@@ -1503,7 +1514,7 @@ export default function BulkCreateInvoiceModal({
             </DialogTitle>
             <p className="text-sm text-white/60 mt-2">
               Select students to exclude from this class group selection. These
-              students will be removed from the invoice creation.
+              students will be removed from bill creation.
             </p>
           </DialogHeader>
           {excludeModalClassGroupId && (

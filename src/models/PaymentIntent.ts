@@ -12,6 +12,8 @@ export interface IPaymentIntent {
   platformFeeMinor?: number;
   processorFeeMinor?: number;
   netSchoolAmountMinor?: number;
+  parentPayableMinor?: number;
+  payerMode?: "payer_pays" | "school_absorbs" | "waived";
   proposedAllocations?: Array<{
     invoiceLineItemId: Types.ObjectId;
     amountMinor: number;
@@ -62,6 +64,12 @@ const paymentIntentSchema = new Schema<IPaymentIntent>(
     platformFeeMinor: { type: Number, default: 0 },
     processorFeeMinor: { type: Number, default: 0 },
     netSchoolAmountMinor: { type: Number, default: 0 },
+    parentPayableMinor: { type: Number, default: 0 },
+    payerMode: {
+      type: String,
+      enum: ["payer_pays", "school_absorbs", "waived"],
+      default: "school_absorbs",
+    },
     proposedAllocations: [
       {
         invoiceLineItemId: { type: Schema.Types.ObjectId, ref: "InvoiceLineItem" },

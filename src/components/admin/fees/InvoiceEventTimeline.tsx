@@ -95,7 +95,7 @@ export function InvoiceEventTimeline({ events }: Props) {
       <CardHeader className="relative z-10">
         <CardTitle className="text-white">Event Timeline</CardTitle>
         <p className="text-sm text-white/60">
-          Complete audit trail of invoice activities
+          Complete audit trail of bill activities
         </p>
       </CardHeader>
       <CardContent className="relative z-10">

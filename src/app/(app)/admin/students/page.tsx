@@ -75,6 +75,22 @@ function replaceUrlSearch(params: URLSearchParams) {
   }
 }
 
+function normalizeFiltersForTab(
+  filters: StudentsFilters,
+  tab: StudentsTabId
+): StudentsFilters {
+  if (
+    tab === "fee-defaulters" &&
+    filters.feeStatus !== "partial" &&
+    filters.feeStatus !== "owing"
+  ) {
+    const { feeStatus: _feeStatus, ...rest } = filters;
+    return rest;
+  }
+
+  return filters;
+}
+
 export default function StudentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -111,9 +127,13 @@ export default function StudentsPage() {
     () => {
       const g = searchParams.get("gradeId");
       const c = searchParams.get("classGroupId");
+      const feeStatus = searchParams.get("feeStatus");
       return {
         ...(g ? { gradeId: g } : {}),
         ...(c ? { classGroupId: c } : {}),
+        ...(feeStatus === "partial" || feeStatus === "owing" || feeStatus === "cleared"
+          ? { feeStatus }
+          : {}),
       };
     }
   );
@@ -124,6 +144,10 @@ export default function StudentsPage() {
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { exportStudents, isExporting } = useExportStudents();
+  const activeAdvancedFilters = React.useMemo(
+    () => normalizeFiltersForTab(advancedFilters, tab),
+    [advancedFilters, tab]
+  );
 
   React.useEffect(() => {
     if (!commandOpen) {
@@ -132,30 +156,26 @@ export default function StudentsPage() {
     }
   }, [commandOpen]);
 
-  // Sync state from URL when navigating (e.g. from grade detail Fee Defaulters link)
-  React.useEffect(() => {
-    const tabFromUrl = getInitialTab(searchParams);
-    const gradeIdFromUrl = searchParams.get("gradeId");
-    const classGroupIdFromUrl = searchParams.get("classGroupId");
-    setTab(tabFromUrl);
-    setAdvancedFilters((prev) => ({
-      ...prev,
-      gradeId: gradeIdFromUrl ?? undefined,
-      classGroupId: classGroupIdFromUrl ?? undefined,
-    }));
-  }, [searchParams]);
-
   React.useEffect(() => {
     const params = new URLSearchParams();
     params.set("tab", tab);
     params.set("view", viewMode);
     if (debouncedSearch) params.set("q", debouncedSearch);
     params.set("page", String(page));
-    if (advancedFilters.gradeId) params.set("gradeId", advancedFilters.gradeId);
-    if (advancedFilters.classGroupId) params.set("classGroupId", advancedFilters.classGroupId);
+    if (activeAdvancedFilters.gradeId) params.set("gradeId", activeAdvancedFilters.gradeId);
+    if (activeAdvancedFilters.classGroupId) params.set("classGroupId", activeAdvancedFilters.classGroupId);
+    if (activeAdvancedFilters.feeStatus) params.set("feeStatus", activeAdvancedFilters.feeStatus);
 
     replaceUrlSearch(params);
-  }, [tab, viewMode, debouncedSearch, page, advancedFilters.gradeId, advancedFilters.classGroupId]);
+  }, [
+    tab,
+    viewMode,
+    debouncedSearch,
+    page,
+    activeAdvancedFilters.gradeId,
+    activeAdvancedFilters.classGroupId,
+    activeAdvancedFilters.feeStatus,
+  ]);
 
   React.useEffect(() => {
     if (tab === "recent") {
@@ -199,7 +219,7 @@ export default function StudentsPage() {
   }, []);
 
   const mergedFilters: StudentsFilters = {
-    ...advancedFilters,
+    ...activeAdvancedFilters,
     search: debouncedSearch || undefined,
   };
 
@@ -212,7 +232,7 @@ export default function StudentsPage() {
     filters: mergedFilters,
   });
 
-  const activeFilterCount = Object.values(advancedFilters).filter(
+  const activeFilterCount = Object.values(activeAdvancedFilters).filter(
     (v) => v !== undefined && v !== "" && v !== "all"
   ).length;
 
@@ -366,7 +386,16 @@ export default function StudentsPage() {
   }
 
   function handleApplyFilters(newFilters: StudentsFilters) {
-    setAdvancedFilters(newFilters);
+    setAdvancedFilters(normalizeFiltersForTab(newFilters, tab));
+    setPage(1);
+    setSelectedIds([]);
+  }
+
+  function handleDefaulterPaymentFilter(next: "all" | "partial" | "owing") {
+    setAdvancedFilters((prev) => ({
+      ...prev,
+      feeStatus: next === "all" ? undefined : next,
+    }));
     setPage(1);
     setSelectedIds([]);
   }
@@ -513,6 +542,53 @@ export default function StudentsPage() {
             searchInputRef={searchInputRef}
             activeFilterCount={activeFilterCount}
           />
+
+          {tab === "fee-defaulters" ? (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
+                    Payment progress
+                  </p>
+                  <p className="mt-1 text-xs text-white/45">
+                    Split defaulters by whether any payment has been made.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "all", label: "All defaulters" },
+                  { value: "partial", label: "Partially paid" },
+                  { value: "owing", label: "No payments yet" },
+                ].map((item) => {
+                  const active =
+                    item.value === "all"
+                      ? !activeAdvancedFilters.feeStatus
+                      : activeAdvancedFilters.feeStatus === item.value;
+                  return (
+                    <Button
+                      key={item.value}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handleDefaulterPaymentFilter(
+                          item.value as "all" | "partial" | "owing"
+                        )
+                      }
+                      className={cn(
+                        "h-8 rounded-xl border-white/10 bg-white/5 px-3 text-xs text-white/65 hover:bg-white/10 hover:text-white",
+                        active &&
+                          "border-teal-400/30 bg-teal-500/15 text-teal-100 shadow-sm shadow-teal-950/30"
+                      )}
+                    >
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
           {/* Advanced filters panel */}
           <StudentsFiltersPanel

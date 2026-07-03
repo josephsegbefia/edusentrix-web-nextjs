@@ -156,7 +156,7 @@ export function ApplyCreditModal(props: {
   const remainingMinor = Math.max(0, clampedMinor - manualAllocatedMinor);
 
   async function onSubmit() {
-    if (!invoiceId) return toast.error("No invoice selected for this term.");
+    if (!invoiceId) return toast.error("No bill selected for this term.");
     if (clampedMinor <= 0) return toast.error("Enter a valid credit amount.");
     if (clampedMinor > creditBalanceMinor)
       return toast.error("Amount exceeds credit balance.");
@@ -188,8 +188,8 @@ export function ApplyCreditModal(props: {
       title="Apply Credit"
       subtitle={
         invoice
-          ? `Invoice: ${invoice.invoiceNumber}`
-          : "Select a term invoice first"
+          ? `Bill: ${invoice.invoiceNumber}`
+          : "Select a term bill first"
       }
     >
       <div className="space-y-6">

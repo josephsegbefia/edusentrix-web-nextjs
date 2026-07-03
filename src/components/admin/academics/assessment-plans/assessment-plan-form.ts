@@ -11,6 +11,7 @@ export type AssessmentPlanWizardState = {
   academicPeriodId: string;
   gradingPolicyId: string;
   appliesToGradeId: string;
+  appliesToGradeIds: string[];
   appliesToClassGroupIds: string[];
   componentRules: ComponentRule[];
   teacherCanCreateReportItems: boolean;
@@ -30,7 +31,7 @@ export const ASSESSMENT_PLAN_WIZARD_STEPS = [
   {
     id: "scope",
     title: "Grades & classes",
-    description: "Select the grade and class groups this plan applies to.",
+    description: "Select the grades and class groups this plan applies to.",
   },
   {
     id: "rules",
@@ -84,6 +85,7 @@ export function createDefaultWizardState(): AssessmentPlanWizardState {
     academicPeriodId: "",
     gradingPolicyId: "",
     appliesToGradeId: "",
+    appliesToGradeIds: [],
     appliesToClassGroupIds: [],
     componentRules: [],
     teacherCanCreateReportItems: true,
@@ -100,6 +102,11 @@ export function planToWizardState(plan: AssessmentPlanDTO): AssessmentPlanWizard
     academicPeriodId: plan.academicPeriodId,
     gradingPolicyId: plan.gradingPolicyId,
     appliesToGradeId: plan.appliesToGradeId,
+    appliesToGradeIds: plan.appliesToGradeIds?.length
+      ? plan.appliesToGradeIds
+      : plan.appliesToGradeId
+        ? [plan.appliesToGradeId]
+        : [],
     appliesToClassGroupIds: plan.appliesToClassGroupIds,
     componentRules: plan.componentRules.map((rule) => ({ ...rule })),
     teacherCanCreateReportItems: plan.teacherCanCreateReportItems,
@@ -144,7 +151,8 @@ export function buildAssessmentPlanPayload(
     name: state.name.trim(),
     academicPeriodId: state.academicPeriodId,
     gradingPolicyId: state.gradingPolicyId,
-    appliesToGradeId: state.appliesToGradeId,
+    appliesToGradeId: state.appliesToGradeIds[0] ?? state.appliesToGradeId,
+    appliesToGradeIds: state.appliesToGradeIds,
     appliesToClassGroupIds: state.appliesToClassGroupIds,
     componentRules: state.componentRules,
     teacherCanCreateReportItems: state.teacherCanCreateReportItems,
@@ -173,7 +181,7 @@ export function validateWizardStep(
   }
 
   if (step === 3) {
-    if (!state.appliesToGradeId) return "Select a grade.";
+    if (!state.appliesToGradeIds.length) return "Select at least one grade.";
     if (!state.appliesToClassGroupIds.length) {
       return "Select at least one class group.";
     }

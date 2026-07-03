@@ -158,6 +158,14 @@ function StatCard({
   );
 }
 
+function formatGhsAmount(value: number) {
+  return new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function StudentsQuickStatsSection() {
   const { data, isLoading, isError } = useStudentStats();
 
@@ -192,7 +200,7 @@ export function StudentsQuickStatsSection() {
         icon={<AlertCircle className="h-5 w-5" />}
         tone="rose"
           loading={isLoading}
-        subtitle={owingAmount > 0 ? `$${owingAmount.toLocaleString()} outstanding` : `${owingPercent}% of total`}
+        subtitle={owingAmount > 0 ? `${formatGhsAmount(owingAmount)} outstanding` : `${owingPercent}% of total`}
         />
       <StatCard
           label="Top Performers"

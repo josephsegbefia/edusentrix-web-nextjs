@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
         return {
           id: String(g._id),
           name,
+          gradeId: g.gradeId?._id ? String(g.gradeId._id) : null,
           gradeName,
           label: formatClassGroupLabel(gradeName, name),
         };

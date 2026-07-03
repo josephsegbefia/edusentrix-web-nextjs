@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { buildStudentReportCardViewData } from "@/lib/academics/reporting/build-student-report-card-view";
 import { loadStudentReportCardViewContext } from "@/lib/academics/reporting/load-student-report-card";
 import { StudentReportCard } from "@/models/StudentReportCard";
+import { derivePerformanceTier } from "@/lib/academics/compatibility/subject-result-adapters";
 import {
   asSnapshotRecord,
   readSnapshotNumber,
@@ -274,7 +275,7 @@ export function applyReportCardViewToAcademicProfile(
     totalSubjects: subjectCount ?? subjectResults.length,
     completedSubjects: subjectResults.length,
     missingSubjects: Math.max(0, (subjectCount ?? subjectResults.length) - subjectResults.length),
-    performanceTier: null,
+    performanceTier: derivePerformanceTier(averageFinalScore),
     trend: profile.summary.trend,
     trendDelta: profile.summary.trendDelta,
     riskLevel: profile.summary.riskLevel,

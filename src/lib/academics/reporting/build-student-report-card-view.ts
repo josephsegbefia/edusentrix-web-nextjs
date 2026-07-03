@@ -8,6 +8,7 @@ import type { StudentReportCardViewContext } from "@/lib/academics/reporting/loa
 
 type SnapshotSubjectResult = {
   subjectId?: string;
+  subjectName?: string;
   teacherId?: string;
   finalScore?: number;
   roundedFinalScore?: number;
@@ -86,8 +87,8 @@ function mapSnapshotSubjectRow(
 
   const subjectId = readString(row.subjectId) ?? undefined;
   const subjectName =
+    readString(row.subjectName) ??
     (subjectId ? subjectNamesById.get(subjectId) : null) ??
-    readString(row.subjectId) ??
     "Subject";
 
   return {

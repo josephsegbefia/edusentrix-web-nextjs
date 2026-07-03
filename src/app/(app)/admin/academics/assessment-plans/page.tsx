@@ -376,7 +376,15 @@ export default function AdminAssessmentPlansPage() {
                     key={plan._id}
                     plan={plan}
                     periodLabel={periodById.get(plan.academicPeriodId) ?? "Unknown period"}
-                    gradeLabel={gradeById.get(plan.appliesToGradeId) ?? "Unknown grade"}
+                    gradeLabel={
+                      (plan.appliesToGradeIds?.length
+                        ? plan.appliesToGradeIds
+                        : [plan.appliesToGradeId]
+                      )
+                        .map((gradeId) => gradeById.get(gradeId))
+                        .filter(Boolean)
+                        .join(", ") || "Unknown grade"
+                    }
                     policyName={policyById.get(plan.gradingPolicyId) ?? "Unknown policy"}
                     onEdit={() => openEditWizard(plan)}
                     onActivate={() => void handleActivate(plan)}

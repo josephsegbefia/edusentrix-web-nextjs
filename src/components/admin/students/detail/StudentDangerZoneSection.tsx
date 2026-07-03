@@ -163,7 +163,7 @@ export function StudentDangerZoneSection({
               onClick={() =>
                 void changeStatus("withdrawn", {
                   title: "Mark student as withdrawn?",
-                  description: `${studentName} has left the school. History, invoices, and reports remain linked to this profile.`,
+                  description: `${studentName} has left the school. History, bills, and reports remain linked to this profile.`,
                   confirmLabel: "Mark withdrawn",
                   intent: "warning",
                   successMessage: "Student marked withdrawn",

@@ -152,7 +152,7 @@ export default function OverdueReportPage() {
                   </div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs text-white/55">Overdue Invoices</div>
+                  <div className="text-xs text-white/55">Overdue Bills</div>
                   <div className="mt-1 text-lg font-semibold text-white">
                     {summary?.overdueInvoiceCount ?? 0}
                   </div>

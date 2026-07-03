@@ -6,6 +6,8 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
+import { Invoice } from "@/models/Invoice";
+import { StudentReportCard } from "@/models/StudentReportCard";
 
 import mongoose from "mongoose";
 import { StudentQuickStats } from "@/types/admin/student";
@@ -34,12 +36,21 @@ export async function GET() {
   }
 
   try {
-    // Mongoose queries accept strings directly, so we can use schoolId as-is
-    // This avoids the deprecation warning from new mongoose.Types.ObjectId(string)
     const schoolObjectId =
-      schoolId instanceof mongoose.Types.ObjectId ? schoolId : schoolId;
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : mongoose.Types.ObjectId.isValid(String(schoolId))
+        ? new mongoose.Types.ObjectId(String(schoolId))
+        : schoolId;
 
-    const [total, newThisMonth, gradeDistributionRaw, classDistributionRaw] =
+    const [
+      total,
+      newThisMonth,
+      gradeDistributionRaw,
+      classDistributionRaw,
+      feeDefaulterRows,
+      topPerformerRows,
+    ] =
       await Promise.all([
         Student.countDocuments({ schoolId: schoolObjectId }),
 
@@ -79,6 +90,53 @@ export async function GET() {
               count: { $sum: 1 },
             },
           },
+        ]),
+
+        Invoice.aggregate([
+          {
+            $match: {
+              schoolId: schoolObjectId,
+              status: { $ne: "cancelled" },
+              totalOutstandingMinor: { $gt: 0 },
+            },
+          },
+          {
+            $group: {
+              _id: "$studentId",
+              outstandingMinor: {
+                $sum: { $ifNull: ["$totalOutstandingMinor", 0] },
+              },
+            },
+          },
+          { $match: { outstandingMinor: { $gt: 0 } } },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: 1 },
+              outstandingMinor: { $sum: "$outstandingMinor" },
+            },
+          },
+        ]),
+
+        StudentReportCard.aggregate([
+          {
+            $match: {
+              schoolId: schoolObjectId,
+              status: "released",
+              "termSummarySnapshot.averageFinalScore": { $gte: 80 },
+            },
+          },
+          { $sort: { releasedAt: -1, updatedAt: -1 } },
+          {
+            $group: {
+              _id: "$studentId",
+              latestAverage: {
+                $first: "$termSummarySnapshot.averageFinalScore",
+              },
+            },
+          },
+          { $match: { latestAverage: { $gte: 80 } } },
+          { $count: "count" },
         ]),
       ]);
 
@@ -137,12 +195,18 @@ export async function GET() {
         };
       });
 
-    // Fee + academic stats are placeholders until those systems are wired
+    const feeDefaulters = feeDefaulterRows[0] as
+      | { count?: number; outstandingMinor?: number }
+      | undefined;
+    const topPerformersRow = topPerformerRows[0] as
+      | { count?: number }
+      | undefined;
+
     const stats: StudentQuickStats = {
       total,
-      owingCount: 0,
-      owingAmount: 0,
-      topPerformers: 0,
+      owingCount: Number(feeDefaulters?.count ?? 0),
+      owingAmount: Number(feeDefaulters?.outstandingMinor ?? 0) / 100,
+      topPerformers: Number(topPerformersRow?.count ?? 0),
       newThisMonth,
       gradeDistribution,
       classDistribution, // Kept for backward compatibility

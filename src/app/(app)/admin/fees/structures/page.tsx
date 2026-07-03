@@ -113,7 +113,7 @@ export default function FeeStructuresPage() {
     const decision = await confirm({
       title: "Deactivate fee structure?",
       description:
-        "This template will no longer be offered for new invoices. Existing records are unchanged.",
+        "This template will no longer be offered for new bills. Existing records are unchanged.",
       confirmLabel: "Deactivate",
       cancelLabel: "Cancel",
       intent: "warning",

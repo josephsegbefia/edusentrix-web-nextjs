@@ -8,8 +8,17 @@ import {
   getPaymentSetupNotificationRecipients,
   sendPaymentSetupNotification,
 } from "@/lib/school-payments/payment-setup-notifications";
+import { enqueueSchoolPaymentProvisioning } from "@/lib/jobs/payment-provisioning";
+import { triggerProvisioningRunnerBestEffort } from "@/lib/jobs/trigger-provisioning-runner";
+import {
+  markPaystackSubaccountJobsDoneForSchool,
+  provisionPaystackSubaccountForSchool,
+} from "@/lib/jobs/provisioning";
+import { splitPublicAndDetailError } from "@/lib/school-payments/provision-error";
 import { School } from "@/models/School";
 import { omitUndefinedDeep } from "@/lib/mongoose/omit-undefined-deep";
+
+export const maxDuration = 60;
 
 const ReviewActionSchema = z
   .object({
@@ -75,7 +84,7 @@ export async function POST(
       billing.status = "unprovisioned";
       billing.paymentSetup = omitUndefinedDeep({
         ...existingPaymentSetup,
-        status: "details_submitted",
+        status: "pending_provisioning",
         approvedAt: now,
         approvedBy: gate.me._id,
         approvedByEmail:
@@ -95,6 +104,31 @@ export async function POST(
 
       await school.save();
 
+      let provisionStatus: "provisioned" | "pending_provisioning" = "provisioned";
+      let provisioningMessage =
+        "Payout setup approved and online payments have been activated.";
+
+      try {
+        await provisionPaystackSubaccountForSchool({
+          schoolId,
+          lastUpdatedBy: gate.me._id,
+        });
+        await markPaystackSubaccountJobsDoneForSchool(schoolId);
+      } catch (provisionError) {
+        const { publicMessage, detail } = splitPublicAndDetailError(provisionError);
+        await enqueueSchoolPaymentProvisioning({
+          schoolId,
+          requestedBy: gate.me._id,
+          queueAfterSyncFailureMessage: publicMessage,
+          queueAfterSyncFailureDetail: detail,
+        });
+        await triggerProvisioningRunnerBestEffort();
+
+        provisionStatus = "pending_provisioning";
+        provisioningMessage =
+          "Payout setup approved. Paystack activation is queued and will retry automatically.";
+      }
+
       await sendPaymentSetupNotification({
         recipients: getPaymentSetupNotificationRecipients({
           ownerEmail: school.billing?.paymentSetup?.ownerEmail || null,
@@ -102,10 +136,15 @@ export async function POST(
         }),
         schoolName: school.name || "Your school",
         schoolId: String(schoolId),
-        subject: "Payment setup approved for continuation",
-        title: "Payment setup review approved",
-        message:
-          "Your payout setup passed manual review. You can now return to Payment Setup and continue the online payments activation flow.",
+        subject:
+          provisionStatus === "provisioned"
+            ? "Online payments are active"
+            : "Payment setup approved and queued",
+        title:
+          provisionStatus === "provisioned"
+            ? "Payment setup activated"
+            : "Payment setup activation queued",
+        message: provisioningMessage,
         note,
         templateKey: "PAYMENT_SETUP_SUCCESS",
       });
@@ -120,15 +159,16 @@ export async function POST(
         metadata: {
           action: "approve",
           note,
+          provisionStatus,
         },
       });
 
       return NextResponse.json({
         success: true,
         data: {
-          status: "details_submitted",
+          status: provisionStatus,
           reviewReason: null,
-          message: "Payout setup approved. The school can now continue setup submission.",
+          message: provisioningMessage,
         },
       });
     }

@@ -266,7 +266,7 @@ export default function CreateFeeStructureModal(props: Props) {
               Amount & installments
             </h2>
             <p className="mt-1 text-sm text-white/55">
-              Default amount is used when issuing invoices; you can still override per invoice.
+              Default amount is used when issuing bills; you can still override per bill.
             </p>
           </div>
 

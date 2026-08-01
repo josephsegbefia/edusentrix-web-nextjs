@@ -9,11 +9,11 @@ import { Invitation } from "@/models/Invitation";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { Student } from "@/models/Student";
+import { StudentAttendance } from "@/models/StudentAttendance";
 import { Subject } from "@/models/Subject";
 import { SubjectGrade } from "@/models/SubjectGrade";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { TeacherAttendance } from "@/models/TeacherAttendance";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -23,9 +23,7 @@ type AttendanceCounts = {
   present: number;
   late: number;
   absent: number;
-  on_leave: number;
-  sick: number;
-  other: number;
+  excused: number;
 };
 type AttendanceStatus = Exclude<keyof AttendanceCounts, "total">;
 
@@ -389,12 +387,20 @@ export async function GET(req: NextRequest) {
     { $limit: 8 },
   ]);
 
-  const attendanceDailyPromise = TeacherAttendance.aggregate([
+  const attendanceDailyPromise = StudentAttendance.aggregate([
     {
-      $match: {
-        schoolId: schoolIdObj,
-        date: { $gte: startDate, $lte: endDate },
-      },
+      $match: periodIdObj
+        ? {
+            schoolId: schoolIdObj,
+            academicPeriodId: periodIdObj,
+            type: "homeroom",
+            date: { $gte: startDate, $lte: endDate },
+          }
+        : {
+            schoolId: schoolIdObj,
+            type: "homeroom",
+            date: { $gte: startDate, $lte: endDate },
+          },
     },
     {
       $group: {
@@ -566,9 +572,7 @@ export async function GET(req: NextRequest) {
       present: 0,
       late: 0,
       absent: 0,
-      on_leave: 0,
-      sick: 0,
-      other: 0,
+      excused: 0,
     };
     const next = { ...entry };
     if (status in next) {
@@ -589,18 +593,14 @@ export async function GET(req: NextRequest) {
         present: 0,
         late: 0,
         absent: 0,
-        on_leave: 0,
-        sick: 0,
-        other: 0,
+        excused: 0,
       };
     attendanceBucketTotals.set(bucketKey, {
       total: current.total + entry.total,
       present: current.present + entry.present,
       late: current.late + entry.late,
       absent: current.absent + entry.absent,
-      on_leave: current.on_leave + entry.on_leave,
-      sick: current.sick + entry.sick,
-      other: current.other + entry.other,
+      excused: current.excused + entry.excused,
     });
   }
 
@@ -610,11 +610,9 @@ export async function GET(req: NextRequest) {
       present: 0,
       late: 0,
       absent: 0,
-      on_leave: 0,
-      sick: 0,
-      other: 0,
+      excused: 0,
     };
-    const presentTotal = totals.present + totals.late;
+    const presentTotal = totals.present + totals.late + totals.excused;
     const presentRate =
       totals.total > 0 ? (presentTotal / totals.total) * 100 : 0;
     return {
@@ -720,9 +718,7 @@ export async function GET(req: NextRequest) {
     present: 0,
     absent: 0,
     late: 0,
-    on_leave: 0,
-    sick: 0,
-    other: 0,
+    excused: 0,
   };
   for (const row of attendanceDailyAgg) {
     const key = String(row._id.status) as keyof typeof attendanceStatusCounts;

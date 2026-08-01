@@ -673,9 +673,9 @@ function OverviewTab({ wardId }: { wardId: string }) {
         </div>
       )}
 
-      {/* Recent Attendance */}
+      {/* Recent Attendance — extra top margin so it breathes after the lessons card */}
       {attendance && attendance.recentRecords.length > 0 && (
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg mt-6">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Calendar className="h-5 w-5 text-white/60" />

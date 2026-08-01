@@ -43,7 +43,7 @@ const applicationSchema = new Schema<IApplication>(
   {
     adminFirstName: { type: String, required: true },
     adminLastName: { type: String, required: true },
-    adminEmail: { type: String, required: true, lowercase: true, index: true },
+    adminEmail: { type: String, required: true, lowercase: true },
     adminPhone: String,
     schoolName: { type: String, required: true },
     schoolType: { type: String, enum: ["Basic", "Secondary"], required: true },

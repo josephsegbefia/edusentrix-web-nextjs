@@ -56,9 +56,7 @@ export type ReportsSummary = {
         present: number;
         absent: number;
         late: number;
-        on_leave: number;
-        sick: number;
-        other: number;
+        excused: number;
       };
       coverageRate: number;
       presentRate: number;

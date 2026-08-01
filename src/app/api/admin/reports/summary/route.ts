@@ -8,9 +8,9 @@ import { Invitation } from "@/models/Invitation";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { Student } from "@/models/Student";
+import { StudentAttendance } from "@/models/StudentAttendance";
 import { SubjectGrade } from "@/models/SubjectGrade";
 import { Teacher } from "@/models/Teacher";
-import { TeacherAttendance } from "@/models/TeacherAttendance";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -235,12 +235,20 @@ export async function GET(req: NextRequest) {
     status: "active",
   });
 
-  const attendancePromise = TeacherAttendance.aggregate([
+  const attendancePromise = StudentAttendance.aggregate([
     {
-      $match: {
-        schoolId: schoolIdObj,
-        date: { $gte: startDate, $lte: endDate },
-      },
+      $match: periodIdObj
+        ? {
+            schoolId: schoolIdObj,
+            academicPeriodId: periodIdObj,
+            type: "homeroom",
+            date: { $gte: startDate, $lte: endDate },
+          }
+        : {
+            schoolId: schoolIdObj,
+            type: "homeroom",
+            date: { $gte: startDate, $lte: endDate },
+          },
     },
     { $group: { _id: "$status", count: { $sum: 1 } } },
   ]);
@@ -373,9 +381,7 @@ export async function GET(req: NextRequest) {
     present: 0,
     absent: 0,
     late: 0,
-    on_leave: 0,
-    sick: 0,
-    other: 0,
+    excused: 0,
   };
 
   for (const row of attendanceAgg) {
@@ -391,16 +397,16 @@ export async function GET(req: NextRequest) {
   );
 
   const attendanceCoverage =
-    teachersTotal > 0 && rangeDays > 0
+    studentsTotal > 0 && rangeDays > 0
       ? Math.round(
-          (attendanceTotal / (teachersTotal * rangeDays)) * 10000
+          (attendanceTotal / (studentsTotal * rangeDays)) * 10000
         ) / 100
       : 0;
 
   const attendancePresentRate =
     attendanceTotal > 0
       ? Math.round(
-          ((attendanceCounts.present + attendanceCounts.late) /
+          ((attendanceCounts.present + attendanceCounts.late + attendanceCounts.excused) /
             attendanceTotal) *
             10000
         ) / 100

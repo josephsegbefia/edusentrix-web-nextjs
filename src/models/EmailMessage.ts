@@ -10,7 +10,7 @@ export interface IEmailMessageAttachment {
 
 export type EmailDirection = "outbound" | "inbound";
 export type EmailMailboxScope = "platform" | "school";
-export type EmailProvider = "brevo" | "spaceship" | "clerk" | "system";
+export type EmailProvider = "brevo" | "resend" | "spaceship" | "clerk" | "system";
 
 export type EmailMessageStatus =
   | "draft"
@@ -141,7 +141,7 @@ const emailMessageSchema = new Schema<IEmailMessage>(
   {
     provider: {
       type: String,
-      enum: ["brevo", "spaceship", "clerk", "system"],
+      enum: ["brevo", "resend", "spaceship", "clerk", "system"],
       required: true,
     },
     direction: {

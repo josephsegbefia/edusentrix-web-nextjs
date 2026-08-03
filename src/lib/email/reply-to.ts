@@ -6,7 +6,7 @@ import {
   buildPlatformReplyAlias,
   buildSchoolReplyAlias,
 } from "./routing";
-import { resolveSenderEmail } from "./providers/brevo-provider";
+import { resolveSenderEmail } from "./providers/resend-provider";
 import type { PlatformMailboxId } from "./platform-mailboxes";
 
 const DIRECT_PLATFORM_REPLY_TEMPLATE_KEYS = new Set([

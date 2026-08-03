@@ -7,7 +7,7 @@ import { lookupTemplateRegistry } from "./registry";
 import {
   resolveSenderEmail,
   buildSchoolSenderName,
-} from "./providers/brevo-provider";
+} from "./providers/resend-provider";
 import { resolveSecureContentMode } from "./sensitivity";
 import { buildSchoolReplyAlias, buildPlatformReplyAlias, generateRoutingToken } from "./routing";
 import { findOrCreateThread, updateThreadAfterMessage } from "./threading";
@@ -106,7 +106,7 @@ export async function createEmailBatch(
     if (suppression) {
       suppressedCount++;
       await EmailMessage.create({
-        provider: "brevo",
+        provider: "resend",
         direction: "outbound",
         mailboxScope: registry.mailboxScope,
         mailboxKey,
@@ -152,7 +152,7 @@ export async function createEmailBatch(
     });
 
     const message = await EmailMessage.create({
-      provider: "brevo",
+      provider: "resend",
       direction: "outbound",
       mailboxScope: registry.mailboxScope,
       mailboxKey,

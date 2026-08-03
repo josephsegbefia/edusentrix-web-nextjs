@@ -65,7 +65,6 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-pdf/renderer": "^4.5.1",
-    "@sendinblue/client": "^3.3.1",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.77.0",
     "@tanstack/react-query": "^5.90.5",

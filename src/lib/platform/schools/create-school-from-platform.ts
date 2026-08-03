@@ -8,6 +8,9 @@ import {
   ensureCanonicalUserForEmail,
   ensureMembershipForUser,
 } from "@/lib/auth/canonical-user";
+import { generateOnboardingMagicLink } from "@/lib/auth/generateOnboardingMagicLink";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 
 export type CreateSchoolFromPlatformInput = {
   actorUserId: mongoose.Types.ObjectId;
@@ -117,6 +120,26 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
     // Log but do not propagate — the school is still usable without a subscription.
     console.error("[createSchoolFromPlatform] Failed to assign pilot subscription:", err);
   }
+
+  const setupLink = await generateOnboardingMagicLink(normalizedAdminEmail);
+  const invitation = renderTemplate("SCHOOL_INVITE", {
+    schoolName: school.name,
+    setupLink,
+  });
+  await sendTrackedBrevoEmail({
+    to: normalizedAdminEmail,
+    toName: input.admin.fullName,
+    subject: invitation.subject,
+    htmlContent: invitation.htmlContent,
+    textContent: invitation.textContent,
+    templateKey: "SCHOOL_INVITE",
+    schoolId: String(school._id),
+    relatedEntityType: "School",
+    relatedEntityId: String(school._id),
+    recipientUserId: String(adminUser._id),
+    recipientRole: "school_admin",
+    async: true,
+  });
 
   return { school, adminUser, task };
 }

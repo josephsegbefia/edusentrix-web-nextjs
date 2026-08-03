@@ -1,4 +1,4 @@
-# Platform email — external setup (Spacemail + DNS)
+# Platform email — external setup (Resend + Spacemail + DNS)
 
 Complete these steps in **Spacemail** and your **DNS** provider alongside the app deployment. The app polls three IMAP mailboxes and routes school replies from `reply.tryedusentrix.app` into the support inbox.
 
@@ -43,7 +43,7 @@ SPACEMAIL_BILLING_IMAP_USER=billing@tryedusentrix.app
 SPACEMAIL_BILLING_IMAP_PASSWORD=
 ```
 
-Optional explicit addresses (defaults match Brevo from addresses):
+Optional explicit mailbox addresses (these remain the reply inboxes):
 
 ```env
 PLATFORM_HELLO_EMAIL=hello@tryedusentrix.app
@@ -91,15 +91,25 @@ Verify by sending a test message to a fake alias address and confirming it appea
 
 ---
 
-## 4. Brevo (outbound only)
+## 4. Resend (outbound only)
 
-Keep Brevo for sending. Verify sender identities:
+Add and verify `tryedusentrix.app` in Resend, then create a production API key. Resend needs the SPF and DKIM records it supplies in the DNS zone that controls the domain. The three From addresses are:
 
 - `hello@tryedusentrix.app`
 - `support@tryedusentrix.app`
 - `billing@tryedusentrix.app`
 
-**Inbound parse / webhooks on Brevo are optional** — the app uses IMAP as the primary inbound path.
+Set these Vercel environment variables for Production, Preview, and Development as appropriate:
+
+```env
+RESEND_API_KEY=re_...
+RESEND_DEFAULT_FROM_EMAIL=hello@tryedusentrix.app
+RESEND_DEFAULT_FROM_NAME=EduSentrix
+RESEND_BILLING_FROM_EMAIL=billing@tryedusentrix.app
+RESEND_SUPPORT_FROM_EMAIL=support@tryedusentrix.app
+```
+
+Spaceship/Spacemail remains the primary inbound system. Do not move its MX records for the existing mailboxes; Resend only handles outgoing delivery.
 
 ---
 
@@ -120,6 +130,7 @@ Cron: `GET /api/cron/imap-recovery` every 10 minutes (see `vercel.json`) syncs a
 - [ ] `SPACEMAIL_*_IMAP_*` env vars set in Vercel / `.env.local`
 - [ ] MX for `reply.tryedusentrix.app` → Spacemail
 - [ ] Catch-all or forward `*@reply.tryedusentrix.app` → `support@tryedusentrix.app`
-- [ ] Brevo sender addresses verified
+- [ ] `tryedusentrix.app` verified in Resend with its supplied SPF and DKIM records
+- [ ] `RESEND_API_KEY` and all three `RESEND_*_FROM_EMAIL` values set in Vercel
 - [ ] `CRON_SECRET` set on Vercel
 - [ ] Test sync from `/platform/email`

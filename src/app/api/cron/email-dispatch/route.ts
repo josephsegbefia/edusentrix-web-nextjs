@@ -4,11 +4,15 @@ import { runEmailDispatchJob } from "@/lib/jobs/emailDispatch";
 export const dynamic = "force-dynamic";
 
 function isAuthorized(req: NextRequest) {
-  const secret = process.env.EMAIL_DISPATCH_CRON_SECRET || process.env.CRON_SECRET;
-  if (!secret) return false;
+  const secrets = [process.env.EMAIL_DISPATCH_CRON_SECRET, process.env.CRON_SECRET]
+    .map((secret) => secret?.trim())
+    .filter((secret): secret is string => Boolean(secret));
+  if (!secrets.length) return false;
   const bearer = req.headers.get("authorization") || "";
   const xSecret = req.headers.get("x-cron-secret") || "";
-  return bearer === `Bearer ${secret}` || xSecret === secret;
+  return secrets.some(
+    (secret) => bearer === `Bearer ${secret}` || xSecret === secret,
+  );
 }
 
 export async function GET(req: NextRequest) {

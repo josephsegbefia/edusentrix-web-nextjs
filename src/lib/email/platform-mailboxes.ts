@@ -2,7 +2,7 @@ import "server-only";
 
 /**
  * Platform operator mailboxes (Spacemail): hello, support, billing.
- * Inbound is IMAP-first; outbound automated mail uses Brevo with direct Reply-To.
+ * Inbound is IMAP-first; outbound automated mail uses Resend with direct Reply-To.
  * Routed school/parent replies land in the support mailbox via DNS catch-all.
  */
 
@@ -36,21 +36,21 @@ function resolveMailboxAddress(id: PlatformMailboxId): string {
   if (id === "hello") {
     return (
       readEnv("PLATFORM_HELLO_EMAIL") ||
-      readEnv("BREVO_DEFAULT_FROM_EMAIL") ||
+      readEnv("RESEND_DEFAULT_FROM_EMAIL") ||
       "hello@tryedusentrix.app"
     );
   }
   if (id === "billing") {
     return (
       readEnv("PLATFORM_BILLING_EMAIL") ||
-      readEnv("BREVO_BILLING_FROM_EMAIL") ||
+      readEnv("RESEND_BILLING_FROM_EMAIL") ||
       "billing@tryedusentrix.app"
     );
   }
   return (
     readEnv("PLATFORM_SUPPORT_EMAIL") ||
     readEnv("SUPPORT_EMAIL") ||
-    readEnv("BREVO_SUPPORT_FROM_EMAIL") ||
+    readEnv("RESEND_SUPPORT_FROM_EMAIL") ||
     "support@tryedusentrix.app"
   );
 }

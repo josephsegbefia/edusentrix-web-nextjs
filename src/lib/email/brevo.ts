@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
-import * as SibApiV3Sdk from "@sendinblue/client";
 import {
   renderTemplate,
   type TemplateKey,
@@ -9,33 +7,11 @@ import {
 import { EmailMessage } from "@/models/EmailMessage";
 import { lookupTemplateRegistry } from "./registry";
 import { renderGenericBrandedEmail, stripHtml } from "./branded-template";
+import { resendSend, resolveDefaultSender } from "./providers/resend-provider";
 
-const { BREVO_API_KEY, BREVO_FROM_EMAIL, BREVO_FROM_NAME, EMAIL_AUDIT_ENABLED } =
-  process.env;
+const { EMAIL_AUDIT_ENABLED } = process.env;
 
 const auditEnabled = EMAIL_AUDIT_ENABLED !== "false";
-
-let apiInstance: SibApiV3Sdk.TransactionalEmailsApi | null = null;
-
-function getBrevoConfig() {
-  if (!BREVO_API_KEY) throw new Error("BREVO_API_KEY is not set");
-  if (!BREVO_FROM_EMAIL) throw new Error("BREVO_FROM_EMAIL is not set");
-  if (!BREVO_FROM_NAME) throw new Error("BREVO_FROM_NAME is not set");
-  return {
-    apiKey: BREVO_API_KEY,
-    fromEmail: BREVO_FROM_EMAIL,
-    fromName: BREVO_FROM_NAME,
-  };
-}
-
-function getBrevoClient() {
-  if (!apiInstance) {
-    const { apiKey } = getBrevoConfig();
-    apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-    (apiInstance as any).authentications["apiKey"].apiKey = apiKey;
-  }
-  return apiInstance;
-}
 
 export type Recipient = { email: string; name?: string };
 
@@ -51,23 +27,23 @@ export async function sendEmail<K extends TemplateKey>(
   template: K,
   data: TemplatePayload[K]
 ): Promise<{ messageId?: string }> {
-  const { fromEmail, fromName } = getBrevoConfig();
-  const client = getBrevoClient();
+  const { fromEmail, fromName } = resolveDefaultSender();
   const { subject, htmlContent, textContent } = renderTemplate(template, data);
-
-  const msg = new SibApiV3Sdk.SendSmtpEmail();
-  msg.subject = subject;
-  msg.htmlContent = htmlContent;
-  if (textContent) msg.textContent = textContent;
-
-  msg.sender = { email: fromEmail, name: fromName };
-  msg.to = typeof to === "string" ? [{ email: to }] : to;
 
   const recipientEmail = typeof to === "string" ? to : to[0]?.email || "";
 
   try {
-    const res = await client.sendTransacEmail(msg);
-    const providerMessageId = (res as any)?.body?.messageId;
+    const recipients = typeof to === "string" ? [{ email: to }] : to;
+    const results = await Promise.all(recipients.map((recipient) => resendSend({
+      to: recipient.email,
+      toName: recipient.name,
+      subject,
+      htmlContent,
+      textContent,
+      fromEmail,
+      fromName,
+    })));
+    const providerMessageId = results[0]?.providerMessageId;
 
     if (auditEnabled) {
       await persistAuditRecord({
@@ -84,11 +60,9 @@ export async function sendEmail<K extends TemplateKey>(
     }
 
     return { messageId: providerMessageId };
-  } catch (error: any) {
-    const detail = error?.response?.body
-      ? JSON.stringify(error.response.body)
-      : error?.message ?? String(error);
-    console.error("[Brevo] sendTransacEmail error:", detail);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("[Resend] send email error:", detail);
 
     if (auditEnabled) {
       await persistAuditRecord({
@@ -102,7 +76,7 @@ export async function sendEmail<K extends TemplateKey>(
         status: "failed",
         failureReason: detail,
       }).catch((e) =>
-        console.error("[Brevo] Failed to persist audit record:", e),
+        console.error("[Resend] Failed to persist audit record:", e),
       );
     }
 
@@ -123,28 +97,23 @@ export async function sendRawEmail(opts: {
   senderName?: string;
 }) {
   const { to, subject, htmlContent, senderEmail, senderName } = opts;
-  const { fromEmail, fromName } = getBrevoConfig();
-  const client = getBrevoClient();
+  const { fromEmail, fromName } = resolveDefaultSender();
   const brandedHtmlContent = renderGenericBrandedEmail({
     subject,
     htmlContent,
   });
   const textContent = stripHtml(brandedHtmlContent);
 
-  const msg = new SibApiV3Sdk.SendSmtpEmail();
-  msg.subject = subject;
-  msg.htmlContent = brandedHtmlContent;
-  msg.textContent = textContent;
-
-  msg.sender = {
-    email: senderEmail || fromEmail,
-    name: senderName || fromName,
-  };
-  msg.to = [{ email: to }];
-
   try {
-    const res = await client.sendTransacEmail(msg);
-    const providerMessageId = (res as any)?.body?.messageId;
+    const result = await resendSend({
+      to,
+      subject,
+      htmlContent: brandedHtmlContent,
+      textContent,
+      fromEmail: senderEmail || fromEmail,
+      fromName: senderName || fromName,
+    });
+    const providerMessageId = result.providerMessageId;
 
     if (auditEnabled) {
       await persistAuditRecord({
@@ -159,11 +128,9 @@ export async function sendRawEmail(opts: {
         providerMessageId,
       });
     }
-  } catch (error: any) {
-    const detail = error?.response?.body
-      ? JSON.stringify(error.response.body)
-      : error?.message ?? String(error);
-    console.error("[Brevo] sendTransacEmail error:", detail);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error("[Resend] send email error:", detail);
 
     if (auditEnabled) {
       await persistAuditRecord({
@@ -177,7 +144,7 @@ export async function sendRawEmail(opts: {
         status: "failed",
         failureReason: detail,
       }).catch((e) =>
-        console.error("[Brevo] Failed to persist audit record:", e),
+        console.error("[Resend] Failed to persist audit record:", e),
       );
     }
 
@@ -202,7 +169,7 @@ async function persistAuditRecord(opts: {
     : null;
 
   await EmailMessage.create({
-    provider: "brevo",
+    provider: "resend",
     direction: "outbound",
     mailboxScope: registry?.mailboxScope || "platform",
     mailboxKey: registry

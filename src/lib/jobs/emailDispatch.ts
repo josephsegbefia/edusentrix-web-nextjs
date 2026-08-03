@@ -5,10 +5,10 @@ import { EmailMessage } from "@/models/EmailMessage";
 import { EmailThread } from "@/models/EmailThread";
 import { CommunicationDelivery } from "@/models/CommunicationDelivery";
 import {
-  brevoSend,
+  resendSend,
   resolveSenderEmail,
   buildSchoolSenderName,
-} from "@/lib/email/providers/brevo-provider";
+} from "@/lib/email/providers/resend-provider";
 import { refreshCommunicationStats } from "@/lib/communications/delivery/communicationDeliveryService";
 import { updateThreadAfterMessage } from "@/lib/email/threading";
 import { lookupTemplateRegistry } from "@/lib/email/registry";
@@ -123,7 +123,7 @@ async function processOutboundSingle(job: IEmailDispatchJob): Promise<void> {
     return;
   }
 
-  const result = await brevoSend({
+  const result = await resendSend({
     to: message.to,
     subject: message.subject,
     htmlContent: message.htmlBody || "",
@@ -136,6 +136,7 @@ async function processOutboundSingle(job: IEmailDispatchJob): Promise<void> {
       message.trafficClass,
       ...(message.schoolId ? [`school:${String(message.schoolId)}`] : []),
     ],
+    idempotencyKey: `email-${String(message._id)}`,
   });
 
   await recordSend({

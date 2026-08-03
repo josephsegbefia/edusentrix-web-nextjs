@@ -7,10 +7,10 @@ import { School } from "@/models/School";
 import { EmailThread } from "@/models/EmailThread";
 import { lookupTemplateRegistry } from "../registry";
 import {
-  brevoSend,
+  resendSend,
   resolveSenderEmail,
   buildSchoolSenderName,
-} from "../providers/brevo-provider";
+} from "../providers/resend-provider";
 import { findOrCreateThread, updateThreadAfterMessage } from "../threading";
 import { generateRoutingToken } from "../routing";
 import { resolveOutboundReplyTo } from "../reply-to";
@@ -68,8 +68,8 @@ export interface SendBrevoEmailResult {
 }
 
 /**
- * High-level Brevo email send: persists audit record, resolves thread,
- * checks suppressions, and sends (or queues) via the Brevo provider.
+ * High-level email send: persists audit record, resolves thread,
+ * checks suppressions, and sends (or queues) via Resend.
  */
 export async function sendTrackedBrevoEmail(
   input: SendBrevoEmailInput,
@@ -99,7 +99,7 @@ export async function sendTrackedBrevoEmail(
   );
   if (suppression) {
     const message = await EmailMessage.create({
-      provider: "brevo",
+      provider: "resend",
       direction: "outbound",
       mailboxScope: registry.mailboxScope,
       mailboxKey: resolveMailboxKey(registry, input.schoolId),
@@ -145,7 +145,7 @@ export async function sendTrackedBrevoEmail(
       );
       if (optedOut) {
         const message = await EmailMessage.create({
-          provider: "brevo",
+          provider: "resend",
           direction: "outbound",
           mailboxScope: registry.mailboxScope,
           mailboxKey: resolveMailboxKey(registry, input.schoolId),
@@ -195,7 +195,7 @@ export async function sendTrackedBrevoEmail(
             ? "Recipient only accepts urgent email"
             : `Recipient disabled ${categoryKey || "this"} email`);
       const message = await EmailMessage.create({
-        provider: "brevo",
+        provider: "resend",
         direction: "outbound",
         mailboxScope: registry.mailboxScope,
         mailboxKey: resolveMailboxKey(registry, input.schoolId),
@@ -270,7 +270,7 @@ export async function sendTrackedBrevoEmail(
       : undefined;
 
   const message = await EmailMessage.create({
-    provider: "brevo",
+    provider: "resend",
     direction: "outbound",
     mailboxScope: registry.mailboxScope,
     mailboxKey: resolveMailboxKey(registry, input.schoolId),
@@ -349,7 +349,7 @@ export async function sendTrackedBrevoEmail(
   }
 
   try {
-    const result = await brevoSend({
+    const result = await resendSend({
       to: input.to,
       toName: input.toName,
       subject: input.subject,
@@ -365,6 +365,7 @@ export async function sendTrackedBrevoEmail(
         registry.senderFamily,
         ...(input.schoolId ? [`school:${input.schoolId}`] : []),
       ],
+      idempotencyKey: `email-${String(message._id)}`,
     });
 
     await recordSend({

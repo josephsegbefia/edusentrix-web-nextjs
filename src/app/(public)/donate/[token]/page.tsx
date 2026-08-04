@@ -25,6 +25,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -522,11 +523,9 @@ export default function PublicDonatePage() {
                     <Label className="text-sm text-white/60">Phone Number (optional)</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-                      <Input
-                        type="tel"
+                      <GhanaPhoneInput
                         value={donorPhone}
                         onChange={(e) => setDonorPhone(e.target.value)}
-                        placeholder="+233 XX XXX XXXX"
                         className="border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/30"
                       />
                     </div>

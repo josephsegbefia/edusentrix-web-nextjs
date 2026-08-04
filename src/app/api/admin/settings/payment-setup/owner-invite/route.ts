@@ -10,6 +10,7 @@ import { recordActivity } from "@/lib/audit/recordActivity";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { assignPendingBillingOwnerInvitation } from "@/lib/school-payments/billing-owner-lifecycle";
 import { Invitation } from "@/models/Invitation";
@@ -106,9 +107,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const redirectUrl = `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
-      "/admin/settings/payment-setup"
-    )}`;
+    const redirectUrl = withInvitedEmail(
+      `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
+        "/admin/settings/payment-setup"
+      )}`,
+      normalizedEmail
+    );
     const clerk = await clerkClient();
     let clerkInvitationId: string | undefined;
     let clerkInvitation: { id: string; url?: string | null } | null = null;
@@ -143,7 +147,11 @@ export async function POST(req: NextRequest) {
           name: parsed.data.ownerName,
           role: "billing owner",
           schoolName: school.name || "your school",
-          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+          setupLink: getInvitationAcceptUrl(
+            clerkInvitation,
+            redirectUrl,
+            normalizedEmail
+          ),
         });
 
         await sendTrackedBrevoEmail({

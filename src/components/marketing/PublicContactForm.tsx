@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import {
   PremiumSelect,
@@ -105,11 +106,10 @@ export function PublicContactForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Phone *">
-          <Input
+          <GhanaPhoneInput
             required
             value={form.phone}
             onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-            placeholder="+233 55 000 0000"
             className="h-11 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
           />
         </Field>

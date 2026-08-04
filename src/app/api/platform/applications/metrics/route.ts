@@ -7,6 +7,7 @@ type Ok<T> = { success: true; data: T };
 type Fail = { success: false; error: string };
 
 function daysAgoToDate(key?: string | null) {
+  if (key === "all") return null;
   const now = new Date();
   const map: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
   const d = map[key ?? ""] ?? 30;
@@ -32,17 +33,21 @@ export async function GET(req: NextRequest) {
   }
 
   const from = daysAgoToDate(range);
+  const dateFilter = from ? { createdAt: { $gte: from } } : {};
   const [pending, approved, rejected] = await Promise.all([
     Application.countDocuments({
-      createdAt: { $gte: from },
+      ...dateFilter,
+      archivedAt: null,
       status: { $in: ["submitted", "reviewed"] },
     }),
     Application.countDocuments({
-      createdAt: { $gte: from },
+      ...dateFilter,
+      archivedAt: null,
       status: "approved",
     }),
     Application.countDocuments({
-      createdAt: { $gte: from },
+      ...dateFilter,
+      archivedAt: null,
       status: "rejected",
     }),
   ]);

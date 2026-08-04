@@ -525,6 +525,46 @@ export default function ApplicationDrawer({
     },
   });
 
+  const resendAdminInvite = useMutation({
+    mutationFn: async () => {
+      if (!data?.linkedSchoolId) {
+        throw new Error("No linked school is available for this application.");
+      }
+
+      const res = await fetch(
+        `/api/platform/schools/${data.linkedSchoolId}/admin-invite`,
+        {
+          method: "POST",
+        }
+      );
+      const json = (await res.json().catch(() => null)) as
+        | {
+            success?: boolean;
+            error?: string;
+            data?: { email?: string };
+          }
+        | null;
+
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to resend admin invite");
+      }
+
+      return json;
+    },
+    onSuccess: (payload) => {
+      toast.success(
+        `Invite email sent to ${payload.data?.email || "school admin"}.`
+      );
+      qc.invalidateQueries({ queryKey: ["applications:detail", id] });
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
+    },
+    onError: (e) => {
+      toast.error(
+        e instanceof Error ? e.message : "Failed to resend admin invite"
+      );
+    },
+  });
+
   const reject = useMutation({
     mutationFn: async (reason: string) => {
       const req = fetch(`/api/platform/applications/${id}/reject`, {
@@ -1317,12 +1357,30 @@ export default function ApplicationDrawer({
                     {data.admin?.name || "—"}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 justify-end">
+                  {data.status === "approved" && data.linkedSchoolId ? (
+                    <Button
+                      variant="outline"
+                      className="border-cyan-500/30 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20"
+                      onClick={() => resendAdminInvite.mutate()}
+                      disabled={
+                        resendAdminInvite.isPending ||
+                        approve.isPending ||
+                        reject.isPending ||
+                        review.isPending
+                      }
+                    >
+                      {resendAdminInvite.isPending
+                        ? "Resending invite…"
+                        : "Resend admin invite"}
+                    </Button>
+                  ) : null}
                   <Button
                     variant="outline"
                     onClick={() => setRejectionModalOpen(true)}
                     disabled={
                       data.status === "rejected" ||
+                      resendAdminInvite.isPending ||
                       reject.isPending ||
                       approve.isPending ||
                       review.isPending
@@ -1334,6 +1392,7 @@ export default function ApplicationDrawer({
                     onClick={() => approve.mutate()}
                     disabled={
                       data.status === "approved" ||
+                      resendAdminInvite.isPending ||
                       approve.isPending ||
                       reject.isPending ||
                       review.isPending

@@ -4,6 +4,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 
 /**
@@ -12,7 +13,7 @@ import {
  * Returns the Clerk invitation acceptance URL where the user can complete onboarding
  */
 export async function generateOnboardingMagicLink(email: string): Promise<string> {
-  const redirectUrl = getInvitationRedirectUrl();
+  const redirectUrl = withInvitedEmail(getInvitationRedirectUrl(), email);
 
   const clerk = await clerkClient();
 
@@ -25,5 +26,5 @@ export async function generateOnboardingMagicLink(email: string): Promise<string
   });
 
   // Return the invitation acceptance URL with Clerk ticket parameters.
-  return getInvitationAcceptUrl(invitation, redirectUrl);
+  return getInvitationAcceptUrl(invitation, redirectUrl, email);
 }

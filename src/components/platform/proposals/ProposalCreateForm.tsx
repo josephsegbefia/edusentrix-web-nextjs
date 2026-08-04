@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -123,7 +124,7 @@ export function ProposalCreateForm() {
           </label>
           <label className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Recipient phone</span>
-            <Input value={form.recipientPhone} onChange={(e) => update("recipientPhone", e.target.value)} className="border-white/10 bg-white/5 text-white" />
+            <GhanaPhoneInput value={form.recipientPhone} onChange={(e) => update("recipientPhone", e.target.value)} className="border-white/10 bg-white/5 text-white" />
           </label>
         </div>
 

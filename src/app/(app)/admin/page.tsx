@@ -54,6 +54,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 import { useSchoolSetupReadiness } from "@/hooks/admin/useSchoolSetupReadiness";
 import { useCreateInvitation } from "@/hooks/admin/useInvitations";
+import { applyCreatedAcademicPeriodToCaches } from "@/hooks/admin/useAcademicPeriods";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
@@ -875,14 +876,19 @@ export default function SchoolAdminOverviewPage() {
         }
         return json;
       });
-      await busy.promise(fetchPromise, {
+      const created = await busy.promise(fetchPromise, {
         loading: "Creating academic period…",
         success: "Academic period created",
         error: (e: Error) => e.message || "Could not create period",
       });
+      if (created?.period) {
+        applyCreatedAcademicPeriodToCaches(queryClient, created.period);
+      }
       invalidateSetupReadiness(queryClient);
       void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
       void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "period-overview"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "period-status"] });
       // SSE will push period.updated
     } finally {
       setCreatingPeriod(false);

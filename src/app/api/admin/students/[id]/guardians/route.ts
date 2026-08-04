@@ -26,6 +26,7 @@ import { z } from "zod";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 import {
@@ -381,7 +382,10 @@ export async function POST(
         return;
       }
 
-      const redirectUrl = getInvitationRedirectUrl();
+      const redirectUrl = withInvitedEmail(
+        getInvitationRedirectUrl(),
+        emailLower
+      );
       let clerkInvitationId: string | undefined;
       let invitationStatus: "pending" | "failed" = "pending";
 
@@ -406,7 +410,11 @@ export async function POST(
           name: `${validated.firstName} ${validated.lastName}`,
           role: "parent",
           schoolName,
-          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+          setupLink: getInvitationAcceptUrl(
+            clerkInvitation,
+            redirectUrl,
+            emailLower
+          ),
         });
 
         await sendTrackedBrevoEmail({

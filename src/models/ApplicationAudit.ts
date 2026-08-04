@@ -9,7 +9,9 @@ export type AuditAction =
   | "note"
   | "invite_email_sent"
   | "pipeline_updated"
-  | "student_enrolled";
+  | "student_enrolled"
+  | "archived"
+  | "restored";
 
 export interface IApplicationAudit {
   _id: Types.ObjectId;
@@ -40,6 +42,8 @@ const applicationAuditSchema = new Schema<IApplicationAudit>(
         "invite_email_sent",
         "pipeline_updated",
         "student_enrolled",
+        "archived",
+        "restored",
       ],
       required: true,
       index: true,

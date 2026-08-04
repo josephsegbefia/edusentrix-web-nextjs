@@ -13,6 +13,7 @@ import {
   getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
@@ -202,7 +203,10 @@ export async function POST(req: NextRequest) {
     }
 
     const APP_URL = getAppUrl();
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrl = withInvitedEmail(
+      getInvitationRedirectUrl(),
+      effectiveEmail
+    );
     let clerkInvitationId: string | undefined;
     let invitationStatus: "pending" | "failed" = "pending";
     let invitationError: string | null = null;
@@ -234,7 +238,11 @@ export async function POST(req: NextRequest) {
         name: inviteeName,
         role: "bursar",
         schoolName,
-        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+        setupLink: getInvitationAcceptUrl(
+          clerkInvitation,
+          redirectUrl,
+          effectiveEmail
+        ),
       });
 
       await sendTrackedBrevoEmail({

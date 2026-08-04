@@ -19,6 +19,7 @@ import {
 
 // Allowed filters
 const STATUS = ["all", "pending", "approved", "rejected"] as const;
+const VISIBILITY = ["active", "archived"] as const;
 const TYPES = ["all", "Basic", "Secondary"] as const;
 
 function useQuerySync() {
@@ -49,6 +50,7 @@ export default function ApplicationsFilters() {
   const status = search.get("status") ?? "all";
   const type = search.get("type") ?? "all";
   const range = search.get("range") ?? "30d";
+  const visibility = search.get("visibility") ?? "active";
   const pipelineStage = search.get("pipelineStage") ?? "all";
   const [q, setQ] = useState<string>(search.get("q") ?? "");
 
@@ -63,6 +65,7 @@ export default function ApplicationsFilters() {
 
   const ranges = useMemo(
     () => [
+      { key: "all", label: "All time" },
       { key: "7d", label: "Last 7 days" },
       { key: "30d", label: "Last 30 days" },
       { key: "90d", label: "Last 90 days" },
@@ -71,7 +74,28 @@ export default function ApplicationsFilters() {
   );
 
   return (
-    <div className="grid gap-3 md:grid-cols-12">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(14,minmax(0,1fr))]">
+      {/* Queue */}
+      <div className="md:col-span-2 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          Queue
+        </span>
+        <Select
+          value={visibility}
+          onValueChange={(v) => set({ visibility: v === "active" ? null : v })}
+        >
+          <SelectTrigger className="bg-card border border-white/10">
+            <SelectValue placeholder="Active applications" />
+          </SelectTrigger>
+          <SelectContent className="premiumSelectContent">
+            {VISIBILITY.map((value) => (
+              <SelectItem key={value} value={value} className="cursor-pointer">
+                {value === "active" ? "Active applications" : "Archived applications"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       {/* Status */}
       <div className="md:col-span-2 flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -93,7 +117,7 @@ export default function ApplicationsFilters() {
                 value={s}
                 className="cursor-pointer capitalize"
               >
-                {s === "all" ? "All statuses" : s}
+                {s === "all" ? "All statuses" : s === "approved" ? "Accepted" : s}
               </SelectItem>
             ))}
           </SelectContent>
@@ -207,6 +231,7 @@ export default function ApplicationsFilters() {
               q: null,
               range: "30d",
               pipelineStage: null,
+              visibility: null,
             });
           }}
         >

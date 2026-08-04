@@ -7,6 +7,7 @@
  * - user.updated: Sync user data changes
  */
 import { NextRequest, NextResponse } from "next/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { connectToDatabase } from "@/db/connectToDatabase";
@@ -15,6 +16,7 @@ import { Invitation } from "@/models/Invitation";
 import mongoose from "mongoose";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
+import { syncClerkNameFromAppUser } from "@/lib/auth/sync-clerk-name";
 import {
   bindBillingOwnerToSchool,
   bindPaymentSetupDelegateToSchool,
@@ -154,6 +156,20 @@ async function handleUserCreated(data: ClerkUserData) {
         sourceType: "system_estimate",
         notes: "Clerk user.created webhook resolved an app user.",
       });
+    }
+
+    const synced = await syncClerkNameFromAppUser({
+      clerkUserId: data.id,
+      currentClerkFirstName: data.first_name,
+      currentClerkLastName: data.last_name,
+      appFirstName: appUser.firstName,
+      appLastName: appUser.lastName,
+      appDisplayName: appUser.name,
+    });
+    if (synced) {
+      console.log(
+        `Clerk webhook: Synced Clerk profile name from app user for ${email}`
+      );
     }
   } catch (error) {
     console.error("Clerk webhook: failed to resolve canonical user", error);

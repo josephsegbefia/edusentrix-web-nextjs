@@ -2,8 +2,8 @@
 
 import * as Clerk from "@clerk/elements/common";
 import * as SignUp from "@clerk/elements/sign-up";
-import { useClerk, useUser } from "@clerk/nextjs";
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { useClerk, useSignUp, useUser } from "@clerk/nextjs";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -282,20 +282,115 @@ function BrandPanel({ hasInvitationTicket }: { hasInvitationTicket: boolean }) {
 function SignUpPageContent() {
   const searchParams = useSearchParams();
   const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
   const { signOut } = useClerk();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resolvedInvitedEmail, setResolvedInvitedEmail] = useState("");
+  const [isResolvingInvitedEmail, setIsResolvingInvitedEmail] = useState(false);
+  const [invitedEmailResolutionFailed, setInvitedEmailResolutionFailed] =
+    useState(false);
   const hasInvitationTicket = useMemo(
     () => Boolean(searchParams.get("__clerk_ticket")),
     [searchParams]
   );
-  const invitedEmail = useMemo(
+  const clerkTicket = useMemo(
+    () => searchParams.get("__clerk_ticket")?.trim() || "",
+    [searchParams]
+  );
+  const invitedEmailFromQuery = useMemo(
     () =>
       hasInvitationTicket
         ? normalizeEmailParam(searchParams.get("invited_email"))
         : "",
     [hasInvitationTicket, searchParams]
   );
+
+  useEffect(() => {
+    if (!hasInvitationTicket || !clerkTicket) {
+      setResolvedInvitedEmail("");
+      setIsResolvingInvitedEmail(false);
+      setInvitedEmailResolutionFailed(false);
+      return;
+    }
+
+    if (invitedEmailFromQuery) {
+      setResolvedInvitedEmail(invitedEmailFromQuery);
+      setIsResolvingInvitedEmail(false);
+      setInvitedEmailResolutionFailed(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsResolvingInvitedEmail(true);
+    setInvitedEmailResolutionFailed(false);
+
+    const resolveInvitedEmail = async () => {
+      try {
+        const response = await fetch(
+          `/api/auth/invitation-email?ticket=${encodeURIComponent(clerkTicket)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+        const body = (await response.json().catch(() => null)) as
+          | { success?: boolean; data?: { email?: string } }
+          | null;
+        if (!response.ok || !body?.success) {
+          setInvitedEmailResolutionFailed(true);
+          return;
+        }
+        const email = normalizeEmailParam(body.data?.email ?? null);
+        if (email) {
+          setResolvedInvitedEmail(email);
+          setInvitedEmailResolutionFailed(false);
+        } else {
+          setInvitedEmailResolutionFailed(true);
+        }
+      } catch (error) {
+        if ((error as Error).name === "AbortError") return;
+        setInvitedEmailResolutionFailed(true);
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsResolvingInvitedEmail(false);
+        }
+      }
+    };
+
+    void resolveInvitedEmail();
+
+    return () => {
+      controller.abort();
+    };
+  }, [clerkTicket, hasInvitationTicket, invitedEmailFromQuery]);
+
+  const invitedEmail = useMemo(() => {
+    if (!hasInvitationTicket) return "";
+
+    const clerkInvitationEmail =
+      isSignUpLoaded && signUp ? normalizeEmailParam(signUp.emailAddress) : "";
+
+    return clerkInvitationEmail || resolvedInvitedEmail || invitedEmailFromQuery;
+  }, [
+    hasInvitationTicket,
+    invitedEmailFromQuery,
+    isSignUpLoaded,
+    resolvedInvitedEmail,
+    signUp,
+  ]);
+
+  const shouldHoldInvitationForm =
+    hasInvitationTicket &&
+    !invitedEmail &&
+    (isResolvingInvitedEmail || !isSignUpLoaded);
+
+  const shouldBlockInvitationForm =
+    hasInvitationTicket &&
+    !invitedEmail &&
+    !shouldHoldInvitationForm &&
+    invitedEmailResolutionFailed;
 
   const handleSignOutAndContinue = useCallback(async () => {
     setIsSigningOut(true);
@@ -336,6 +431,54 @@ function SignUpPageContent() {
             : "If you need both accounts open at the same time, use a private window or a separate browser profile."
         }
       />
+    );
+  }
+
+  if (shouldHoldInvitationForm || shouldBlockInvitationForm) {
+    return (
+      <div className="relative min-h-screen overflow-hidden bg-[#0b1020] text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 65% 42% at 18% 16%, rgba(14,165,233,0.18) 0%, transparent 60%), radial-gradient(ellipse 48% 34% at 82% 12%, rgba(109,40,217,0.16) 0%, transparent 58%), radial-gradient(ellipse 42% 32% at 72% 78%, rgba(16,185,129,0.12) 0%, transparent 60%)",
+          }}
+        />
+        <div className="relative mx-auto flex min-h-screen max-w-7xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+          <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-[#0f1524]/90 p-8 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">
+                <span className="h-2 w-2 rounded-full bg-brand" />
+                Accept Invite
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-white">
+                {shouldHoldInvitationForm
+                  ? "Loading your invited email"
+                  : "Invitation email could not be verified"}
+              </h1>
+              <p className="max-w-lg text-sm leading-6 text-white/60">
+                {shouldHoldInvitationForm
+                  ? "We are verifying the email address attached to this invitation before showing the sign-up form."
+                  : "This invitation must stay locked to the email address that received it, so the sign-up form is blocked until the invited email can be verified."}
+              </p>
+            </div>
+
+            {shouldHoldInvitationForm ? (
+              <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70">
+                <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                Preparing your secure invitation...
+              </div>
+            ) : (
+              <div className="mt-8 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-4 text-sm text-red-100">
+                Open the invitation link directly from the email that was sent to
+                you. If this keeps happening, request a new invitation so the
+                link can be regenerated with the locked email attached.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -434,7 +577,6 @@ function SignUpPageContent() {
                               autoComplete="email"
                               value={invitedEmail || undefined}
                               readOnly={Boolean(invitedEmail)}
-                              disabled={Boolean(invitedEmail)}
                               aria-readonly={Boolean(invitedEmail)}
                             />
                             {invitedEmail ? (

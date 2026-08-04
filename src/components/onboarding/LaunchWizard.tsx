@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -813,11 +814,10 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               <Label htmlFor="phone" className={launchLabelClass}>
                                 Phone number
                               </Label>
-                              <Input
+                              <GhanaPhoneInput
                                 id="phone"
                                 value={phone}
                                 onChange={(event) => setPhone(event.target.value)}
-                                placeholder="+233 XX XXX XXXX"
                                 className={launchInputClass}
                               />
                             </div>

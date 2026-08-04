@@ -18,6 +18,7 @@ import mongoose from "mongoose";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 
@@ -220,7 +221,11 @@ export async function POST(req: NextRequest) {
       error?: string;
     }> = [];
 
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrlForEmail = (email: string) =>
+      withInvitedEmail(
+        `${getInvitationRedirectUrl()}?next=${encodeURIComponent("/teacher")}`,
+        email
+      );
 
     // Fetch school name for emails
     const school = await School.findById(schoolIdObj).select("name").lean();
@@ -557,6 +562,7 @@ export async function POST(req: NextRequest) {
 
         try {
           const clerk = await clerkClient();
+          const redirectUrl = redirectUrlForEmail(normalizedEmail);
           const clerkInvitation = await clerk.invitations.createInvitation({
             emailAddress: normalizedEmail,
             redirectUrl,
@@ -573,7 +579,11 @@ export async function POST(req: NextRequest) {
             name: `${row.firstName} ${row.lastName}`,
             role: "teacher",
             schoolName,
-            setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+            setupLink: getInvitationAcceptUrl(
+              clerkInvitation,
+              redirectUrl,
+              normalizedEmail
+            ),
           });
 
           await sendTrackedBrevoEmail({

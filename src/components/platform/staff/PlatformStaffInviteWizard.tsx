@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Send, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import {
   PLATFORM_PERMISSION_REGISTRY,
   type PlatformPermissionCategory,
@@ -207,11 +208,12 @@ export function PlatformStaffInviteWizard({
             </label>
             <label className="space-y-2">
               <span className="text-sm font-medium text-white/75">Phone</span>
-              <input
+              <GhanaPhoneInput
+                unstyled
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 className="h-11 w-full rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-cyan-300/40"
-                placeholder="+233..."
+                placeholder="+233 24 123 4567"
               />
             </label>
             <label className="space-y-2">

@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 import {
   GHANA_REGIONS,
   type GhanaRegion,
@@ -27,6 +27,9 @@ export interface IApplication {
   policyAcceptedIp?: string | null;
   policyAcceptedUserAgent?: string | null;
   status: "submitted" | "reviewed" | "approved" | "rejected";
+  /** Archived applications stay available to platform admins but leave the active queue. */
+  archivedAt?: Date | null;
+  archivedBy?: Types.ObjectId | null;
   /** Sales / pipeline stage (optional on legacy documents). */
   stage?: ApplicationPipelineStage;
   nextActionAt?: Date | null;
@@ -62,6 +65,8 @@ const applicationSchema = new Schema<IApplication>(
       enum: ["submitted", "reviewed", "approved", "rejected"],
       default: "submitted",
     },
+    archivedAt: { type: Date, default: null, index: true },
+    archivedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     linkedSchoolId: {
       type: Schema.Types.ObjectId,
       ref: "School",
@@ -92,9 +97,21 @@ const applicationSchema = new Schema<IApplication>(
 
 applicationSchema.index({ adminEmail: 1 });
 applicationSchema.index({ status: 1, createdAt: 1 });
+applicationSchema.index({ archivedAt: 1, createdAt: -1 });
 applicationSchema.index({ schoolType: 1 });
 applicationSchema.index({ schoolName: 1 });
 applicationSchema.index({ stage: 1, createdAt: -1 });
 
+// Next.js can retain a compiled Mongoose model during development. Add newly
+// introduced archive fields to that cached schema so archive actions work
+// without requiring a dev-server restart after hot reload.
+const cachedApplicationModel = models.Application as Model<IApplication> | undefined;
+if (cachedApplicationModel && !cachedApplicationModel.schema.path("archivedAt")) {
+  cachedApplicationModel.schema.add({
+    archivedAt: { type: Date, default: null, index: true },
+    archivedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+  });
+}
+
 export const Application =
-  models.Application || model<IApplication>("Application", applicationSchema);
+  cachedApplicationModel || model<IApplication>("Application", applicationSchema);

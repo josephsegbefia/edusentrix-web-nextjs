@@ -58,8 +58,8 @@ async function buildActiveSchoolUser(context: ActiveSchoolContext) {
     .select("email name firstName lastName avatarUrl pendingOnboarding termsAccepted privacyAccepted termsVersion privacyVersion createdAt updatedAt")
     .lean();
   const name =
-    user?.name ||
     [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+    user?.name ||
     undefined;
   const role = primaryRoleForMembership(context.roles);
 

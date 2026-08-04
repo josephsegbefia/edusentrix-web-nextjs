@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateStudentSchema, CreateStudentInput } from "@/schemas/student";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useToast } from "@/hooks/useToast";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useClassGroupOptions } from "@/hooks/admin/useClassGroupOptions";
 import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
@@ -40,6 +41,15 @@ type Props = {
   onClose: () => void;
   onSubmit: (payload: CreateStudentInput) => Promise<void> | void;
   isLoading?: boolean;
+};
+
+type StudentIdPatternDraft = {
+  template: string;
+  source: "leo" | "standard";
+  explanation?: string | null;
+  requiredFields: Array<
+    "firstName" | "lastName" | "dateOfBirth" | "enrolledAt" | "gradeId" | "classGroupId"
+  >;
 };
 
 const STEPS = [
@@ -90,20 +100,22 @@ export default function CreateStudentModal({
   isLoading,
 }: Props) {
   const busy = useBusyToast();
-  const { success: toastSuccess } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { me } = useAuth();
   const [currentStep, setCurrentStep] = React.useState(1);
   const { data: grades = [], isLoading: loadingGrades } = useGradeOptions();
 
   const [patternHint, setPatternHint] = React.useState("");
+  const [showLeoPatternDesigner, setShowLeoPatternDesigner] = React.useState(false);
   const [generatingId, setGeneratingId] = React.useState(false);
   const [idGenerated, setIdGenerated] = React.useState(false);
+  const [manualAdmissionOverride, setManualAdmissionOverride] = React.useState(false);
+  const [savedPattern, setSavedPattern] = React.useState<StudentIdPatternDraft | null>(null);
+  const [loadingPatternSettings, setLoadingPatternSettings] = React.useState(true);
+  const [patternMissingFields, setPatternMissingFields] = React.useState<string[]>([]);
   const [idBreakdown, setIdBreakdown] = React.useState<{
-    schoolPrefix: string;
-    enrollYear: string;
-    birthMonth: string;
-    initials: string;
-    sequence: string;
+    [key: string]: string;
   } | null>(null);
   const [idLeoExplanation, setIdLeoExplanation] = React.useState<string | null>(
     null
@@ -141,6 +153,7 @@ export default function CreateStudentModal({
   const lastName = useWatch({ control, name: "lastName" });
   const dateOfBirth = useWatch({ control, name: "dateOfBirth" });
   const admissionNo = useWatch({ control, name: "admissionNo" });
+  const enrolledAt = useWatch({ control, name: "enrolledAt" });
   const subjectAddIds = useWatch({ control, name: "subjectAddIds" }) ?? [];
   const subjectRemoveIds =
     useWatch({ control, name: "subjectRemoveIds" }) ?? [];
@@ -156,24 +169,91 @@ export default function CreateStudentModal({
     }
   }, [gradeId, resetField]);
 
-  // Auto-generate student ID when name + DOB are available and no ID has been generated yet
-  const autoGenRef = React.useRef(false);
+  const autoGenSignatureRef = React.useRef("");
+  const programmaticAdmissionWriteRef = React.useRef(false);
+
+  const missingFieldLabels: Record<string, string> = React.useMemo(
+    () => ({
+      firstName: "first name",
+      lastName: "last name",
+      dateOfBirth: "date of birth",
+      enrolledAt: "enrolment date",
+      gradeId: "grade",
+      classGroupId: "class group",
+    }),
+    []
+  );
+
+  const persistGeneratedAdmissionNo = React.useCallback(
+    (value: string) => {
+      programmaticAdmissionWriteRef.current = true;
+      setValue("admissionNo", value, { shouldValidate: true, shouldDirty: true });
+      queueMicrotask(() => {
+        programmaticAdmissionWriteRef.current = false;
+      });
+    },
+    [setValue]
+  );
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/students/generate-id", {
+          cache: "no-store",
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) return;
+        if (!cancelled) {
+          setSavedPattern(json.data?.savedPattern ?? null);
+          setShowLeoPatternDesigner(false);
+        }
+      } finally {
+        if (!cancelled) setLoadingPatternSettings(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   React.useEffect(() => {
     if (
       firstName?.trim() &&
       lastName?.trim() &&
-      dateOfBirth &&
-      !idGenerated &&
-      !autoGenRef.current &&
-      !admissionNo?.trim()
+      !manualAdmissionOverride
     ) {
-      autoGenRef.current = true;
-      void generateStudentId();
+      const signature = JSON.stringify({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dateOfBirth: dateOfBirth?.toISOString?.() ?? null,
+        enrolledAt: enrolledAt ?? null,
+        gradeId: gradeId ?? null,
+        classGroupId: classGroupId ?? null,
+        savedTemplate: savedPattern?.template ?? "standard",
+      });
+      if (autoGenSignatureRef.current !== signature) {
+        autoGenSignatureRef.current = signature;
+        void generateStudentId();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstName, lastName, dateOfBirth]);
+  }, [firstName, lastName, dateOfBirth, enrolledAt, gradeId, classGroupId, savedPattern, manualAdmissionOverride]);
 
-  async function generateStudentId(opts?: { useLeo?: boolean }) {
+  async function savePatternDraft(patternDraft: StudentIdPatternDraft) {
+    const res = await fetch("/api/admin/students/generate-id", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ patternDraft }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.error || "Failed to save student ID pattern");
+    }
+    setSavedPattern(patternDraft);
+  }
+
+  async function generateStudentId(opts?: { useLeo?: boolean; forceStandard?: boolean }) {
     const fn = watch("firstName")?.trim();
     const ln = watch("lastName")?.trim();
     const dob = watch("dateOfBirth");
@@ -197,9 +277,21 @@ export default function CreateStudentModal({
         firstName: fn,
         lastName: ln,
         dateOfBirth: dob ? dob.toISOString() : undefined,
+        enrolledAt: watch("enrolledAt") || undefined,
+        gradeId: watch("gradeId") || undefined,
+        classGroupId: watch("classGroupId") || undefined,
       };
       if (opts?.useLeo) {
         body.patternHint = patternHint.trim();
+      }
+      if (opts?.forceStandard) {
+        body.patternDraft = {
+          template: "{schoolPrefix}-{enrollYear2}{birthMonth2}-{initials}-{sequence4}",
+          source: "standard",
+          requiredFields: ["firstName", "lastName", "dateOfBirth"],
+          explanation:
+            "School prefix + enrolment year + birth month + initials + sequence number.",
+        };
       }
 
       const res = await fetch("/api/admin/students/generate-id", {
@@ -214,21 +306,50 @@ export default function CreateStudentModal({
 
       const data = await res.json();
       if (data.success) {
-        setValue("admissionNo", data.admissionNo, { shouldValidate: true });
-        setIdGenerated(true);
-        setIdBreakdown(data.breakdown ?? null);
+        const returnedPattern = data.patternDraft ?? null;
+        setPatternMissingFields(Array.isArray(data.missingFields) ? data.missingFields : []);
         setIdLeoExplanation(
-          typeof data.leoExplanation === "string" ? data.leoExplanation : null
+          typeof data.leoExplanation === "string"
+            ? data.leoExplanation
+            : returnedPattern?.explanation || null
         );
-        if (typeof data.leoFallbackNote === "string" && data.leoFallbackNote) {
-          toastSuccess("Student ID", {
-            description: data.leoFallbackNote,
+        setIdBreakdown(data.breakdown ?? null);
+
+        if (typeof data.admissionNo === "string" && data.admissionNo.trim()) {
+          persistGeneratedAdmissionNo(data.admissionNo);
+          setIdGenerated(true);
+          setManualAdmissionOverride(false);
+        }
+
+        if (
+          opts?.useLeo &&
+          data.requiresSaveConfirmation &&
+          returnedPattern &&
+          !savedPattern
+        ) {
+          const result = await confirm({
+            title: "Save this student ID pattern for future students?",
+            description:
+              "This Leo-designed pattern will become the default for this school. Future student records will use it automatically, but admins can still type a custom ID when needed.",
+            confirmLabel: "Save as school default",
+            cancelLabel: "Keep one-time only",
+            intent: "default",
           });
+          if (result === "confirm") {
+            await savePatternDraft(returnedPattern);
+            toastSuccess("Student ID pattern saved", {
+              description: "Future student IDs will use this school default automatically.",
+            });
+          }
         }
       }
     } catch (e) {
       console.error("Failed to generate student ID:", e);
-      autoGenRef.current = false;
+      if (opts?.useLeo) {
+        toastError("Student ID", {
+          description: e instanceof Error ? e.message : "Failed to generate student ID",
+        });
+      }
     } finally {
       setGeneratingId(false);
     }
@@ -477,22 +598,73 @@ export default function CreateStudentModal({
                 </div>
 
                 <LeoCallout>
-                  <p className="mb-2 font-medium text-violet-100">
-                    Describe a pattern for{" "}
-                    <span className="font-semibold text-violet-200">Leo</span>
-                  </p>
-                  <p className="mb-2 text-[11px] text-white/70 sm:text-xs">
-                    Example: “First 3 letters of school name + birth year + last 4
-                    digits of phone” or “GES-style: district code + sequential”.
-                    Leave blank and use Standard format for the built-in template.
-                  </p>
-                  <Textarea
-                    value={patternHint}
-                    onChange={(e) => setPatternHint(e.target.value)}
-                    placeholder='e.g. "SAS + 2-digit year + student initials + random 3 digits"'
-                    className="min-h-[72px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
-                  />
+                  {savedPattern ? (
+                    <>
+                      <p className="mb-2 font-medium text-violet-100">
+                        School default student ID pattern is active
+                      </p>
+                      <p className="mb-2 text-[11px] text-white/70 sm:text-xs">
+                        Leo will reuse this school-scoped pattern automatically for new students whenever the required form fields are available.
+                      </p>
+                      <div className="rounded-lg border border-violet-400/20 bg-black/20 px-3 py-2 font-mono text-[11px] text-violet-100/90">
+                        {savedPattern.template}
+                      </div>
+                      {savedPattern.explanation ? (
+                        <p className="mt-2 text-[11px] text-white/65 sm:text-xs">
+                          {savedPattern.explanation}
+                        </p>
+                      ) : null}
+                      {patternMissingFields.length > 0 ? (
+                        <p className="mt-2 text-[11px] text-amber-200/90 sm:text-xs">
+                          Complete{" "}
+                          {patternMissingFields
+                            .map((field) => missingFieldLabels[field] || field)
+                            .join(", ")}{" "}
+                          to generate this school’s default ID.
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <p className="mb-2 font-medium text-violet-100">
+                        Describe a pattern for{" "}
+                        <span className="font-semibold text-violet-200">Leo</span>
+                      </p>
+                      <p className="mb-2 text-[11px] text-white/70 sm:text-xs">
+                        Leo can define a reusable school default from the student fields available in this form, then reuse it on future student records.
+                      </p>
+                    </>
+                  )}
+
+                  {(showLeoPatternDesigner || !savedPattern) && (
+                    <Textarea
+                      value={patternHint}
+                      onChange={(e) => setPatternHint(e.target.value)}
+                      placeholder='e.g. "School prefix + class code + enrolment year + sequence"'
+                      className="min-h-[72px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                    />
+                  )}
                   <div className="mt-2 flex flex-wrap gap-2">
+                    {savedPattern && !showLeoPatternDesigner ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={generatingId || loadingPatternSettings}
+                        onClick={() => {
+                          autoGenSignatureRef.current = "";
+                          void generateStudentId();
+                        }}
+                        className="gap-1.5 border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+                      >
+                        {generatingId ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        Use school default
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
@@ -501,7 +673,7 @@ export default function CreateStudentModal({
                         generatingId || !firstName?.trim() || !lastName?.trim()
                       }
                       onClick={() => {
-                        autoGenRef.current = false;
+                        autoGenSignatureRef.current = "";
                         void generateStudentId({ useLeo: true });
                       }}
                       className="gap-1.5 border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
@@ -511,17 +683,30 @@ export default function CreateStudentModal({
                       ) : (
                         <Sparkles className="h-3.5 w-3.5" />
                       )}
-                      Suggest with Leo
+                      {savedPattern ? "Redesign with Leo" : "Suggest with Leo"}
                     </Button>
+                    {savedPattern ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setShowLeoPatternDesigner((current) => !current)
+                        }
+                        className="h-8 gap-1.5 text-[11px] text-white/75 hover:bg-white/10"
+                      >
+                        {showLeoPatternDesigner ? "Hide Leo designer" : "Design a new default"}
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        autoGenRef.current = false;
+                        autoGenSignatureRef.current = "";
                         setIdGenerated(false);
                         setIdLeoExplanation(null);
-                        void generateStudentId();
+                        void generateStudentId({ forceStandard: true });
                       }}
                       disabled={generatingId || !firstName?.trim() || !lastName?.trim()}
                       className="h-8 gap-1.5 text-[11px] text-brand hover:bg-brand/10"
@@ -531,15 +716,38 @@ export default function CreateStudentModal({
                       ) : (
                         <Wand2 className="h-3 w-3" />
                       )}
-                      Standard format
+                      Use standard format
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setManualAdmissionOverride(true);
+                        setIdGenerated(false);
+                        setPatternMissingFields([]);
+                      }}
+                      className="h-8 gap-1.5 text-[11px] text-white/75 hover:bg-white/10"
+                    >
+                      Use custom ID instead
                     </Button>
                   </div>
+                  <p className="mt-2 text-[11px] text-white/60 sm:text-xs">
+                    Even when a school default exists, you can still overwrite the generated ID with a custom one.
+                  </p>
                 </LeoCallout>
 
                 <div className="relative">
                   <Input
                     id="admissionNo"
-                    {...register("admissionNo")}
+                    {...register("admissionNo", {
+                      onChange: () => {
+                        if (!programmaticAdmissionWriteRef.current) {
+                          setManualAdmissionOverride(true);
+                          setIdGenerated(false);
+                        }
+                      },
+                    })}
                     placeholder={
                       generatingId
                         ? "Generating…"
@@ -571,7 +779,7 @@ export default function CreateStudentModal({
                 {idBreakdown &&
                   idGenerated &&
                   !idLeoExplanation &&
-                  idBreakdown.enrollYear !== "—" && (
+                  idBreakdown.enrollYear2 && (
                     <motion.div
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -587,11 +795,11 @@ export default function CreateStudentModal({
                         </span>{" "}
                         (school) —{" "}
                         <span className="font-mono">
-                          {idBreakdown.enrollYear}
+                          {idBreakdown.enrollYear2}
                         </span>{" "}
                         (year) —{" "}
                         <span className="font-mono">
-                          {idBreakdown.birthMonth}
+                          {idBreakdown.birthMonth2}
                         </span>{" "}
                         (birth month) —{" "}
                         <span className="font-mono">
@@ -599,7 +807,7 @@ export default function CreateStudentModal({
                         </span>{" "}
                         (initials) —{" "}
                         <span className="font-mono">
-                          {idBreakdown.sequence}
+                          {idBreakdown.sequence4}
                         </span>{" "}
                         (seq)
                       </div>
@@ -1117,6 +1325,7 @@ export default function CreateStudentModal({
         </div>
       </div>
     </form>
+    {confirmationDialog}
     </TooltipProvider>
   );
 }

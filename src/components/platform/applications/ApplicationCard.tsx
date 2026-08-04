@@ -14,6 +14,7 @@ import { RejectionModal } from "./RejectionModal";
 
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { APPLICATIONS_NAV_PENDING_QUERY_KEY } from "@/components/platform/ApplicationsNavPendingBadge";
 
 export type ApplicationStatus = "pending" | "approved" | "rejected";
@@ -26,6 +27,7 @@ export type Application = {
   region?: string;
   admin: { name?: string; email: string; phone?: string };
   status: ApplicationStatus;
+  archivedAt?: string | null;
   createdAt: string; // ISO
   pipelineStage?: string;
   pipelineStageLabel?: string;
@@ -50,6 +52,7 @@ export default function ApplicationCard({
 }) {
   const qc = useQueryClient();
   const { promise, error } = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
 
   const approve = useMutation({
@@ -132,6 +135,42 @@ export default function ApplicationCard({
     },
   });
 
+  const archive = useMutation({
+    mutationFn: async (archived: boolean) => {
+      const req = fetch(`/api/platform/applications/${application._id}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived }),
+      }).then(async (res) => {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        if (!res.ok) throw new Error(body.error || "Could not update archive");
+        return body;
+      });
+      await promise(req, {
+        loading: archived ? "Archiving…" : "Restoring…",
+        success: archived ? "Application archived" : "Application restored",
+        error: archived ? "Archive failed" : "Restore failed",
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
+      qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
+    },
+  });
+
+  const handleArchive = async () => {
+    const isArchived = Boolean(application.archivedAt);
+    const result = await confirm({
+      title: isArchived ? "Restore application" : "Archive application",
+      description: isArchived
+        ? "This will return the application to the active queue."
+        : "This keeps the application and its history in the archived queue, separate from active applications.",
+      confirmLabel: isArchived ? "Restore" : "Archive",
+      intent: isArchived ? "default" : "warning",
+    });
+    if (result === "confirm") archive.mutate(!isArchived);
+  };
+
   const statusColor = {
     pending: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
     approved: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -159,7 +198,7 @@ export default function ApplicationCard({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
             <Badge className={`${statusColor} px-3 py-1 capitalize`} variant="outline">
-              {application.status}
+              {application.status === "approved" ? "Accepted" : application.status}
             </Badge>
             {pipelineLabel ? (
               <Badge
@@ -211,11 +250,11 @@ export default function ApplicationCard({
         </div>
       </div>
 
-      <div className="relative z-10 mt-6 flex items-center justify-between gap-3">
+      <div className="relative z-10 mt-6 flex flex-wrap items-center justify-between gap-3">
         <Button variant="secondary" onClick={onOpen} className="flex-1">
           View Details
         </Button>
-        <div className="flex flex-1 justify-end gap-2">
+        <div className="flex flex-1 flex-wrap justify-end gap-2">
           <Button
             variant="outline"
             onClick={() => setRejectionModalOpen(true)}
@@ -227,7 +266,19 @@ export default function ApplicationCard({
             onClick={() => approve.mutate()}
             disabled={application.status !== "pending" || approve.isPending}
           >
-            Approve
+            Accept
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => void handleArchive()}
+            disabled={
+              archive.isPending ||
+              (!application.archivedAt &&
+                application.status !== "approved" &&
+                application.status !== "rejected")
+            }
+          >
+            {application.archivedAt ? "Restore" : "Archive"}
           </Button>
         </div>
       </div>
@@ -237,6 +288,7 @@ export default function ApplicationCard({
         onConfirm={(reason) => reject.mutate(reason)}
         isPending={reject.isPending}
       />
+      {confirmationDialog}
     </Card>
   );
 }

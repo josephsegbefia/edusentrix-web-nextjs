@@ -27,6 +27,7 @@ import { renderTemplate } from "@/lib/email/templates";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
@@ -239,7 +240,10 @@ async function inviteParentIfNeeded(args: {
     .lean<{ _id: Types.ObjectId } | null>();
   if (existingPendingInvite) return false;
 
-  const redirectUrl = getInvitationRedirectUrl();
+  const redirectUrl = withInvitedEmail(
+    getInvitationRedirectUrl(),
+    args.emailLower
+  );
   let clerkInvitationId: string | undefined;
   let invitationStatus: "pending" | "failed" = "pending";
   let acceptUrl: string | null = null;
@@ -257,7 +261,11 @@ async function inviteParentIfNeeded(args: {
       ignoreExisting: true,
     });
     clerkInvitationId = clerkInvitation.id;
-    acceptUrl = getInvitationAcceptUrl(clerkInvitation, redirectUrl);
+    acceptUrl = getInvitationAcceptUrl(
+      clerkInvitation,
+      redirectUrl,
+      args.emailLower
+    );
 
     const rendered = renderTemplate("USER_INVITE", {
       name: `${args.guardianFirstName} ${args.guardianLastName}`.trim() || "Parent",

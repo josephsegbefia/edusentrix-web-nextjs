@@ -41,7 +41,7 @@ export default function MetricsPanel() {
         accent="from-amber-500/25 via-amber-500/10 to-transparent"
       />
       <MetricCard
-        label="Approved Applications"
+        label="Accepted Applications"
         value={m.approved}
         accent="from-emerald-500/20 via-emerald-500/5 to-transparent"
       />

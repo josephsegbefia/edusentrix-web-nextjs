@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -271,10 +272,9 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                     <Phone className="h-3.5 w-3.5" />
                     Phone (optional)
                   </Label>
-                  <Input
+                  <GhanaPhoneInput
                     id="phone"
                     {...register("phone")}
-                    placeholder="+233 XX XXX XXXX"
                     className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.phone && (

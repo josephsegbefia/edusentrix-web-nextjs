@@ -8,6 +8,7 @@ import type { ISchool } from "@/models/School";
 import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 import { schoolIdFromClerkMetadata } from "@/lib/auth/resolveTenantUserForClerkSession";
 import { resolveOnboardingSchoolForUser } from "@/lib/onboarding/resolve-onboarding-school";
+import { syncClerkNameFromAppUser } from "@/lib/auth/sync-clerk-name";
 
 export type OnboardingSchoolActorResult =
   | {
@@ -55,6 +56,14 @@ export async function requireOnboardingSchoolActor(
       avatarUrl: clerkUser.imageUrl,
       role: roleFromMetadata,
       schoolId: schoolIdFromClerkMetadata(clerkUser),
+    });
+    await syncClerkNameFromAppUser({
+      clerkUserId,
+      currentClerkFirstName: clerkUser.firstName,
+      currentClerkLastName: clerkUser.lastName,
+      appFirstName: appUser.firstName,
+      appLastName: appUser.lastName,
+      appDisplayName: appUser.name,
     });
   } catch (error) {
     const message =

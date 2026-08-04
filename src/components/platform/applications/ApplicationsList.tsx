@@ -19,6 +19,7 @@ function useFilters() {
       q: s.get("q") ?? undefined,
       range: s.get("range") ?? "30d",
       pipelineStage: s.get("pipelineStage") ?? "all",
+      visibility: s.get("visibility") ?? "active",
     }),
     [s]
   );
@@ -54,6 +55,9 @@ export default function ApplicationsList() {
       if (filters.range) params.set("range", filters.range);
       if (filters.pipelineStage && filters.pipelineStage !== "all") {
         params.set("pipelineStage", filters.pipelineStage);
+      }
+      if (filters.visibility && filters.visibility !== "active") {
+        params.set("visibility", filters.visibility);
       }
       params.set("limit", "20");
 

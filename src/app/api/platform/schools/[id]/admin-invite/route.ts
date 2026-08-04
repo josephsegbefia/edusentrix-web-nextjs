@@ -10,6 +10,7 @@ import { trackUsage } from "@/lib/billing/trackUsage";
 import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
@@ -102,7 +103,10 @@ export async function POST(
     }
 
     const adminEmail = adminUser.email.toLowerCase().trim();
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrl = withInvitedEmail(
+      getInvitationRedirectUrl(),
+      adminEmail
+    );
     const clerk = await clerkClient();
     const clerkInvitation = await clerk.invitations.createInvitation({
       emailAddress: adminEmail,
@@ -117,7 +121,11 @@ export async function POST(
 
     const rendered = renderTemplate("SCHOOL_INVITE", {
       schoolName: school.name || "your school",
-      setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+      setupLink: getInvitationAcceptUrl(
+        clerkInvitation,
+        redirectUrl,
+        adminEmail
+      ),
     });
 
     await sendTrackedBrevoEmail({

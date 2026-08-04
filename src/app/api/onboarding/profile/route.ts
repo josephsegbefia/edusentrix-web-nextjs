@@ -65,6 +65,7 @@ export async function POST(req: Request) {
         { _id: appUser._id },
         {
           $set: {
+            name: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
             firstName: parsed.data.firstName,
             lastName: parsed.data.lastName,
             phone: parsed.data.phone ?? null,
@@ -80,6 +81,11 @@ export async function POST(req: Request) {
       if (result.matchedCount === 0) {
         throw new MongoTransactionError("User not found", 404);
       }
+    });
+
+    await clerk.users.updateUser(userId, {
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
     });
   } catch (error) {
     if (error instanceof MongoTransactionError) {

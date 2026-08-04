@@ -18,6 +18,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -547,10 +548,9 @@ export default function CreateTeacherModal({
                     >
                       Phone
                     </Label>
-                    <Input
+                    <GhanaPhoneInput
                       id="phone"
                       {...register("phone")}
-                      placeholder="+233 XX XXX XXXX"
                       className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>

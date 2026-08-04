@@ -12,9 +12,11 @@ function getRequestOrigin(req: NextRequest) {
 }
 
 function isDevTeacherLoginBypassEnabled() {
+  const hasResendConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
   return (
     process.env.NODE_ENV !== "production" &&
-    process.env.E2E_TEACHER_LOGIN_BYPASS_ENABLED === "true"
+    process.env.E2E_TEACHER_LOGIN_BYPASS_ENABLED === "true" &&
+    !hasResendConfigured
   );
 }
 

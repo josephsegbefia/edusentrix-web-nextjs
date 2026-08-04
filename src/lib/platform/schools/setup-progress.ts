@@ -10,7 +10,7 @@ import { School } from "@/models/School";
 import { Student } from "@/models/Student";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
-import { User } from "@/models/User";
+import { UserMembership } from "@/models/UserMembership";
 import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 
 export type SchoolSetupProgressItem = {
@@ -52,7 +52,11 @@ export async function getSchoolSetupProgress(
     Grade.countDocuments({ schoolId: schoolObjectId }),
     ClassGroup.countDocuments({ schoolId: schoolObjectId }),
     SubjectOffering.countDocuments({ schoolId: schoolObjectId, isActive: true }),
-    User.countDocuments({ schoolId: schoolObjectId, role: "school_admin" }),
+    UserMembership.countDocuments({
+      schoolId: schoolObjectId,
+      roles: "school_admin",
+      status: { $in: ["active", "invited"] },
+    }),
     Teacher.countDocuments({ schoolId: schoolObjectId }),
     Student.countDocuments({ schoolId: schoolObjectId }),
     Student.find({ schoolId: schoolObjectId }).select("_id").lean<Array<{ _id: Types.ObjectId }>>(),

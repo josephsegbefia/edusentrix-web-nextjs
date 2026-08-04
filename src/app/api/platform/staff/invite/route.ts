@@ -15,7 +15,11 @@ import {
   PLATFORM_ROLE_PRESETS,
   PLATFORM_STAFF_ROLE_PRESETS,
 } from "@/lib/platform/permissions/presets";
-import { getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+  withInvitedEmail,
+} from "@/lib/utils/getAppUrl";
 import { PlatformAuditLog } from "@/models/PlatformAuditLog";
 import { PlatformStaffProfile } from "@/models/PlatformStaffProfile";
 import { User } from "@/models/User";
@@ -137,7 +141,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrl = withInvitedEmail(
+      getInvitationRedirectUrl(),
+      input.email
+    );
     const clerk = await clerkClient();
     const invitation = (await clerk.invitations.createInvitation({
       emailAddress: input.email,
@@ -150,7 +157,11 @@ export async function POST(req: NextRequest) {
       ignoreExisting: true,
     })) as Invitation;
 
-    const acceptUrl = invitation.url?.trim();
+    const acceptUrl = getInvitationAcceptUrl(
+      invitation,
+      redirectUrl,
+      input.email
+    );
     if (!acceptUrl) {
       return NextResponse.json(
         {

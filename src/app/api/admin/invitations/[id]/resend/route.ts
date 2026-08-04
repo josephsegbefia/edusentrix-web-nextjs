@@ -13,6 +13,7 @@ import {
   getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import {
   assignPendingBillingOwnerInvitation,
@@ -79,14 +80,18 @@ export async function POST(
 
     // Resend via Clerk
     const APP_URL = getAppUrl();
-    const redirectUrl =
+    const redirectUrl = withInvitedEmail(
+      (
       invitation.role === "billing_owner" ||
       (invitation.role === "bursar" &&
         invitation.metadata?.accessSurface === "payment_setup_delegate")
         ? `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
             "/admin/settings/payment-setup"
           )}`
-        : getInvitationRedirectUrl();
+        : getInvitationRedirectUrl()
+      ),
+      invitation.email
+    );
 
     try {
       const clerk = await clerkClient();
@@ -123,7 +128,11 @@ export async function POST(
         name: recipientName,
         role: displayRole,
         schoolName,
-        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+        setupLink: getInvitationAcceptUrl(
+          clerkInvitation,
+          redirectUrl,
+          invitation.email
+        ),
       });
 
       const templateKey =

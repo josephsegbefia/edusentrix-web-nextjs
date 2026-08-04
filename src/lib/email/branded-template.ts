@@ -4,7 +4,35 @@ import { getAppUrl } from "@/lib/utils/getAppUrl";
 
 const BRAND_MARKER = "edusentrix-branded-email";
 const APP_URL = getAppUrl();
-const EDUSENTRIX_LOGO_URL = `${APP_URL}${EDUSENTRIX_LOGO_PATH}`;
+
+/**
+ * Email can be rendered by a developer's local server as well as the deployed
+ * app. Assets in a recipient's inbox must always be publicly reachable, so a
+ * localhost APP_URL must never be used for an email image.
+ */
+function getEmailAssetOrigin() {
+  const configuredOrigin = process.env.EMAIL_ASSET_ORIGIN?.trim();
+  const candidate = configuredOrigin || APP_URL;
+
+  try {
+    const url = new URL(candidate);
+    const isLocalHost =
+      url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1" ||
+      url.hostname === "::1";
+
+    if (url.protocol === "https:" && !isLocalHost) {
+      return url.origin;
+    }
+  } catch {
+    // Fall through to the canonical public domain below.
+  }
+
+  return "https://tryedusentrix.app";
+}
+
+const EMAIL_ASSET_ORIGIN = getEmailAssetOrigin();
+const EDUSENTRIX_LOGO_URL = `${EMAIL_ASSET_ORIGIN}${EDUSENTRIX_LOGO_PATH}`;
 
 type EmailTone = "default" | "success" | "warning" | "danger" | "billing";
 
@@ -99,9 +127,20 @@ export function isBrandedEmailHtml(html: string) {
 function absoluteAssetUrl(url: string | null | undefined) {
   const value = url?.trim();
   if (!value) return null;
-  if (/^(https?:|data:)/i.test(value)) return value;
-  if (value.startsWith("/")) return `${APP_URL}${value}`;
-  return value;
+  if (/^data:/i.test(value)) return value;
+
+  try {
+    const parsed = new URL(value);
+    const isLocalHost =
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "::1";
+
+    return isLocalHost ? null : value;
+  } catch {
+    if (value.startsWith("/")) return `${EMAIL_ASSET_ORIGIN}${value}`;
+    return null;
+  }
 }
 
 function applyBrandingToExistingHtml(

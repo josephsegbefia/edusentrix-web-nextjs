@@ -31,6 +31,7 @@ type Ok<T> = { success: true; data: T };
 type Fail = { success: false; error: string };
 
 function daysAgoToDate(key?: string | null) {
+  if (key === "all") return null;
   const now = new Date();
   const map: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
   const d = map[key ?? ""] ?? 30;
@@ -50,6 +51,12 @@ function buildStatusFilter(uiStatus?: string | null) {
   return undefined;
 }
 
+function buildArchiveFilter(visibility?: string | null) {
+  if (visibility === "archived") return { $ne: null };
+  if (visibility === "all") return undefined;
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const status = url.searchParams.get("status"); // pending|approved|rejected|all
@@ -57,6 +64,7 @@ export async function GET(req: NextRequest) {
   const q = url.searchParams.get("q")?.trim();
   const range = url.searchParams.get("range"); // 7d|30d|90d
   const pipelineStage = url.searchParams.get("pipelineStage"); // pipeline stage filter
+  const visibility = url.searchParams.get("visibility"); // active|archived|all
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 100);
   const cursor = url.searchParams.get("cursor"); // last _id string
 
@@ -78,10 +86,12 @@ export async function GET(req: NextRequest) {
 
   const statusFilter = buildStatusFilter(status);
   if (statusFilter) clauses.push({ status: statusFilter });
+  const archiveFilter = buildArchiveFilter(visibility);
+  if (archiveFilter !== undefined) clauses.push({ archivedAt: archiveFilter });
   if (type && type !== "all") clauses.push({ schoolType: type });
 
   const from = daysAgoToDate(range);
-  clauses.push({ createdAt: { $gte: from } });
+  if (from) clauses.push({ createdAt: { $gte: from } });
 
   if (q) {
     const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
@@ -159,6 +169,7 @@ export async function GET(req: NextRequest) {
         d.status === "submitted" || d.status === "reviewed"
           ? "pending"
           : d.status, // normalize
+      archivedAt: d.archivedAt ? new Date(d.archivedAt).toISOString() : null,
       createdAt: d.createdAt.toISOString(),
       pipelineStage: effectiveStage,
       pipelineStageLabel: PIPELINE_STAGE_LABELS[effectiveStage],
@@ -268,28 +279,51 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    try {
-      const rendered = renderTemplate("APPLICATION_RECEIVED", {
-        name: `${app.adminFirstName}`,
-      });
+    const rendered = renderTemplate("APPLICATION_RECEIVED", {
+      name: `${app.adminFirstName}`,
+    });
+    const confirmationInput = {
+      to: `${app.adminEmail}`,
+      toName: [app.adminFirstName, app.adminLastName].filter(Boolean).join(" ") || undefined,
+      subject: rendered.subject,
+      htmlContent: rendered.htmlContent,
+      textContent: rendered.textContent,
+      templateKey: "APPLICATION_RECEIVED",
+      relatedEntityType: "application",
+      relatedEntityId: String(app._id),
+    } as const;
 
-      await sendTrackedBrevoEmail({
-        to: `${app.adminEmail}`,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey: "APPLICATION_RECEIVED",
-        relatedEntityType: "application",
-        relatedEntityId: String(app._id),
-      });
+    let emailStatus: "sent" | "queued" | "failed" = "failed";
+    try {
+      const result = await sendTrackedBrevoEmail(confirmationInput);
+      emailStatus = result.status === "sent" || result.status === "queued"
+        ? result.status
+        : "failed";
     } catch (emailError) {
       console.error(
-        "POST /api/platform/applications - Email send failed:",
+        "POST /api/platform/applications - Immediate confirmation email failed; queueing retry:",
         emailError
       );
+      try {
+        const queued = await sendTrackedBrevoEmail({
+          ...confirmationInput,
+          async: true,
+        });
+        emailStatus = queued.status === "queued" ? "queued" : "failed";
+      } catch (queueError) {
+        console.error(
+          "POST /api/platform/applications - Could not queue confirmation email:",
+          queueError,
+        );
+      }
     }
 
-    return NextResponse.json({ success: true, id: app._id, app: app });
+    return NextResponse.json({
+      success: true,
+      id: app._id,
+      app,
+      emailStatus,
+    });
   } catch (error) {
     console.error("POST /api/platform/applications - Error:", error);
     console.error(

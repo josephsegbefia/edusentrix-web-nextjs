@@ -41,24 +41,31 @@ export function getInvitationRedirectUrl(): string {
   return `${getAppUrl()}/sign-up`;
 }
 
+export function withInvitedEmail(url: string, invitedEmail?: string | null): string {
+  const normalizedEmail = invitedEmail?.trim();
+  if (!normalizedEmail) return url;
+
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("invited_email", normalizedEmail);
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}invited_email=${encodeURIComponent(normalizedEmail)}`;
+  }
+}
+
 export function getInvitationAcceptUrl(
   invitation:
     | { url?: string | null; emailAddress?: string | null }
     | null
     | undefined,
-  fallbackUrl?: string | null
+  fallbackUrl?: string | null,
+  explicitInvitedEmail?: string | null
 ): string {
-  const invitedEmail = invitation?.emailAddress?.trim();
+  const invitedEmail =
+    explicitInvitedEmail?.trim() || invitation?.emailAddress?.trim();
   const acceptUrl = invitation?.url?.trim();
   const url = acceptUrl || fallbackUrl || getInvitationRedirectUrl();
-  if (!invitedEmail) return url;
-
-  try {
-    const parsed = new URL(url);
-    parsed.searchParams.set("invited_email", invitedEmail);
-    return parsed.toString();
-  } catch {
-    const separator = url.includes("?") ? "&" : "?";
-    return `${url}${separator}invited_email=${encodeURIComponent(invitedEmail)}`;
-  }
+  return withInvitedEmail(url, invitedEmail);
 }

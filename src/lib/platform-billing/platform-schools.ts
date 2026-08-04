@@ -5,6 +5,7 @@ import { School } from "@/models/School";
 import { UsageMetric } from "@/models/UsageMetric";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
 import { User } from "@/models/User";
+import { UserMembership } from "@/models/UserMembership";
 import {
   deriveSchoolPaymentSetupStatus,
   getSchoolPaymentSetupMeta,
@@ -119,7 +120,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   }
 
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const [school, usageMetrics, latestProvisioningJob, setupProgress, adminUser] =
+  const [school, usageMetrics, latestProvisioningJob, setupProgress, adminMembership, legacyAdminUser] =
     await Promise.all([
     School.findById(schoolIdObj)
       .select(
@@ -213,6 +214,14 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         updatedAt?: Date;
       } | null>(),
     getSchoolSetupProgress(schoolIdObj),
+    UserMembership.findOne({
+      schoolId: schoolIdObj,
+      roles: "school_admin",
+      status: { $in: ["active", "invited"] },
+    })
+      .sort({ createdAt: 1 })
+      .select("userId")
+      .lean<{ userId: mongoose.Types.ObjectId } | null>(),
     User.findOne({
       schoolId: schoolIdObj,
       role: "school_admin",
@@ -233,6 +242,21 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   if (!school) {
     return null;
   }
+
+  const memberAdminUser = adminMembership?.userId
+    ? await User.findById(adminMembership.userId)
+        .select("_id email firstName lastName name clerkUserId pendingOnboarding")
+        .lean<{
+          _id: mongoose.Types.ObjectId;
+          email?: string | null;
+          firstName?: string | null;
+          lastName?: string | null;
+          name?: string | null;
+          clerkUserId?: string | null;
+          pendingOnboarding?: boolean | null;
+        } | null>()
+    : null;
+  const adminUser = memberAdminUser || legacyAdminUser;
 
   const feeConfig = resolveTransactionFeeConfigForSchool(
     school.billing?.transactionFees || null

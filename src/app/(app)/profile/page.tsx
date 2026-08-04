@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -331,14 +332,13 @@ export default function ProfilePage() {
                       <Phone className="h-4 w-4" />
                       Phone
                     </Label>
-                    <Input
+                    <GhanaPhoneInput
                       value={form.phone}
                       onChange={(event) =>
                         setForm((current) =>
                           current ? { ...current, phone: event.target.value } : current,
                         )
                       }
-                      placeholder="Optional phone number"
                       className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                     />
                   </div>

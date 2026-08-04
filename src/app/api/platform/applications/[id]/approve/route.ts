@@ -194,6 +194,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
+import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
@@ -210,6 +211,7 @@ import {
   getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 const BodySchema = z.object({
   note: z.string().optional(),
@@ -288,6 +290,8 @@ export async function POST(
       // 2) Local user (by email)
       const adminFullName = `${app.adminFirstName} ${app.adminLastName}`.trim();
       const userEmail = app.adminEmail.toLowerCase();
+      const adminFirstName = String(app.adminFirstName || "").trim();
+      const adminLastName = String(app.adminLastName || "").trim();
 
       const existing = await User.findOne({ email: userEmail })
         .session(session)
@@ -305,6 +309,8 @@ export async function POST(
             $set: {
               email: userEmail,
               name: adminFullName,
+              firstName: adminFirstName || undefined,
+              lastName: adminLastName || undefined,
               phone: app.adminPhone || null,
               role: (existing as { role?: string }).role || "school_admin",
               schoolId: school._id,
@@ -327,6 +333,8 @@ export async function POST(
               email: userEmail,
               // clerkUserId will be added automatically after they accept invite & sign in
               name: adminFullName,
+              firstName: adminFirstName || undefined,
+              lastName: adminLastName || undefined,
               phone: app.adminPhone || null,
               role: "school_admin",
               schoolId: school._id,
@@ -404,12 +412,16 @@ export async function POST(
 
     // 4) Send Clerk invitation (verify + set password)
     const APP_URL = getAppUrl();
-    const redirectUrl = getInvitationRedirectUrl();
 
     try {
       const clerk = await clerkClient();
+      const adminEmail = String(approvedApp.adminEmail || "").trim().toLowerCase();
+      const redirectUrl = withInvitedEmail(
+        getInvitationRedirectUrl(),
+        adminEmail
+      );
       const clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: approvedApp.adminEmail,
+        emailAddress: adminEmail,
         redirectUrl,
         notify: false,
         publicMetadata: {
@@ -421,11 +433,15 @@ export async function POST(
 
       const rendered = renderTemplate("SCHOOL_INVITE", {
         schoolName: approvedApp.schoolName,
-        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+        setupLink: getInvitationAcceptUrl(
+          clerkInvitation,
+          redirectUrl,
+          adminEmail
+        ),
       });
 
       await sendTrackedBrevoEmail({
-        to: approvedApp.adminEmail,
+        to: adminEmail,
         subject: rendered.subject,
         htmlContent: rendered.htmlContent,
         textContent: rendered.textContent,
@@ -437,6 +453,43 @@ export async function POST(
         relatedEntityType: "application",
         relatedEntityId: id,
       });
+
+      if (schoolIdCreated) {
+        const invitationExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await Invitation.findOneAndUpdate(
+          {
+            schoolId: schoolIdCreated,
+            email: adminEmail,
+            role: "school_admin",
+            status: "pending",
+          },
+          {
+            $set: {
+              clerkInvitationId: clerkInvitation.id,
+              sentAt: new Date(),
+              expiresAt: invitationExpiresAt,
+              invitedBy: platformAdminId,
+              metadata: {
+                firstName: approvedApp.adminFirstName || "",
+                lastName: approvedApp.adminLastName || "",
+                applicationId: id,
+                source: "platform_application_approval",
+              },
+            },
+            $setOnInsert: {
+              email: adminEmail,
+              role: "school_admin",
+              schoolId: schoolIdCreated,
+              resendCount: 0,
+            },
+          },
+          {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true,
+          }
+        );
+      }
     } catch (e) {
       console.error(
         "Clerk invitation error (ensure Email identifiers are enabled):",

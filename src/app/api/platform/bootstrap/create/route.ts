@@ -13,7 +13,11 @@ import {
   bootstrapKeyFingerprint,
   isValidBootstrapPathSecret,
 } from "@/lib/platform-bootstrap/key";
-import { getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+  withInvitedEmail,
+} from "@/lib/utils/getAppUrl";
 import { hashOtpCode } from "@/lib/platform-billing/payout-security";
 import { PlatformBootstrapSession } from "@/models/PlatformBootstrapSession";
 import { User } from "@/models/User";
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrl = withInvitedEmail(getInvitationRedirectUrl(), email);
 
     const clerk = await clerkClient();
     const invitation = (await clerk.invitations.createInvitation({
@@ -109,7 +113,7 @@ export async function POST(req: NextRequest) {
     })) as Invitation;
 
     /** Required: generic /sign-in does not include the invitation ticket — Clerk returns 404-style "account not found" until this link is used. */
-    const acceptUrl = invitation.url?.trim();
+    const acceptUrl = getInvitationAcceptUrl(invitation, redirectUrl, email);
     if (!acceptUrl) {
       console.error(
         "[bootstrap/create] Clerk invitation missing url — check SDK / API version."

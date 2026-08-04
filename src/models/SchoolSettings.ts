@@ -248,6 +248,19 @@ export interface ISchoolSettings {
     autoPreviewLeadDays: number;
   };
 
+  studentIdGeneration?: {
+    defaultPattern?: {
+      template: string;
+      source: "leo" | "standard";
+      explanation?: string | null;
+      requiredFields?: Array<
+        "firstName" | "lastName" | "dateOfBirth" | "enrolledAt" | "gradeId" | "classGroupId"
+      >;
+      savedAt?: Date | null;
+      updatedAt?: Date | null;
+    } | null;
+  };
+
   // Metadata
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -527,6 +540,26 @@ const AcademicPlanningSettingsSchema = new Schema(
   { _id: false }
 );
 
+const StudentIdPatternSettingsSchema = new Schema(
+  {
+    template: { type: String, required: true, trim: true },
+    source: { type: String, enum: ["leo", "standard"], required: true },
+    explanation: { type: String, default: null, trim: true },
+    requiredFields: {
+      type: [
+        {
+          type: String,
+          enum: ["firstName", "lastName", "dateOfBirth", "enrolledAt", "gradeId", "classGroupId"],
+        },
+      ],
+      default: undefined,
+    },
+    savedAt: { type: Date, default: null },
+    updatedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
 const SchoolSettingsSchema = new Schema<ISchoolSettings>(
   {
     schoolId: {
@@ -676,6 +709,13 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
     promotions: {
       autoPreviewEnabled: { type: Boolean, default: false },
       autoPreviewLeadDays: { type: Number, min: 0, max: 60, default: 7 },
+    },
+
+    studentIdGeneration: {
+      defaultPattern: {
+        type: StudentIdPatternSettingsSchema,
+        default: null,
+      },
     },
 
     // Metadata

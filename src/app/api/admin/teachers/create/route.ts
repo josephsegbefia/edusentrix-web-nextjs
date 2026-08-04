@@ -18,6 +18,7 @@ import {
   getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
@@ -55,9 +56,11 @@ type DevTeacherLoginCredentials = {
 };
 
 function isDevTeacherLoginBypassEnabled() {
+  const hasResendConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
   return (
     process.env.NODE_ENV !== "production" &&
-    process.env.E2E_TEACHER_LOGIN_BYPASS_ENABLED === "true"
+    process.env.E2E_TEACHER_LOGIN_BYPASS_ENABLED === "true" &&
+    !hasResendConfigured
   );
 }
 
@@ -594,9 +597,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const redirectUrl = `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
-      "/teacher"
-    )}`;
     let clerkInvitationId: string | undefined;
     let invitationStatus: "pending" | "failed" | "accepted" = "pending";
     let devLoginCredentials: DevTeacherLoginCredentials | null = null;
@@ -621,6 +621,10 @@ export async function POST(req: NextRequest) {
     } else {
       try {
         const clerk = await clerkClient();
+        const redirectUrl = withInvitedEmail(
+          `${getInvitationRedirectUrl()}?next=${encodeURIComponent("/teacher")}`,
+          effectiveEmail
+        );
         const clerkInvitation = await clerk.invitations.createInvitation({
           emailAddress: effectiveEmail,
           redirectUrl,
@@ -643,7 +647,11 @@ export async function POST(req: NextRequest) {
           name: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
           role: "teacher",
           schoolName,
-          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+          setupLink: getInvitationAcceptUrl(
+            clerkInvitation,
+            redirectUrl,
+            effectiveEmail
+          ),
         });
 
         await sendTrackedBrevoEmail({

@@ -20,6 +20,29 @@ export type ResendSendInput = {
 
 export type ResendSendResult = { providerMessageId?: string };
 
+function normalizeTagValue(value: string): string | null {
+  const normalized = value
+    .replace(/[^A-Za-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 256);
+  return normalized || null;
+}
+
+function buildResendTags(tags: string[] | undefined) {
+  if (!tags?.length) return [];
+
+  const template = normalizeTagValue(tags[0] || "");
+  const school = normalizeTagValue(
+    tags.find((tag) => tag.startsWith("school:"))?.replace(/^school:/, "") || "",
+  );
+
+  return [
+    ...(template ? [{ name: "template", value: template }] : []),
+    ...(school ? [{ name: "school", value: school }] : []),
+  ];
+}
+
 function getSenderConfig() {
   return {
     defaultFromEmail:
@@ -62,6 +85,7 @@ export function buildSchoolSenderName(
 
 export async function resendSend(input: ResendSendInput): Promise<ResendSendResult> {
   const config = getConfig();
+  const tags = buildResendTags(input.tags);
   const payload = {
     from: `${input.fromName || config.defaultFromName} <${input.fromEmail || config.defaultFromEmail}>`,
     to: input.toName ? [`${input.toName} <${input.to}>`] : [input.to],
@@ -69,7 +93,7 @@ export async function resendSend(input: ResendSendInput): Promise<ResendSendResu
     html: input.htmlContent,
     ...(input.textContent ? { text: input.textContent } : {}),
     ...(input.replyTo ? { reply_to: input.replyTo } : {}),
-    ...(input.tags?.length ? { tags: input.tags.map((value) => ({ name: "category", value })) } : {}),
+    ...(tags.length ? { tags } : {}),
     ...(input.attachments?.length
       ? {
           attachments: input.attachments.map((attachment) => ({

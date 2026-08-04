@@ -7,6 +7,8 @@ import { Student } from "@/models/Student";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject, type ISubject } from "@/models/Subject";
+import { School } from "@/models/School";
+import { SchoolSettings } from "@/models/SchoolSettings";
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
@@ -14,6 +16,12 @@ import {
   requireSchoolWriteAccess,
   SchoolWriteAccessError,
 } from "@/lib/billing/require-school-write-access";
+import {
+  buildDefaultStudentIdPattern,
+  buildStudentIdPatternDraft,
+  generateAdmissionNoFromPattern,
+  missingFieldsForPattern,
+} from "@/lib/students/student-id-pattern";
 
 type Body = {
   firstName: string;
@@ -147,6 +155,42 @@ export async function POST(req: NextRequest) {
       gesIndexNumber: (body as Record<string, unknown>).gesIndexNumber || null,
       gesSchoolCode: (body as Record<string, unknown>).gesSchoolCode || null,
     });
+
+    if (!student.admissionNo) {
+      const [school, settings] = await Promise.all([
+        School.findById(schoolIdObj).select("name").lean(),
+        SchoolSettings.findOne({ schoolId: schoolIdObj })
+          .select("studentIdGeneration.defaultPattern")
+          .lean(),
+      ]);
+
+      const savedPatternRaw = (settings as any)?.studentIdGeneration?.defaultPattern;
+      const pattern = savedPatternRaw
+        ? buildStudentIdPatternDraft(savedPatternRaw)
+        : buildDefaultStudentIdPattern();
+      const missingPatternFields = missingFieldsForPattern(pattern, {
+        firstName: body.firstName,
+        lastName: body.lastName,
+        dateOfBirth: body.dateOfBirth,
+        enrolledAt: body.enrolledAt,
+        gradeName: (grade as any)?.name ?? null,
+        classGroupName: (classGroup as any)?.name ?? null,
+      });
+
+      if (missingPatternFields.length === 0) {
+        const generated = await generateAdmissionNoFromPattern(pattern, {
+          schoolId: schoolIdObj,
+          schoolName: (school as any)?.name ?? "School",
+          firstName: body.firstName,
+          lastName: body.lastName,
+          dateOfBirth: body.dateOfBirth,
+          enrolledAt: body.enrolledAt,
+          gradeName: (grade as any)?.name ?? null,
+          classGroupName: (classGroup as any)?.name ?? null,
+        });
+        student.admissionNo = generated.admissionNo;
+      }
+    }
 
     await student.save();
 

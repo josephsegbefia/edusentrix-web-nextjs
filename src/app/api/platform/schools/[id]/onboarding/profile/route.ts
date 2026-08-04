@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
@@ -56,6 +57,7 @@ export async function POST(
         },
         {
           $set: {
+            name: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
             firstName: parsed.data.firstName,
             lastName: parsed.data.lastName,
             phone: parsed.data.phone ?? null,
@@ -72,6 +74,14 @@ export async function POST(
         throw new MongoTransactionError("Target user not found", 404);
       }
     });
+
+    if (target.clerkUserId) {
+      const clerk = await clerkClient();
+      await clerk.users.updateUser(target.clerkUserId, {
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+      });
+    }
   } catch (error) {
     if (error instanceof MongoTransactionError) {
       return NextResponse.json({ error: error.message }, { status: error.statusCode });

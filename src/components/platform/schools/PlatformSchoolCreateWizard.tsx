@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -77,7 +78,7 @@ export function PlatformSchoolCreateWizard() {
           <PremiumSelectContent>{Object.values(CURRICULUM_PROFILES).map((profile) => <PremiumSelectItem key={profile.code} value={profile.code} description={profile.description}>{profile.label}</PremiumSelectItem>)}</PremiumSelectContent>
         </PremiumSelect>
         <input value={schoolEmail} onChange={(e) => setSchoolEmail(e.target.value)} placeholder="School email" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
-        <input value={schoolPhone} onChange={(e) => setSchoolPhone(e.target.value)} placeholder="School phone" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
+        <GhanaPhoneInput unstyled value={schoolPhone} onChange={(e) => setSchoolPhone(e.target.value)} placeholder="School phone" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
         <input value={gesSchoolCode} onChange={(e) => setGesSchoolCode(e.target.value)} placeholder="GES code optional" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
         <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
@@ -86,7 +87,7 @@ export function PlatformSchoolCreateWizard() {
       <div className="grid gap-4 border-t border-white/10 pt-5 lg:grid-cols-2">
         <input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="Primary admin full name" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
         <input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="Primary admin email" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
-        <input value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} placeholder="Primary admin phone" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
+        <GhanaPhoneInput unstyled value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} placeholder="Primary admin phone" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
       </div>
       <Button disabled={!schoolName.trim() || !adminName.trim() || !adminEmail.includes("@") || busy} onClick={() => void submit()} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
         <Plus className="mr-2 h-4 w-4" />

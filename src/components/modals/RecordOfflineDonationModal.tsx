@@ -5,6 +5,7 @@ import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Banknote, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -226,11 +227,9 @@ export default function RecordOfflineDonationModal({
                   </div>
                   <div>
                     <Label className="text-white/70">Phone (Optional)</Label>
-                    <Input
-                      type="tel"
+                    <GhanaPhoneInput
                       value={donorPhone}
                       onChange={(e) => setDonorPhone(e.target.value)}
-                      placeholder="+233..."
                       className="mt-1 border-white/10 bg-white/5 text-white"
                     />
                   </div>

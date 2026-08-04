@@ -294,6 +294,19 @@ emailMessageSchema.index({ mailboxScope: 1, mailboxKey: 1, createdAt: -1 });
 emailMessageSchema.index({ schoolId: 1, messageClass: 1, createdAt: -1 });
 emailMessageSchema.index({ relatedEntityType: 1, relatedEntityId: 1 });
 
+const existingEmailMessage = models.EmailMessage as Model<IEmailMessage> | undefined;
+
+// Next.js development hot reload can retain the model compiled before a new
+// provider enum is introduced. Extend that cached schema so queued Resend mail
+// works immediately without requiring a development-server restart.
+if (existingEmailMessage) {
+  const providerPath = existingEmailMessage.schema.path("provider") as unknown as {
+    enumValues?: string[];
+  };
+  if (providerPath.enumValues && !providerPath.enumValues.includes("resend")) {
+    providerPath.enumValues.push("resend");
+  }
+}
+
 export const EmailMessage: Model<IEmailMessage> =
-  (models.EmailMessage as Model<IEmailMessage>) ||
-  model<IEmailMessage>("EmailMessage", emailMessageSchema);
+  existingEmailMessage || model<IEmailMessage>("EmailMessage", emailMessageSchema);

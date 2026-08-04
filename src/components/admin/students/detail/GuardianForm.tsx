@@ -4,6 +4,7 @@ import * as React from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -356,11 +357,9 @@ export function GuardianForm({
                   <Phone className="h-3.5 w-3.5" />
                   Phone Number
                 </Label>
-                <Input
+                <GhanaPhoneInput
                   id="phone"
-                  type="tel"
                   {...register("phone")}
-                  placeholder="+1234567890"
                   className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
                 {errors.phone && (

@@ -15,6 +15,7 @@ import { resolveDemoPersona } from "@/lib/demo/persona";
 import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 import { homePathForMembershipRoles } from "@/lib/auth/membership-home";
 import { schoolIdFromClerkMetadata } from "@/lib/auth/resolveTenantUserForClerkSession";
+import { syncClerkNameFromAppUser } from "@/lib/auth/sync-clerk-name";
 
 export const ACTIVE_SCHOOL_COOKIE = "edusentrix_active_school";
 
@@ -231,6 +232,19 @@ export async function resolveActiveSchoolContext(
       (cUser.privateMetadata?.role as string | undefined),
     schoolId: schoolIdFromClerkMetadata(cUser),
   });
+
+  try {
+    await syncClerkNameFromAppUser({
+      clerkUserId,
+      currentClerkFirstName: cUser.firstName,
+      currentClerkLastName: cUser.lastName,
+      appFirstName: user.firstName,
+      appLastName: user.lastName,
+      appDisplayName: user.name,
+    });
+  } catch (error) {
+    console.error("Failed to sync Clerk name from active school context:", error);
+  }
 
   if (!user?._id) return { ok: false, reason: "no_profile" };
   const userId =

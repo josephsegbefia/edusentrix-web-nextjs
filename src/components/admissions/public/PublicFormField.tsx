@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -415,12 +416,10 @@ export function PublicFormField({
           helpId={helpId}
           errorId={errorId}
         >
-          <Input
+          <GhanaPhoneInput
             {...ariaCommon}
-            type="tel"
             value={(value as string) ?? ""}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="+233 ..."
             className={baseInputClass}
             autoComplete="tel"
             inputMode="tel"

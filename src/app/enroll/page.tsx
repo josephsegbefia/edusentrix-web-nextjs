@@ -5,6 +5,7 @@ import { z } from "zod";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -492,7 +493,12 @@ export default function EnrollPage() {
     try {
       await promise(doSubmit(), {
         loading: "Submitting application…",
-        success: "Application received. We'll email you after review.",
+        success: (result) =>
+          result?.emailStatus === "sent"
+            ? "Application received. A confirmation email has been sent."
+            : result?.emailStatus === "queued"
+              ? "Application received. Your confirmation email is queued for delivery."
+              : "Application received. We could not send the confirmation email yet.",
         error: "Failed to submit. Please try again.",
       });
 
@@ -692,10 +698,9 @@ export default function EnrollPage() {
                       >
                         Phone
                       </Label>
-                      <Input
+                      <GhanaPhoneInput
                         id="adminPhone"
                         name="adminPhone"
-                        placeholder="+233 20 000 0000"
                         autoComplete="tel"
                         className={inputClasses}
                       />

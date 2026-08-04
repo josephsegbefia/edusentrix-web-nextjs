@@ -53,6 +53,26 @@ function roleForMembership(role: string | null | undefined): MembershipRole | nu
   return role;
 }
 
+function composeDisplayName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined
+) {
+  return [firstName, lastName].filter(Boolean).join(" ").trim();
+}
+
+function splitDisplayName(fullName: string | null | undefined) {
+  const trimmed = (fullName || "").trim();
+  if (!trimmed) {
+    return { firstName: undefined, lastName: undefined };
+  }
+
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || undefined,
+    lastName: parts.slice(1).join(" ") || undefined,
+  };
+}
+
 async function findPendingSchoolInvite(email: string) {
   const now = new Date();
   const [invitation, legacyInvite] = await Promise.all([
@@ -183,14 +203,28 @@ export async function ensureCanonicalUserForClerkSession(
       user._id instanceof mongoose.Types.ObjectId
         ? user._id
         : new mongoose.Types.ObjectId(String(user._id));
+    const fallbackNameParts = splitDisplayName(user.name);
+
+    const nextFirstName =
+      user.firstName || fallbackNameParts.firstName || options.firstName || undefined;
+    const nextLastName =
+      user.lastName || fallbackNameParts.lastName || options.lastName || undefined;
+    const nextDisplayName = composeDisplayName(nextFirstName, nextLastName);
 
     if (!user.clerkUserId || user.clerkUserId === options.clerkUserId) {
       await attachClerkUserIdToUser(options.clerkUserId, userId);
     }
 
     const set: Record<string, unknown> = {
-      ...(options.firstName ? { firstName: options.firstName } : {}),
-      ...(options.lastName ? { lastName: options.lastName } : {}),
+      ...(options.firstName && !user.firstName ? { firstName: options.firstName } : {}),
+      ...(options.lastName && !user.lastName ? { lastName: options.lastName } : {}),
+      ...(fallbackNameParts.firstName && !user.firstName
+        ? { firstName: fallbackNameParts.firstName }
+        : {}),
+      ...(fallbackNameParts.lastName && !user.lastName
+        ? { lastName: fallbackNameParts.lastName }
+        : {}),
+      ...(nextDisplayName && !user.name ? { name: nextDisplayName } : {}),
       ...(options.avatarUrl && !user.avatarUrl
         ? { avatarUrl: options.avatarUrl }
         : {}),
@@ -220,6 +254,7 @@ export async function ensureCanonicalUserForClerkSession(
   const created = await User.create({
     clerkUserId: options.clerkUserId,
     email,
+    name: composeDisplayName(options.firstName, options.lastName) || undefined,
     firstName: options.firstName || undefined,
     lastName: options.lastName || undefined,
     avatarUrl: options.avatarUrl || undefined,
@@ -280,10 +315,23 @@ export async function ensureCanonicalUserForEmail(
       user._id instanceof mongoose.Types.ObjectId
         ? user._id
         : new mongoose.Types.ObjectId(String(user._id));
+    const fallbackNameParts = splitDisplayName(options.name || user.name);
+    const nextFirstName =
+      user.firstName || options.firstName || fallbackNameParts.firstName || undefined;
+    const nextLastName =
+      user.lastName || options.lastName || fallbackNameParts.lastName || undefined;
+    const nextDisplayName =
+      options.name || user.name || composeDisplayName(nextFirstName, nextLastName) || undefined;
     const set: Record<string, unknown> = {
-      ...(options.name && !user.name ? { name: options.name } : {}),
+      ...(nextDisplayName && !user.name ? { name: nextDisplayName } : {}),
       ...(options.firstName && !user.firstName ? { firstName: options.firstName } : {}),
       ...(options.lastName && !user.lastName ? { lastName: options.lastName } : {}),
+      ...(fallbackNameParts.firstName && !user.firstName
+        ? { firstName: fallbackNameParts.firstName }
+        : {}),
+      ...(fallbackNameParts.lastName && !user.lastName
+        ? { lastName: fallbackNameParts.lastName }
+        : {}),
       ...(options.phone ? { phone: options.phone } : {}),
       ...(options.avatarUrl && !user.avatarUrl
         ? { avatarUrl: options.avatarUrl }

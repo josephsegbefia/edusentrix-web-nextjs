@@ -1,75 +1,78 @@
 // src/db/connectToDatabase.ts
 import mongoose from "mongoose";
 
-// Cache the promise on the global object so it survives across hot-reloads
-// (dev) AND isn't lost when Vercel freezes/thaws a serverless function while
-// the module-level scope is re-initialised on a cold start.
 const globalWithMongo = globalThis as typeof globalThis & {
-  _mongoosePromise?: Promise<typeof mongoose>;
+	_mongoosePromise?: Promise<typeof mongoose>;
 };
 
-export async function connectToDatabase(uri?: string) {
-  const MONGODB_URI = uri ?? process.env.MONGODB_URI;
+export async function connectToDatabase(uri?: string, databaseName?: string) {
+	const mongoUri = uri ?? process.env.MONGODB_URI;
+	const mongoDatabaseName = databaseName ?? process.env.MONGO_DB_NAME;
 
-  if (!MONGODB_URI) {
-    throw new Error(
-      "Please define MONGODB_URI in .env.local (or pass --mongo to the seeding script)"
-    );
-  }
+	if (!mongoUri) {
+		throw new Error(
+			"MONGODB_URI is required. Define it in .env.local or the deployment environment.",
+		);
+	}
 
-  if (mongoose.connection.readyState === 1) return mongoose;
+	if (!mongoDatabaseName) {
+		throw new Error(
+			"MONGO_DB_NAME is required. Expected edusentrix-dev, edusentrix-staging, or edusentrix-live.",
+		);
+	}
 
-  // Reuse any in-flight connection attempt. This avoids a race where a
-  // concurrent request sees `readyState === 2`, disconnects that client,
-  // and leaves the original caller with a dead connection.
-  if (globalWithMongo._mongoosePromise) {
-    return globalWithMongo._mongoosePromise;
-  }
+	if (mongoose.connection.readyState === 1) {
+		return mongoose;
+	}
 
-  // If the connection is stuck in a transitional state (connecting = 2,
-  // disconnecting = 3) from a frozen/thawed serverless invocation, tear
-  // it down so we can start fresh.
-  if (mongoose.connection.readyState !== 0) {
-    try {
-      await mongoose.disconnect();
-    } catch {
-      // ignore — we'll reconnect below
-    }
-    globalWithMongo._mongoosePromise = undefined;
-  }
+	if (globalWithMongo._mongoosePromise) {
+		return globalWithMongo._mongoosePromise;
+	}
 
-  globalWithMongo._mongoosePromise = mongoose
-    .connect(MONGODB_URI, {
-      autoIndex: true,
-      dbName: process.env.MONGO_DB_NAME || undefined,
-      serverSelectionTimeoutMS: 8000,
-      socketTimeoutMS: 30000,
-    })
-    .then((m) => {
-      const host = m.connection.host || "unknown-host";
-      const dbName =
-        m.connection.name || process.env.MONGO_DB_NAME || "unknown-db";
-      const runtimeMode = process.env.APP_RUNTIME_MODE || "standard";
-      const nodeEnv = process.env.NODE_ENV || "development";
-      console.log(
-        `Connected to MongoDB host=${host} db=${dbName} runtime=${runtimeMode} nodeEnv=${nodeEnv}`
-      );
-      return m;
-    })
-    .catch((err) => {
-      globalWithMongo._mongoosePromise = undefined;
-      console.error("Mongo connection error:", err);
-      throw err;
-    });
+	if (mongoose.connection.readyState !== 0) {
+		try {
+			await mongoose.disconnect();
+		} catch {
+			// Start a new connection below.
+		}
 
-  return globalWithMongo._mongoosePromise;
+		globalWithMongo._mongoosePromise = undefined;
+	}
+
+	globalWithMongo._mongoosePromise = mongoose
+		.connect(mongoUri, {
+			dbName: mongoDatabaseName,
+			autoIndex: process.env.NODE_ENV !== "production",
+			serverSelectionTimeoutMS: 8000,
+			socketTimeoutMS: 30000,
+		})
+		.then((connection) => {
+			const host = connection.connection.host || "unknown-host";
+			const connectedDatabase = connection.connection.name || mongoDatabaseName;
+			const runtimeMode = process.env.APP_RUNTIME_MODE || "development";
+			const nodeEnv = process.env.NODE_ENV || "development";
+
+			console.log(
+				`Connected to MongoDB host=${host} db=${connectedDatabase} runtime=${runtimeMode} nodeEnv=${nodeEnv}`,
+			);
+
+			return connection;
+		})
+		.catch((error: unknown) => {
+			globalWithMongo._mongoosePromise = undefined;
+			console.error("MongoDB connection error:", error);
+			throw error;
+		});
+
+	return globalWithMongo._mongoosePromise;
 }
 
 export async function disconnectDatabase() {
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.disconnect();
-    console.log("Disconnected from MongoDB");
-  }
+	if (mongoose.connection.readyState !== 0) {
+		await mongoose.disconnect();
+		globalWithMongo._mongoosePromise = undefined;
+		console.log("Disconnected from MongoDB");
+	}
 }
 
 export default connectToDatabase;

@@ -1,21 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type Step = "otp" | "form";
+type Step = "intro" | "otp" | "form";
+
+function formatCountdown(totalSeconds: number) {
+  const safe = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
 
 export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) {
-  const [step, setStep] = React.useState<Step>("otp");
-  const [otpSending, setOtpSending] = React.useState(true);
+  const [step, setStep] = React.useState<Step>("intro");
+  const [otpSending, setOtpSending] = React.useState(false);
   const [otpMasked, setOtpMasked] = React.useState<string | null>(null);
   const [code, setCode] = React.useState("");
   const [verifying, setVerifying] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [sessionSecondsRemaining, setSessionSecondsRemaining] = React.useState<number | null>(null);
+  const [sessionExpired, setSessionExpired] = React.useState(false);
 
   const [email, setEmail] = React.useState("");
   const [firstName, setFirstName] = React.useState("");
@@ -33,7 +42,12 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Could not send code.");
       }
+      setCode("");
+      setSessionExpired(false);
+      setSessionSecondsRemaining(null);
       setOtpMasked(json.data?.notifyEmailMasked ?? "your gate inbox");
+      setStep("otp");
+      toast.success("Verification code sent.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not send code.");
       setOtpMasked(null);
@@ -43,8 +57,22 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
   }, [pathSecret]);
 
   React.useEffect(() => {
-    void sendOtp();
-  }, [sendOtp]);
+    if (step !== "form" || sessionSecondsRemaining === null) return;
+    if (sessionSecondsRemaining <= 0) {
+      setSessionSecondsRemaining(0);
+      setSessionExpired(true);
+      setStep("otp");
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setSessionSecondsRemaining((current) =>
+        current === null ? current : Math.max(0, current - 1)
+      );
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [sessionSecondsRemaining, step]);
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -63,7 +91,9 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Verification failed.");
       }
-      toast.success("Verified. Complete the admin details below.");
+      setSessionExpired(false);
+      setSessionSecondsRemaining(json.data?.sessionExpiresInSeconds ?? 120);
+      toast.success("Verified. You now have 2 minutes to finish.");
       setStep("form");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Verification failed.");
@@ -97,10 +127,18 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
       setFirstName("");
       setLastName("");
       setCode("");
-      setStep("otp");
-      void sendOtp();
+      setOtpMasked(null);
+      setSessionSecondsRemaining(null);
+      setSessionExpired(false);
+      setStep("intro");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not send invitation.");
+      const message = e instanceof Error ? e.message : "Could not send invitation.";
+      if (/session expired/i.test(message)) {
+        setSessionExpired(true);
+        setSessionSecondsRemaining(0);
+        setStep("otp");
+      }
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +159,29 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
           </div>
         </div>
 
-        {step === "otp" ? (
+        {step === "intro" ? (
+          <div className="space-y-5">
+            <p className="text-sm text-white/65">
+              This flow is protected by an email gate. Send a one-time code to the configured gate
+              inbox before you can unlock the platform admin invitation form.
+            </p>
+            <Button
+              type="button"
+              disabled={otpSending}
+              className="w-full bg-cyan-600 text-white hover:bg-cyan-500"
+              onClick={() => void sendOtp()}
+            >
+              {otpSending ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Sending code…
+                </>
+              ) : (
+                "Send verification code"
+              )}
+            </Button>
+          </div>
+        ) : step === "otp" ? (
           <div className="space-y-5">
             <p className="text-sm text-white/65">
               A one-time code was sent to the configured gate address
@@ -133,22 +193,11 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
               ) : null}
               . Enter it to unlock the form. The link alone is not enough.
             </p>
-            {otpSending ? (
-              <div className="flex items-center gap-2 text-sm text-white/50">
-                <Loader2 className="size-4 animate-spin" />
-                Sending code…
+            {sessionExpired ? (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Your verified session expired after 2 minutes. Request a fresh code to continue.
               </div>
-            ) : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-                onClick={() => void sendOtp()}
-              >
-                Resend code
-              </Button>
-            )}
+            ) : null}
             <form onSubmit={handleVerify} className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-white/70">6-digit code</Label>
@@ -176,10 +225,42 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
                   "Unlock form"
                 )}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={otpSending}
+                className="w-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+                onClick={() => void sendOtp()}
+              >
+                {otpSending ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Sending code…
+                  </>
+                ) : (
+                  "Resend code"
+                )}
+              </Button>
             </form>
           </div>
         ) : (
           <form onSubmit={handleCreate} className="space-y-4">
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-300" />
+                <div className="space-y-1">
+                  <p className="font-medium text-emerald-50">Verification successful</p>
+                  <p>
+                    This unlocked session expires in{" "}
+                    <span className="font-mono text-emerald-50">
+                      {formatCountdown(sessionSecondsRemaining ?? 0)}
+                    </span>
+                    . After that, the code becomes invalid and you must resend a new one.
+                  </p>
+                </div>
+              </div>
+            </div>
             <p className="text-sm text-white/60">
               Creates a Clerk invitation with <span className="text-white/85">platform_admin</span>{" "}
               metadata. The person must use this email to accept and set a password.

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { format } from "date-fns/format";
 import { CalendarIcon, Loader2, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -429,9 +430,10 @@ export function RecordTransactionModal({
               </div>
               <div className="space-y-2">
                 <Label className="text-white/80">Phone</Label>
-                <Input
-                  placeholder="+233..."
-                  {...form.register("partyPhone")}
+                <GhanaPhoneInput
+                  value={form.watch("partyPhone") || ""}
+                  onValueChange={(value) => form.setValue("partyPhone", value, { shouldDirty: true })}
+                  onBlur={() => form.trigger("partyPhone")}
                   className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
                 />
               </div>

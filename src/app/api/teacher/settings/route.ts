@@ -9,6 +9,7 @@ import {
   getWhatsAppProviderState,
   type WhatsAppProviderMode,
 } from "@/lib/notifications/whatsapp";
+import { normalizeGhanaPhoneForStorage } from "@/lib/phone/ghana";
 
 const TimeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 const E164LikePhoneRegex = /^\+?[1-9]\d{7,14}$/;
@@ -111,10 +112,8 @@ type TeacherSettingsDefaults = {
 };
 
 function normalizePhone(input?: string | null) {
-  if (!input) return null;
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  return trimmed.replace(/[\s()-]/g, "");
+  const normalized = normalizeGhanaPhoneForStorage(input);
+  return normalized || null;
 }
 
 function defaultSettings(phone?: string | null): TeacherSettingsDefaults {

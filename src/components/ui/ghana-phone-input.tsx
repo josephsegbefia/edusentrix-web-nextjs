@@ -1,8 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { formatGhanaPhoneInput } from "@/lib/phone/ghana";
+import {
+  formatGhanaLocalPhoneInput,
+  normalizeGhanaPhoneForStorage,
+} from "@/lib/phone/ghana";
 
 type GhanaPhoneInputProps = Omit<
   React.ComponentProps<"input">,
@@ -24,6 +28,12 @@ function assignRef<T>(ref: React.Ref<T> | undefined, value: T) {
   }
 }
 
+function resolvePhonePlaceholder(placeholder: string) {
+  const formatted = formatGhanaLocalPhoneInput(placeholder);
+  if (formatted) return formatted;
+  return placeholder;
+}
+
 export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInputProps>(
   function GhanaPhoneInput(
     {
@@ -31,19 +41,21 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
       onValueChange,
       value,
       defaultValue,
-      placeholder = "+233 24 123 4567",
+      placeholder = "24 123 4567",
       autoComplete = "tel",
       inputMode = "tel",
       unstyled = false,
+      className,
       ...props
     },
     forwardedRef
   ) {
     const innerRef = React.useRef<HTMLInputElement | null>(null);
+    const resolvedPlaceholder = resolvePhonePlaceholder(placeholder);
 
     const syncDisplayedValue = React.useCallback(() => {
       if (!innerRef.current) return;
-      const formatted = formatGhanaPhoneInput(innerRef.current.value);
+      const formatted = formatGhanaLocalPhoneInput(innerRef.current.value);
       if (formatted !== innerRef.current.value) {
         innerRef.current.value = formatted;
       }
@@ -54,26 +66,27 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
     }, [syncDisplayedValue, value, defaultValue]);
 
     const formattedValue =
-      value === undefined ? undefined : formatGhanaPhoneInput(value ?? "");
+      value === undefined ? undefined : formatGhanaLocalPhoneInput(value ?? "");
     const formattedDefaultValue =
       defaultValue === undefined
         ? undefined
-        : formatGhanaPhoneInput(defaultValue ?? "");
+        : formatGhanaLocalPhoneInput(defaultValue ?? "");
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const formatted = formatGhanaPhoneInput(event.target.value);
+      const displayValue = formatGhanaLocalPhoneInput(event.target.value);
+      const normalized = normalizeGhanaPhoneForStorage(event.target.value);
 
-      if (innerRef.current && innerRef.current.value !== formatted) {
-        innerRef.current.value = formatted;
+      if (innerRef.current && innerRef.current.value !== displayValue) {
+        innerRef.current.value = displayValue;
       }
 
-      onValueChange?.(formatted);
+      onValueChange?.(normalized);
 
       if (onChange) {
         const nextEvent = {
           ...event,
-          target: { ...event.target, value: formatted },
-          currentTarget: { ...event.currentTarget, value: formatted },
+          target: { ...event.target, value: normalized },
+          currentTarget: { ...event.currentTarget, value: normalized },
         } as React.ChangeEvent<HTMLInputElement>;
         onChange(nextEvent);
       }
@@ -88,7 +101,7 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
       type: "tel",
       autoComplete,
       inputMode,
-      placeholder,
+      placeholder: resolvedPlaceholder,
       defaultValue: formattedDefaultValue,
       onChange: handleChange,
     };
@@ -98,9 +111,26 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
     }
 
     if (unstyled) {
-      return <input {...sharedProps} />;
+      return (
+        <div className="relative">
+          <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-white/55">
+            +233
+          </span>
+          <input
+            {...sharedProps}
+            className={cn("pl-16", className)}
+          />
+        </div>
+      );
     }
 
-    return <Input {...sharedProps} />;
+    return (
+      <div className="relative">
+        <span className="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm text-muted-foreground">
+          +233
+        </span>
+        <Input {...sharedProps} className={cn("pl-14", className)} />
+      </div>
+    );
   }
 );

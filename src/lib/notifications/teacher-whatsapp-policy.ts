@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { TeacherSettings } from "@/models/TeacherSettings";
+import { normalizeGhanaPhoneForStorage } from "@/lib/phone/ghana";
 
 export type TeacherWhatsAppFeatureFlag =
   | "attendanceAlerts"
@@ -65,10 +66,8 @@ function toObjectIdOrNull(
 }
 
 export function normalizePhone(input?: string | null): string | null {
-  if (!input) return null;
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  return trimmed.replace(/[\s()-]/g, "");
+  const normalized = normalizeGhanaPhoneForStorage(input);
+  return normalized || null;
 }
 
 function parseTimeToMinutes(value?: string): number | null {

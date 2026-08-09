@@ -4,19 +4,38 @@
  * Priority:
  * 1. APP_URL (explicit override)
  * 2. NEXT_PUBLIC_APP_URL (explicit override)
- * 3. Production: https://tryedusentrix.app
- * 4. Development: http://localhost:3000 (or PORT)
+ * 3. VERCEL_PROJECT_PRODUCTION_URL
+ * 4. VERCEL_URL
+ * 5. Production fallback: https://tryedusentrix.app
+ * 6. Development: http://localhost:3000 (or PORT)
  */
 export function getAppUrl(): string {
-  // Explicit overrides take priority
-  if (process.env.APP_URL) {
-    return process.env.APP_URL;
-  }
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = process.env.APP_URL?.trim().replace(/\/$/, "");
+  if (appUrl) {
+    return appUrl;
   }
 
-  // Production: use tryedusentrix.app
+  const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  if (publicAppUrl) {
+    return publicAppUrl;
+  }
+
+  const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ?.trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+  if (vercelProductionUrl) {
+    return `https://${vercelProductionUrl}`;
+  }
+
+  const vercelUrl = process.env.VERCEL_URL
+    ?.trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+  if (vercelUrl) {
+    return `https://${vercelUrl}`;
+  }
+
   const isProduction =
     process.env.VERCEL_ENV === "production" ||
     process.env.NODE_ENV === "production";
@@ -24,7 +43,6 @@ export function getAppUrl(): string {
     return "https://tryedusentrix.app";
   }
 
-  // Development: localhost
   const port = process.env.PORT || "3000";
   return `http://localhost:${port}`;
 }

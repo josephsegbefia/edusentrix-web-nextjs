@@ -27,6 +27,7 @@ export function proposalVariables(input: {
     whatsapp?: string | null;
   } | null;
 }) {
+  const selectedModules = input.selectedModules || [];
   return {
     schoolName: input.schoolName,
     schoolLocation: input.schoolLocation || "",
@@ -40,7 +41,9 @@ export function proposalVariables(input: {
     email: input.branding?.contactEmail || "hello@tryedusentrix.app",
     whatsapp: input.branding?.whatsapp || "0504211501",
     pilotDuration: input.pilotDuration || "",
-    selectedModules: (input.selectedModules || []).join(", "),
+    selectedModules: selectedModules.length
+      ? selectedModules.slice(0, 6).map((module) => `- ${module}`).join("\n")
+      : "- Priority modules to be confirmed",
   };
 }
 

@@ -149,7 +149,7 @@ function fallbackDraft(input: {
   pricing?: IProposalPricing | null;
   branding?: ProposalBrandingForLeo | null;
 }) {
-  const modules = input.selectedModules.slice(0, 6).join(", ");
+  const modules = input.selectedModules.slice(0, 4).join(", ");
   const sender = input.branding || {
     brandName: "EduSentrix",
     website: "https://www.tryedusentrix.app",
@@ -161,7 +161,6 @@ function fallbackDraft(input: {
 
   if (isContactProposalSection(input.section)) {
     return [
-      `For questions, clarifications, or next steps regarding this proposal for ${input.schoolName}, please contact ${sender.brandName}.`,
       [
         `${sender.brandName}`,
         sender.contactEmail ? `Email: ${sender.contactEmail}` : "",
@@ -171,16 +170,13 @@ function fallbackDraft(input: {
       ]
         .filter(Boolean)
         .join("\n"),
-      `We would be happy to walk your team through the proposal, answer questions, and discuss the best rollout approach for ${input.schoolName}.`,
     ].join("\n\n");
   }
 
   if (isMobileAppProposalSection(input.section)) {
     return [
-      `${input.schoolName} can extend EduSentrix beyond the school office through two companion mobile apps: Jeda and EduSentrix Learn.`,
-      "Jeda is the mobile version of the EduSentrix web platform, giving the school community a convenient way to access key school workflows and information from a phone.",
-      "EduSentrix Learn is the student learning companion. It helps learners revisit topics taught in class, reinforce what they have learned, revise before assessments, and prepare more confidently for exams.",
-      "The mobile experience should be positioned as support for classroom teaching and school operations, not as a replacement for teachers or school leadership.",
+      `${input.schoolName} can extend the web platform through Jeda for school workflows on mobile and EduSentrix Learn for student revision and reinforcement.`,
+      "The mobile experience supports school operations and learning; it does not replace teachers, school leadership, or classroom instruction.",
     ].join("\n\n");
   }
 
@@ -202,33 +198,29 @@ function fallbackDraft(input: {
     });
 
     return [
-      "EduSentrix subscription pricing should be presented from the current platform subscription tiers and confirmed before sending the proposal.",
+      "Indicative pricing should be confirmed from the current platform subscription tiers before sending.",
       planSections.length
         ? planSections.join("\n\n")
         : "No active public subscription tiers were available when this draft was generated, so pricing should be confirmed from the platform subscription plan setup.",
-      "This section is indicative proposal copy, not a signed quote or contract. Final fees should reflect the selected tier, billing cadence, active student count, applicable minimum fee, and any approved implementation or discount terms.",
+      "Final fees should reflect the selected tier, billing cadence, active student count, applicable minimum fee, and approved implementation terms.",
     ].join("\n\n");
   }
 
   if (isProposedSolutionProposalSection(input.section)) {
-    const selectedModules = input.selectedModules.slice(0, 12);
+    const selectedModules = input.selectedModules.slice(0, 5);
     return [
-      `EduSentrix provides ${input.schoolName} with a unified school operations platform that brings administration, academics, finance, communication, reporting, and role-based access into one structured environment.`,
-      "The proposed solution is designed to reduce manual follow-up, improve visibility for school leadership, and give staff a clearer way to manage daily work across departments.",
+      `EduSentrix gives ${input.schoolName} one structured platform for the priority workflows selected for this proposal.`,
       selectedModules.length
         ? ["Selected modules", ...selectedModules.map((module) => `- ${module}`)].join("\n")
         : "The selected modules can be refined further after the school confirms its immediate operational priorities.",
-      "Together, these modules provide a practical implementation path that can be reviewed, phased, and adjusted around the school's readiness and rollout priorities.",
     ].join("\n\n");
   }
 
   return [
-    `${input.schoolName} can use EduSentrix to strengthen the way this area of school operations is planned, monitored, and reviewed.`,
-    `For ${input.section.title.toLowerCase()}, the platform brings the relevant information into one structured workspace, reducing manual follow-up and giving leadership clearer visibility.`,
+    `${input.schoolName} can use EduSentrix to make this workflow easier to run, review, and improve.`,
     modules
       ? `The most relevant capabilities for this proposal include ${modules}.`
       : "The proposal can be tailored further after the school confirms its immediate priorities.",
-    "This draft should be reviewed and adjusted to match the exact discussion held with the school.",
   ].join("\n\n");
 }
 
@@ -256,15 +248,15 @@ export async function generateProposalSectionWithLeo(input: {
 
   const sectionGuidance = {
     formatting:
-      "Use clean proposal body copy only. Do not use markdown heading markers such as #, ##, ###, or ####. Do not use markdown bold markers such as **text**. Do not repeat the section title as the first line of the section body. If the section needs internal grouping, use a plain label line such as Selected modules or Starter, followed by short paragraphs or simple hyphen bullets.",
+      "Use clean proposal body copy only. Keep this section short: at most 90 words or 5 concise bullets. Do not use markdown heading markers such as #, ##, ###, or ####. Do not use markdown bold markers such as **text**. Do not repeat the section title as the first line of the section body. If the section needs internal grouping, use a plain label line such as Selected modules or Starter, followed by short paragraphs or simple hyphen bullets.",
     proposedSolution: isProposedSolutionProposalSection(input.section)
-      ? "This is the Proposed Solution section. Explain EduSentrix as a unified school operations platform tailored to the recipient school. Mention selected modules only as clean plain-text grouping: a short intro paragraph, a plain label line such as Selected modules, then concise hyphen bullets for relevant modules. Do not use markdown heading markers, bold labels, or a long catalogue-style paragraph. Do not repeat the section title inside the body."
+      ? "This is the Proposed Solution section. Explain EduSentrix as a focused school operations platform tailored to the recipient school. Mention at most 5 selected modules as concise hyphen bullets. Do not write a catalogue of features. Do not repeat the section title inside the body."
       : "",
     mobileApp: isMobileAppProposalSection(input.section)
-      ? "This is the Companion Mobile App section. EduSentrix has two companion mobile apps: Jeda and EduSentrix Learn. Jeda is the mobile version of the EduSentrix web platform for convenient phone access to school workflows and information. EduSentrix Learn is the student learning companion that reinforces topics taught in school, supports revision, exam preparation, and continued learning outside the classroom. Keep the distinction clear. Do not describe EduSentrix Learn as the only companion app. Do not claim unsupported AI tutoring, offline mode, WhatsApp, or SMS features."
+      ? "This is the Companion Mobile App section. Keep it to 2 short paragraphs maximum. EduSentrix has two companion mobile apps: Jeda for school workflows and EduSentrix Learn for student revision and reinforcement. Do not claim unsupported AI tutoring, offline mode, WhatsApp, or SMS features."
       : "",
     pricing: isSubscriptionPricingProposalSection(input.section)
-      ? "This is a pricing/subscription section. Use only the subscriptionTiers data provided. Present each subscription tier as its own clear subsection using the tier name as a plain line, followed by concise fields such as description, billing cadence, price, minimum term fee, annual discount, and feature coverage. Do not use markdown heading markers like #, ##, ###, or ####. Do not repeat the section title inside the section body. Do not include a closing sentence telling the reader to refer to a detailed feature list elsewhere in the proposal. Present pricing as current indicative subscription options that must be reviewed before sending. Do not invent prices, discounts, contracts, validity dates, or commitments. Do not show the Pilot plan as a public plan unless proposalType is pilot."
+      ? "This is a pricing/subscription section. Keep it to one recommended option unless the operator asks for alternatives. Use only the subscriptionTiers data provided. Do not invent prices, discounts, contracts, validity dates, or commitments. Do not show the Pilot plan as a public plan unless proposalType is pilot."
       : "Do not include subscription pricing in this section unless the operator instruction explicitly asks for it.",
     contact: isContactProposalSection(input.section)
       ? "This is the proposal Contact section. The contact must be EduSentrix/Appsentrix as the sender, not the recipient school. Use senderContact.brandName, senderContact.contactEmail, senderContact.website, senderContact.whatsapp, and senderContact.address when available. The recipient school may be mentioned only as the school the proposal concerns. Do not output the recipient school name followed by its location as the contact owner."
@@ -276,12 +268,12 @@ export async function generateProposalSectionWithLeo(input: {
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
     temperature: 0.45,
-    max_tokens: 1200,
+    max_tokens: 450,
     messages: [
       {
         role: "system",
         content:
-          "You are Leo, EduSentrix's proposal assistant. Return JSON only. Write polished, official business proposal copy. Do not invent prices, dates, contracts, legal commitments, implementation promises, or customer claims. Output must be editable draft text, not final approval.",
+          "You are Leo, EduSentrix's proposal assistant. Return JSON only. Write short, polished business proposal copy. Standard proposals must fit within 2 pages; pilot, pricing, and demo follow-up proposals must fit within 1 page. Do not invent prices, dates, contracts, legal commitments, implementation promises, or customer claims. Output must be editable draft text, not final approval.",
       },
       {
         role: "user",

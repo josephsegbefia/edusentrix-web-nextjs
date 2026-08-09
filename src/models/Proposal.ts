@@ -27,9 +27,10 @@ export interface IProposal {
   schoolName: string;
   schoolLocation?: string | null;
   schoolId?: Types.ObjectId | null;
+  prospectId?: Types.ObjectId | null;
   leadId?: Types.ObjectId | null;
   applicationId?: Types.ObjectId | null;
-  source: "manual" | "school_record" | "lead" | "demo_visit" | "application";
+  source: "manual" | "school_record" | "prospect" | "lead" | "demo_visit" | "application";
   recipientName?: string | null;
   recipientTitle?: string | null;
   recipientEmail?: string | null;
@@ -89,11 +90,12 @@ const proposalSchema = new Schema<IProposal>(
     schoolName: { type: String, required: true, trim: true, index: true },
     schoolLocation: { type: String, default: "", trim: true },
     schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null, index: true },
+    prospectId: { type: Schema.Types.ObjectId, ref: "PlatformProspect", default: null, index: true },
     leadId: { type: Schema.Types.ObjectId, ref: "DemoLead", default: null, index: true },
     applicationId: { type: Schema.Types.ObjectId, ref: "Application", default: null, index: true },
     source: {
       type: String,
-      enum: ["manual", "school_record", "lead", "demo_visit", "application"],
+      enum: ["manual", "school_record", "prospect", "lead", "demo_visit", "application"],
       default: "manual",
       index: true,
     },
@@ -150,6 +152,17 @@ const proposalSchema = new Schema<IProposal>(
 
 proposalSchema.index({ status: 1, updatedAt: -1 });
 proposalSchema.index({ schoolName: "text", recipientName: "text", recipientEmail: "text", title: "text" });
+
+const existingProposalModel = models.Proposal as Model<IProposal> | undefined;
+const existingSourcePath = existingProposalModel?.schema.path("source");
+const existingSourceValues =
+  existingSourcePath && "enumValues" in existingSourcePath
+    ? (existingSourcePath.enumValues as string[])
+    : [];
+
+if (existingProposalModel && !existingSourceValues.includes("prospect")) {
+  delete models.Proposal;
+}
 
 export const Proposal: Model<IProposal> =
   (models.Proposal as Model<IProposal>) || model<IProposal>("Proposal", proposalSchema);

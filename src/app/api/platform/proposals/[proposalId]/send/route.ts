@@ -5,6 +5,7 @@ import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { Proposal } from "@/models/Proposal";
+import { PlatformProspect } from "@/models/PlatformProspect";
 import { ProposalSendLog } from "@/models/ProposalSendLog";
 import { logProposalActivity } from "@/lib/proposals/utils";
 import { serializeProposalSendLog } from "@/lib/proposals/serialize";
@@ -75,11 +76,23 @@ export async function POST(
     });
 
     if (result.status === "sent") {
+      const sentAt = new Date();
       proposal.status = "sent";
-      proposal.sentAt = new Date();
+      proposal.sentAt = sentAt;
       proposal.sentBy = gate.actor.userId;
       proposal.lastSentVersion = proposal.version;
       await proposal.save();
+
+      if (proposal.prospectId) {
+        await PlatformProspect.findByIdAndUpdate(proposal.prospectId, {
+          $set: {
+            status: "proposal_sent",
+            latestProposalId: proposal._id,
+            proposalSentAt: sentAt,
+            updatedByUserId: gate.actor.userId,
+          },
+        });
+      }
     }
 
     await logProposalActivity({

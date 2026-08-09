@@ -19,17 +19,24 @@ import { PROPOSAL_MODULES } from "@/lib/proposals/defaults";
 import { cn } from "@/lib/utils";
 
 const proposalTypes = [
-  { value: "full_implementation", label: "Full Implementation" },
-  { value: "pilot", label: "Pilot Proposal" },
   { value: "general", label: "General Proposal" },
+  { value: "pilot", label: "Pilot Proposal" },
   { value: "pricing", label: "Pricing Proposal" },
   { value: "demo_follow_up", label: "Demo Follow-up" },
+  { value: "full_implementation", label: "Full Implementation" },
 ] as const;
+
+const DEFAULT_MODULES = [
+  "Student Records",
+  "Fees, Invoices & Payments",
+  "Notices & Communication",
+  "Reports & Analytics",
+];
 
 export function ProposalCreateForm() {
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
-  const [selectedModules, setSelectedModules] = React.useState<string[]>(() => [...PROPOSAL_MODULES]);
+  const [selectedModules, setSelectedModules] = React.useState<string[]>(() => [...DEFAULT_MODULES]);
   const [form, setForm] = React.useState({
     schoolName: "",
     schoolLocation: "",
@@ -37,7 +44,7 @@ export function ProposalCreateForm() {
     recipientTitle: "",
     recipientEmail: "",
     recipientPhone: "",
-    proposalType: "full_implementation",
+    proposalType: "general",
     setupFee: "",
     recurringFee: "",
     cadence: "monthly",

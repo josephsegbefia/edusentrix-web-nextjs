@@ -113,12 +113,12 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
     if (unstyled) {
       return (
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-white/55">
+          <span className="pointer-events-none absolute inset-y-0 left-4 flex h-full items-center text-sm leading-none text-white/55">
             +233
           </span>
           <input
             {...sharedProps}
-            className={cn("pl-16", className)}
+            className={cn("pl-16 leading-none", className)}
           />
         </div>
       );
@@ -126,10 +126,10 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
 
     return (
       <div className="relative">
-        <span className="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm text-muted-foreground">
+        <span className="pointer-events-none absolute inset-y-0 left-3 z-10 flex h-full items-center text-sm leading-none text-muted-foreground">
           +233
         </span>
-        <Input {...sharedProps} className={cn("pl-14", className)} />
+        <Input {...sharedProps} className={cn("pl-14 leading-none", className)} />
       </div>
     );
   }

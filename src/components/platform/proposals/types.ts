@@ -2,6 +2,7 @@ export type PlatformProposal = {
   id: string;
   schoolName: string;
   schoolLocation: string;
+  prospectId?: string | null;
   recipientName: string;
   recipientTitle: string;
   recipientEmail: string;

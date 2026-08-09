@@ -6,6 +6,7 @@ export function serializeProposal(doc: IProposal | any) {
     schoolName: doc.schoolName,
     schoolLocation: doc.schoolLocation || "",
     schoolId: doc.schoolId ? String(doc.schoolId) : null,
+    prospectId: doc.prospectId ? String(doc.prospectId) : null,
     leadId: doc.leadId ? String(doc.leadId) : null,
     applicationId: doc.applicationId ? String(doc.applicationId) : null,
     source: doc.source,

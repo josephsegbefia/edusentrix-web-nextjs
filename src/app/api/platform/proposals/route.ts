@@ -4,7 +4,9 @@ import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Proposal } from "@/models/Proposal";
 import { ProposalTemplate } from "@/models/ProposalTemplate";
+import { PlatformProspect } from "@/models/PlatformProspect";
 import { CreateProposalSchema } from "@/lib/proposals/validators";
+import { defaultProposalSections } from "@/lib/proposals/defaults";
 import {
   ensureDefaultProposalData,
   hashProposalContent,
@@ -121,7 +123,12 @@ export async function POST(req: NextRequest) {
       preparedBy: preparedByName,
       branding,
     });
-    const sections = (template.sections || [])
+    const templateSections =
+      parsed.data.templateId && selectedTemplate
+        ? template.sections || []
+        : defaultProposalSections(parsed.data.proposalType);
+
+    const sections = templateSections
       .slice()
       .sort((a, b) => a.order - b.order)
       .map((section) => ({
@@ -147,6 +154,7 @@ export async function POST(req: NextRequest) {
       schoolName: parsed.data.schoolName,
       schoolLocation: parsed.data.schoolLocation || "",
       schoolId: objectIdOrNull(parsed.data.schoolId),
+      prospectId: objectIdOrNull(parsed.data.prospectId),
       leadId: objectIdOrNull(parsed.data.leadId),
       applicationId: objectIdOrNull(parsed.data.applicationId),
       source: parsed.data.source,
@@ -177,6 +185,17 @@ export async function POST(req: NextRequest) {
       actorId: gate.actor.userId,
       metadata: { templateId: String(template._id) },
     });
+
+    if (parsed.data.prospectId && mongoose.Types.ObjectId.isValid(parsed.data.prospectId)) {
+      await PlatformProspect.findByIdAndUpdate(parsed.data.prospectId, {
+        $set: {
+          status: "proposal_preparing",
+          latestProposalId: proposal._id,
+          updatedByUserId: gate.actor.userId,
+        },
+        $inc: { proposalCount: 1 },
+      });
+    }
 
     return NextResponse.json({ success: true, data: serializeProposal(proposal.toObject()) }, { status: 201 });
   } catch (error) {

@@ -32,6 +32,7 @@ import {
   ClipboardList,
   ListTodo,
   FileText,
+  ContactRound,
 } from "lucide-react";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
@@ -109,6 +110,12 @@ const navSections: NavSection[] = [
         href: "/platform/demo-leads",
         icon: Presentation,
         requiredPermissions: ["platform.applications.read"],
+      },
+      {
+        label: "Prospects",
+        href: "/platform/prospects",
+        icon: ContactRound,
+        requiredPermissions: ["platform.proposals.read"],
       },
       {
         label: "Proposals",

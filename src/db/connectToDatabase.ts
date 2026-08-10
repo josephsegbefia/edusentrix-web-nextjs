@@ -42,7 +42,7 @@ export async function connectToDatabase(uri?: string, databaseName?: string) {
 
 	if (!mongoDatabaseName) {
 		throw new Error(
-			"MONGO_DB_NAME is required, or MONGODB_URI must include a database name. Expected edusentrix-dev, edusentrix-staging, edusentrix-live, or a configured demo database.",
+			"MONGO_DB_NAME or DEMO_MONGO_DB_NAME is required, or MONGODB_URI must include a database name. For the demo deployment, set DEMO_MONGO_DB_NAME=test if the demo database is named test.",
 		);
 	}
 

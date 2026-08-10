@@ -50,6 +50,29 @@ export function DemoBanner() {
     }
   }, []);
 
+  const trackEvent = useCallback(
+    async (payload: {
+      eventCode?: string;
+      eventType?: string;
+      path?: string;
+      title?: string;
+      metadata?: Record<string, unknown>;
+    }) => {
+      if (!session) return;
+      try {
+        await fetch("/api/demo/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        });
+      } catch {
+        /* silent */
+      }
+    },
+    [session?.sessionId]
+  );
+
   useEffect(() => {
     fetchSession();
     const interval = setInterval(fetchSession, 60_000);
@@ -58,16 +81,64 @@ export function DemoBanner() {
 
   useEffect(() => {
     if (!session || !pathname) return;
-    void fetch("/api/demo/track", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const startedAt = Date.now();
+    void trackEvent({
+      eventCode: "page.viewed",
+      eventType: "page",
+      path: pathname,
+      title: typeof document !== "undefined" ? document.title : "",
+    });
+
+    return () => {
+      const durationMs = Date.now() - startedAt;
+      void trackEvent({
+        eventCode: "page.dwell",
+        eventType: "page",
         path: pathname,
         title: typeof document !== "undefined" ? document.title : "",
-      }),
-      keepalive: true,
-    }).catch(() => null);
-  }, [pathname, session?.sessionId]);
+        metadata: { durationMs },
+      });
+    };
+  }, [pathname, session?.sessionId, trackEvent]);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const element = target.closest<HTMLElement>(
+        "button,a,[role='button'],input[type='button'],input[type='submit']"
+      );
+      if (!element) return;
+
+      const label =
+        element.getAttribute("aria-label") ||
+        element.getAttribute("title") ||
+        element.dataset.demoTrack ||
+        element.textContent?.replace(/\s+/g, " ").trim().slice(0, 120) ||
+        element.tagName.toLowerCase();
+      const href =
+        element instanceof HTMLAnchorElement
+          ? element.href
+          : element.getAttribute("href") || "";
+
+      void trackEvent({
+        eventCode: "ui.clicked",
+        eventType: "interaction",
+        path: pathname || window.location.pathname,
+        title: typeof document !== "undefined" ? document.title : "",
+        metadata: {
+          label,
+          tagName: element.tagName.toLowerCase(),
+          href,
+        },
+      });
+    };
+
+    document.addEventListener("click", handleClick, { capture: true });
+    return () => document.removeEventListener("click", handleClick, { capture: true });
+  }, [pathname, session?.sessionId, trackEvent]);
 
   useEffect(() => {
     if (!session) return;

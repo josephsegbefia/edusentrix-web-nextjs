@@ -115,7 +115,7 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     parsedRows: { type: [parsedRowSchema], default: [] },
     resultSchemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", default: null },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 schemeImportJobSchema.index({ schoolId: 1, createdAt: -1 });

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { connectToDemoDataDatabase } from "@/db/connectToDemoDataDatabase";
+import {
+  connectToDemoDataDatabase,
+  getDemoDataDatabaseConfig,
+} from "@/db/connectToDemoDataDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { DemoLead } from "@/models/DemoLead";
 import { DemoSession } from "@/models/DemoSession";
@@ -38,6 +41,26 @@ function mapCountRows(rows: Array<{ _id: string | null; count: number }>) {
   );
 }
 
+async function getRawCollectionCounts(
+  source: {
+    collection: (name: string) => {
+      countDocuments: (filter?: Record<string, unknown>) => Promise<number>;
+    };
+  },
+  collectionNames: string[]
+) {
+  const rows = await Promise.all(
+    collectionNames.map(async (name) => {
+      try {
+        return [name, await source.collection(name).countDocuments({})] as const;
+      } catch {
+        return [name, null] as const;
+      }
+    })
+  );
+  return Object.fromEntries(rows);
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requirePlatformAdmin();
   if (!auth.ok) return auth.res;
@@ -57,8 +80,10 @@ export async function GET(req: NextRequest) {
   const hasExternalDemoDataConfig = Boolean(
     process.env.DEMO_DATA_MONGODB_URI || process.env.DEMO_MONGODB_URI
   );
+  const demoDataConfig = getDemoDataDatabaseConfig();
   let demoDb = null;
   let demoDataError: string | null = null;
+  let collectionCounts: Record<string, number | null> = {};
   try {
     demoDb = await connectToDemoDataDatabase();
   } catch (error) {
@@ -205,6 +230,12 @@ export async function GET(req: NextRequest) {
     sessionStatusStats = rawSessionStatusStats;
     eventCodeStats = rawEventCodeStats;
     recentEvents = rawRecentEvents.map(serializeEvent);
+    collectionCounts = await getRawCollectionCounts(demoDb, [
+      "demoleads",
+      "demosessions",
+      "demosandboxes",
+      "demoevents",
+    ]);
   } else {
     const results = await Promise.all([
       DemoLead.find(filter)
@@ -288,6 +319,15 @@ export async function GET(req: NextRequest) {
     sessionStatusStats = rawSessionStatusStats as Array<{ _id: string; count: number }>;
     eventCodeStats = rawEventCodeStats as Array<{ _id: string; count: number }>;
     recentEvents = (rawRecentEvents as RawDoc[]).map(serializeEvent);
+    const db = DemoLead.db.db;
+    collectionCounts = db
+      ? await getRawCollectionCounts(db, [
+          "demoleads",
+          "demosessions",
+          "demosandboxes",
+          "demoevents",
+        ])
+      : {};
   }
 
   const sandboxSummary = Object.fromEntries(
@@ -317,7 +357,15 @@ export async function GET(req: NextRequest) {
     !hasExternalDemoDataConfig
       ? "No DEMO_DATA_MONGODB_URI or DEMO_MONGODB_URI is configured, so this page is reading the platform database instead of a separate demo database."
       : null,
+    hasExternalDemoDataConfig && demoDataConfig.databaseNameSource === "driver_default"
+      ? "A demo database URI is configured, but no database name was found in DEMO_DATA_MONGO_DB_NAME or the URI path. The MongoDB driver may be reading its default database."
+      : null,
     demoDataError ? `Could not read external demo database: ${demoDataError}` : null,
+    hasExternalDemoDataConfig &&
+    !demoDataError &&
+    Object.values(collectionCounts).every((count) => !count)
+      ? "The configured demo data database is reachable, but demo collections are empty. Check that the demo deployment writes to this same database."
+      : null,
   ].filter(Boolean);
 
   return NextResponse.json({
@@ -335,6 +383,15 @@ export async function GET(req: NextRequest) {
       recentEvents,
       selectedLeadEvents,
       dataSource: demoDb ? "external_demo_database" : "platform_database",
+      dataSourceInfo: {
+        databaseName: demoDb
+          ? demoDb.databaseName
+          : DemoLead.db.db?.databaseName || null,
+        configuredDatabaseName: demoDataConfig.databaseName || null,
+        databaseNameSource: demoDataConfig.databaseNameSource,
+        hasExternalDemoDataConfig,
+        collectionCounts,
+      },
       warnings,
     },
   });

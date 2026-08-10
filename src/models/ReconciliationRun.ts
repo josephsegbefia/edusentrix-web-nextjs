@@ -24,6 +24,19 @@ export interface IReconciliationRun {
   updatedAt: Date;
 }
 
+const reconciliationRunSummarySchema = new Schema<IReconciliationRun["summary"]>(
+  {
+    inspectedIngestion: { type: Number, required: true, default: 0 },
+    matched: { type: Number, required: true, default: 0 },
+    ambiguous: { type: Number, required: true, default: 0 },
+    unchanged: { type: Number, required: true, default: 0 },
+    staleEscalated: { type: Number, required: true, default: 0 },
+    paymentStatusUpdated: { type: Number, required: true, default: 0 },
+    errors: { type: Number, required: true, default: 0 },
+  },
+  { _id: false, suppressReservedKeysWarning: true }
+);
+
 const reconciliationRunSchema = new Schema<IReconciliationRun>(
   {
     schoolId: {
@@ -53,15 +66,7 @@ const reconciliationRunSchema = new Schema<IReconciliationRun>(
       default: null,
     },
     summary: {
-      type: {
-        inspectedIngestion: { type: Number, required: true, default: 0 },
-        matched: { type: Number, required: true, default: 0 },
-        ambiguous: { type: Number, required: true, default: 0 },
-        unchanged: { type: Number, required: true, default: 0 },
-        staleEscalated: { type: Number, required: true, default: 0 },
-        paymentStatusUpdated: { type: Number, required: true, default: 0 },
-        errors: { type: Number, required: true, default: 0 },
-      },
+      type: reconciliationRunSummarySchema,
       required: true,
       default: {
         inspectedIngestion: 0,

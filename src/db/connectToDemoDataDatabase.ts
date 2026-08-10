@@ -5,15 +5,41 @@ const globalWithDemoMongo = globalThis as typeof globalThis & {
   _demoMongoKey?: string;
 };
 
-export async function connectToDemoDataDatabase(): Promise<Db | null> {
-  const uri =
-    process.env.DEMO_DATA_MONGODB_URI || process.env.DEMO_MONGODB_URI || "";
-  if (!uri) return null;
+function getConfiguredDemoDataUri() {
+  return process.env.DEMO_DATA_MONGODB_URI || process.env.DEMO_MONGODB_URI || "";
+}
 
-  const dbName =
+function getDatabaseNameFromUri(uri: string) {
+  if (!uri) return undefined;
+  try {
+    const parsed = new URL(uri);
+    const dbName = decodeURIComponent(parsed.pathname.replace(/^\/+/, ""));
+    return dbName || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getDemoDataDatabaseConfig() {
+  const uri = getConfiguredDemoDataUri();
+  const explicitDbName =
     process.env.DEMO_DATA_MONGO_DB_NAME ||
     process.env.DEMO_MONGO_DB_NAME ||
     undefined;
+  const uriDbName = getDatabaseNameFromUri(uri);
+
+  return {
+    hasUri: Boolean(uri),
+    databaseName: explicitDbName || uriDbName || undefined,
+    databaseNameSource: explicitDbName ? "env" : uriDbName ? "uri" : "driver_default",
+  };
+}
+
+export async function connectToDemoDataDatabase(): Promise<Db | null> {
+  const uri = getConfiguredDemoDataUri();
+  if (!uri) return null;
+
+  const dbName = getDemoDataDatabaseConfig().databaseName;
   const cacheKey = `${uri}::${dbName || ""}`;
 
   if (

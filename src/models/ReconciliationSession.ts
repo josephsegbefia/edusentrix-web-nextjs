@@ -136,7 +136,7 @@ const reconciliationSessionSchema = new Schema<IReconciliationSession>(
     metadata: { type: Schema.Types.Mixed, default: null },
     completedAt: { type: Date, default: null },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 reconciliationSessionSchema.index(

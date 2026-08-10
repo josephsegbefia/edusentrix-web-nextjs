@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
@@ -76,6 +77,13 @@ type PageData = {
   recentEvents: DemoEventRow[];
   selectedLeadEvents: DemoEventRow[];
   dataSource: "external_demo_database" | "platform_database";
+  dataSourceInfo?: {
+    databaseName: string | null;
+    configuredDatabaseName: string | null;
+    databaseNameSource: string;
+    hasExternalDemoDataConfig: boolean;
+    collectionCounts: Record<string, number | null>;
+  };
   warnings: string[];
 };
 
@@ -164,6 +172,7 @@ export default function PlatformDemoLeadsPage() {
   const completedSessions = data?.stats.sessionsByStatus?.ended ?? 0;
   const abandonedSessions = data?.stats.sessionsByStatus?.abandoned ?? 0;
   const totalEvents = Object.values(data?.stats.eventsByCode ?? {}).reduce((sum, value) => sum + value, 0);
+  const collectionCounts = data?.dataSourceInfo?.collectionCounts ?? {};
   const selectedLead = selectedLeadId
     ? data?.leads.find((lead) => lead._id === selectedLeadId) ?? null
     : null;
@@ -267,14 +276,21 @@ export default function PlatformDemoLeadsPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             <span className="rounded-2xl bg-cyan-400/10 p-3 text-cyan-100">
               <Database className="h-5 w-5" />
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.16em] text-white/45">Data source</p>
               <p className="mt-1 font-medium">
                 {data?.dataSource === "external_demo_database" ? "Demo database" : "Platform database"}
+              </p>
+              <p className="mt-1 truncate text-xs text-white/45">
+                DB: {data?.dataSourceInfo?.databaseName || "not resolved"}
+              </p>
+              <p className="mt-1 text-xs text-white/35">
+                External env: {data?.dataSourceInfo?.hasExternalDemoDataConfig ? "configured" : "missing"}
+                {" · "}DB name source: {data?.dataSourceInfo?.databaseNameSource || "unknown"}
               </p>
             </div>
           </div>
@@ -298,6 +314,28 @@ export default function PlatformDemoLeadsPage() {
           </div>
         </div>
       </div>
+
+      {data ? (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                Demo collection diagnostics
+              </p>
+              <p className="mt-1 text-sm text-white/55">
+                These counts prove which database the platform page is reading.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["demoleads", "demosessions", "demosandboxes", "demoevents"].map((name) => (
+                <PlatformPill key={name} tone={collectionCounts[name] ? "cyan" : "slate"}>
+                  {name} {collectionCounts[name] ?? "?"}
+                </PlatformPill>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-100">
@@ -346,12 +384,13 @@ export default function PlatformDemoLeadsPage() {
                 <th className="pb-3 font-medium">Sessions</th>
                 <th className="pb-3 font-medium">Events</th>
                 <th className="pb-3 font-medium">Last activity</th>
+                <th className="pb-3 font-medium">Open</th>
               </tr>
             </thead>
             <tbody>
               {loading && !data ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-white/50">
+                  <td colSpan={9} className="py-12 text-center text-white/50">
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading leads…
@@ -360,7 +399,7 @@ export default function PlatformDemoLeadsPage() {
                 </tr>
               ) : !data?.leads.length ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-white/45">
+                  <td colSpan={9} className="py-12 text-center text-white/45">
                     No leads match this view yet.
                   </td>
                 </tr>
@@ -392,6 +431,21 @@ export default function PlatformDemoLeadsPage() {
                     </td>
                     <td className="py-3 pr-4 text-white/55">
                       {formatTimestamp(lead.lastEventAt || lead.lastSeenAt)}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <Button
+                        asChild
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <Link href={`/platform/demo-leads/${lead._id}`}>
+                          <Eye className="mr-1 h-4 w-4" />
+                          Open
+                        </Link>
+                      </Button>
                     </td>
                   </tr>
                 ))

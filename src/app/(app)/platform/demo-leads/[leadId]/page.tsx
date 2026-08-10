@@ -188,6 +188,7 @@ export default function PlatformDemoLeadDetailPage() {
     if (ok !== "confirm") return;
 
     setDeleting(true);
+    let shouldKeepDeleting = false;
     try {
       const res = await fetch(`/api/platform/demo-leads/${leadId}`, { method: "DELETE" });
       const json = await res.json().catch(() => null);
@@ -195,11 +196,14 @@ export default function PlatformDemoLeadDetailPage() {
         throw new Error(json?.error || "Failed to delete demo lead.");
       }
       toast.success("Demo lead deleted.");
+      shouldKeepDeleting = true;
       router.push("/platform/demo-leads");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete demo lead.");
     } finally {
-      setDeleting(false);
+      if (!shouldKeepDeleting) {
+        setDeleting(false);
+      }
     }
   }
 

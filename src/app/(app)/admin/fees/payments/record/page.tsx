@@ -79,6 +79,7 @@ export default function RecordPaymentPage() {
     new Date().toISOString().split("T")[0]
   );
   const [notes, setNotes] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const initializedInvoiceIdRef = useRef<string | null>(null);
   const updateAllocationsWithTotal = (next: Allocation[]) => {
@@ -209,6 +210,7 @@ export default function RecordPaymentPage() {
         description: "Payment recorded successfully",
       });
 
+      setIsRedirecting(true);
       router.push(`/admin/fees/invoices/${invoiceId}`);
     } catch (error: any) {
       toastError("Error", {
@@ -614,18 +616,18 @@ export default function RecordPaymentPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={recordPayment.isPending}
+                    disabled={recordPayment.isPending || isRedirecting}
                     className={cn(
                       "gap-2 rounded-2xl bg-brand px-6 text-sm font-semibold text-black shadow-lg shadow-brand/25 transition-all duration-200 hover:bg-sky-300 hover:shadow-brand/40 hover:scale-[1.01] active:scale-[0.99]",
-                      recordPayment.isPending && "opacity-50"
+                      (recordPayment.isPending || isRedirecting) && "opacity-50"
                     )}
                   >
-                    {recordPayment.isPending ? (
+                    {recordPayment.isPending || isRedirecting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Check className="h-4 w-4" />
                     )}
-                    Record Payment
+                    {isRedirecting ? "Opening bill..." : "Record Payment"}
                   </Button>
                 </div>
               </div>

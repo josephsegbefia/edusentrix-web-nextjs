@@ -167,6 +167,7 @@ export default function TeacherAssignmentCreatePage() {
     const assignmentId = result?.data?.assignment?.id;
     if (assignmentId) {
       router.push(`/teacher/studio/assignments/${assignmentId}`);
+      return { keepSubmitting: true };
     }
   };
 

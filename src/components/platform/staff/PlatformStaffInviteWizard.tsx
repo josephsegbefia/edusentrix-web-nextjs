@@ -126,6 +126,7 @@ export function PlatformStaffInviteWizard({
     if (!canContinue()) return;
     setSubmitting(true);
     setError(null);
+    let shouldKeepBusy = false;
 
     try {
       const res = await fetch("/api/platform/staff/invite", {
@@ -146,12 +147,15 @@ export function PlatformStaffInviteWizard({
       if (!res.ok || !payload.success) {
         throw new Error(payload.error || "Failed to invite platform staff");
       }
+      shouldKeepBusy = true;
       router.push("/platform/staff");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to invite platform staff");
     } finally {
-      setSubmitting(false);
+      if (!shouldKeepBusy) {
+        setSubmitting(false);
+      }
     }
   }
 

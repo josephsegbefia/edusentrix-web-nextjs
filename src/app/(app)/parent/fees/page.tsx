@@ -695,6 +695,7 @@ function FeesPageContent() {
   const handleConfirmCheckout = React.useCallback(async () => {
     if (!checkoutPreview) return;
 
+    let shouldKeepBusy = false;
     try {
       setCheckoutSubmitting(true);
       setCheckoutBanner({
@@ -723,6 +724,7 @@ function FeesPageContent() {
         throw new Error("Missing Paystack authorization URL");
       }
 
+      shouldKeepBusy = true;
       window.location.assign(authorizationUrl);
     } catch (checkoutError) {
       const message =
@@ -736,7 +738,9 @@ function FeesPageContent() {
         message,
       });
     } finally {
-      setCheckoutSubmitting(false);
+      if (!shouldKeepBusy) {
+        setCheckoutSubmitting(false);
+      }
     }
   }, [checkoutPreview]);
 

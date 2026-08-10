@@ -70,6 +70,7 @@ export function ProposalCreateForm() {
       return;
     }
     setSubmitting(true);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/platform/proposals", {
         method: "POST",
@@ -97,11 +98,14 @@ export function ProposalCreateForm() {
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to create proposal");
       toast.success("Proposal created");
+      shouldKeepBusy = true;
       router.push(`/platform/proposals/${json.data.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create proposal");
     } finally {
-      setSubmitting(false);
+      if (!shouldKeepBusy) {
+        setSubmitting(false);
+      }
     }
   }
 

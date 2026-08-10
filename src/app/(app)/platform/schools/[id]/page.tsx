@@ -288,6 +288,7 @@ export default function PlatformSchoolDetailPage() {
 
   async function suspendSchool() {
     if (!schoolId) return;
+    let shouldKeepBusy = false;
     try {
       setLifecycleBusy(true);
       const res = await fetch(`/api/platform/schools/${schoolId}/suspend`, {
@@ -376,11 +377,14 @@ export default function PlatformSchoolDetailPage() {
       setDeleteOpen(false);
       setDeletePhrase("");
       setDeleteNameConfirm("");
+      shouldKeepBusy = true;
       router.push("/platform/schools");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to delete school");
     } finally {
-      setLifecycleBusy(false);
+      if (!shouldKeepBusy) {
+        setLifecycleBusy(false);
+      }
     }
   }
 
@@ -390,6 +394,7 @@ export default function PlatformSchoolDetailPage() {
       toast.error("Add a clear reason before starting assisted access.");
       return;
     }
+    let shouldKeepBusy = false;
     try {
       setAssistBusy(true);
       const res = await fetch(`/api/platform/schools/${schoolId}/assisted-access/start`, {
@@ -405,11 +410,14 @@ export default function PlatformSchoolDetailPage() {
         throw new Error(json?.error || "Failed to start assisted access");
       }
       toast.success("Assisted access started.");
+      shouldKeepBusy = true;
       window.location.href = json.data?.redirectTo || "/admin";
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to start assisted access");
     } finally {
-      setAssistBusy(false);
+      if (!shouldKeepBusy) {
+        setAssistBusy(false);
+      }
     }
   }
 

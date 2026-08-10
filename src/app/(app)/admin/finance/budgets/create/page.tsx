@@ -73,6 +73,7 @@ export default function CreateBudgetPage() {
   const [lineItems, setLineItems] = React.useState<LineItemInput[]>([
     { categoryId: "", budgetedAmount: 0, notes: "" },
   ]);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   const form = useForm<BudgetFormData>({
     resolver: zodResolver(budgetFormSchema),
@@ -131,6 +132,7 @@ export default function CreateBudgetPage() {
       });
 
       toast.success("Budget created successfully");
+      setIsRedirecting(true);
       router.push("/admin/finance/budgets");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create budget");
@@ -397,12 +399,12 @@ export default function CreateBudgetPage() {
           </Button>
           <Button
             type="submit"
-            disabled={createBudget.isPending}
+            disabled={createBudget.isPending || isRedirecting}
             className="bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700"
           >
-            {createBudget.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(createBudget.isPending || isRedirecting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Calculator className="mr-2 h-4 w-4" />
-            Create Budget
+            {isRedirecting ? "Opening budgets..." : "Create Budget"}
           </Button>
         </div>
       </form>

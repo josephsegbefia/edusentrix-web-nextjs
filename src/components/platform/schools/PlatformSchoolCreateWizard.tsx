@@ -34,6 +34,7 @@ export function PlatformSchoolCreateWizard() {
   async function submit() {
     setBusy(true);
     setError(null);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/platform/schools", {
         method: "POST",
@@ -55,12 +56,15 @@ export function PlatformSchoolCreateWizard() {
       });
       const payload = await res.json();
       if (!res.ok || !payload.success) throw new Error(payload.error || "Failed to create school");
+      shouldKeepBusy = true;
       router.push(`/platform/schools/${payload.data.schoolId}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create school");
     } finally {
-      setBusy(false);
+      if (!shouldKeepBusy) {
+        setBusy(false);
+      }
     }
   }
 

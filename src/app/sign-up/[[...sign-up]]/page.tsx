@@ -394,12 +394,16 @@ function SignUpPageContent() {
 
   const handleSignOutAndContinue = useCallback(async () => {
     setIsSigningOut(true);
+    let shouldKeepBusy = false;
     try {
       const currentUrl =
         typeof window !== "undefined" ? window.location.href : "/sign-up";
       await signOut({ redirectUrl: currentUrl });
+      shouldKeepBusy = true;
     } finally {
-      setIsSigningOut(false);
+      if (!shouldKeepBusy) {
+        setIsSigningOut(false);
+      }
     }
   }, [signOut]);
 

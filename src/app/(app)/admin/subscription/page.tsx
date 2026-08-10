@@ -728,6 +728,7 @@ function InvoicePanel() {
 
   async function startCheckout(invoiceId: string) {
     setPayingId(invoiceId);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch(`/api/admin/subscription/invoices/${invoiceId}/checkout`, {
         method: "POST",
@@ -736,12 +737,15 @@ function InvoicePanel() {
       });
       const json = await res.json();
       if (json.success && json.data?.authorizationUrl) {
+        shouldKeepBusy = true;
         window.location.href = json.data.authorizationUrl;
       }
     } catch {
       // Keep the panel stable; user can retry.
     } finally {
-      setPayingId(null);
+      if (!shouldKeepBusy) {
+        setPayingId(null);
+      }
     }
   }
   if (loadingInv) return null;

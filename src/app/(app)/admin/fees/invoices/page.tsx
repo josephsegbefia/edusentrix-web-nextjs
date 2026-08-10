@@ -131,6 +131,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isRedirectingToInvoice, setIsRedirectingToInvoice] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Check if invoice creation is blocked due to period status
@@ -180,6 +181,7 @@ export default function InvoicesPage() {
 
     if (!result) return;
     setShowCreateModal(false);
+    setIsRedirectingToInvoice(true);
     // Navigate to the new invoice
     router.push(`/admin/fees/invoices/${result.invoice._id}`);
   };
@@ -527,14 +529,18 @@ export default function InvoicesPage() {
       {/* Create Bill Modal */}
       <ResponsiveModal
         open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          if (!isRedirectingToInvoice) setShowCreateModal(false);
+        }}
         title="Create Bill"
         widthClass="max-w-4xl"
       >
         <CreateInvoiceModal
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            if (!isRedirectingToInvoice) setShowCreateModal(false);
+          }}
           onSubmit={handleCreateInvoice}
-          isLoading={createInvoice.isPending}
+          isLoading={createInvoice.isPending || isRedirectingToInvoice}
         />
       </ResponsiveModal>
     </div>

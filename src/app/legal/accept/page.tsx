@@ -22,6 +22,7 @@ export default function AcceptLegalPage() {
     if (!accepted || loading) return;
     setLoading(true);
     setError(null);
+    let shouldKeepLoading = false;
     try {
       const res = await fetch("/api/account/legal-acceptance", { method: "POST" });
       const json = await res.json();
@@ -31,6 +32,7 @@ export default function AcceptLegalPage() {
       }
       // Use a full-page navigation so the app layout re-evaluates auth state
       // and any server-side legal-gate checks pick up the newly saved acceptance.
+      shouldKeepLoading = true;
       if (json?.data?.mode === "demo") {
         window.location.href = "/admin";
       } else {
@@ -39,7 +41,9 @@ export default function AcceptLegalPage() {
     } catch {
       setError("Network error. Please try again.");
     } finally {
-      setLoading(false);
+      if (!shouldKeepLoading) {
+        setLoading(false);
+      }
     }
   }
 

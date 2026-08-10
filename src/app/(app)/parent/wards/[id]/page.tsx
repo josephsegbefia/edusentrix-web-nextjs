@@ -985,6 +985,7 @@ function FeesTab({ wardId }: { wardId: string }) {
   const handleConfirmCheckout = React.useCallback(async () => {
     if (!checkoutPreview) return;
 
+    let shouldKeepBusy = false;
     try {
       setCheckoutSubmitting(true);
       setCheckoutBanner({
@@ -1014,6 +1015,7 @@ function FeesTab({ wardId }: { wardId: string }) {
         throw new Error("Missing Paystack authorization URL");
       }
 
+      shouldKeepBusy = true;
       window.location.assign(authorizationUrl);
     } catch (checkoutError) {
       const message =
@@ -1027,7 +1029,9 @@ function FeesTab({ wardId }: { wardId: string }) {
         message,
       });
     } finally {
-      setCheckoutSubmitting(false);
+      if (!shouldKeepBusy) {
+        setCheckoutSubmitting(false);
+      }
     }
   }, [checkoutPreview, returnPath]);
 

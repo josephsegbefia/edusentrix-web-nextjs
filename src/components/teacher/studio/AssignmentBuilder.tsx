@@ -89,7 +89,10 @@ export type AssignmentBuilderProps = {
   mode?: "create" | "edit";
   layout?: "default" | "wizard";
   allowedTypes?: AssignmentFormValues["type"][];
-  onSubmit: (values: AssignmentFormValues, options?: { publish?: boolean }) => Promise<void>;
+  onSubmit: (
+    values: AssignmentFormValues,
+    options?: { publish?: boolean }
+  ) => Promise<{ keepSubmitting?: boolean } | void>;
   showPublish?: boolean;
 };
 
@@ -587,10 +590,14 @@ export function AssignmentBuilder({
 
   const handleSubmit = async (publish?: boolean) => {
     setIsSubmitting(true);
+    let shouldKeepSubmitting = false;
     try {
-      await onSubmit(values, { publish });
+      const result = await onSubmit(values, { publish });
+      shouldKeepSubmitting = Boolean(result?.keepSubmitting);
     } finally {
-      setIsSubmitting(false);
+      if (!shouldKeepSubmitting) {
+        setIsSubmitting(false);
+      }
     }
   };
 

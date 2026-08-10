@@ -174,6 +174,7 @@ export default function TeacherQuizCreatePage() {
     const quizId = result?.data?.assignment?.id;
     if (quizId) {
       router.push(`/teacher/studio/quizzes/${quizId}`);
+      return { keepSubmitting: true };
     }
   };
 

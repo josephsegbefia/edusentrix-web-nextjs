@@ -237,6 +237,7 @@ export function DemoBanner() {
 
   const switchPersona = async (role: string) => {
     setSwitching(true);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/demo/switch-persona", {
         method: "POST",
@@ -250,22 +251,29 @@ export function DemoBanner() {
       if (json.success) {
         await fetchSession();
         router.refresh();
+        shouldKeepBusy = true;
         router.push(json.data.redirectTo);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not switch demo persona.");
     } finally {
-      setSwitching(false);
+      if (!shouldKeepBusy) {
+        setSwitching(false);
+      }
     }
   };
 
   const endSession = async () => {
     setEnding(true);
+    let shouldKeepBusy = false;
     try {
       await fetch("/api/demo/end-session", { method: "POST" });
+      shouldKeepBusy = true;
       router.push("/");
     } finally {
-      setEnding(false);
+      if (!shouldKeepBusy) {
+        setEnding(false);
+      }
     }
   };
 

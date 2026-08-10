@@ -169,6 +169,7 @@ function DevTeacherLoginPanel() {
   const startDevTeacherLogin = async () => {
     setError(null);
     setSubmitting(true);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/auth/dev-teacher-login", {
         method: "POST",
@@ -179,11 +180,14 @@ function DevTeacherLoginPanel() {
       if (!res.ok || !payload?.data?.url) {
         throw new Error(payload?.error || "Could not start test teacher login.");
       }
+      shouldKeepBusy = true;
       window.location.href = payload.data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start test teacher login.");
     } finally {
-      setSubmitting(false);
+      if (!shouldKeepBusy) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -629,12 +633,16 @@ export default function SignInPage() {
 
   const handleSignOutAndContinue = async () => {
     setIsSwitchingAccount(true);
+    let shouldKeepBusy = false;
     try {
       const currentUrl =
         typeof window !== "undefined" ? window.location.href : "/sign-in";
       await signOut({ redirectUrl: currentUrl });
+      shouldKeepBusy = true;
     } finally {
-      setIsSwitchingAccount(false);
+      if (!shouldKeepBusy) {
+        setIsSwitchingAccount(false);
+      }
     }
   };
 

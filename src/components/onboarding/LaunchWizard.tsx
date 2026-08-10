@@ -186,6 +186,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   const [loading, setLoading] = useState(true);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [data, setData] = useState<Bootstrap | null>(null);
 
@@ -372,6 +373,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   async function saveStep1() {
     setSaving(true);
+    let shouldKeepBusy = false;
     try {
       const saved = await persistProfileStep();
       if (saved) {
@@ -551,6 +553,8 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
       }
 
       toast.success("School launch completed");
+      shouldKeepBusy = true;
+      setRedirecting(true);
       setTimeout(() => {
         window.location.href =
           variant === "platform" && platformSchoolId
@@ -559,8 +563,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
       }, 1200);
     } catch {
       toast.error("Failed to finalize school launch");
+      setRedirecting(false);
     } finally {
-      setSaving(false);
+      if (!shouldKeepBusy) {
+        setSaving(false);
+      }
     }
   }
 
@@ -1251,11 +1258,15 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           </Button>
                           <Button
                             onClick={finishOnboarding}
-                            disabled={!canFinish || saving}
+                            disabled={!canFinish || saving || redirecting}
                             size="lg"
                             className="w-full rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300"
                           >
-                            {saving ? "Finishing..." : "Complete school launch"}
+                            {redirecting
+                              ? "Opening workspace..."
+                              : saving
+                                ? "Finishing..."
+                                : "Complete school launch"}
                             <CheckCircle2 className="ml-2 h-4 w-4" />
                           </Button>
                           <p className="text-center text-sm text-white/40">

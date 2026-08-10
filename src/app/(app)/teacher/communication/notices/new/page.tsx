@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Megaphone, Send, Smartphone, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Megaphone, Send, Smartphone, Users } from "lucide-react";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -75,6 +75,7 @@ export default function NewTeacherNoticePage() {
     priority: "normal",
     sendEmail: true,
   });
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   const classOptions = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -139,6 +140,7 @@ export default function NewTeacherNoticePage() {
       );
     }
 
+    setIsRedirecting(true);
     router.push("/teacher/communication/notices");
   };
 
@@ -274,11 +276,11 @@ export default function NewTeacherNoticePage() {
       <div className={cn("flex flex-wrap items-center gap-3", !canPublish && "opacity-70")}>        
         <Button
           onClick={handleSubmit}
-          disabled={!canPublish}
+          disabled={!canPublish || isRedirecting}
           className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
         >
-          <Send className="h-4 w-4" />
-          Send notice
+          {isRedirecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isRedirecting ? "Opening notices..." : "Send notice"}
         </Button>
         <Button
           variant="outline"

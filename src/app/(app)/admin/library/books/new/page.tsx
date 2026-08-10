@@ -44,6 +44,7 @@ export default function AdminLibraryNewBookPage() {
   const [initialCopies, setInitialCopies] = React.useState("0");
   const [coverImageUrl, setCoverImageUrl] = React.useState<string | undefined>();
   const [coverImageKey, setCoverImageKey] = React.useState<string | undefined>();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   function toggleGrade(id: string) {
     setGradeLevelIds((prev) =>
@@ -80,6 +81,7 @@ export default function AdminLibraryNewBookPage() {
         coverImageKey: coverImageKey || undefined,
       });
       toast.success("Book created");
+      setIsRedirecting(true);
       router.push("/admin/library/books");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create book");
@@ -282,13 +284,13 @@ export default function AdminLibraryNewBookPage() {
         <div className="flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-linear-to-r from-white/5 to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
           <Button
             type="submit"
-            disabled={createBook.isPending}
+            disabled={createBook.isPending || isRedirecting}
             className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
           >
-            {createBook.isPending ? (
+            {createBook.isPending || isRedirecting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
+                {isRedirecting ? "Opening books..." : "Saving..."}
               </>
             ) : (
               "Create book"

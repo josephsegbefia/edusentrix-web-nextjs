@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft,
   FileSearch,
+  Loader2,
   Shield,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export default function NewReconciliationSessionPage() {
   const [startDate, setStartDate] = React.useState<Date | null>(null);
   const [endDate, setEndDate] = React.useState<Date | null>(null);
   const [notes, setNotes] = React.useState("");
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   function toggleSource(value: string) {
     setSourceTypes((prev) =>
@@ -62,6 +64,7 @@ export default function NewReconciliationSessionPage() {
         prepareNotes: notes.trim() || undefined,
       });
       toast.success("Session created.");
+      setIsRedirecting(true);
       router.push(`/admin/finance/reconciliation/sessions/${result.id}`);
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to create session.");
@@ -172,10 +175,13 @@ export default function NewReconciliationSessionPage() {
               </Button>
               <Button
                 onClick={() => void handleCreate()}
-                disabled={createSession.isPending || !label.trim() || sourceTypes.length === 0}
+                disabled={createSession.isPending || isRedirecting || !label.trim() || sourceTypes.length === 0}
                 className="bg-linear-to-r from-indigo-500 to-violet-600 text-white hover:from-indigo-600 hover:to-violet-700"
               >
-                {createSession.isPending ? "Creating…" : "Create Session"}
+                {createSession.isPending || isRedirecting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isRedirecting ? "Opening session..." : createSession.isPending ? "Creating..." : "Create Session"}
               </Button>
             </div>
           </CardContent>

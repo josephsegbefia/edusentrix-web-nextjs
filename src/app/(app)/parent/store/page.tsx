@@ -155,6 +155,7 @@ export default function ParentSchoolStorePage() {
   async function confirmPay() {
     if (!wardId || cartLines.length === 0) return;
     setSubmitting(true);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/parent/store/checkout", {
         method: "POST",
@@ -174,11 +175,14 @@ export default function ParentSchoolStorePage() {
       }
       const url = String(json.data?.authorizationUrl || "");
       if (!url) throw new Error("Missing Paystack URL");
+      shouldKeepBusy = true;
       window.location.assign(url);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Payment failed");
     } finally {
-      setSubmitting(false);
+      if (!shouldKeepBusy) {
+        setSubmitting(false);
+      }
     }
   }
 

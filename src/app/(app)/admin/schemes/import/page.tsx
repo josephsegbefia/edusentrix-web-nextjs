@@ -75,6 +75,7 @@ function AdminSchemeImportInner() {
   const [uploadWarning, setUploadWarning] = useState<string | null>(null);
   const [parsePhase, setParsePhase] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const currentPeriod = useMemo(
     () => periodsData?.periods.find((p) => p.isCurrent) ?? periodsData?.periods[0] ?? null,
@@ -207,7 +208,10 @@ function AdminSchemeImportInner() {
         classGroupId: null,
         subjectId: selectedSubject.id,
       });
-      if (result.scheme?.id) router.push(`/admin/schemes/${result.scheme.id}`);
+      if (result.scheme?.id) {
+        setIsRedirecting(true);
+        router.push(`/admin/schemes/${result.scheme.id}`);
+      }
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "Could not import Scheme of Learning");
     }
@@ -596,13 +600,13 @@ function AdminSchemeImportInner() {
               </div>
               <Button
                 onClick={() => void confirmImport()}
-                disabled={!canConfirm || saveRowsMutation.isPending || confirmMutation.isPending}
+                disabled={!canConfirm || saveRowsMutation.isPending || confirmMutation.isPending || isRedirecting}
                 className="bg-blue-500 text-white hover:bg-blue-400"
               >
-                {saveRowsMutation.isPending || confirmMutation.isPending ? (
+                {saveRowsMutation.isPending || confirmMutation.isPending || isRedirecting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                Create Scheme
+                {isRedirecting ? "Opening scheme..." : "Create Scheme"}
               </Button>
             </div>
           </section>

@@ -161,6 +161,7 @@ export function PublicApplicationFlow({
     if (!validateStep()) return;
 
     setSubmitting(true);
+    let shouldKeepSubmitting = false;
     try {
       const docs: UploadedDocument[] = Object.values(documents).filter(
         (d): d is UploadedDocument => Boolean(d)
@@ -210,12 +211,15 @@ export function PublicApplicationFlow({
       }
 
       const trackerToken = json.data.trackerToken as string;
+      shouldKeepSubmitting = true;
       router.push(`/apply/track/${trackerToken}?just_submitted=1`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Submission failed";
       toast.error(msg);
     } finally {
-      setSubmitting(false);
+      if (!shouldKeepSubmitting) {
+        setSubmitting(false);
+      }
     }
   }
 

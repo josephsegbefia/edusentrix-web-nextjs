@@ -180,6 +180,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
   const [leoSplitApplied, setLeoSplitApplied] = React.useState(false);
   const [expandedPreviews, setExpandedPreviews] = React.useState<Set<string>>(new Set());
   const [showWeekPreview, setShowWeekPreview] = React.useState(false);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
   const autoSplitKeyRef = React.useRef<string | null>(null);
 
   const { data: classesData } = useTeacherClasses();
@@ -522,6 +523,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
     }
 
     const classQuery = classGroupId ? `?classGroupId=${encodeURIComponent(classGroupId)}` : "";
+    setIsRedirecting(true);
     router.push(`/teacher/lessons${classQuery}`);
   };
 
@@ -1220,15 +1222,15 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
             <Button
               type="button"
               onClick={() => void submit()}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || isRedirecting}
               className="bg-teal-500/25 text-teal-100 hover:bg-teal-500/35"
             >
-              {createMutation.isPending ? (
+              {createMutation.isPending || isRedirecting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Check className="mr-2 h-4 w-4" />
               )}
-              Create weekly lessons
+              {isRedirecting ? "Opening lessons..." : "Create weekly lessons"}
             </Button>
           )}
         </div>

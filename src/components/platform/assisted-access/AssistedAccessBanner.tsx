@@ -36,6 +36,7 @@ export function AssistedAccessBanner() {
   }, []);
 
   async function endSession() {
+    let shouldKeepBusy = false;
     try {
       setEnding(true);
       const res = await fetch("/api/platform/assisted-access/end", {
@@ -47,11 +48,14 @@ export function AssistedAccessBanner() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to end assisted access");
       }
+      shouldKeepBusy = true;
       window.location.href = json.data?.redirectTo || "/platform/schools";
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to end assisted access");
     } finally {
-      setEnding(false);
+      if (!shouldKeepBusy) {
+        setEnding(false);
+      }
     }
   }
 

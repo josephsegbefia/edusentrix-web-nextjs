@@ -266,6 +266,7 @@ export default function ParentSupplyListsPage() {
       supplyProgramLineId: l.id,
     }));
     setSubmitting(true);
+    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/parent/store/checkout", {
         method: "POST",
@@ -284,11 +285,14 @@ export default function ParentSupplyListsPage() {
       }
       const url = json.data?.authorizationUrl as string | undefined;
       if (!url) throw new Error("Missing Paystack URL");
+      shouldKeepBusy = true;
       window.location.assign(url);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Checkout failed");
     } finally {
-      setSubmitting(false);
+      if (!shouldKeepBusy) {
+        setSubmitting(false);
+      }
     }
   }
 

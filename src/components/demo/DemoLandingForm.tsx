@@ -7,6 +7,7 @@ import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 export function DemoLandingForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     fullName: "",
@@ -22,6 +23,7 @@ export function DemoLandingForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    let shouldKeepBusy = false;
 
     try {
       const res = await fetch("/api/demo/request-access", {
@@ -49,13 +51,20 @@ export function DemoLandingForm() {
         return;
       }
 
-      router.push(json.data.redirectTo);
+      shouldKeepBusy = true;
+      setNavigating(true);
+      router.push(json.data.redirectTo || "/admin");
     } catch {
       setError("Could not reach the demo server. Please check your connection and try again.");
+      setNavigating(false);
     } finally {
-      setLoading(false);
+      if (!shouldKeepBusy) {
+        setLoading(false);
+      }
     }
   };
+
+  const isBusy = loading || navigating;
 
   return (
     <form
@@ -80,6 +89,7 @@ export function DemoLandingForm() {
           type="text"
           required
           value={form.fullName}
+          disabled={isBusy}
           onChange={(e) => update("fullName", e.target.value)}
           className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Kwame Mensah"
@@ -98,6 +108,7 @@ export function DemoLandingForm() {
           type="email"
           required
           value={form.email}
+          disabled={isBusy}
           onChange={(e) => update("email", e.target.value)}
           className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="you@example.com"
@@ -116,6 +127,7 @@ export function DemoLandingForm() {
           id="phone"
           required
           value={form.phone}
+          disabled={isBusy}
           onChange={(e) => update("phone", e.target.value)}
           className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
@@ -133,6 +145,7 @@ export function DemoLandingForm() {
           type="text"
           required
           value={form.schoolName}
+          disabled={isBusy}
           onChange={(e) => update("schoolName", e.target.value)}
           className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           placeholder="Lighthouse Preparatory School"
@@ -141,10 +154,10 @@ export function DemoLandingForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={isBusy}
         className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-60"
       >
-        {loading ? "Starting your demo..." : "Start free demo"}
+        {navigating ? "Opening your demo..." : loading ? "Starting your demo..." : "Start free demo"}
       </button>
 
       <p className="text-center text-xs text-gray-500">

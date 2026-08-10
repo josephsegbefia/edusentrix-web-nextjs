@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 type DemoSessionInfo = {
@@ -26,6 +26,7 @@ export function DemoBanner() {
   const [switching, setSwitching] = useState(false);
   const [ending, setEnding] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const fetchSession = useCallback(async () => {
     try {
@@ -54,6 +55,19 @@ export function DemoBanner() {
     const interval = setInterval(fetchSession, 60_000);
     return () => clearInterval(interval);
   }, [fetchSession]);
+
+  useEffect(() => {
+    if (!session || !pathname) return;
+    void fetch("/api/demo/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: pathname,
+        title: typeof document !== "undefined" ? document.title : "",
+      }),
+      keepalive: true,
+    }).catch(() => null);
+  }, [pathname, session?.sessionId]);
 
   useEffect(() => {
     if (!session) return;

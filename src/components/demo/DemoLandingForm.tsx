@@ -30,16 +30,28 @@ export function DemoLandingForm() {
         body: JSON.stringify(form),
       });
 
-      const json = await res.json();
+      const contentType = res.headers.get("content-type") || "";
+      const raw = await res.text();
+      const json =
+        contentType.includes("application/json") && raw
+          ? (JSON.parse(raw) as
+              | { success?: boolean; error?: string; data?: { redirectTo?: string } }
+              | null)
+          : null;
 
-      if (!res.ok || !json.success) {
-        setError(json.error || "Something went wrong. Please try again.");
+      if (!res.ok || !json?.success) {
+        setError(
+          json?.error ||
+            (res.status >= 500
+              ? "The demo server could not start your session right now. Please try again shortly."
+              : "Something went wrong. Please try again.")
+        );
         return;
       }
 
       router.push(json.data.redirectTo);
     } catch {
-      setError("Network error. Please check your connection.");
+      setError("Could not reach the demo server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

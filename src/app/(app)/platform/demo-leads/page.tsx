@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
+  AlertTriangle,
   Boxes,
   ChevronLeft,
   ChevronRight,
-  Layers,
+  Clock3,
+  Database,
+  Eye,
   Loader2,
+  MousePointerClick,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -38,14 +42,41 @@ type DemoLeadRow = {
   status: string;
   firstSeenAt: string;
   lastSeenAt: string;
+  firstSessionId: string | null;
+  lastSessionId: string | null;
+  sessionCount: number;
+  lastSessionStatus: string | null;
+  lastSessionAt: string | null;
+  eventCount: number;
+  lastEventAt: string | null;
 };
 
 type SandboxPool = Record<string, number>;
+type DemoEventRow = {
+  id: string;
+  leadId: string | null;
+  sessionId: string | null;
+  actorRole: string;
+  eventType: string;
+  eventCode: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string | null;
+};
 
 type PageData = {
   leads: DemoLeadRow[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
-  stats: { activeSessions: number; sandboxPool: SandboxPool };
+  stats: {
+    activeSessions: number;
+    sandboxPool: SandboxPool;
+    leadsByStatus: Record<string, number>;
+    sessionsByStatus: Record<string, number>;
+    eventsByCode: Record<string, number>;
+  };
+  recentEvents: DemoEventRow[];
+  selectedLeadEvents: DemoEventRow[];
+  dataSource: "external_demo_database" | "platform_database";
+  warnings: string[];
 };
 
 const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
@@ -75,28 +106,49 @@ function formatStatusLabel(status: string) {
     .join(" ");
 }
 
+function formatEventCode(code: string) {
+  return formatStatusLabel(code.replaceAll(".", "_"));
+}
+
+function eventPath(event: DemoEventRow) {
+  const value = event.metadata?.path;
+  return typeof value === "string" && value ? value : "";
+}
+
 export default function PlatformDemoLeadsPage() {
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent ?? false;
     if (silent) setRefreshing(true);
     else setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({ page: String(page) });
       if (statusFilter !== "all") params.set("status", statusFilter);
+      if (selectedLeadId) params.set("leadId", selectedLeadId);
       const res = await fetch(`/api/platform/demo-leads?${params}`);
-      const json = await res.json();
-      if (json.success) setData(json.data);
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Could not load demo leads.");
+      }
+      setData(json.data);
+      if (selectedLeadId && !json.data.leads.some((lead: DemoLeadRow) => lead._id === selectedLeadId)) {
+        setSelectedLeadId(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load demo leads.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, statusFilter]);
+  }, [page, selectedLeadId, statusFilter]);
 
   useEffect(() => {
     void fetchData();
@@ -109,6 +161,16 @@ export default function PlatformDemoLeadsPage() {
   const activeSessions = data?.stats.activeSessions;
   const sandboxesAvailable = data?.stats.sandboxPool?.available;
   const sandboxesAllocated = data?.stats.sandboxPool?.allocated;
+  const completedSessions = data?.stats.sessionsByStatus?.ended ?? 0;
+  const abandonedSessions = data?.stats.sessionsByStatus?.abandoned ?? 0;
+  const totalEvents = Object.values(data?.stats.eventsByCode ?? {}).reduce((sum, value) => sum + value, 0);
+  const selectedLead = selectedLeadId
+    ? data?.leads.find((lead) => lead._id === selectedLeadId) ?? null
+    : null;
+  const activityFeed =
+    selectedLeadId && data?.selectedLeadEvents.length
+      ? data.selectedLeadEvents
+      : data?.recentEvents ?? [];
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -165,36 +227,87 @@ export default function PlatformDemoLeadsPage() {
           tone="emerald"
         />
         <PlatformMetricCard
-          icon={Layers}
-          label="Sandboxes allocated"
+          icon={Clock3}
+          label="Completed sessions"
           value={
-            sandboxesAllocated !== undefined
-              ? sandboxesAllocated.toLocaleString()
-              : "—"
+            data ? completedSessions.toLocaleString() : "—"
           }
           note={
             loading && !data
-              ? "Loading pool status…"
-              : "Demo tenants currently assigned to leads."
+              ? "Loading completion data…"
+              : `${abandonedSessions.toLocaleString()} abandoned or expired sessions.`
           }
           tone="amber"
         />
         <PlatformMetricCard
-          icon={Users}
-          label="Total leads"
-          value={totalLeads > 0 || data ? totalLeads.toLocaleString() : "—"}
+          icon={MousePointerClick}
+          label="Tracked events"
+          value={data ? totalEvents.toLocaleString() : "—"}
           note={
             loading && !data
-              ? "Loading lead index…"
-              : "All demo lead records matching filters."
+              ? "Loading activity stream…"
+              : "Lifecycle, persona, and page activity captured."
           }
           tone="violet"
         />
       </PlatformMetricGrid>
 
+      {data?.warnings.length ? (
+        <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              {data.warnings.map((warning) => (
+                <p key={warning}>{warning}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
+          <div className="flex items-center gap-3">
+            <span className="rounded-2xl bg-cyan-400/10 p-3 text-cyan-100">
+              <Database className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-white/45">Data source</p>
+              <p className="mt-1 font-medium">
+                {data?.dataSource === "external_demo_database" ? "Demo database" : "Platform database"}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
+          <p className="text-xs uppercase tracking-[0.16em] text-white/45">Sandbox pool</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <PlatformPill tone="emerald">Available {sandboxesAvailable ?? 0}</PlatformPill>
+            <PlatformPill tone="amber">Allocated {sandboxesAllocated ?? 0}</PlatformPill>
+            <PlatformPill tone="rose">Tainted {data?.stats.sandboxPool?.tainted ?? 0}</PlatformPill>
+          </div>
+        </div>
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 text-white">
+          <p className="text-xs uppercase tracking-[0.16em] text-white/45">Lead funnel</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(data?.stats.leadsByStatus ?? {}).map(([status, count]) => (
+              <PlatformPill key={status} tone={STATUS_PILL_TONE[status] ?? "slate"}>
+                {formatStatusLabel(status)} {count}
+              </PlatformPill>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 p-4 text-sm text-rose-100">
+          {error}
+        </div>
+      ) : null}
+
       <PlatformSection
         title="Lead queue"
-        description="Searchable list of demo prospects with funnel status and last activity. Use filters to focus a cohort."
+        description="Demo prospects with session counts, activity counts, and latest activity. Select a row to inspect its timeline."
         action={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[220px]">
             <Label className="text-xs uppercase tracking-[0.14em] text-white/45">
@@ -222,7 +335,7 @@ export default function PlatformDemoLeadsPage() {
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1040px] text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-white/45">
                 <th className="pb-3 font-medium">Name</th>
@@ -230,14 +343,15 @@ export default function PlatformDemoLeadsPage() {
                 <th className="pb-3 font-medium">Phone</th>
                 <th className="pb-3 font-medium">School</th>
                 <th className="pb-3 font-medium">Status</th>
-                <th className="pb-3 font-medium">First seen</th>
-                <th className="pb-3 font-medium">Last seen</th>
+                <th className="pb-3 font-medium">Sessions</th>
+                <th className="pb-3 font-medium">Events</th>
+                <th className="pb-3 font-medium">Last activity</th>
               </tr>
             </thead>
             <tbody>
               {loading && !data ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-white/50">
+                  <td colSpan={8} className="py-12 text-center text-white/50">
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading leads…
@@ -246,7 +360,7 @@ export default function PlatformDemoLeadsPage() {
                 </tr>
               ) : !data?.leads.length ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-white/45">
+                  <td colSpan={8} className="py-12 text-center text-white/45">
                     No leads match this view yet.
                   </td>
                 </tr>
@@ -254,7 +368,10 @@ export default function PlatformDemoLeadsPage() {
                 data.leads.map((lead) => (
                   <tr
                     key={lead._id}
-                    className="border-b border-white/5 align-top transition-colors hover:bg-white/2"
+                    onClick={() => setSelectedLeadId(lead._id)}
+                    className={`cursor-pointer border-b border-white/5 align-top transition-colors hover:bg-white/2 ${
+                      selectedLeadId === lead._id ? "bg-cyan-500/10" : ""
+                    }`}
                   >
                     <td className="py-3 pr-4 font-medium text-white">
                       {lead.fullName}
@@ -267,11 +384,14 @@ export default function PlatformDemoLeadsPage() {
                         {formatStatusLabel(lead.status)}
                       </PlatformPill>
                     </td>
-                    <td className="py-3 pr-4 text-white/55">
-                      {formatTimestamp(lead.firstSeenAt)}
+                    <td className="py-3 pr-4 text-white/60">
+                      {lead.sessionCount.toLocaleString()}
                     </td>
-                    <td className="py-3 text-white/55">
-                      {formatTimestamp(lead.lastSeenAt)}
+                    <td className="py-3 pr-4 text-white/60">
+                      {lead.eventCount.toLocaleString()}
+                    </td>
+                    <td className="py-3 pr-4 text-white/55">
+                      {formatTimestamp(lead.lastEventAt || lead.lastSeenAt)}
                     </td>
                   </tr>
                 ))
@@ -318,6 +438,80 @@ export default function PlatformDemoLeadsPage() {
           </div>
         ) : null}
       </PlatformSection>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <PlatformSection
+          title={selectedLead ? "Selected lead" : "Selected lead"}
+          description="The latest known contact and session profile for the selected demo prospect."
+        >
+          {selectedLead ? (
+            <div className="space-y-4 text-sm">
+              <div>
+                <p className="text-lg font-semibold text-white">{selectedLead.fullName}</p>
+                <p className="text-white/55">{selectedLead.schoolName}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-white/35">Email</p>
+                  <p className="mt-1 text-white/75">{selectedLead.email}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-white/35">Phone</p>
+                  <p className="mt-1 text-white/75">{selectedLead.phone}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-white/35">Sessions</p>
+                  <p className="mt-1 text-white/75">
+                    {selectedLead.sessionCount.toLocaleString()} total
+                    {selectedLead.lastSessionStatus ? ` · ${formatStatusLabel(selectedLead.lastSessionStatus)}` : ""}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.14em] text-white/35">Activity</p>
+                  <p className="mt-1 text-white/75">{selectedLead.eventCount.toLocaleString()} tracked events</p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs uppercase tracking-[0.14em] text-white/35">Last activity</p>
+                <p className="mt-1 text-white/75">
+                  {formatTimestamp(selectedLead.lastEventAt || selectedLead.lastSessionAt || selectedLead.lastSeenAt)}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-white/45">Select a lead to inspect its activity.</p>
+          )}
+        </PlatformSection>
+
+        <PlatformSection
+          title={selectedLeadId ? "Lead activity" : "Recent activity"}
+          description="Lifecycle, persona, and page-view events captured from demo sessions."
+        >
+          <div className="space-y-3">
+            {!activityFeed.length ? (
+              <p className="py-8 text-center text-sm text-white/45">No tracked activity yet.</p>
+            ) : (
+              activityFeed.map((event) => (
+                <div key={event.id} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-100">
+                    {event.eventCode === "page.viewed" ? <Eye className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-medium text-white">{formatEventCode(event.eventCode)}</p>
+                      <p className="text-xs text-white/40">{formatTimestamp(event.createdAt)}</p>
+                    </div>
+                    <p className="mt-1 text-sm text-white/55">
+                      {event.actorRole ? formatStatusLabel(event.actorRole) : "Demo visitor"}
+                      {eventPath(event) ? ` · ${eventPath(event)}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </PlatformSection>
+      </div>
     </div>
   );
 }

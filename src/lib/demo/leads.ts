@@ -113,18 +113,20 @@ export async function createOrReuseDemoAccess(
     { email: normalizedEmail },
     {
       $setOnInsert: {
-        fullName: input.fullName.trim(),
         email: normalizedEmail,
+        source: input.source || "demo_form",
+        utm: input.utm || null,
+        firstSeenAt: now,
+      },
+      $set: {
+        fullName: input.fullName.trim(),
         phone: input.phone.trim(),
         schoolName: input.schoolName.trim(),
         schoolAddress: input.schoolAddress?.trim() || null,
         city: input.city?.trim() || null,
         region: input.region?.trim() || null,
-        source: input.source || "demo_form",
-        utm: input.utm || null,
-        firstSeenAt: now,
+        lastSeenAt: now,
       },
-      $set: { lastSeenAt: now },
     },
     { upsert: true, new: true }
   ).lean<IDemoLead>();

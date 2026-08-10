@@ -62,6 +62,17 @@ export function formatGhanaLocalPhoneInput(value: string | null | undefined): st
   return [first, second, third].filter(Boolean).join(" ");
 }
 
+export function formatGhanaSubscriberPhoneInput(value: string | null | undefined): string {
+  const local = toGhanaMobileLocalDigits(value);
+  if (!local) return "";
+
+  const first = local.slice(0, 2);
+  const second = local.slice(2, 5);
+  const third = local.slice(5, 9);
+
+  return [first, second, third].filter(Boolean).join(" ");
+}
+
 export function formatGhanaPhoneInput(value: string | null | undefined): string {
   if (!value) return "";
 

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
   formatGhanaLocalPhoneInput,
+  formatGhanaSubscriberPhoneInput,
   normalizeGhanaPhoneForStorage,
 } from "@/lib/phone/ghana";
 
@@ -29,7 +30,7 @@ function assignRef<T>(ref: React.Ref<T> | undefined, value: T) {
 }
 
 function resolvePhonePlaceholder(placeholder: string) {
-  const formatted = formatGhanaLocalPhoneInput(placeholder);
+  const formatted = formatGhanaSubscriberPhoneInput(placeholder);
   if (formatted) return formatted;
   return placeholder;
 }
@@ -55,7 +56,7 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
 
     const syncDisplayedValue = React.useCallback(() => {
       if (!innerRef.current) return;
-      const formatted = formatGhanaLocalPhoneInput(innerRef.current.value);
+      const formatted = formatGhanaSubscriberPhoneInput(innerRef.current.value);
       if (formatted !== innerRef.current.value) {
         innerRef.current.value = formatted;
       }
@@ -66,14 +67,14 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
     }, [syncDisplayedValue, value, defaultValue]);
 
     const formattedValue =
-      value === undefined ? undefined : formatGhanaLocalPhoneInput(value ?? "");
+      value === undefined ? undefined : formatGhanaSubscriberPhoneInput(value ?? "");
     const formattedDefaultValue =
       defaultValue === undefined
         ? undefined
-        : formatGhanaLocalPhoneInput(defaultValue ?? "");
+        : formatGhanaSubscriberPhoneInput(defaultValue ?? "");
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const displayValue = formatGhanaLocalPhoneInput(event.target.value);
+      const displayValue = formatGhanaSubscriberPhoneInput(event.target.value);
       const normalized = normalizeGhanaPhoneForStorage(event.target.value);
 
       if (innerRef.current && innerRef.current.value !== displayValue) {
@@ -113,12 +114,13 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
     if (unstyled) {
       return (
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-4 flex h-full items-center text-sm leading-none text-white/55">
+          <span className="pointer-events-none absolute left-4 top-1/2 flex -translate-y-1/2 items-center text-sm leading-none text-white/55">
             +233
           </span>
           <input
             {...sharedProps}
-            className={cn("pl-16 leading-none", className)}
+            style={{ ...sharedProps.style, paddingLeft: "4.75rem" }}
+            className={cn("leading-normal", className)}
           />
         </div>
       );
@@ -126,10 +128,14 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
 
     return (
       <div className="relative">
-        <span className="pointer-events-none absolute inset-y-0 left-3 z-10 flex h-full items-center text-sm leading-none text-muted-foreground">
+        <span className="pointer-events-none absolute left-3 top-1/2 z-10 flex -translate-y-1/2 items-center text-sm leading-none text-muted-foreground">
           +233
         </span>
-        <Input {...sharedProps} className={cn("pl-14 leading-none", className)} />
+        <Input
+          {...sharedProps}
+          style={{ ...sharedProps.style, paddingLeft: "4.25rem" }}
+          className={cn("leading-normal", className)}
+        />
       </div>
     );
   }

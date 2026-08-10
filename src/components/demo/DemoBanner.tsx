@@ -17,8 +17,6 @@ const ROLE_LABELS: Record<string, string> = {
   school_admin: "School Admin",
   teacher: "Teacher",
   parent: "Parent",
-  student: "Student",
-  bursar: "Bursar",
 };
 
 export function DemoBanner() {

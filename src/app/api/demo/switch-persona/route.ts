@@ -15,8 +15,6 @@ const ALLOWED_PERSONAS = [
   "school_admin",
   "teacher",
   "parent",
-  "student",
-  "bursar",
 ] as const;
 
 const SwitchPersonaSchema = z.object({
@@ -117,8 +115,6 @@ export async function POST(req: NextRequest) {
     school_admin: "/admin",
     teacher: "/teacher",
     parent: "/parent",
-    student: "/student",
-    bursar: "/admin/settings/payment-setup",
   };
 
   return NextResponse.json({

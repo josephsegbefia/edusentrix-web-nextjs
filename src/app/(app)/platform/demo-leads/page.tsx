@@ -33,6 +33,7 @@ import {
   PlatformSection,
   formatTimestamp,
 } from "@/components/platform/platform-page-primitives";
+import { StudentsPagination } from "@/components/admin/students/StudentsPagination";
 
 type DemoLeadRow = {
   _id: string;
@@ -107,6 +108,9 @@ const STATUS_PILL_TONE: Record<string, "cyan" | "emerald" | "slate" | "amber" | 
     closed_lost: "rose",
   };
 
+const ACTIVITY_PAGE_SIZE = 5;
+const ACTIVITY_PAGE_SIZE_OPTIONS = [5] as const;
+
 function formatStatusLabel(status: string) {
   return status
     .split("_")
@@ -129,6 +133,7 @@ export default function PlatformDemoLeadsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [activityPage, setActivityPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
@@ -180,6 +185,22 @@ export default function PlatformDemoLeadsPage() {
     selectedLeadId && data?.selectedLeadEvents.length
       ? data.selectedLeadEvents
       : data?.recentEvents ?? [];
+  const activityTotalPages = Math.max(1, Math.ceil(activityFeed.length / ACTIVITY_PAGE_SIZE));
+  const currentActivityPage = Math.min(activityPage, activityTotalPages);
+  const visibleActivityFeed = activityFeed.slice(
+    (currentActivityPage - 1) * ACTIVITY_PAGE_SIZE,
+    currentActivityPage * ACTIVITY_PAGE_SIZE
+  );
+
+  useEffect(() => {
+    setActivityPage(1);
+  }, [selectedLeadId]);
+
+  useEffect(() => {
+    if (activityPage > activityTotalPages) {
+      setActivityPage(activityTotalPages);
+    }
+  }, [activityPage, activityTotalPages]);
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -545,7 +566,7 @@ export default function PlatformDemoLeadsPage() {
             {!activityFeed.length ? (
               <p className="py-8 text-center text-sm text-white/45">No tracked activity yet.</p>
             ) : (
-              activityFeed.map((event) => (
+              visibleActivityFeed.map((event) => (
                 <div key={event.id} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
                   <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-100">
                     {event.eventCode === "page.viewed" ? <Eye className="h-4 w-4" /> : <Activity className="h-4 w-4" />}
@@ -564,6 +585,20 @@ export default function PlatformDemoLeadsPage() {
               ))
             )}
           </div>
+          {activityFeed.length > ACTIVITY_PAGE_SIZE ? (
+            <div className="mt-4">
+              <StudentsPagination
+                page={currentActivityPage}
+                totalPages={activityTotalPages}
+                total={activityFeed.length}
+                pageSize={ACTIVITY_PAGE_SIZE}
+                pageSizeOptions={ACTIVITY_PAGE_SIZE_OPTIONS}
+                itemLabel="activity events"
+                onChangePage={setActivityPage}
+                onChangePageSize={() => setActivityPage(1)}
+              />
+            </div>
+          ) : null}
         </PlatformSection>
       </div>
     </div>

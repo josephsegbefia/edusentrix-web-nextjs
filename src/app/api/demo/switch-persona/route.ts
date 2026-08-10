@@ -8,6 +8,7 @@ import {
 } from "@/lib/demo/session";
 import { DemoSession } from "@/models/DemoSession";
 import { User } from "@/models/User";
+import { UserMembership } from "@/models/UserMembership";
 import { trackDemoEvent, DEMO_EVENT_CODES } from "@/lib/demo/telemetry";
 
 const ALLOWED_PERSONAS = [
@@ -21,6 +22,30 @@ const ALLOWED_PERSONAS = [
 const SwitchPersonaSchema = z.object({
   role: z.enum(ALLOWED_PERSONAS),
 });
+
+async function findPersonaUser(schoolId: unknown, role: string) {
+  const membership = await UserMembership.findOne({
+    schoolId,
+    status: "active",
+    roles: role,
+  })
+    .select("userId roles")
+    .lean();
+
+  if (membership?.userId) {
+    const user = await User.findById(membership.userId)
+      .select("_id role")
+      .lean();
+    if (user) return user;
+  }
+
+  return User.findOne({
+    schoolId,
+    role,
+  })
+    .select("_id role")
+    .lean();
+}
 
 export async function POST(req: NextRequest) {
   if (!isDemoMode()) {
@@ -54,12 +79,7 @@ export async function POST(req: NextRequest) {
 
   const targetRole = parsed.data.role;
 
-  const personaUser = await User.findOne({
-    schoolId: session.sandboxSchoolId,
-    role: targetRole,
-  })
-    .select("_id role")
-    .lean();
+  const personaUser = await findPersonaUser(session.sandboxSchoolId, targetRole);
 
   if (!personaUser) {
     return NextResponse.json(

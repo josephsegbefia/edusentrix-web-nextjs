@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type DemoSessionInfo = {
@@ -244,11 +245,17 @@ export function DemoBanner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Could not switch demo persona.");
+      }
       if (json.success) {
         await fetchSession();
+        router.refresh();
         router.push(json.data.redirectTo);
       }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not switch demo persona.");
     } finally {
       setSwitching(false);
     }

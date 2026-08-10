@@ -5,6 +5,36 @@ import type { IDemoSession } from "@/models/DemoSession";
 import type { CurrentAppUser } from "@/lib/auth/get-current-user";
 import type { AppRole } from "@/lib/roles";
 
+async function findPersonaUserByRole(
+  schoolId: IDemoSession["sandboxSchoolId"],
+  role: string
+) {
+  const membership = await UserMembership.findOne({
+    schoolId,
+    status: "active",
+    roles: role,
+  })
+    .select("userId roles")
+    .lean();
+
+  if (membership?.userId) {
+    return (await User.findById(membership.userId)
+      .select(
+        "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
+      )
+      .lean()) as IUser | null;
+  }
+
+  return (await User.findOne({
+    schoolId,
+    role,
+  })
+    .select(
+      "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
+    )
+    .lean()) as IUser | null;
+}
+
 /**
  * Extended user shape returned by `/api/me` in demo mode.
  * Additive over the production `CurrentAppUser` (spec section 9.8).
@@ -42,14 +72,10 @@ export async function resolveDemoPersona(
   }
 
   if (!user) {
-    user = (await User.findOne({
-      schoolId: session.sandboxSchoolId,
-      role: session.activePersonaRole || "school_admin",
-    })
-      .select(
-        "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
-      )
-      .lean()) as IUser | null;
+    user = await findPersonaUserByRole(
+      session.sandboxSchoolId,
+      session.activePersonaRole || "school_admin"
+    );
   }
 
   if (!user) return null;
@@ -62,7 +88,7 @@ export async function resolveDemoPersona(
     email: user.email,
     name,
     avatarUrl: user.avatarUrl,
-    role: (user.role ?? session.activePersonaRole) as AppRole | undefined,
+    role: (session.activePersonaRole || user.role) as AppRole | undefined,
     schoolId: String(session.sandboxSchoolId),
     pendingOnboarding: false,
     createdAt: user.createdAt,

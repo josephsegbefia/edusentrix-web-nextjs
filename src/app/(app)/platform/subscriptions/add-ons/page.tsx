@@ -19,6 +19,13 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { glassPanelClass, glassInsetClass, glassPrimaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -219,10 +226,16 @@ export default function AddOnCatalogPage() {
             ))}
             <div>
               <label className="block text-[10px] text-white/40 mb-1">Type</label>
-              <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none">
-                {Object.entries(TYPE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
+              <PremiumSelect value={form.type} onValueChange={(value) => setForm((f) => ({ ...f, type: value }))}>
+                <PremiumSelectTrigger className="w-full rounded-xl border-white/10 bg-white/5 text-xs text-white">
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  {Object.entries(TYPE_LABEL).map(([v, l]) => (
+                    <PremiumSelectItem key={v} value={v}>{l}</PremiumSelectItem>
+                  ))}
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-[10px] text-white/40 mb-1">Description</label>

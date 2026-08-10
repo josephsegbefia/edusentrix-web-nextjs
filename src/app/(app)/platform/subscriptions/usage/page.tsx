@@ -14,6 +14,13 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +63,7 @@ export default function UsageDashboardPage() {
   const [platformTotals, setPlatformTotals] = React.useState<PlatformTotals>({});
   const [search, setSearch] = React.useState("");
   const [lowOnly, setLowOnly] = React.useState(false);
-  const [metricFilter, setMetricFilter] = React.useState("");
+  const [metricFilter, setMetricFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
   const [pages, setPages] = React.useState(1);
   const [total, setTotal] = React.useState(0);
@@ -68,7 +75,7 @@ export default function UsageDashboardPage() {
       url.searchParams.set("page", String(pg));
       if (search) url.searchParams.set("search", search);
       if (lowOnly) url.searchParams.set("lowOnly", "true");
-      if (metricFilter) url.searchParams.set("metricKey", metricFilter);
+      if (metricFilter !== "all") url.searchParams.set("metricKey", metricFilter);
       const res = await fetch(url.toString());
       const json = await res.json();
       if (json.success) {
@@ -136,13 +143,17 @@ export default function UsageDashboardPage() {
             placeholder="Search school…"
             className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 pr-3 text-xs text-white outline-none placeholder:text-white/25" />
         </div>
-        <select value={metricFilter} onChange={(e) => setMetricFilter(e.target.value)}
-          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 outline-none">
-          <option value="">All metrics</option>
-          {knownMetricKeys.map((k) => (
-            <option key={k} value={k}>{METRIC_META[k]?.label ?? k}</option>
-          ))}
-        </select>
+        <PremiumSelect value={metricFilter} onValueChange={setMetricFilter}>
+          <PremiumSelectTrigger className="h-8 w-[180px] rounded-lg border-white/10 bg-white/5 text-xs text-white/60">
+            <PremiumSelectValue placeholder="All metrics" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="all">All metrics</PremiumSelectItem>
+            {knownMetricKeys.map((k) => (
+              <PremiumSelectItem key={k} value={k}>{METRIC_META[k]?.label ?? k}</PremiumSelectItem>
+            ))}
+          </PremiumSelectContent>
+        </PremiumSelect>
         <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer">
           <input type="checkbox" checked={lowOnly} onChange={(e) => setLowOnly(e.target.checked)} className="accent-rose-400" />
           <AlertTriangle className="h-3 w-3 text-amber-300/70" /> Low balance only

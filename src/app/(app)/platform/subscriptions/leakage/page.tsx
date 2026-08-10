@@ -13,6 +13,13 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { glassPanelClass, glassInsetClass, glassPrimaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +59,7 @@ export default function LeakageDashboardPage() {
   const [loading, setLoading] = React.useState(false);
   const [report, setReport] = React.useState<ScanReport | null>(null);
   const [limit, setLimit] = React.useState("100");
-  const [filterSeverity, setFilterSeverity] = React.useState<string>("");
+  const [filterSeverity, setFilterSeverity] = React.useState<string>("all");
 
   async function runScan() {
     if (loading) return;
@@ -76,7 +83,7 @@ export default function LeakageDashboardPage() {
 
   const filteredIssues = React.useMemo(() => {
     if (!report) return [];
-    if (!filterSeverity) return report.issues;
+    if (filterSeverity === "all") return report.issues;
     return report.issues.filter((i) => i.severity === filterSeverity);
   }, [report, filterSeverity]);
 
@@ -93,16 +100,20 @@ export default function LeakageDashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <PremiumSelect
             value={limit}
-            onChange={(e) => setLimit(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 outline-none"
+            onValueChange={setLimit}
           >
-            <option value="50">50 schools</option>
-            <option value="100">100 schools</option>
-            <option value="200">200 schools</option>
-            <option value="500">500 schools</option>
-          </select>
+            <PremiumSelectTrigger className="h-9 w-[130px] rounded-xl border-white/10 bg-white/5 text-xs text-white/60">
+              <PremiumSelectValue />
+            </PremiumSelectTrigger>
+            <PremiumSelectContent>
+              <PremiumSelectItem value="50">50 schools</PremiumSelectItem>
+              <PremiumSelectItem value="100">100 schools</PremiumSelectItem>
+              <PremiumSelectItem value="200">200 schools</PremiumSelectItem>
+              <PremiumSelectItem value="500">500 schools</PremiumSelectItem>
+            </PremiumSelectContent>
+          </PremiumSelect>
           <button
             type="button"
             onClick={runScan}
@@ -160,16 +171,20 @@ export default function LeakageDashboardPage() {
               {" · "}scanned at {new Date(report.scannedAt).toLocaleTimeString("en-GH")}
               {" · "}{report.scanDurationMs}ms
             </p>
-            <select
+            <PremiumSelect
               value={filterSeverity}
-              onChange={(e) => setFilterSeverity(e.target.value)}
-              className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 outline-none"
+              onValueChange={setFilterSeverity}
             >
-              <option value="">All severities</option>
-              <option value="critical">Critical only</option>
-              <option value="warning">Warnings only</option>
-              <option value="informational">Informational only</option>
-            </select>
+              <PremiumSelectTrigger className="h-9 w-[160px] rounded-xl border-white/10 bg-white/5 text-xs text-white/60">
+                <PremiumSelectValue placeholder="All severities" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all">All severities</PremiumSelectItem>
+                <PremiumSelectItem value="critical">Critical only</PremiumSelectItem>
+                <PremiumSelectItem value="warning">Warnings only</PremiumSelectItem>
+                <PremiumSelectItem value="informational">Informational only</PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
 
           {/* Issues */}

@@ -95,7 +95,7 @@ export default function PaymentChargesPage() {
   const [creating, setCreating] = React.useState(false);
 
   const [newScope, setNewScope] = React.useState("global");
-  const [newCategory, setNewCategory] = React.useState("");
+  const [newCategory, setNewCategory] = React.useState("all");
   const [newChargeType, setNewChargeType] = React.useState("percentage");
   const [newBps, setNewBps] = React.useState("120");
   const [newFixed, setNewFixed] = React.useState("");
@@ -127,7 +127,7 @@ export default function PaymentChargesPage() {
         active: true,
         description: newDesc || null,
       };
-      if (newCategory) body.category = newCategory;
+      if (newCategory !== "all") body.category = newCategory;
       if (newBps) body.percentageBps = Math.round(parseFloat(newBps) * 100);
       if (newFixed) body.fixedFeeMinor = Math.round(parseFloat(newFixed) * 100);
       if (newMin) body.minChargeMinor = Math.round(parseFloat(newMin) * 100);
@@ -209,27 +209,43 @@ export default function PaymentChargesPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="block text-[10px] text-white/40 mb-1">Scope</label>
-              <select value={newScope} onChange={(e) => setNewScope(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none">
-                {Object.entries(SCOPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
+              <PremiumSelect value={newScope} onValueChange={setNewScope}>
+                <PremiumSelectTrigger className="w-full rounded-xl border-white/10 bg-white/5 text-xs text-white">
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  {Object.entries(SCOPE_LABELS).map(([v, l]) => (
+                    <PremiumSelectItem key={v} value={v}>{l}</PremiumSelectItem>
+                  ))}
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div>
               <label className="block text-[10px] text-white/40 mb-1">Category (optional)</label>
-              <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none">
-                <option value="">All categories</option>
-                {Object.entries(CATEGORY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
+              <PremiumSelect value={newCategory} onValueChange={setNewCategory}>
+                <PremiumSelectTrigger className="w-full rounded-xl border-white/10 bg-white/5 text-xs text-white">
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="all">All categories</PremiumSelectItem>
+                  {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
+                    <PremiumSelectItem key={v} value={v}>{l}</PremiumSelectItem>
+                  ))}
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div>
               <label className="block text-[10px] text-white/40 mb-1">Charge type</label>
-              <select value={newChargeType} onChange={(e) => setNewChargeType(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none">
-                <option value="percentage">Percentage</option>
-                <option value="fixed">Fixed fee</option>
-                <option value="hybrid">Percentage + Fixed</option>
-              </select>
+              <PremiumSelect value={newChargeType} onValueChange={setNewChargeType}>
+                <PremiumSelectTrigger className="w-full rounded-xl border-white/10 bg-white/5 text-xs text-white">
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="percentage">Percentage</PremiumSelectItem>
+                  <PremiumSelectItem value="fixed">Fixed fee</PremiumSelectItem>
+                  <PremiumSelectItem value="hybrid">Percentage + Fixed</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             {(newChargeType === "percentage" || newChargeType === "hybrid") && (
               <div>
@@ -264,12 +280,16 @@ export default function PaymentChargesPage() {
             </div>
             <div>
               <label className="block text-[10px] text-white/40 mb-1">Payer mode</label>
-              <select value={newPayerMode} onChange={(e) => setNewPayerMode(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none">
-                <option value="payer_pays">Parent / payer pays</option>
-                <option value="school_absorbs">School absorbs</option>
-                <option value="waived">Waived</option>
-              </select>
+              <PremiumSelect value={newPayerMode} onValueChange={setNewPayerMode}>
+                <PremiumSelectTrigger className="w-full rounded-xl border-white/10 bg-white/5 text-xs text-white">
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="payer_pays">Parent / payer pays</PremiumSelectItem>
+                  <PremiumSelectItem value="school_absorbs">School absorbs</PremiumSelectItem>
+                  <PremiumSelectItem value="waived">Waived</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-[10px] text-white/40 mb-1">Description</label>

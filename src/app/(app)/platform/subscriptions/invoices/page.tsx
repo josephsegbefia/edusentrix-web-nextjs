@@ -12,6 +12,13 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { glassPanelClass, glassInsetClass, glassPrimaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +55,7 @@ export default function InvoicesPage() {
   const [page, setPage] = React.useState(1);
   const [pages, setPages] = React.useState(1);
   const [total, setTotal] = React.useState(0);
-  const [statusFilter, setStatusFilter] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
   const [schoolSearch, setSchoolSearch] = React.useState("");
 
   const load = React.useCallback(async (pg: number) => {
@@ -56,7 +63,7 @@ export default function InvoicesPage() {
     try {
       const url = new URL("/api/platform/subscriptions/invoices", window.location.origin);
       url.searchParams.set("page", String(pg));
-      if (statusFilter) url.searchParams.set("status", statusFilter);
+      if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
       const res = await fetch(url.toString());
       const json = await res.json();
       if (json.success) {
@@ -110,16 +117,20 @@ export default function InvoicesPage() {
             placeholder="Search school…"
             className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 pr-3 text-xs text-white outline-none placeholder:text-white/25" />
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 outline-none">
-          <option value="">All statuses</option>
-          <option value="draft">Draft</option>
-          <option value="issued">Issued</option>
-          <option value="paid">Paid</option>
-          <option value="overdue">Overdue</option>
-          <option value="forgiven">Forgiven</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <PremiumSelect value={statusFilter} onValueChange={setStatusFilter}>
+          <PremiumSelectTrigger className="h-8 w-[150px] rounded-lg border-white/10 bg-white/5 text-xs text-white/60">
+            <PremiumSelectValue placeholder="All statuses" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="all">All statuses</PremiumSelectItem>
+            <PremiumSelectItem value="draft">Draft</PremiumSelectItem>
+            <PremiumSelectItem value="issued">Issued</PremiumSelectItem>
+            <PremiumSelectItem value="paid">Paid</PremiumSelectItem>
+            <PremiumSelectItem value="overdue">Overdue</PremiumSelectItem>
+            <PremiumSelectItem value="forgiven">Forgiven</PremiumSelectItem>
+            <PremiumSelectItem value="cancelled">Cancelled</PremiumSelectItem>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
 
       {/* Table */}

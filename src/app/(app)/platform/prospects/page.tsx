@@ -32,12 +32,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import {
   PlatformMetricCard,
   PlatformMetricGrid,
@@ -506,14 +506,14 @@ export default function PlatformProspectsPage() {
               <div className="mt-4 space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-white/55">Priority</Label>
-                  <Select value={form.priority} onValueChange={(value) => updateForm("priority", value)}>
-                    <SelectTrigger className="h-11 border-white/10 bg-white/5 text-white"><SelectValue /></SelectTrigger>
-                    <SelectContent className="border-white/10 bg-slate-950 text-white">
-                      <SelectItem value="low">Low priority</SelectItem>
-                      <SelectItem value="normal">Normal priority</SelectItem>
-                      <SelectItem value="high">High priority</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <PremiumSelect value={form.priority} onValueChange={(value) => updateForm("priority", value)}>
+                    <PremiumSelectTrigger className="h-11 border-white/10 bg-white/5 text-white"><PremiumSelectValue /></PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      <PremiumSelectItem value="low">Low priority</PremiumSelectItem>
+                      <PremiumSelectItem value="normal">Normal priority</PremiumSelectItem>
+                      <PremiumSelectItem value="high">High priority</PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-white/55">Next follow-up</Label>
@@ -550,12 +550,12 @@ export default function PlatformProspectsPage() {
               placeholder="Search"
               className="border-white/10 bg-white/5 text-white"
             />
-            <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
-              <SelectTrigger className="border-white/10 bg-white/5 text-white"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-white/10 bg-slate-950 text-white">
-                {STATUS_OPTIONS.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <PremiumSelect value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
+              <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white"><PremiumSelectValue /></PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {STATUS_OPTIONS.map((option) => <PremiumSelectItem key={option.value} value={option.value}>{option.label}</PremiumSelectItem>)}
+              </PremiumSelectContent>
+            </PremiumSelect>
             <Button
               type="button"
               variant="outline"
@@ -609,25 +609,25 @@ export default function PlatformProspectsPage() {
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap text-white/60">{prospect.contactPhone || "—"}</td>
                     <td className="py-3 pr-4">
-                      <Select
+                      <PremiumSelect
                         value={prospect.status}
                         disabled={updatingId === prospect.id}
                         onValueChange={(value) => void patchProspect(prospect.id, { status: value })}
                       >
-                        <SelectTrigger
+                        <PremiumSelectTrigger
                           className={cn(
                             "h-8 w-[190px] rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.08em] shadow-sm",
                             BADGE_TONES[STATUS_TONES[prospect.status]],
                           )}
                         >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="border-white/10 bg-slate-950 text-white">
+                          <PremiumSelectValue />
+                        </PremiumSelectTrigger>
+                        <PremiumSelectContent>
                           {STATUS_OPTIONS.filter((option) => option.value !== "all").map((option) => (
-                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            <PremiumSelectItem key={option.value} value={option.value}>{option.label}</PremiumSelectItem>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </PremiumSelectContent>
+                      </PremiumSelect>
                     </td>
                     <td className="py-3 pr-4">
                       <CompactBadge tone={PRIORITY_TONES[prospect.priority]}>{prospect.priority}</CompactBadge>
@@ -753,25 +753,25 @@ export default function PlatformProspectsPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-white/70">Status</Label>
-              <Select value={editForm.status} onValueChange={(value) => updateEditForm("status", value)}>
-                <SelectTrigger className="border-white/10 bg-white/5 text-white"><SelectValue /></SelectTrigger>
-                <SelectContent className="border-white/10 bg-slate-950 text-white">
+              <PremiumSelect value={editForm.status} onValueChange={(value) => updateEditForm("status", value)}>
+                <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white"><PremiumSelectValue /></PremiumSelectTrigger>
+                <PremiumSelectContent>
                   {STATUS_OPTIONS.filter((option) => option.value !== "all").map((option) => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    <PremiumSelectItem key={option.value} value={option.value}>{option.label}</PremiumSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div className="space-y-2">
               <Label className="text-white/70">Priority</Label>
-              <Select value={editForm.priority} onValueChange={(value) => updateEditForm("priority", value)}>
-                <SelectTrigger className="border-white/10 bg-white/5 text-white"><SelectValue /></SelectTrigger>
-                <SelectContent className="border-white/10 bg-slate-950 text-white">
-                  <SelectItem value="low">Low priority</SelectItem>
-                  <SelectItem value="normal">Normal priority</SelectItem>
-                  <SelectItem value="high">High priority</SelectItem>
-                </SelectContent>
-              </Select>
+              <PremiumSelect value={editForm.priority} onValueChange={(value) => updateEditForm("priority", value)}>
+                <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white"><PremiumSelectValue /></PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="low">Low priority</PremiumSelectItem>
+                  <PremiumSelectItem value="normal">Normal priority</PremiumSelectItem>
+                  <PremiumSelectItem value="high">High priority</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div className="space-y-2">
               <Label className="text-white/70">Next follow-up</Label>

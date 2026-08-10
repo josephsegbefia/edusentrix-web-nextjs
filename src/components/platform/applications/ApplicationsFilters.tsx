@@ -5,12 +5,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+  PremiumSelectContent,
+  PremiumSelectItem,
+} from "@/components/ui/premium-select";
 import { CalendarIcon } from "lucide-react";
 import {
   APPLICATION_PIPELINE_STAGES,
@@ -80,48 +80,48 @@ export default function ApplicationsFilters() {
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
           Queue
         </span>
-        <Select
+        <PremiumSelect
           value={visibility}
           onValueChange={(v) => set({ visibility: v === "active" ? null : v })}
         >
-          <SelectTrigger className="bg-card border border-white/10">
-            <SelectValue placeholder="Active applications" />
-          </SelectTrigger>
-          <SelectContent className="premiumSelectContent">
+          <PremiumSelectTrigger className="bg-card border border-white/10">
+            <PremiumSelectValue placeholder="Active applications" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
             {VISIBILITY.map((value) => (
-              <SelectItem key={value} value={value} className="cursor-pointer">
+              <PremiumSelectItem key={value} value={value} className="cursor-pointer">
                 {value === "active" ? "Active applications" : "Archived applications"}
-              </SelectItem>
+              </PremiumSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
       {/* Status */}
       <div className="md:col-span-2 flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
           Application status
         </span>
-        <Select
+        <PremiumSelect
           value={status}
           onValueChange={(v) => {
             set({ status: v === "all" ? null : v });
           }}
         >
-          <SelectTrigger className="bg-card border border-white/10">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent className="premiumSelectContent">
+          <PremiumSelectTrigger className="bg-card border border-white/10">
+            <PremiumSelectValue placeholder="All statuses" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
             {STATUS.map((s) => (
-              <SelectItem
+              <PremiumSelectItem
                 key={s}
                 value={s}
                 className="cursor-pointer capitalize"
               >
                 {s === "all" ? "All statuses" : s === "approved" ? "Accepted" : s}
-              </SelectItem>
+              </PremiumSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
 
       {/* Type */}
@@ -129,23 +129,23 @@ export default function ApplicationsFilters() {
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
           School Type
         </span>
-        <Select
+        <PremiumSelect
           value={type}
           onValueChange={(v) => {
             set({ type: v === "all" ? null : v });
           }}
         >
-          <SelectTrigger className="bg-card border border-white/10">
-            <SelectValue placeholder="All types" />
-          </SelectTrigger>
-          <SelectContent className="premiumSelectContent">
+          <PremiumSelectTrigger className="bg-card border border-white/10">
+            <PremiumSelectValue placeholder="All types" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
             {TYPES.map((t) => (
-              <SelectItem key={t} value={t} className="cursor-pointer">
+              <PremiumSelectItem key={t} value={t} className="cursor-pointer">
                 {t === "all" ? "All types" : t}
-              </SelectItem>
+              </PremiumSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
 
       {/* Pipeline (CRM-lite) */}
@@ -153,26 +153,26 @@ export default function ApplicationsFilters() {
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
           Pipeline stage
         </span>
-        <Select
+        <PremiumSelect
           value={pipelineStage}
           onValueChange={(v) => {
             set({ pipelineStage: v === "all" ? null : v });
           }}
         >
-          <SelectTrigger className="bg-card border border-white/10">
-            <SelectValue placeholder="All stages" />
-          </SelectTrigger>
-          <SelectContent className="premiumSelectContent">
-            <SelectItem value="all" className="cursor-pointer">
+          <PremiumSelectTrigger className="bg-card border border-white/10">
+            <PremiumSelectValue placeholder="All stages" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="all" className="cursor-pointer">
               All stages
-            </SelectItem>
+            </PremiumSelectItem>
             {APPLICATION_PIPELINE_STAGES.map((s) => (
-              <SelectItem key={s} value={s} className="cursor-pointer">
+              <PremiumSelectItem key={s} value={s} className="cursor-pointer">
                 {PIPELINE_STAGE_LABELS[s]}
-              </SelectItem>
+              </PremiumSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
 
       {/* Date range quick-picks */}
@@ -180,26 +180,26 @@ export default function ApplicationsFilters() {
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
           Date Range
         </span>
-        <Select
+        <PremiumSelect
           value={range}
           onValueChange={(v) => {
             set({ range: v });
           }}
         >
-          <SelectTrigger className="bg-card border border-white/10">
+          <PremiumSelectTrigger className="bg-card border border-white/10">
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-4 h-4" />
-              <SelectValue placeholder="Last 30 days" />
+              <PremiumSelectValue placeholder="Last 30 days" />
             </div>
-          </SelectTrigger>
-          <SelectContent className="premiumSelectContent">
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
             {ranges.map((r) => (
-              <SelectItem key={r.key} value={r.key} className="cursor-pointer">
+              <PremiumSelectItem key={r.key} value={r.key} className="cursor-pointer">
                 {r.label}
-              </SelectItem>
+              </PremiumSelectItem>
             ))}
-          </SelectContent>
-        </Select>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
 
       {/* Search */}

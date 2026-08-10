@@ -14,6 +14,13 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
@@ -72,8 +79,8 @@ export default function SchoolSubscriptionsListPage() {
   const LIMIT = 25;
 
   const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("");
-  const [planFilter, setPlanFilter] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [planFilter, setPlanFilter] = React.useState("all");
   const [expiringSoon, setExpiringSoon] = React.useState(false);
 
   const debouncedSearch = useDebounce(search, 350);
@@ -85,8 +92,8 @@ export default function SchoolSubscriptionsListPage() {
       url.searchParams.set("page", String(pg));
       url.searchParams.set("limit", String(LIMIT));
       if (debouncedSearch) url.searchParams.set("search", debouncedSearch);
-      if (statusFilter) url.searchParams.set("status", statusFilter);
-      if (planFilter) url.searchParams.set("tierCode", planFilter);
+      if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
+      if (planFilter !== "all") url.searchParams.set("tierCode", planFilter);
       if (expiringSoon) url.searchParams.set("expiringSoon", "true");
 
       const res = await fetch(url.toString());
@@ -135,32 +142,40 @@ export default function SchoolSubscriptionsListPage() {
             className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 pr-3 text-xs text-white outline-none placeholder:text-white/25"
           />
         </div>
-        <select
+        <PremiumSelect
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 outline-none"
+          onValueChange={setStatusFilter}
         >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="pilot">Pilot</option>
-          <option value="grace">Grace period</option>
-          <option value="restricted_read_only">Read-only</option>
-          <option value="suspended">Suspended</option>
-          <option value="past_due">Past due</option>
-          <option value="draft">Draft</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <select
+          <PremiumSelectTrigger className="h-8 w-[150px] rounded-lg border-white/10 bg-white/5 text-xs text-white/60">
+            <PremiumSelectValue placeholder="All statuses" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="all">All statuses</PremiumSelectItem>
+            <PremiumSelectItem value="active">Active</PremiumSelectItem>
+            <PremiumSelectItem value="pilot">Pilot</PremiumSelectItem>
+            <PremiumSelectItem value="grace">Grace period</PremiumSelectItem>
+            <PremiumSelectItem value="restricted_read_only">Read-only</PremiumSelectItem>
+            <PremiumSelectItem value="suspended">Suspended</PremiumSelectItem>
+            <PremiumSelectItem value="past_due">Past due</PremiumSelectItem>
+            <PremiumSelectItem value="draft">Draft</PremiumSelectItem>
+            <PremiumSelectItem value="cancelled">Cancelled</PremiumSelectItem>
+          </PremiumSelectContent>
+        </PremiumSelect>
+        <PremiumSelect
           value={planFilter}
-          onChange={(e) => setPlanFilter(e.target.value)}
-          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 outline-none"
+          onValueChange={setPlanFilter}
         >
-          <option value="">All plans</option>
-          <option value="pilot">Pilot</option>
-          <option value="starter">Starter</option>
-          <option value="growth">Growth</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
+          <PremiumSelectTrigger className="h-8 w-[130px] rounded-lg border-white/10 bg-white/5 text-xs text-white/60">
+            <PremiumSelectValue placeholder="All plans" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="all">All plans</PremiumSelectItem>
+            <PremiumSelectItem value="pilot">Pilot</PremiumSelectItem>
+            <PremiumSelectItem value="starter">Starter</PremiumSelectItem>
+            <PremiumSelectItem value="growth">Growth</PremiumSelectItem>
+            <PremiumSelectItem value="enterprise">Enterprise</PremiumSelectItem>
+          </PremiumSelectContent>
+        </PremiumSelect>
         <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer">
           <input
             type="checkbox"

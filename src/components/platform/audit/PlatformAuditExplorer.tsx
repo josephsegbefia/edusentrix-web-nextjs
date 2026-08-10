@@ -1,6 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 
 type AuditRow = {
   id: string;
@@ -29,7 +36,7 @@ const DOMAINS = [
 ] as const;
 
 export default function PlatformAuditExplorer() {
-  const [domain, setDomain] = useState<string>("");
+  const [domain, setDomain] = useState<string>("all");
   const [actionCode, setActionCode] = useState("");
   const [items, setItems] = useState<AuditRow[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -43,7 +50,7 @@ export default function PlatformAuditExplorer() {
       try {
         const params = new URLSearchParams();
         params.set("limit", "40");
-        if (domain) params.set("domain", domain);
+        if (domain !== "all") params.set("domain", domain);
         if (actionCode.trim()) params.set("actionCode", actionCode.trim());
         if (cursor) params.set("cursor", cursor);
         const res = await fetch(`/api/platform/audit?${params.toString()}`);
@@ -73,17 +80,21 @@ export default function PlatformAuditExplorer() {
       <div className="flex flex-wrap gap-3 items-end">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground">Domain</span>
-          <select
-            className="rounded-md border border-white/10 bg-background px-3 py-2 text-sm min-w-[160px]"
+          <PremiumSelect
             value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+            onValueChange={setDomain}
           >
+            <PremiumSelectTrigger className="min-w-[160px] rounded-md border-white/10 bg-background text-sm">
+              <PremiumSelectValue />
+            </PremiumSelectTrigger>
+            <PremiumSelectContent>
             {DOMAINS.map((d) => (
-              <option key={d || "all"} value={d}>
+              <PremiumSelectItem key={d || "all"} value={d || "all"}>
                 {d || "All"}
-              </option>
+              </PremiumSelectItem>
             ))}
-          </select>
+            </PremiumSelectContent>
+          </PremiumSelect>
         </label>
         <label className="flex flex-col gap-1 text-sm flex-1 min-w-[200px]">
           <span className="text-muted-foreground">Action code</span>

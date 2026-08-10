@@ -19,12 +19,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import {
   PlatformMetricCard,
   PlatformMetricGrid,
@@ -372,24 +372,24 @@ export default function PlatformDemoLeadsPage() {
             <Label className="text-xs uppercase tracking-[0.14em] text-white/45">
               Status
             </Label>
-            <Select
+            <PremiumSelect
               value={statusFilter}
               onValueChange={(value) => {
                 setStatusFilter(value);
                 setPage(1);
               }}
             >
-              <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-slate-950 text-white">
+              <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                <PremiumSelectValue placeholder="Filter by status" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
                 {STATUS_FILTER_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
+                  <PremiumSelectItem key={opt.value} value={opt.value}>
                     {opt.label}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
         }
       >

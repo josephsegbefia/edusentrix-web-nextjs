@@ -8,12 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Badge } from "@/components/ui/badge";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import {
@@ -139,33 +139,33 @@ export default function PlatformLeoPage() {
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-white/70">Default when no school override</Label>
-                <Select value={defaultState} onValueChange={(v) => setDefaultState(v as "enabled" | "disabled")}>
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="disabled">Disabled by default</SelectItem>
-                    <SelectItem value="enabled">Enabled by default (still needs plan)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <PremiumSelect value={defaultState} onValueChange={(v) => setDefaultState(v as "enabled" | "disabled")}>
+                  <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="disabled">Disabled by default</PremiumSelectItem>
+                    <PremiumSelectItem value="enabled">Enabled by default (still needs plan)</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
               <div className="space-y-2">
                 <Label className="text-white/70">Force mode (overrides entitlements / schools)</Label>
-                <Select
+                <PremiumSelect
                   value={forcedMode}
                   onValueChange={(v) =>
                     setForcedMode(v as "none" | "force_enabled" | "force_disabled")
                   }
                 >
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="force_enabled">Force ON (all schools)</SelectItem>
-                    <SelectItem value="force_disabled">Force OFF (all schools)</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="none">None</PremiumSelectItem>
+                    <PremiumSelectItem value="force_enabled">Force ON (all schools)</PremiumSelectItem>
+                    <PremiumSelectItem value="force_disabled">Force OFF (all schools)</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             </div>
 

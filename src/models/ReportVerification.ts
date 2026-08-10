@@ -38,6 +38,8 @@ export interface IReportVerification {
     studentName?: string | null;
     payerName?: string | null;
     paymentReference?: string | null;
+    studentReportCardId?: string | null;
+    classGroupLabel?: string | null;
   };
   issuedAt: Date;
   revokedAt?: Date | null;
@@ -108,6 +110,8 @@ const reportVerificationSchema = new Schema<IReportVerification>(
       studentName: { type: String, default: null },
       payerName: { type: String, default: null },
       paymentReference: { type: String, default: null },
+      studentReportCardId: { type: String, default: null },
+      classGroupLabel: { type: String, default: null },
     },
     issuedAt: { type: Date, default: Date.now, required: true },
     revokedAt: { type: Date, default: null },

@@ -92,6 +92,14 @@ export async function GET(_req: NextRequest, context: RouteContext) {
           typeof report.meta?.paymentReference === "string"
             ? report.meta.paymentReference
             : null,
+        studentReportCardId:
+          typeof report.meta?.studentReportCardId === "string"
+            ? report.meta.studentReportCardId
+            : null,
+        classGroupLabel:
+          typeof report.meta?.classGroupLabel === "string"
+            ? report.meta.classGroupLabel
+            : null,
       },
       createdAt: report.createdAt ? new Date(report.createdAt).toISOString() : null,
     },

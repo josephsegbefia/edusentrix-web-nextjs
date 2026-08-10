@@ -33,6 +33,8 @@ type VerificationPayload = {
     studentName: string | null;
     payerName: string | null;
     paymentReference: string | null;
+    studentReportCardId: string | null;
+    classGroupLabel: string | null;
   };
   createdAt: string | null;
 };
@@ -247,11 +249,17 @@ export default function ReportVerificationPage() {
                     <p className="mt-1 text-sm text-white/80">
                       Label: {data.reportLabel} | Source: {data.range.source || "N/A"}
                       {data.range.periodLabel ? ` | Period: ${data.range.periodLabel}` : ""}
+                      {data.meta.classGroupLabel ? ` | Class: ${data.meta.classGroupLabel}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-white/55">
                       Template version {data.meta.version}. Included sections:{" "}
                       {data.meta.categories.join(", ")}.
                     </p>
+                    {data.meta.studentReportCardId ? (
+                      <p className="mt-1 text-xs text-white/55">
+                        Report card record: {data.meta.studentReportCardId}
+                      </p>
+                    ) : null}
                     {data.meta.rowCount !== null ||
                     data.meta.totalOutstandingMinor !== null ||
                     data.meta.overdueInvoiceCount !== null ? (

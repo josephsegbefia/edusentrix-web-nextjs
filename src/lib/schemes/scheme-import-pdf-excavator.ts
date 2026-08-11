@@ -1,6 +1,5 @@
 import "server-only";
 
-import { PDFExcavator } from "pdfexcavator";
 import type { ISchemeImportParsedRow } from "@/models/SchemeImportJob";
 import { isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
 import {
@@ -20,6 +19,7 @@ export async function extractSchemeRowsWithPdfExcavator(
     return { ok: false, error: "File is not a valid PDF" };
   }
 
+  const { PDFExcavator } = await import("pdfexcavator");
   let pdf: Awaited<ReturnType<typeof PDFExcavator.fromBuffer>> | null = null;
   try {
     pdf = await PDFExcavator.fromBuffer(buffer);

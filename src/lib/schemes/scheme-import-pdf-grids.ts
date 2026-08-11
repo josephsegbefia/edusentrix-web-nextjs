@@ -1,8 +1,6 @@
 import "server-only";
 
-import { PDFParse } from "pdf-parse";
-import { PDFExcavator } from "pdfexcavator";
-import { ensurePdfParseWorker, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
+import { getPdfParseModule, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
 import { extractSchemeTableGridsFromPdfText } from "@/lib/schemes/scheme-import-pdf-text-grid";
 import type { SchemeTableGrid } from "@/lib/schemes/scheme-import-pdf-table-map";
 
@@ -13,7 +11,7 @@ function tableRowsToGrid(rows: (string | null)[][]): SchemeTableGrid {
 async function extractGridsWithPdfParse(
   buffer: Buffer,
 ): Promise<{ ok: true; grids: SchemeTableGrid[] } | { ok: false; error: string }> {
-  ensurePdfParseWorker();
+  const { PDFParse } = await getPdfParseModule();
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getTable();
@@ -45,6 +43,7 @@ async function extractGridsWithPdfParse(
 async function extractGridsWithPdfExcavator(
   buffer: Buffer,
 ): Promise<{ ok: true; grids: SchemeTableGrid[] } | { ok: false; error: string }> {
+  const { PDFExcavator } = await import("pdfexcavator");
   let pdf: Awaited<ReturnType<typeof PDFExcavator.fromBuffer>> | null = null;
   try {
     pdf = await PDFExcavator.fromBuffer(buffer);

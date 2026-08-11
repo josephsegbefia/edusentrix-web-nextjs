@@ -1,7 +1,6 @@
 import "server-only";
 
-import { PDFParse } from "pdf-parse";
-import { ensurePdfParseWorker, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
+import { getPdfParseModule, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
 
 const MIN_TEXT_CHARS = 40;
 
@@ -10,7 +9,7 @@ export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> 
     throw new Error("File is not a valid PDF");
   }
 
-  ensurePdfParseWorker();
+  const { PDFParse } = await getPdfParseModule();
 
   const parser = new PDFParse({ data: buffer });
   try {

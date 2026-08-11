@@ -1,8 +1,7 @@
 import "server-only";
 
-import { PDFParse } from "pdf-parse";
 import type { ISchemeImportParsedRow } from "@/models/SchemeImportJob";
-import { ensurePdfParseWorker, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
+import { getPdfParseModule, isPdfBuffer } from "@/lib/schemes/scheme-import-pdf-utils";
 import {
   isViableSchemeImportRows,
   mapTableGridsToSchemeRows,
@@ -16,7 +15,7 @@ export async function extractSchemeRowsWithPdfParseTables(
     return { ok: false, error: "File is not a valid PDF" };
   }
 
-  ensurePdfParseWorker();
+  const { PDFParse } = await getPdfParseModule();
 
   const parser = new PDFParse({ data: buffer });
   try {

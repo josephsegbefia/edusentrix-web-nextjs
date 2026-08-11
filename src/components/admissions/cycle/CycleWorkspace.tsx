@@ -151,6 +151,9 @@ type FeeSettingsData = {
   } | null;
 };
 
+type PayerModeOverride = "payer_pays" | "school_absorbs" | "waived";
+const GLOBAL_PAYER_MODE_VALUE = "global_policy";
+
 function formatMinor(minor: number, currency = "GHS"): string {
   return `${currency} ${(minor / 100).toFixed(2)}`;
 }
@@ -167,7 +170,7 @@ function CycleFeeSettingsTab({
   const [saving, setSaving] = React.useState(false);
 
   const [bpsOverride, setBpsOverride] = React.useState("");
-  const [payerMode, setPayerMode] = React.useState<"payer_pays" | "school_absorbs" | "waived" | "">(""); 
+  const [payerMode, setPayerMode] = React.useState<PayerModeOverride | typeof GLOBAL_PAYER_MODE_VALUE>(GLOBAL_PAYER_MODE_VALUE);
   const [overrideNote, setOverrideNote] = React.useState("");
 
   const load = React.useCallback(async () => {
@@ -180,8 +183,12 @@ function CycleFeeSettingsTab({
         const fs = json.data.feeSettings;
         if (fs) {
           setBpsOverride(fs.platformChargeBpsOverride != null ? String(fs.platformChargeBpsOverride) : "");
-          setPayerMode((fs.payerModeOverride as "payer_pays" | "school_absorbs" | "waived" | "") || "");
+          setPayerMode((fs.payerModeOverride as PayerModeOverride | null) || GLOBAL_PAYER_MODE_VALUE);
           setOverrideNote(fs.overrideNote ?? "");
+        } else {
+          setBpsOverride("");
+          setPayerMode(GLOBAL_PAYER_MODE_VALUE);
+          setOverrideNote("");
         }
       } else {
         toast.error("Could not load fee settings.");
@@ -212,7 +219,7 @@ function CycleFeeSettingsTab({
       } else {
         body.platformChargeBpsOverride = null;
       }
-      body.payerModeOverride = payerMode || null;
+      body.payerModeOverride = payerMode === GLOBAL_PAYER_MODE_VALUE ? null : payerMode;
 
       const res = await fetch(`/api/admin/admissions/cycles/${cycleId}/fee-settings`, {
         method: "PATCH",
@@ -331,7 +338,7 @@ function CycleFeeSettingsTab({
                     <PremiumSelectValue placeholder="Use global policy" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
-                    <PremiumSelectItem value="">Use global policy</PremiumSelectItem>
+                    <PremiumSelectItem value={GLOBAL_PAYER_MODE_VALUE}>Use global policy</PremiumSelectItem>
                     <PremiumSelectItem value="payer_pays">Applicant pays fee</PremiumSelectItem>
                     <PremiumSelectItem value="school_absorbs">School absorbs fee</PremiumSelectItem>
                     <PremiumSelectItem value="waived">Waived (no platform charge)</PremiumSelectItem>

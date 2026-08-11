@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarRange, GraduationCap, Loader2 } from "lucide-react";
+import { CalendarRange, GraduationCap, Loader2, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,19 @@ function parseDate(iso: string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function minorToMajorInput(minor: number | null | undefined) {
+  if (!minor) return "";
+  return (minor / 100).toFixed(2).replace(/\.00$/, "");
+}
+
+function majorInputToMinor(value: string) {
+  const cleaned = value.replace(/,/g, "").trim();
+  if (!cleaned) return 0;
+  const parsed = Number(cleaned);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100);
+}
+
 export function EditCycleModal({
   open,
   onOpenChange,
@@ -71,6 +84,10 @@ export function EditCycleModal({
   const [targetPeriodId, setTargetPeriodId] = React.useState("");
   const [intakeGradeIds, setIntakeGradeIds] = React.useState<string[]>([]);
   const [waitlistEnabled, setWaitlistEnabled] = React.useState(true);
+  const [applicationFeeEnabled, setApplicationFeeEnabled] = React.useState(false);
+  const [applicationFeeAmount, setApplicationFeeAmount] = React.useState("");
+  const [applicationFeeMode, setApplicationFeeMode] = React.useState<"manual_record" | "online_paystack">("online_paystack");
+  const [applicationFeeInstructions, setApplicationFeeInstructions] = React.useState("");
   const [errorText, setErrorText] = React.useState<string | null>(null);
 
   const archived = cycle?.status === "archived";
@@ -86,6 +103,10 @@ export function EditCycleModal({
     setTargetPeriodId(cycle.targetAcademicPeriodId ?? "");
     setIntakeGradeIds([...cycle.intakeGradeIds]);
     setWaitlistEnabled(cycle.waitlistEnabled);
+    setApplicationFeeEnabled(Boolean(cycle.applicationFee?.enabled));
+    setApplicationFeeAmount(minorToMajorInput(cycle.applicationFee?.amountMinor));
+    setApplicationFeeMode(cycle.applicationFee?.mode ?? "online_paystack");
+    setApplicationFeeInstructions(cycle.applicationFee?.instructions ?? "");
     setErrorText(null);
   }, [open, cycle]);
 
@@ -113,6 +134,15 @@ export function EditCycleModal({
     event.preventDefault();
     setErrorText(null);
     if (!canSubmit || !acceptsFrom || !cycle) return;
+    const amountMinor = majorInputToMinor(applicationFeeAmount);
+    if (amountMinor === null) {
+      setErrorText("Enter a valid application fee amount.");
+      return;
+    }
+    if (applicationFeeEnabled && amountMinor <= 0) {
+      setErrorText("Enter an application fee amount greater than zero, or turn the fee off.");
+      return;
+    }
     try {
       const result = await busy.promise(
         update.mutateAsync({
@@ -128,6 +158,21 @@ export function EditCycleModal({
               : null,
             decisionDueBy: decisionDueBy ? decisionDueBy.toISOString() : null,
             waitlistEnabled,
+            applicationFee: applicationFeeEnabled
+              ? {
+                  enabled: true,
+                  amountMinor,
+                  currency: "GHS",
+                  mode: applicationFeeMode,
+                  instructions: applicationFeeInstructions.trim() || undefined,
+                }
+              : {
+                  enabled: false,
+                  amountMinor: 0,
+                  currency: "GHS",
+                  mode: applicationFeeMode,
+                  instructions: applicationFeeInstructions.trim() || undefined,
+                },
           },
         }),
         {
@@ -301,6 +346,100 @@ export function EditCycleModal({
                 </p>
               </div>
             </label>
+          </div>
+        </div>
+
+        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/3 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                <Wallet className="h-3.5 w-3.5" />
+                Application fee
+              </Label>
+              <p className="mt-1 text-xs text-white/45">
+                Charge families before their submitted application can be marked paid.
+              </p>
+            </div>
+            <label
+              className={cn(
+                "flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/75",
+                archived && "pointer-events-none opacity-50"
+              )}
+            >
+              <Checkbox
+                checked={applicationFeeEnabled}
+                onCheckedChange={(value) => setApplicationFeeEnabled(Boolean(value))}
+                disabled={archived}
+              />
+              Enable fee
+            </label>
+          </div>
+
+          <div
+            className={cn(
+              "grid gap-4 sm:grid-cols-2",
+              !applicationFeeEnabled && "opacity-55"
+            )}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="edit-cycle-application-fee">Fee amount (GHS)</Label>
+              <Input
+                id="edit-cycle-application-fee"
+                inputMode="decimal"
+                value={applicationFeeAmount}
+                onChange={(event) => setApplicationFeeAmount(event.target.value)}
+                placeholder="e.g. 100"
+                disabled={archived || !applicationFeeEnabled}
+                className={admissionsAdminFieldClass}
+              />
+              <p className="text-xs text-white/40">
+                Enter the amount in Ghana cedis. EduSentrix stores it safely in pesewas.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Collection mode</Label>
+              <PremiumSelect
+                value={applicationFeeMode}
+                onValueChange={(value) =>
+                  setApplicationFeeMode(value as "manual_record" | "online_paystack")
+                }
+                disabled={archived || !applicationFeeEnabled}
+              >
+                <PremiumSelectTrigger className="w-full">
+                  <PremiumSelectValue placeholder="Choose collection mode" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="online_paystack">
+                    Online payment through Paystack
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="manual_record">
+                    Manual payment record
+                  </PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
+              <p className="text-xs text-white/40">
+                Use online payments when the school payout setup is ready.
+              </p>
+            </div>
+          </div>
+
+          <div className={cn("space-y-2", !applicationFeeEnabled && "opacity-55")}>
+            <Label htmlFor="edit-cycle-application-fee-instructions">
+              Payment instructions (optional)
+            </Label>
+            <textarea
+              id="edit-cycle-application-fee-instructions"
+              rows={2}
+              value={applicationFeeInstructions}
+              onChange={(event) => setApplicationFeeInstructions(event.target.value)}
+              placeholder="e.g. Pay online after submitting, or contact accounts with your application reference."
+              disabled={archived || !applicationFeeEnabled}
+              className={cn(
+                admissionsAdminFieldClass,
+                "min-h-20 resize-none py-2"
+              )}
+            />
           </div>
         </div>
 

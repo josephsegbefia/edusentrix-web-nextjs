@@ -103,6 +103,13 @@ export type CreateAdmissionCycleInput = {
   capacityByGradeId?: Record<string, number>;
   waitlistEnabled?: boolean;
   templateId?: "blank" | "standard_primary" | "standard_shs";
+  applicationFee?: {
+    enabled: boolean;
+    amountMinor: number;
+    currency: string;
+    mode: "manual_record" | "online_paystack";
+    instructions?: string;
+  } | null;
 };
 
 export function useCreateAdmissionCycle() {

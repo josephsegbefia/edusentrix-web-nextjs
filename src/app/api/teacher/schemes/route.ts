@@ -141,7 +141,12 @@ export async function POST(req: Request) {
     const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
     const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
     const schemeGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.ACADEMICS_SCHEMES);
-    if (schemeGate) return schemeGate;
+    if (!schemeGate.allowed) {
+      return Response.json(
+        { success: false, error: schemeGate.reason },
+        { status: schemeGate.statusCode }
+      );
+    }
 
     if (!ctx.isAdmin) {
       return Response.json(

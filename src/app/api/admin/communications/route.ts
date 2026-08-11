@@ -127,7 +127,12 @@ export async function POST(req: NextRequest) {
     const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
     const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
     const commGate = await requireSchoolFeature(schoolId, FEATURE_KEYS.COMMUNICATION_NOTICES);
-    if (commGate) return commGate;
+    if (!commGate.allowed) {
+      return Response.json(
+        { success: false, error: commGate.reason },
+        { status: commGate.statusCode }
+      );
+    }
 
     const parsed = CreateCommunicationSchema.safeParse(await req.json());
     if (!parsed.success) {

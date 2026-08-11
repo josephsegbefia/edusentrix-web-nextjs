@@ -100,7 +100,12 @@ export async function POST(req: Request) {
     const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
     const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
     const examGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.ASSESSMENT_EXAMINATIONS);
-    if (examGate) return examGate;
+    if (!examGate.allowed) {
+      return Response.json(
+        { success: false, error: examGate.reason },
+        { status: examGate.statusCode }
+      );
+    }
 
     if (!can(ctx.permissions, PERMISSIONS.examsCreate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });

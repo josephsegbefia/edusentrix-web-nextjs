@@ -55,6 +55,13 @@ function normalize(s: string) {
     .trim();
 }
 
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 async function createIndexIfNeeded(
   keys: Record<string, 1 | -1 | "text">,
   options?: Record<string, unknown>
@@ -167,6 +174,9 @@ async function createIndexIfNeeded(
           sortCode: p.sortCode,
           bankName: p.bankName,
           branchName: p.branchName,
+          bankNameNormalized: normalize(p.bankName),
+          branchNameNormalized: normalize(p.branchName),
+          bankSlug: slugify(p.bankName),
           isActive: true,
         },
       },
@@ -185,10 +195,13 @@ async function createIndexIfNeeded(
   await createIndexIfNeeded({ sortCode: 1 }, { unique: true });
   await createIndexIfNeeded(
     { bankName: "text", branchName: "text" },
-    { name: "bank_branch_text" }
+    { name: "bank_branch_text", collation: { locale: "simple" } }
   );
   await createIndexIfNeeded({ bankName: 1 });
   await createIndexIfNeeded({ branchName: 1 });
+  await createIndexIfNeeded({ bankSlug: 1 });
+  await createIndexIfNeeded({ bankNameNormalized: 1 });
+  await createIndexIfNeeded({ branchNameNormalized: 1 });
 
   await disconnectDatabase();
   console.log("✅ Done.");

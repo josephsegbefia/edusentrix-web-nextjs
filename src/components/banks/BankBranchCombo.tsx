@@ -19,7 +19,12 @@ import { Button } from "@/components/ui/button";
 import { ChevronsUpDown, Check, Landmark, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Item = { bankName: string; branchName: string; sortCode: string };
+type Item = {
+  bankName: string;
+  branchName: string;
+  sortCode: string;
+  source?: "database" | "paystack";
+};
 
 export function BankBranchCombo(props: {
   value: Item | null;
@@ -111,7 +116,9 @@ export function BankBranchCombo(props: {
   }, [open, q]);
 
   const label = value
-    ? `${value.bankName} — ${value.branchName} (${value.sortCode})`
+    ? value.source === "paystack"
+      ? `${value.bankName} (${value.sortCode})`
+      : `${value.bankName} — ${value.branchName} (${value.sortCode})`
     : "Select bank & branch";
 
   return (
@@ -181,14 +188,14 @@ export function BankBranchCombo(props: {
                     <p className="mt-2 font-medium text-white/75">No branches found</p>
                     <p className="mt-1 text-xs leading-5 text-white/45">
                       Try the bank name, branch name, or six-digit sort code. If this
-                      environment should have bank data, run the bank seed against this
-                      deployment&apos;s database.
+                      environment should have bank data, confirm PAYSTACK_SECRET_KEY or
+                      the bank branch seed for this deployment.
                     </p>
                   </div>
                 </CommandEmpty>
               ) : (
                 <CommandGroup
-                  heading="Matching bank branches"
+                  heading="Matching banks"
                   className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
                 >
                   {items.map((it) => {
@@ -218,7 +225,11 @@ export function BankBranchCombo(props: {
                               {it.sortCode}
                             </span>
                           </div>
-                          <p className="mt-1 truncate text-xs text-white/48">{it.branchName}</p>
+                          <p className="mt-1 truncate text-xs text-white/48">
+                            {it.source === "paystack"
+                              ? "Paystack Ghana bank code"
+                              : it.branchName}
+                          </p>
                         </div>
                       </CommandItem>
                     );

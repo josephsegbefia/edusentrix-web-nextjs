@@ -1,6 +1,7 @@
 import { BankBranch, type BankBranchDoc } from "@/models/BankBranch";
+import { resolvePaystackSettlementBankCode } from "@/lib/paystack";
 
-/** Trust DB only; never trust client for bank codes */
+/** Trust server-side sources only; never trust client-submitted bank codes. */
 export async function resolveBankCode(bankName?: string, branchName?: string) {
   if (!bankName || !branchName) return null;
   const branch = (await BankBranch.findOne({
@@ -10,8 +11,15 @@ export async function resolveBankCode(bankName?: string, branchName?: string) {
     .select("sortCode")
     .lean()) as Pick<BankBranchDoc, "sortCode"> | null;
 
-  if (!branch?.sortCode) return null;
-  return String(branch.sortCode).padStart(6, "0");
+  if (branch?.sortCode) {
+    return String(branch.sortCode).padStart(6, "0");
+  }
+
+  try {
+    return await resolvePaystackSettlementBankCode(bankName);
+  } catch {
+    return null;
+  }
 }
 
 function escapeRegExp(s: string) {

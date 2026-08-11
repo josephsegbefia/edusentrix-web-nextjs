@@ -385,7 +385,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "We could not match that bank branch to a valid sort code.",
+          error: "We could not match that bank to a valid bank code.",
         },
         { status: 400 }
       );

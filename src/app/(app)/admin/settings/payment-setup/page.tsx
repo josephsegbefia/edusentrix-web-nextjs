@@ -728,11 +728,11 @@ export default function PaymentSetupPage() {
                 />
                 {bankSelection?.sortCode ? (
                   <p className="text-xs text-white/45">
-                    Sort code: {bankSelection.sortCode}
+                    Bank code: {bankSelection.sortCode}
                   </p>
                 ) : (
                   <p className="text-xs text-white/45">
-                    Choose the exact branch so EduSentrix can derive the correct settlement code.
+                    Choose the school&apos;s bank so EduSentrix can derive the correct settlement code.
                   </p>
                 )}
               </div>

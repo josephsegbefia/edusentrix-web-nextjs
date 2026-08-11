@@ -50,7 +50,7 @@ export function getPaystackKeyMode(): PaystackKeyMode {
   return "unset";
 }
 
-/** GET /bank?country=ghana to retrieve bank list and codes (Paystack docs) */
+/** GET /bank?country=ghana&type=ghipss to retrieve Ghana bank-channel list and codes (Paystack docs). */
 
 export async function listGhanaBanks(): Promise<
   Array<{ name: string; code: string }>
@@ -59,7 +59,13 @@ export async function listGhanaBanks(): Promise<
     return [];
   }
 
-  const res = await paystackRequest(`${PAYSTACK_BASE}/bank?country=ghana`, {
+  const url = new URL(`${PAYSTACK_BASE}/bank`);
+  url.searchParams.set("country", "ghana");
+  url.searchParams.set("currency", "GHS");
+  url.searchParams.set("type", "ghipss");
+  url.searchParams.set("perPage", "100");
+
+  const res = await paystackRequest(url.toString(), {
     method: "GET",
     headers: headers(),
     cache: "no-store",

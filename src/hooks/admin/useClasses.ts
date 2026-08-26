@@ -68,6 +68,7 @@ export type AssignSubjectsResponse = {
     name: string;
     subjects: Array<{
       id: string;
+      subjectOfferingId?: string | null;
       name: string;
       code: string | null;
     }>;
@@ -229,6 +230,7 @@ export function useAssignSubjectsToClass() {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["class"] });
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
     },
   });
 }

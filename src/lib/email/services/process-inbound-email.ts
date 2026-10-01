@@ -13,7 +13,7 @@ import {
 import { handleProposalInboundReply } from "@/lib/proposals/reply-handler";
 
 export interface InboundEmailInput {
-  provider: "spaceship" | "brevo";
+  provider: "spaceship" | "brevo" | "resend";
   sender: { email: string; name?: string | null };
   recipients: string[];
   subject: string;

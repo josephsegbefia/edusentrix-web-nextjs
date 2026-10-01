@@ -72,9 +72,30 @@ const GRADES = [
 
 async function connectDB() {
   const uri = process.env.MONGODB_URI;
+  const dbName = process.env.DEMO_MONGO_DB_NAME;
+
   if (!uri) throw new Error("MONGODB_URI is required");
-  await mongoose.connect(uri);
-  console.log("[seed] Connected to database");
+
+  if (process.env.APP_RUNTIME_MODE !== "demo") {
+    throw new Error(
+      "Refusing to seed: APP_RUNTIME_MODE must be set to demo."
+    );
+  }
+
+  if (!dbName) {
+    throw new Error(
+      "Refusing to seed: DEMO_MONGO_DB_NAME must be explicitly configured."
+    );
+  }
+
+  if (dbName.toLowerCase().includes("prod")) {
+    throw new Error(
+      `Refusing to seed database "${dbName}": production databases are not allowed.`
+    );
+  }
+
+  await mongoose.connect(uri, { dbName });
+  console.log(`[seed] Connected to demo database "${dbName}"`);
 }
 
 async function ensureModelsLoaded() {

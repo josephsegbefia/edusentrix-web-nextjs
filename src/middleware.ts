@@ -68,6 +68,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/public/students/parent-documents(.*)", // public parent document upload APIs
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
   "/api/webhooks/brevo(.*)", // Brevo outbound event + inbound parse webhooks
+  "/api/webhooks/resend(.*)", // Resend webhook verifies Svix signatures
   "/api/webhooks/paystack(.*)", // Paystack transaction webhooks verify their own HMAC signature
   "/api/cron(.*)", // Cron jobs authenticate with their own secrets
   // Secret URL + OTP-gated first platform admin bootstrap (see PLATFORM_ADMIN_BOOTSTRAP_SECRET)
@@ -149,6 +150,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/api/public/students/parent-documents",
     "/api/uploadthing",
     "/api/webhooks/brevo",
+    "/api/webhooks/resend",
     "/api/webhooks/paystack",
     "/payment-return",
     "/platform-bootstrap",

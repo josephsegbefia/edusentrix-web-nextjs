@@ -49,6 +49,7 @@ const isPublicRoute = createRouteMatcher([
   "/contact",
   "/terms",
   "/privacy",
+  "/api/health",
   "/enroll", // enrollment form
   "/legal/(.*)", // legal acceptance gate — reachable without password check
   "/apply(.*)", // public school admission application + tracker pages

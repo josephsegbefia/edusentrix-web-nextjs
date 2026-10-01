@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/resolveTenantUserForClerkSession";
 import { ensureCanonicalUserForClerkSession } from "@/lib/auth/canonical-user";
 import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
+import { getAppUrl } from "@/lib/utils/getAppUrl";
 import {
   bindBillingOwnerToSchool,
   bindPaymentSetupDelegateToSchool,
@@ -54,6 +55,7 @@ function safeNext(url: URL) {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
+  const publicBaseUrl = getAppUrl();
   const { userId } = await auth();
 
   // No active session → back to sign-in
@@ -87,7 +89,7 @@ export async function GET(req: NextRequest) {
       avatarUrl: cUser.imageUrl,
     });
   } catch (resolveError) {
-    const errUrl = new URL("/sign-in", req.url);
+    const errUrl = new URL("/sign-in", publicBaseUrl);
     errUrl.searchParams.set("error", "identity_resolution_failed");
     console.error("Auth callback identity resolution failed:", resolveError);
     return NextResponse.redirect(errUrl);
@@ -171,7 +173,7 @@ export async function GET(req: NextRequest) {
       .select("status")
       .lean<{ status?: string } | null>();
     if (suspendedSchool?.status === "deactivated") {
-      const errUrl = new URL("/sign-in", req.url);
+      const errUrl = new URL("/sign-in", publicBaseUrl);
       errUrl.searchParams.set("error", "school_disabled");
       return NextResponse.redirect(errUrl);
     }
@@ -186,5 +188,5 @@ export async function GET(req: NextRequest) {
       pendingOnboarding: !!appUser.pendingOnboarding,
     });
 
-  return NextResponse.redirect(new URL(dest, url));
+  return NextResponse.redirect(new URL(dest, publicBaseUrl));
 }

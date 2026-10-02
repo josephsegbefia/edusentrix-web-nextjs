@@ -97,10 +97,10 @@ function dedupeRecipients(values: Array<string | undefined>): string[] {
 async function retrieveReceivedEmail(
   emailId: string,
 ): Promise<ResendReceivedEmail> {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const apiKey = process.env.RESEND_INBOUND_API_KEY?.trim();
 
   if (!apiKey) {
-    throw new Error("RESEND_API_KEY is not configured");
+    throw new Error("RESEND_INBOUND_API_KEY is not configured");
   }
 
   const response = await fetch(

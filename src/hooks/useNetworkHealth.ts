@@ -42,9 +42,9 @@ const DEFAULT_SSE_STATUS: SSEStatusEvent = {
   reconnectAttempts: 0,
 };
 
-/** Low-level ping: tries /api/healthz then falls back to /favicon.ico */
+/** Low-level ping: tries /api/health then falls back to /favicon.ico */
 async function connectivityProbe(signal?: AbortSignal): Promise<ProbeResult> {
-  const targets = ["/api/healthz", `/favicon.ico?t=${Date.now()}`];
+  const targets = ["/api/health", `/favicon.ico?t=${Date.now()}`];
 
   for (const url of targets) {
     const started = performance.now();

@@ -308,8 +308,8 @@ function PlatformMessageView({
   const outgoing = messages.filter((m) => m.direction === "outbound");
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-white/10 px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0 border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -319,17 +319,16 @@ function PlatformMessageView({
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          {thread && (
-            <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">
-              {thread.subject}
-            </p>
-          )}
+          <p className="min-h-5 min-w-0 flex-1 truncate text-sm font-medium text-white">
+            {thread?.subject}
+          </p>
           <Button
             variant="ghost"
             size="sm"
             onClick={() =>
               updateThread.mutate({ threadId, status: "archived" })
             }
+            disabled={isLoading || updateThread.isPending}
             className="shrink-0 text-white/40 hover:text-white"
           >
             <Archive className="mr-1 h-4 w-4" /> Archive
@@ -343,21 +342,24 @@ function PlatformMessageView({
             {meta.icon}
             {meta.address}
           </Badge>
-          <span className="text-xs text-white/40">
-            {incoming.length} received · {outgoing.length} sent
+          <span className="min-w-36 text-xs text-white/40">
+            {isLoading ? (
+              "Loading..."
+            ) : (
+              <>{incoming.length} received · {outgoing.length} sent</>
+            )}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-8">
+      <div className="flex min-h-[320px] flex-1 flex-col overflow-y-auto p-4 space-y-8">
         {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-20 animate-pulse rounded-lg bg-white/5"
-              />
-            ))}
+          <div
+            role="status"
+            className="flex flex-1 items-center justify-center gap-2 text-sm text-white/40"
+          >
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+            <span>Loading conversation...</span>
           </div>
         ) : messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-white/40">
@@ -775,18 +777,17 @@ export default function PlatformEmailPage() {
             {/* Thread list */}
             <Card
               className={cn(
-                "border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl md:w-96 shrink-0",
-                selectedThreadId && "hidden md:block",
+                "min-h-[500px] border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl md:w-96 shrink-0",
+                selectedThreadId && "hidden md:flex",
               )}
             >
               {inboxQuery.isLoading ? (
-                <div className="space-y-2 p-4">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="h-14 animate-pulse rounded-lg bg-white/5"
-                    />
-                  ))}
+                <div
+                  role="status"
+                  className="flex flex-1 items-center justify-center gap-2 p-4 text-sm text-white/40"
+                >
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+                  <span>Loading conversations...</span>
                 </div>
               ) : inboxQuery.isError ? (
                 <div className="flex items-center gap-3 p-6 text-red-400">
@@ -806,7 +807,7 @@ export default function PlatformEmailPage() {
             {/* Message view */}
             <Card
               className={cn(
-                "flex-1 border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl min-h-[500px]",
+                "min-w-0 flex-1 border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl min-h-[500px]",
                 !selectedThreadId && "hidden md:flex",
               )}
             >

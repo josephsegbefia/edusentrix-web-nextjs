@@ -2,7 +2,7 @@ import "server-only";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-export type EmailSenderFamily = "hello" | "billing" | "support";
+export type EmailSenderFamily = "hello" | "billing" | "support" | "joseph";
 
 export type ResendSendInput = {
   to: string;
@@ -53,6 +53,8 @@ function getSenderConfig() {
       process.env.RESEND_BILLING_FROM_EMAIL?.trim() || "billing@tryedusentrix.app",
     supportFromEmail:
       process.env.RESEND_SUPPORT_FROM_EMAIL?.trim() || "support@tryedusentrix.app",
+    josephFromEmail:
+      process.env.RESEND_JOSEPH_FROM_EMAIL?.trim() || "joseph@tryedusentrix.app",
   };
 }
 
@@ -66,6 +68,7 @@ export function resolveSenderEmail(senderFamily: EmailSenderFamily): string {
   const config = getSenderConfig();
   if (senderFamily === "billing") return config.billingFromEmail;
   if (senderFamily === "support") return config.supportFromEmail;
+  if (senderFamily === "joseph") return config.josephFromEmail;
   return config.defaultFromEmail;
 }
 

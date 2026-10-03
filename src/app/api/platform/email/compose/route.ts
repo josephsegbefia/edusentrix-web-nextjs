@@ -49,8 +49,8 @@ const ComposeSchema = z.object({
         ) <= MAX_TOTAL_ATTACHMENT_BYTES,
       { message: "Attachments can be up to 12 MB total." },
     ),
-  mailbox: z.enum(["hello", "support", "billing"]).optional().default("hello"),
-  senderFamily: z.enum(["hello", "support", "billing"]).optional(),
+  mailbox: z.enum(["hello", "support", "billing", "joseph"]).optional().default("hello"),
+  senderFamily: z.enum(["hello", "support", "billing", "joseph"]).optional(),
   relatedEntityType: z.string().trim().max(80).optional(),
   relatedEntityId: z.string().trim().max(80).optional(),
 });
@@ -61,9 +61,10 @@ function estimateBase64Bytes(value: string) {
   return Math.max(0, Math.floor((clean.length * 3) / 4) - padding);
 }
 
-function templateKeyForSender(senderFamily: "hello" | "support" | "billing") {
+function templateKeyForSender(senderFamily: "hello" | "support" | "billing" | "joseph") {
   if (senderFamily === "billing") return "PLATFORM_BILLING_MANUAL_EMAIL";
   if (senderFamily === "hello") return "PLATFORM_HELLO_MANUAL_EMAIL";
+  if (senderFamily === "joseph") return "PLATFORM_JOSEPH_MANUAL_EMAIL";
   return "PLATFORM_MANUAL_EMAIL";
 }
 

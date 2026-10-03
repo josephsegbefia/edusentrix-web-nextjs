@@ -23,7 +23,7 @@ export type EmailDispatchTrafficClass =
 
 export type EmailDispatchPriority = "critical" | "high" | "normal" | "low";
 
-export type EmailDispatchSenderFamily = "hello" | "billing" | "support";
+export type EmailDispatchSenderFamily = "hello" | "billing" | "support" | "joseph";
 
 export interface IEmailDispatchJob {
   _id: Types.ObjectId;
@@ -86,7 +86,7 @@ const emailDispatchJobSchema = new Schema<IEmailDispatchJob>(
 
     senderFamily: {
       type: String,
-      enum: ["hello", "billing", "support"],
+      enum: ["hello", "billing", "support", "joseph"],
       default: null,
     },
     trafficClass: {

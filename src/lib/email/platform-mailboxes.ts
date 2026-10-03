@@ -1,12 +1,18 @@
 import "server-only";
 
 /**
- * Platform operator mailboxes (Spacemail): hello, support, billing.
- * Inbound is IMAP-first; outbound automated mail uses Resend with direct Reply-To.
+ * Platform operator mailboxes.
+ * Resend webhook ingestion is the primary inbound path; outbound mail uses Resend.
+ * Legacy IMAP configuration remains for recovery/sync of hello, support, and billing.
  * Routed school/parent replies land in the support mailbox via DNS catch-all.
  */
 
-export type PlatformMailboxId = "hello" | "support" | "billing";
+export type PlatformMailboxId = "hello" | "support" | "billing" | "joseph";
+
+const LEGACY_IMAP_MAILBOX_IDS = ["hello", "support", "billing"] as const satisfies
+  readonly PlatformMailboxId[];
+
+type LegacyImapMailboxId = (typeof LEGACY_IMAP_MAILBOX_IDS)[number];
 
 export interface PlatformMailboxConfig {
   id: PlatformMailboxId;
@@ -47,6 +53,9 @@ function resolveMailboxAddress(id: PlatformMailboxId): string {
       "billing@tryedusentrix.app"
     );
   }
+  if (id === "joseph") {
+    return readEnv("PLATFORM_JOSEPH_EMAIL") || "joseph@tryedusentrix.app";
+  }
   return (
     readEnv("PLATFORM_SUPPORT_EMAIL") ||
     readEnv("SUPPORT_EMAIL") ||
@@ -55,7 +64,7 @@ function resolveMailboxAddress(id: PlatformMailboxId): string {
   );
 }
 
-function resolveImapCredentials(id: PlatformMailboxId): {
+function resolveImapCredentials(id: LegacyImapMailboxId): {
   host: string;
   port: number;
   user: string;
@@ -91,6 +100,8 @@ function resolveImapCredentials(id: PlatformMailboxId): {
 export function getPlatformMailboxConfig(
   id: PlatformMailboxId,
 ): PlatformMailboxConfig | null {
+  if (id === "joseph") return null;
+
   const imap = resolveImapCredentials(id);
   if (!imap) return null;
 
@@ -104,8 +115,7 @@ export function getPlatformMailboxConfig(
 }
 
 export function listConfiguredPlatformMailboxes(): PlatformMailboxConfig[] {
-  const ids: PlatformMailboxId[] = ["hello", "support", "billing"];
-  return ids
+  return LEGACY_IMAP_MAILBOX_IDS
     .map((id) => getPlatformMailboxConfig(id))
     .filter((config): config is PlatformMailboxConfig => config !== null);
 }
@@ -121,6 +131,7 @@ export function directPlatformMailboxForRecipient(
   const hello = normaliseEmailAddress(resolveMailboxAddress("hello"));
   const support = normaliseEmailAddress(resolveMailboxAddress("support"));
   const billing = normaliseEmailAddress(resolveMailboxAddress("billing"));
+  const joseph = normaliseEmailAddress(resolveMailboxAddress("joseph"));
 
   if (normalized === hello) {
     return { mailboxId: "hello", mailboxKey: "platform_hello", threadType: "support" };
@@ -130,6 +141,9 @@ export function directPlatformMailboxForRecipient(
   }
   if (normalized === billing) {
     return { mailboxId: "billing", mailboxKey: "platform_billing", threadType: "billing" };
+  }
+  if (normalized === joseph) {
+    return { mailboxId: "joseph", mailboxKey: "platform_joseph", threadType: "support" };
   }
   return null;
 }

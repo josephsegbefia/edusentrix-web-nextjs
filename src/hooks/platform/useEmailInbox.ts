@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+export type PlatformInboxMailbox = "hello" | "support" | "billing" | "joseph";
+export type PlatformComposeSenderFamily = PlatformInboxMailbox;
+
 export type PlatformEmailThread = {
   _id: string;
   subject: string;
@@ -47,7 +50,7 @@ export type SuppressionEntry = {
 };
 
 export function usePlatformInbox(opts: {
-  mailbox?: string;
+  mailbox?: PlatformInboxMailbox;
   status?: string;
   page?: number;
 }) {
@@ -157,7 +160,7 @@ export function usePlatformCompose() {
       htmlContent: string;
       textContent?: string;
       attachments?: PlatformEmailAttachment[];
-      senderFamily?: "hello" | "support" | "billing";
+      senderFamily?: PlatformComposeSenderFamily;
     }) => {
       const res = await fetch("/api/platform/email/compose", {
         method: "POST",

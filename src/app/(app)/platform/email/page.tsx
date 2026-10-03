@@ -12,7 +12,6 @@ import {
   type ComposeAttachment,
 } from "@/components/email/ComposeAttachmentPicker";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import {
   Inbox,
   Mail,
@@ -25,7 +24,6 @@ import {
   Loader2,
   MailPlus,
   Archive,
-  RefreshCw,
   ShieldBan,
   Trash2,
   Plus,
@@ -35,13 +33,13 @@ import {
   HandCoins,
   LifeBuoy,
   Megaphone,
+  UserRound,
 } from "lucide-react";
 import {
   usePlatformInbox,
   usePlatformThread,
   useUpdatePlatformThread,
   usePlatformCompose,
-  usePlatformMailboxSync,
   usePlatformSuppressions,
   useAddSuppression,
   useRemoveSuppression,
@@ -49,7 +47,8 @@ import {
 } from "@/hooks/platform/useEmailInbox";
 
 type TabId = "inbox" | "compose" | "suppressions";
-type MailboxId = "hello" | "support" | "billing";
+const MAILBOX_ORDER = ["hello", "support", "billing", "joseph"] as const;
+type MailboxId = (typeof MAILBOX_ORDER)[number];
 
 const MAILBOX_META: Record<
   MailboxId,
@@ -90,6 +89,15 @@ const MAILBOX_META: Record<
     border: "border-amber-500/40",
     bg: "bg-amber-500/15",
   },
+  joseph: {
+    label: "Joseph",
+    address: "joseph@tryedusentrix.app",
+    description: "Official EduSentrix owner and platform administration mailbox",
+    icon: <UserRound className="h-5 w-5" />,
+    accent: "text-sky-300",
+    border: "border-sky-500/40",
+    bg: "bg-sky-500/15",
+  },
 };
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
@@ -119,7 +127,7 @@ function PlatformThreadList({
         <Inbox className="mb-3 h-10 w-10" />
         <p className="text-sm font-medium text-white/60">No conversations</p>
         <p className="mt-1 text-xs text-white/35">
-          Sync {meta.address} to pull mail from Spacemail
+          Incoming messages will appear here automatically.
         </p>
       </div>
     );
@@ -409,9 +417,7 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
   const [attachments, setAttachments] = React.useState<ComposeAttachment[]>([]);
-  const [senderFamily, setSenderFamily] = React.useState<"hello" | "support" | "billing">(
-    "hello",
-  );
+  const [senderFamily, setSenderFamily] = React.useState<MailboxId>("hello");
 
   const handleSend = async () => {
     if (!to || !subject || !body) return;
@@ -440,7 +446,7 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
         <div className="space-y-2">
           <Label className="text-white/70">Send As</Label>
           <div className="flex gap-2">
-            {(["hello", "support", "billing"] as const).map((f) => (
+            {MAILBOX_ORDER.map((f) => (
               <button
                 key={f}
                 onClick={() => setSenderFamily(f)}
@@ -635,33 +641,8 @@ export default function PlatformEmailPage() {
     mailbox: mailboxFilter,
     status: "open",
   });
-  const mailboxSync = usePlatformMailboxSync();
   const threads = inboxQuery.data?.data ?? [];
   const activeMailbox = MAILBOX_META[mailboxFilter];
-
-  const handleSync = async (reset = false) => {
-    try {
-      const result = await mailboxSync.mutateAsync({
-        mailbox: mailboxFilter,
-        reset,
-      });
-      const box = result?.data?.mailboxes?.[0];
-      if (box?.skipped) {
-        toast.error(`Sync failed: ${box.skipReason || "IMAP error"}`);
-        return;
-      }
-      const imported = result?.data?.totalPersisted ?? box?.persisted ?? 0;
-      toast.success(
-        imported > 0
-          ? `Synced ${imported} new message${imported === 1 ? "" : "s"}`
-          : "Inbox is up to date",
-      );
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sync failed");
-      return;
-    }
-    await inboxQuery.refetch();
-  };
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "inbox", label: "Inbox", icon: <Inbox className="h-4 w-4" /> },
@@ -718,32 +699,6 @@ export default function PlatformEmailPage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={() => void handleSync()}
-              disabled={mailboxSync.isPending || inboxQuery.isFetching}
-              variant="ghost"
-              className="gap-2 text-emerald-300/90 hover:text-emerald-200"
-            >
-              <RefreshCw
-                className={cn(
-                  "h-4 w-4",
-                  (mailboxSync.isPending || inboxQuery.isFetching) &&
-                    "animate-spin",
-                )}
-              />
-              Sync inbox
-            </Button>
-            <Button
-              onClick={() => void handleSync(true)}
-              disabled={mailboxSync.isPending}
-              variant="ghost"
-              className="gap-2 text-white/50 hover:text-white/80"
-              title="Re-import recent mail from Spacemail (use if replies were missed)"
-            >
-              Full resync
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -773,8 +728,8 @@ export default function PlatformEmailPage() {
       {activeTab === "inbox" && (
         <>
           {/* Mailbox switcher */}
-          <div className="grid gap-3 sm:grid-cols-3">
-            {(["hello", "support", "billing"] as const).map((mb) => {
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {MAILBOX_ORDER.map((mb) => {
               const meta = MAILBOX_META[mb];
               const isActive = mailboxFilter === mb;
               return (

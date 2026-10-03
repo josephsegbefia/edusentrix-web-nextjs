@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
     if (mailbox === "billing") {
       filter.mailboxScope = "platform";
       filter.mailboxKey = "platform_billing";
+    } else if (mailbox === "joseph") {
+      filter.mailboxScope = "platform";
+      filter.mailboxKey = "platform_joseph";
     } else if (mailbox === "support") {
-      // Support tab: platform support + school reply aliases delivered to support@ IMAP
+      // Support tab: platform support + school reply aliases delivered to support.
       filter.$or = [
         { mailboxScope: "platform", mailboxKey: "platform_support" },
         { mailboxScope: "school" },

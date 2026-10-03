@@ -355,6 +355,17 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateRegistryEntry> = {
     brand: "edusentrix",
     preferenceClass: "manual",
   },
+  PLATFORM_JOSEPH_MANUAL_EMAIL: {
+    messageClass: "manual",
+    trafficClass: "manual",
+    priority: "normal",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "joseph",
+    mailboxScope: "platform",
+    brand: "edusentrix",
+    preferenceClass: "manual",
+  },
   PLATFORM_BILLING_MANUAL_EMAIL: {
     messageClass: "manual",
     trafficClass: "manual",

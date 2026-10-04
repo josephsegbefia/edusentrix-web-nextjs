@@ -324,3 +324,91 @@ VERDICT: CONFIRMED
 - **Existing stuck intents:** whether any fee `PaymentIntent` documents are already stuck in `processing`, or line items are already marked paid without a Payment.
 - **Process kill:** a process kill was not simulated; it was inferred to persist the same state as the injected exception.
 - **Route handlers for invoice creation were not called directly** because they require Clerk authentication. The tests replay the routes' exact statement order using the real model and number generator.
+
+---
+
+## Addendum: hotfix applied (Claim 2 only)
+
+The Claim 2 defect was fixed on branch `hotfix/financial-integrity`. Claim 1 (invoice numbers) is unchanged and still reproduces.
+
+The sections above are kept as historical evidence and were not rewritten.
+
+### What the verification harness asserts now
+
+[tests/verification/financial-findings.verify.ts](../tests/verification/financial-findings.verify.ts):
+
+- **Claim 1 tests are unchanged and still pass, so the invoice-number bug still reproduces.** It is unfixed.
+- **Claim 2 tests 2a, 2b and 2c were converted** to assert that the bug no longer occurs:
+
+| Test | Originally asserted (buggy) | Now asserts (fixed) |
+|------|-----------------------------|---------------------|
+| 2a | `processing` is outside the `PaymentIntent` enum; a hydrated legacy intent fails validation | `processing` is a valid legacy status that validates; a fresh posting goes straight to `succeeded` |
+| 2b | After an injected failure the intent is stuck in `processing`; redelivery is a 200 no-op; no Payment is ever created | The first delivery returns 500 with nothing partial committed and the intent stays `awaiting_webhook`; redelivery posts exactly one Payment and the invoice is paid |
+| 2c | A missing invoice returns 200 and leaves the intent in `processing` | The intent becomes `reconciliation_required` with `invoice_not_found`; no Payment; never `failed` |
+
+The `(control)` and `(d)` tests are unchanged. The harness no longer needs `--conditions=react-server`.
+
+### Original Claim 2 assertions, preserved verbatim
+
+These are the full test bodies at commit `da31e35`.
+
+```ts
+test("(a) `processing` is outside the schema enum but findOneAndUpdate persists it; a later .save() would fail validation", ...
+    assert.ok(!(PaymentIntent.schema.path("status") as any).enumValues.includes("processing"));
+    assert.equal(raw.status, "processing", "value persisted despite enum");
+    assert.match(String(validationError), /processing/);
+
+test("(b) injected failure after the processing lock: 500, then redelivery returns 200 and the intent stays processing forever", ...
+    assert.equal(first.status, 500, "first delivery fails with 500 (Paystack would retry)");
+    assert.equal(afterFirst.status, "processing", "intent left in processing");
+    assert.equal(paymentsAfterFirst, 0, "no Payment row");
+    assert.equal(second.status, 200, "redelivery is acknowledged");
+    assert.equal(third.status, 200);
+    assert.equal(afterRetries.status, "processing", "still processing after retries");
+    assert.equal(paymentsAfterRetries, 0, "Payment never created");
+    assert.equal(reconcilePendingSees, 0, "reconcile-pending excludes it");
+    assert.equal(checkoutStatusWouldRetry(afterRetries.status), false, "checkout-status will not retry it");
+    assert.equal(checkoutStatusMapped(afterRetries.status), "pending", "parent sees 'pending' indefinitely");
+
+test("(c) invoice not found after the lock: 200 and intent stuck in processing (no exception at all)", ...
+    assert.equal(first.status, 200);
+    assert.equal(state.status, "processing");
+```
+
+### Fix summary
+
+**Atomic posting**
+- Posting happens in one MongoDB transaction keyed on the Paystack reference, in `src/lib/fees/post-paystack-fee-payment.ts`.
+
+**Authoritative charge validation**
+- A charge is posted only when its reference, amount, currency and metadata match the persisted `PaymentIntent`. Posting always uses the intent's own ids and amounts.
+- Any mismatch is persisted as `reconciliation_required` with a machine-readable `reconciliationReason` and the provider facts in `reconciliationDetails`. It is never posted and never marked failed.
+- A charge with no claimable intent (missing, unknown, foreign reference, or already-succeeded intent) is recorded on a deterministic unmatched-charge intent instead.
+
+**Legacy repair**
+- Historical `processing` intents are repaired on redelivery, and on parent polling via `checkout-status` and `reconcile-pending`.
+
+**Fail-closed, atomic checkout**
+- One active attempt per invoice, enforced by `PaymentCheckoutLock` on its `_id`.
+- An earlier attempt whose status Paystack cannot confirm blocks for up to 24h.
+- A Paystack-pending attempt blocks until its 1h expiry.
+- Provider-confirmed and reconciliation states block until resolved.
+
+**Index fixes**
+- The `Payment.paystackReference` unique index declaration was invalid. MongoDB rejects `sparse` combined with `partialFilterExpression`, and `$ne` is not allowed in a partial filter, so the index never existed in any database.
+- It now uses `partialFilterExpression: { paystackReference: { $gt: "" } }`, which constrains only non-empty strings.
+- `scripts/ensure-payment-integrity-indexes.ts` reports it (dry run by default) and creates it with `--apply`.
+- The admin manual-payment route had a request-time "index fix" that dropped `paystackReference_1` and then failed to recreate it. It has been removed.
+
+The regression suites live in [tests/regression/](../tests/regression/) and run as part of `npm test`, or alone with `npm run test:regression`.
+
+### Follow-up technical debt (not changed by this hotfix)
+
+Four other `Payment` index declarations in `src/models/Payment.ts` combine `sparse: true` with a `$ne` partial filter. MongoDB rejects that combination, so these indexes cannot be built and do not exist in any database:
+
+- `{ schoolId, idempotencyKey }` (unique)
+- `{ schoolId, internalReference }` (unique)
+- `{ schoolId, receiptNumber }`
+- `{ schoolId, externalReference }`
+
+As a side effect, `Payment.createIndexes()` / `syncIndexes()` fail as a whole. That is why the tests and the index script build only targeted indexes. Each declaration needs a duplicate-data audit before it is corrected.

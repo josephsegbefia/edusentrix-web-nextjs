@@ -1,8 +1,17 @@
 /**
  * Verification harness for docs/FINANCIAL_BACKGROUND_FINDINGS_VERIFICATION.md.
  *
+ * Status:
+ * - Claim 1 (invoice number collision): STILL REPRODUCES. These tests assert
+ *   the bug occurs; the defect is unfixed.
+ * - Claim 2 (PaymentIntent stuck in `processing`): FIXED by the Paystack fee
+ *   posting hotfix. Tests 2a/2b/2c now assert the bug no longer occurs. The
+ *   original bug-asserting versions are preserved verbatim in the doc
+ *   addendum and in commit da31e35. Ongoing protection lives in
+ *   tests/regression/payment-webhook-integrity.test.ts.
+ *
  * Not part of `npm test` (the glob there is tests/**\/*.test.ts). Run explicitly:
- *   node --test --conditions=react-server --import tsx tests/verification/financial-findings.verify.ts
+ *   node --test --import tsx tests/verification/financial-findings.verify.ts
  *
  * Uses an in-memory MongoDB replica set only. No production data, no real
  * Paystack / Resend / Clerk calls.
@@ -20,6 +29,9 @@ import { PaymentIntent } from "../../src/models/PaymentIntent";
 import { Payment } from "../../src/models/Payment";
 import { StudentCreditBalance } from "../../src/models/StudentCreditBalance";
 import { generateInvoiceNumber } from "../../src/lib/fees/invoice-utils";
+import { stubServerOnly } from "../regression/helpers/stub-server-only";
+
+stubServerOnly();
 
 const DB_NAME = "financial_findings_verify";
 const PAYSTACK_TEST_SECRET = "sk_test_verification_only_not_a_real_key";
@@ -286,13 +298,12 @@ describe("Claim 1: invoice number collision", () => {
 });
 
 // ---------------------------------------------------------------------------
-// CLAIM 2 — PaymentIntent stuck in `processing`
+// CLAIM 2 — PaymentIntent stuck in `processing` (FIXED; asserts the fix)
 // ---------------------------------------------------------------------------
 
-/** Exact filter used by GET src/app/api/parent/payments/reconcile-pending/route.ts. */
-const RECONCILE_PENDING_STATUSES = ["awaiting_webhook", "initiated"];
-/** Exact condition used by GET src/app/api/parent/payments/checkout-status/route.ts before its verify fallback. */
-const checkoutStatusWouldRetry = (status: string) => status === "awaiting_webhook" || status === "initiated";
+/** Exact condition used by GET src/app/api/parent/payments/checkout-status/route.ts before its verify fallback (post-hotfix). */
+const checkoutStatusWouldRetry = (status: string) =>
+  status === "awaiting_webhook" || status === "initiated" || status === "processing";
 /** Exact mapping used by checkout-status for the parent-facing status. */
 const checkoutStatusMapped = (s: string) =>
   s === "succeeded" ? "completed" : s === "failed" || s === "cancelled" || s === "expired" ? "failed" : "pending";
@@ -408,25 +419,28 @@ describe("Claim 2: PaymentIntent stuck in processing", () => {
     return { status: res.status, body: await res.json().catch(() => null) };
   };
 
-  test("(a) `processing` is outside the schema enum but findOneAndUpdate persists it; a later .save() would fail validation", async () => {
-    const seeded = await seedFeeCheckout({ amountMinor: 50_000 });
-    const updated = await PaymentIntent.findOneAndUpdate(
-      { _id: seeded.intentId, status: { $in: ["initiated", "awaiting_webhook"] } },
-      { $set: { status: "processing", failureReason: null } },
-      { new: true }
-    ).lean();
-    const raw = await intentState(seeded.intentId);
-    const hydrated = await PaymentIntent.findById(seeded.intentId);
+  test("(a) FIXED: `processing` is a valid schema status, so legacy intents load and validate; posting never writes it", async () => {
+    const legacy = await seedFeeCheckout({ amountMinor: 50_000 });
+    await mongoose.connection
+      .db!.collection("paymentintents")
+      .updateOne({ _id: legacy.intentId }, { $set: { status: "processing", failureReason: null } });
+    const hydrated = await PaymentIntent.findById(legacy.intentId);
     const validationError = await hydrated!.validate().then(() => null, (e: Error) => e.message);
-    findings["2a.enum"] = {
+
+    const fresh = await seedFeeCheckout({ amountMinor: 50_000 });
+    const delivered = await deliver(fresh.payload);
+    const freshState = await intentState(fresh.intentId);
+
+    findings["2a.enum.fixed"] = {
       schemaEnum: (PaymentIntent.schema.path("status") as any).enumValues,
-      returned: (updated as any)?.status,
-      persisted: raw.status,
-      validateError: validationError,
+      legacyValidateError: validationError,
+      freshDelivery: delivered.status,
+      freshIntentStatus: freshState.status,
     };
-    assert.ok(!(PaymentIntent.schema.path("status") as any).enumValues.includes("processing"));
-    assert.equal(raw.status, "processing", "value persisted despite enum");
-    assert.match(String(validationError), /processing/);
+    assert.ok((PaymentIntent.schema.path("status") as any).enumValues.includes("processing"));
+    assert.equal(validationError, null, "legacy processing intent passes validation");
+    assert.equal(delivered.status, 200);
+    assert.equal(freshState.status, "succeeded", "posting moves straight to succeeded, never processing");
   });
 
   test("(control) happy path through the real handler + concurrent duplicate delivery", async () => {
@@ -439,7 +453,7 @@ describe("Claim 2: PaymentIntent stuck in processing", () => {
     assert.equal(payments, 1, "exactly one Payment for duplicate delivery");
   });
 
-  test("(b) injected failure after the processing lock: 500, then redelivery returns 200 and the intent stays processing forever", async () => {
+  test("(b) FIXED: injected posting failure leaves no partial state and the intent claimable; redelivery posts exactly once", async () => {
     const seeded = await seedFeeCheckout({ amountMinor: 50_000 });
     const lineBefore = await InvoiceLineItem.findOne({ invoiceId: seeded.invoiceId }).lean();
 
@@ -447,7 +461,7 @@ describe("Claim 2: PaymentIntent stuck in processing", () => {
       InvoiceEvent,
       "create",
       async () => {
-        throw new Error("verification: injected failure after processing lock");
+        throw new Error("verification: injected posting failure");
       },
       { times: 1 }
     );
@@ -458,21 +472,14 @@ describe("Claim 2: PaymentIntent stuck in processing", () => {
     const lineAfterFirst = await InvoiceLineItem.findOne({ invoiceId: seeded.invoiceId }).lean();
     const paymentsAfterFirst = await Payment.countDocuments({ paystackReference: seeded.reference });
 
-    // Paystack redelivers (or the internal checkout-status / reconcile-pending loopback re-posts).
     const second = await deliver(seeded.payload);
     const third = await deliver(seeded.payload);
     const afterRetries = await intentState(seeded.intentId);
     const paymentsAfterRetries = await Payment.countDocuments({ paystackReference: seeded.reference });
-
-    const reconcilePendingSees = await PaymentIntent.countDocuments({
-      _id: seeded.intentId,
-      status: { $in: RECONCILE_PENDING_STATUSES },
-    });
-    const invoiceEvents = await InvoiceEvent.countDocuments({ invoiceId: seeded.invoiceId });
     const credit = await StudentCreditBalance.findOne({ studentId: seeded.studentId }).lean();
     const invoiceHeader = await Invoice.findById(seeded.invoiceId).select("status totalPaidMinor totalOutstandingMinor").lean();
 
-    findings["2b.injectedFailure"] = {
+    findings["2b.injectedFailure.fixed"] = {
       firstDelivery: first,
       afterFirst,
       lineItemBefore: { paid: (lineBefore as any)?.amountPaidMinor, status: (lineBefore as any)?.status },
@@ -481,34 +488,40 @@ describe("Claim 2: PaymentIntent stuck in processing", () => {
       redeliveries: [second, third],
       afterRetries,
       paymentsAfterRetries,
-      invoiceEvents,
       creditBalance: (credit as any)?.balanceMinor ?? null,
       invoiceHeaderAfterRetries: invoiceHeader,
-      reconcilePendingQueryMatches: reconcilePendingSees,
-      checkoutStatusWouldRetry: checkoutStatusWouldRetry(afterRetries.status),
+      checkoutStatusWouldRetryDuringFailure: checkoutStatusWouldRetry(afterFirst.status),
       parentSees: checkoutStatusMapped(afterRetries.status),
     };
 
     assert.equal(first.status, 500, "first delivery fails with 500 (Paystack would retry)");
-    assert.equal(afterFirst.status, "processing", "intent left in processing");
+    assert.equal(afterFirst.status, "awaiting_webhook", "intent NOT left in processing; stays claimable");
     assert.equal(paymentsAfterFirst, 0, "no Payment row");
-    assert.equal(second.status, 200, "redelivery is acknowledged");
+    assert.equal((lineAfterFirst as any)?.amountPaidMinor, (lineBefore as any)?.amountPaidMinor, "no partial line-item write");
+    assert.equal(checkoutStatusWouldRetry(afterFirst.status), true, "checkout-status fallback can retry it");
+    assert.equal(second.status, 200);
     assert.equal(third.status, 200);
-    assert.equal(afterRetries.status, "processing", "still processing after retries");
-    assert.equal(paymentsAfterRetries, 0, "Payment never created");
-    assert.equal(reconcilePendingSees, 0, "reconcile-pending excludes it");
-    assert.equal(checkoutStatusWouldRetry(afterRetries.status), false, "checkout-status will not retry it");
-    assert.equal(checkoutStatusMapped(afterRetries.status), "pending", "parent sees 'pending' indefinitely");
+    assert.equal(afterRetries.status, "succeeded", "redelivery completes the payment");
+    assert.equal(paymentsAfterRetries, 1, "exactly one Payment");
+    assert.equal((invoiceHeader as any)?.status, "paid");
+    assert.equal(checkoutStatusMapped(afterRetries.status), "completed", "parent sees completed");
   });
 
-  test("(c) invoice not found after the lock: 200 and intent stuck in processing (no exception at all)", async () => {
+  test("(c) FIXED: invoice not found is persisted as reconciliation_required (not processing, not failed), posting nothing", async () => {
     const seeded = await seedFeeCheckout({ amountMinor: 30_000, createInvoice: false });
     const first = await deliver(seeded.payload);
     const second = await deliver(seeded.payload);
-    const state = await intentState(seeded.intentId);
-    findings["2c.invoiceNotFound"] = { responses: [first, second], intent: state };
+    const raw = await mongoose.connection.db!.collection("paymentintents").findOne({ _id: seeded.intentId });
+    const payments = await Payment.countDocuments({ paystackReference: seeded.reference });
+    findings["2c.invoiceNotFound.fixed"] = {
+      responses: [first, second],
+      intent: { status: raw?.status, reconciliationReason: raw?.reconciliationReason },
+      payments,
+    };
     assert.equal(first.status, 200);
-    assert.equal(state.status, "processing");
+    assert.equal(raw?.status, "reconciliation_required");
+    assert.equal(raw?.reconciliationReason, "invoice_not_found");
+    assert.equal(payments, 0);
   });
 
   test("(d) outbound-call guard: no external HTTP was attempted by any delivery", async () => {

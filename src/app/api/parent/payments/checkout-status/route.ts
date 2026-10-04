@@ -54,8 +54,6 @@ async function postVerifiedPaystackPaymentToLedger(args: {
   const verification = await verifyTransaction(args.reference);
   const metadata = verification.metadata || {};
   const verifiedStatus = String(verification.status || "").toLowerCase();
-  const verifiedAmountMinor = Math.round(Number(verification.amount || 0));
-
   if (verifiedStatus !== "success") {
     return {
       posted: false,
@@ -70,17 +68,14 @@ async function postVerifiedPaystackPaymentToLedger(args: {
     };
   }
 
-  const metadataMatches =
-    String(metadata.paymentIntentId || "") === String(args.paymentIntent._id) &&
-    String(metadata.schoolId || "") === String(args.paymentIntent.schoolId) &&
-    String(metadata.studentId || "") === String(args.paymentIntent.studentId) &&
-    String(metadata.invoiceId || "") === String(args.paymentIntent.invoiceId);
-
-  const expectedPaystackAmountMinor = Math.round(
-    Number(args.paymentIntent.parentPayableMinor || args.paymentIntent.amountMinor || 0)
-  );
-
-  if (!metadataMatches || verifiedAmountMinor !== expectedPaystackAmountMinor) {
+  // Amount/currency/reference/metadata are validated against the persisted
+  // intent by the posting service, which records mismatches as
+  // reconciliation_required. Only the fee routing fields are required here.
+  if (!metadata.schoolId || !metadata.invoiceId || !metadata.studentId) {
+    console.error("Paystack fallback: verified charge lacks fee metadata", {
+      reference: args.reference,
+      paymentIntentId: String(args.paymentIntent._id),
+    });
     return {
       posted: false,
       terminalStatus: "pending",
@@ -214,9 +209,15 @@ export async function GET(req: NextRequest) {
     let intentStatus = paymentIntent.status;
     let failureReason = paymentIntent.failureReason || null;
     let fallbackMessage: string | null = null;
+    if (paymentIntent.status === "reconciliation_required") {
+      fallbackMessage =
+        "Paystack confirmed this payment. The school is reconciling it and your balance will update once it is posted.";
+    }
     if (
       paymentIntent.status === "awaiting_webhook" ||
-      paymentIntent.status === "initiated"
+      paymentIntent.status === "initiated" ||
+      // Legacy stuck intents: re-posting is idempotent and repairs them.
+      paymentIntent.status === "processing"
     ) {
       try {
         const fallback = await postVerifiedPaystackPaymentToLedger({
@@ -247,17 +248,41 @@ export async function GET(req: NextRequest) {
         }
 
         if (fallback.terminalStatus === "failed") {
-          await PaymentIntent.findByIdAndUpdate(paymentIntent._id, {
-            $set: {
-              status: "failed",
-              failureReason: fallback.message,
-              expiresAt: null,
+          // Only pre-charge states may become failed; never one where money may have moved.
+          const failed = await PaymentIntent.findOneAndUpdate(
+            {
+              _id: paymentIntent._id,
+              status: { $in: ["awaiting_webhook", "initiated"] },
             },
-          }).catch(() => undefined);
-          intentStatus = "failed";
-          failureReason = fallback.message;
+            {
+              $set: {
+                status: "failed",
+                failureReason: fallback.message,
+                expiresAt: null,
+              },
+            },
+            { new: true, runValidators: true }
+          )
+            .select("_id")
+            .lean()
+            .catch(() => null);
+          if (failed) {
+            intentStatus = "failed";
+            failureReason = fallback.message;
+          }
         }
         fallbackMessage = fallback.message;
+
+        if (fallback.posted) {
+          const refreshed = await PaymentIntent.findById(paymentIntent._id)
+            .select("status")
+            .lean<{ status?: string } | null>();
+          if (refreshed?.status === "reconciliation_required") {
+            intentStatus = "reconciliation_required";
+            fallbackMessage =
+              "Paystack confirmed this payment. The school is reconciling it and your balance will update once it is posted.";
+          }
+        }
       } catch (verificationError) {
         console.error("Paystack fallback verification failed:", {
           reference,

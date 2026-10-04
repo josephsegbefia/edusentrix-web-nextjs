@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { type ClientSession } from "mongoose";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InstallmentSchedule } from "@/models/InstallmentSchedule";
@@ -9,6 +9,8 @@ import { allocateToInvoiceLineItems, type AllocationInput } from "@/lib/fees/all
 type ReconcileArgs = {
   schoolId: mongoose.Types.ObjectId;
   invoiceId: mongoose.Types.ObjectId;
+  /** When provided, every read and write joins this transaction. */
+  session?: ClientSession | null;
 };
 
 type MutableLineItem = {
@@ -71,12 +73,17 @@ function applyAllocationToLineItems(
   }
 }
 
-async function syncInstallmentsFromLineItems(lineItems: MutableLineItem[]) {
+async function syncInstallmentsFromLineItems(
+  lineItems: MutableLineItem[],
+  session: ClientSession | null
+) {
   if (lineItems.length === 0) return;
 
   const schedules = await InstallmentSchedule.find({
     invoiceLineItemId: { $in: lineItems.map((item) => item._id) },
-  }).sort({ invoiceLineItemId: 1, installmentNumber: 1, dueDate: 1, createdAt: 1 });
+  })
+    .sort({ invoiceLineItemId: 1, installmentNumber: 1, dueDate: 1, createdAt: 1 })
+    .session(session);
 
   if (schedules.length === 0) return;
 
@@ -116,14 +123,22 @@ async function syncInstallmentsFromLineItems(lineItems: MutableLineItem[]) {
     );
   }
 
-  await Promise.all(schedules.map((schedule) => schedule.save()));
+  if (session) {
+    // A session cannot run operations in parallel.
+    for (const schedule of schedules) {
+      await schedule.save({ session });
+    }
+  } else {
+    await Promise.all(schedules.map((schedule) => schedule.save()));
+  }
 }
 
 export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
+  const session = args.session ?? null;
   const invoice = await Invoice.findOne({
     _id: args.invoiceId,
     schoolId: args.schoolId,
-  });
+  }).session(session);
 
   if (!invoice) {
     return { invoice: null, canonicalPaymentIds: [] as mongoose.Types.ObjectId[] };
@@ -131,6 +146,7 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
 
   const rawLineItems = await InvoiceLineItem.find({ invoiceId: invoice._id })
     .sort({ displayOrder: 1, createdAt: 1 })
+    .session(session)
     .lean<MutableLineItem[]>();
 
   const lineItems = rawLineItems.map((item) => ({
@@ -149,6 +165,7 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
   })
     .sort({ paymentDate: 1, createdAt: 1, _id: 1 })
     .select("_id amountMinor paymentDate createdAt paymentMethod paystackReference")
+    .session(session)
     .lean<
       Array<{
         _id: mongoose.Types.ObjectId;
@@ -170,6 +187,7 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
   for (const payment of canonicalPayments) {
     const existingAllocations = await PaymentAllocation.find({ paymentId: payment._id })
       .sort({ createdAt: 1, _id: 1 })
+      .session(session)
       .lean<Array<{ invoiceLineItemId: mongoose.Types.ObjectId; amountMinor?: number }>>();
 
     const allocations =
@@ -189,7 +207,7 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
           }).allocations;
 
     if (existingAllocations.length === 0 && allocations.length > 0) {
-      await PaymentAllocation.bulkWrite(
+      const backfill = PaymentAllocation.bulkWrite(
         allocations.map((allocation) => ({
           updateOne: {
             filter: {
@@ -211,14 +229,21 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
             upsert: true,
           },
         })),
-        { ordered: false }
-      ).catch((error) => {
-        console.warn("Failed to backfill payment allocations", {
-          invoiceId: String(invoice._id),
-          paymentId: String(payment._id),
-          error,
+        { ordered: false, session: session ?? undefined }
+      );
+
+      if (session) {
+        // Inside a transaction a failed write aborts it; swallowing would hide that.
+        await backfill;
+      } else {
+        await backfill.catch((error) => {
+          console.warn("Failed to backfill payment allocations", {
+            invoiceId: String(invoice._id),
+            paymentId: String(payment._id),
+            error,
+          });
         });
-      });
+      }
     }
 
     applyAllocationToLineItems(lineItems, allocations);
@@ -248,9 +273,10 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
             },
           },
         },
-      }))
+      })),
+      { session: session ?? undefined }
     );
-    await syncInstallmentsFromLineItems(lineItems);
+    await syncInstallmentsFromLineItems(lineItems, session);
   }
 
   invoice.totalAmountMinor = totalAmountMinor;
@@ -265,7 +291,7 @@ export async function reconcileInvoicePaymentState(args: ReconcileArgs) {
           ? "draft"
           : "issued";
   invoice.paidDate = totalOutstandingMinor <= 0 ? invoice.paidDate || new Date() : undefined;
-  await invoice.save();
+  await invoice.save({ session: session ?? undefined });
 
   return { invoice, canonicalPaymentIds };
 }

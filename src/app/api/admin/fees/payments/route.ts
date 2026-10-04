@@ -79,35 +79,9 @@ const BodySchema = z
     }
   );
 
-// One-time index fix - drop and recreate paystackReference index with correct config
-let indexFixed = false;
-async function fixPaystackReferenceIndex() {
-  if (indexFixed) return;
-  try {
-    const indexes = await Payment.collection.getIndexes();
-    const existingIndex = indexes.paystackReference_1 as any;
-    if (existingIndex && !existingIndex.partialFilterExpression) {
-      // Drop old index
-      await Payment.collection.dropIndex("paystackReference_1").catch(() => {
-        // Ignore if already dropped
-      });
-      // Recreate with correct config
-      await Payment.collection.createIndex(
-        { paystackReference: 1 },
-        {
-          unique: true,
-          sparse: true,
-          partialFilterExpression: { paystackReference: { $ne: null } },
-          name: "paystackReference_1",
-        }
-      );
-      indexFixed = true;
-    }
-  } catch (error) {
-    // Ignore errors, will retry next time
-    console.warn("Failed to fix paystackReference index:", error);
-  }
-}
+const DUPLICATE_PAYSTACK_REFERENCE_CODE = "DUPLICATE_PAYSTACK_REFERENCE";
+const DUPLICATE_PAYSTACK_REFERENCE_MESSAGE =
+  "A payment with this Paystack reference is already recorded. Each Paystack transaction can only be recorded once.";
 
 function normalizeRef(value?: string | null) {
   if (!value) return null;
@@ -131,9 +105,6 @@ export async function POST(req: NextRequest) {
     schoolId instanceof mongoose.Types.ObjectId
       ? schoolId
       : new mongoose.Types.ObjectId(String(schoolId));
-
-  // Fix index if needed (one-time)
-  await fixPaystackReferenceIndex();
 
   const body = BodySchema.parse(await req.json());
 
@@ -270,6 +241,19 @@ export async function POST(req: NextRequest) {
         error:
           "Potential duplicate payment found for this receipt/reference. Review and confirm before retrying.",
         duplicates: uniqueDuplicateCandidates,
+      },
+      { status: 409 }
+    );
+  }
+
+  // A Paystack reference identifies one provider transaction, so it can back at
+  // most one Payment in any school or status (enforced by a unique index).
+  // Checked before any write: this route is not transactional.
+  if (paystackReference && (await Payment.exists({ paystackReference }))) {
+    return NextResponse.json(
+      {
+        code: DUPLICATE_PAYSTACK_REFERENCE_CODE,
+        error: DUPLICATE_PAYSTACK_REFERENCE_MESSAGE,
       },
       { status: 409 }
     );
@@ -492,7 +476,30 @@ export async function POST(req: NextRequest) {
     delete paymentData.paystackReference;
   }
 
-  const paymentDoc = await Payment.create(paymentData);
+  let paymentDoc;
+  try {
+    paymentDoc = await Payment.create(paymentData);
+  } catch (createError) {
+    const duplicateKey = createError as { code?: number; keyPattern?: Record<string, unknown> };
+    if (duplicateKey?.code === 11000 && duplicateKey.keyPattern?.paystackReference) {
+      // Lost a race with a concurrent posting of the same reference after the
+      // pre-check; earlier non-transactional writes above need manual review.
+      console.error("Manual payment: duplicate Paystack reference at create", {
+        schoolId: String(schoolIdObj),
+        invoiceId: String(invoice._id),
+        paymentId: String(paymentId),
+        paystackReference,
+      });
+      return NextResponse.json(
+        {
+          code: DUPLICATE_PAYSTACK_REFERENCE_CODE,
+          error: DUPLICATE_PAYSTACK_REFERENCE_MESSAGE,
+        },
+        { status: 409 }
+      );
+    }
+    throw createError;
+  }
 
   // Persist allocations for completed payments (used by history + ledger)
   if (body.status === "completed" && allocations.length > 0) {

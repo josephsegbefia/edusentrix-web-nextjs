@@ -1,15 +1,18 @@
-import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
+import { startFeeCheckoutAttempt } from "@/lib/fees/fee-checkout-guard";
 import { resolveSchoolFeeCheckoutCharge } from "@/lib/fees/school-fee-checkout-charges";
-import { getPaystackKeyMode, initializeTransaction } from "@/lib/paystack";
+import {
+  getPaystackKeyMode,
+  initializeTransaction,
+  verifyTransaction,
+} from "@/lib/paystack";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { Guardian } from "@/models/Guardian";
 import { Invoice } from "@/models/Invoice";
-import { PaymentIntent } from "@/models/PaymentIntent";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import {
@@ -76,6 +79,7 @@ type SchoolRow = {
 };
 
 const PAYABLE_STATUSES = new Set(["issued", "partially_paid", "overdue"]);
+const CHECKOUT_CURRENCY = "GHS";
 
 function normalizeParentReturnPath(value: string | undefined) {
   if (!value) return null;
@@ -111,8 +115,6 @@ function normalizeMobileReturnUrl(value: string | undefined) {
 }
 
 export async function POST(req: NextRequest) {
-  let paymentIntentId: mongoose.Types.ObjectId | null = null;
-
   try {
     const context = await requireParent();
     await connectToDatabase();
@@ -231,22 +233,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const paymentIntent = await PaymentIntent.create({
-      schoolId: context.schoolId,
-      studentId: invoice.studentId,
-      invoiceId: invoice._id,
-      amountMinor: feeCharge.invoiceAmountMinor,
-      platformFeeMinor: feeCharge.platformFeeMinor,
-      payerMode: feeCharge.payerMode,
-      parentPayableMinor: feeCharge.parentPayableMinor,
-      status: "initiated",
-      paymentMethod: "paystack",
-      idempotencyKey: randomUUID(),
-      initiatedBy: context.userId,
-      initiatedAt: new Date(),
-    });
-    paymentIntentId = paymentIntent._id as mongoose.Types.ObjectId;
+    const payerEmail = user.email;
 
     const appUrl = getAppUrl().replace(/\/$/, "");
     const mobileReturnUrl = normalizeMobileReturnUrl(body.returnUrl);
@@ -259,71 +246,72 @@ export async function POST(req: NextRequest) {
     }
     callbackUrlObject.searchParams.set("checkout", "paystack");
     const callbackUrl = callbackUrlObject.toString();
-    const reference = `EDSX-FEE-${String(paymentIntent._id)}-${Date.now()}`;
 
-    try {
-      const init = await initializeTransaction({
-        email: user.email,
-        amountMinor: feeCharge.parentPayableMinor,
-        reference,
-        callbackUrl,
-        currency: "GHS",
-        subaccountCode,
-        transactionChargeMinor:
-          feeCharge.platformFeeMinor > 0 ? feeCharge.platformFeeMinor : null,
-        bearer: feeCharge.platformFeeMinor > 0 ? "subaccount" : undefined,
-        metadata: {
-          type: "fee_payment",
-          schoolId: String(context.schoolId),
-          invoiceId: String(invoice._id),
-          studentId: String(invoice.studentId),
-          paymentIntentId: String(paymentIntent._id),
-          parentUserId: String(context.userId),
-          invoiceAmountMinor: feeCharge.invoiceAmountMinor,
-          parentPayableMinor: feeCharge.parentPayableMinor,
-          payerMode: feeCharge.payerMode,
-          invoiceNumber: invoice.invoiceNumber || null,
-          schoolName: school?.name || null,
-          edusentrixTransactionFeeMinor: feeCharge.platformFeeMinor,
-        },
-      });
+    const attempt = await startFeeCheckoutAttempt({
+      schoolId: context.schoolId,
+      studentId: invoice.studentId,
+      invoiceId: invoice._id,
+      intentFields: {
+        amountMinor: feeCharge.invoiceAmountMinor,
+        platformFeeMinor: feeCharge.platformFeeMinor,
+        parentPayableMinor: feeCharge.parentPayableMinor,
+        payerMode: feeCharge.payerMode,
+        currency: CHECKOUT_CURRENCY,
+        initiatedBy: context.userId,
+      },
+      verify: verifyTransaction,
+      initialize: async ({ reference, paymentIntentId }) => {
+        const init = await initializeTransaction({
+          email: payerEmail,
+          amountMinor: feeCharge.parentPayableMinor,
+          reference,
+          callbackUrl,
+          currency: CHECKOUT_CURRENCY,
+          subaccountCode,
+          transactionChargeMinor:
+            feeCharge.platformFeeMinor > 0 ? feeCharge.platformFeeMinor : null,
+          bearer: feeCharge.platformFeeMinor > 0 ? "subaccount" : undefined,
+          metadata: {
+            type: "fee_payment",
+            schoolId: String(context.schoolId),
+            invoiceId: String(invoice._id),
+            studentId: String(invoice.studentId),
+            paymentIntentId: String(paymentIntentId),
+            parentUserId: String(context.userId),
+            invoiceAmountMinor: feeCharge.invoiceAmountMinor,
+            parentPayableMinor: feeCharge.parentPayableMinor,
+            payerMode: feeCharge.payerMode,
+            invoiceNumber: invoice.invoiceNumber || null,
+            schoolName: school?.name || null,
+            edusentrixTransactionFeeMinor: feeCharge.platformFeeMinor,
+          },
+        });
+        return { reference: init.reference, authorizationUrl: init.authorization_url };
+      },
+    });
 
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-      await PaymentIntent.findByIdAndUpdate(paymentIntent._id, {
-        $set: {
-          status: "awaiting_webhook",
-          paystackReference: init.reference,
-          expiresAt,
-          failureReason: null,
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          authorizationUrl: init.authorization_url,
-          reference: init.reference,
-          amountMinor: feeCharge.invoiceAmountMinor,
-          parentPayableMinor: feeCharge.parentPayableMinor,
-          platformFeeMinor: feeCharge.platformFeeMinor,
-          payerMode: feeCharge.payerMode,
-          invoiceId: String(invoice._id),
-          invoiceNumber: invoice.invoiceNumber || "School Fees",
-          expiresAt: expiresAt.toISOString(),
-          paystackKeyMode: getPaystackKeyMode(),
-        },
-      });
-    } catch (initError) {
-      const message =
-        initError instanceof Error ? initError.message : "Checkout failed";
-      await PaymentIntent.findByIdAndUpdate(paymentIntent._id, {
-        $set: {
-          status: "failed",
-          failureReason: message,
-        },
-      });
-      throw initError;
+    if (!attempt.ok) {
+      return NextResponse.json(
+        { success: false, error: attempt.message, code: attempt.code },
+        { status: 409 }
+      );
     }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        authorizationUrl: attempt.authorizationUrl,
+        reference: attempt.reference,
+        amountMinor: feeCharge.invoiceAmountMinor,
+        parentPayableMinor: feeCharge.parentPayableMinor,
+        platformFeeMinor: feeCharge.platformFeeMinor,
+        payerMode: feeCharge.payerMode,
+        invoiceId: String(invoice._id),
+        invoiceNumber: invoice.invoiceNumber || "School Fees",
+        expiresAt: attempt.expiresAt.toISOString(),
+        paystackKeyMode: getPaystackKeyMode(),
+      },
+    });
   } catch (error) {
     if (error instanceof Response) return error;
     if (error instanceof z.ZodError) {
@@ -336,15 +324,6 @@ export async function POST(req: NextRequest) {
     const message =
       error instanceof Error ? error.message : "Failed to initialize checkout";
     console.error("Parent checkout initialization failed:", error);
-
-    if (paymentIntentId) {
-      await PaymentIntent.findByIdAndUpdate(paymentIntentId, {
-        $set: {
-          status: "failed",
-          failureReason: message,
-        },
-      }).catch(() => undefined);
-    }
 
     return NextResponse.json(
       { success: false, error: message },

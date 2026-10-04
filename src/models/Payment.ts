@@ -161,14 +161,15 @@ const paymentSchema = new Schema<IPayment>(
 paymentSchema.index({ schoolId: 1, studentId: 1 });
 paymentSchema.index({ schoolId: 1, invoiceId: 1 });
 paymentSchema.index({ schoolId: 1, paymentDate: 1 });
-// Sparse unique index: only unique when paystackReference is not null
-// Multiple null values are allowed
+// Partial unique index: one Payment per Paystack reference. `$gt: ""` matches
+// only non-empty strings, so null, missing, "" and non-string legacy values
+// never collide. MongoDB rejects `sparse` combined with
+// `partialFilterExpression`, and `$ne` is not a valid partial filter operator.
 paymentSchema.index(
   { paystackReference: 1 },
   {
     unique: true,
-    sparse: true,
-    partialFilterExpression: { paystackReference: { $ne: null } },
+    partialFilterExpression: { paystackReference: { $gt: "" } },
   }
 );
 paymentSchema.index(

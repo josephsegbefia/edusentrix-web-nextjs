@@ -70,35 +70,30 @@ async function reconcileSingleIntent(
   const verifiedStatus = String(verification.status || "").toLowerCase();
   if (verifiedStatus !== "success") {
     if (verifiedStatus === "failed" || verifiedStatus === "abandoned") {
-      await PaymentIntent.findByIdAndUpdate(intent._id, {
-        $set: {
-          status: "failed",
-          failureReason: "Paystack reports this payment did not complete.",
-          expiresAt: null,
+      // Only pre-charge states may become failed; never one where money may have moved.
+      await PaymentIntent.updateOne(
+        { _id: intent._id, status: { $in: ["awaiting_webhook", "initiated"] } },
+        {
+          $set: {
+            status: "failed",
+            failureReason: "Paystack reports this payment did not complete.",
+            expiresAt: null,
+          },
         },
-      }).catch(() => undefined);
+        { runValidators: true }
+      ).catch(() => undefined);
     }
     return null;
   }
 
+  // Amount/currency/reference/metadata are validated against the persisted
+  // intent by the posting service, which records mismatches as
+  // reconciliation_required. Only the fee routing fields are required here.
   const metadata = verification.metadata || {};
-  const metadataMatches =
-    String(metadata.paymentIntentId || "") === String(intent._id) &&
-    String(metadata.schoolId || "") === String(intent.schoolId) &&
-    String(metadata.studentId || "") === String(intent.studentId) &&
-    String(metadata.invoiceId || "") === String(intent.invoiceId);
-
-  const expectedAmountMinor = Math.round(
-    Number(intent.parentPayableMinor || intent.amountMinor || 0)
-  );
-  const verifiedAmountMinor = Math.round(Number(verification.amount || 0));
-
-  if (!metadataMatches || verifiedAmountMinor !== expectedAmountMinor) {
-    console.warn("reconcile-pending: metadata/amount mismatch", {
+  if (!metadata.schoolId || !metadata.invoiceId || !metadata.studentId) {
+    console.error("reconcile-pending: verified charge lacks fee metadata", {
       reference,
-      metadataMatches,
-      verifiedAmountMinor,
-      expectedAmountMinor,
+      paymentIntentId: String(intent._id),
     });
     return null;
   }
@@ -193,7 +188,8 @@ export async function GET(_req: NextRequest) {
       schoolId: context.schoolId,
       studentId: { $in: studentIds },
       initiatedBy: context.userId,
-      status: { $in: ["awaiting_webhook", "initiated"] },
+      // `processing` covers legacy stuck intents; re-posting is idempotent and repairs them.
+      status: { $in: ["awaiting_webhook", "initiated", "processing"] },
       paystackReference: { $ne: null },
       initiatedAt: { $gte: since },
     })

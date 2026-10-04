@@ -12,25 +12,19 @@ import { FundraisingDonation, IFundraisingDonation } from "@/models/FundraisingD
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { User } from "@/models/User";
-import { Payment } from "@/models/Payment";
-import { PaymentAllocation } from "@/models/PaymentAllocation";
-import { PaymentAuditEvent } from "@/models/PaymentAuditEvent";
-import { Invoice } from "@/models/Invoice";
-import { InvoiceLineItem } from "@/models/InvoiceLineItem";
-import { InvoiceEvent } from "@/models/InvoiceEvent";
-import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { Student } from "@/models/Student";
 import { School } from "@/models/School";
 import { Message } from "@/models/Message";
 import { MessageThread } from "@/models/MessageThread";
 import { UserMembership } from "@/models/UserMembership";
-import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
-import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
-import { reconcileInvoicePaymentState } from "@/lib/fees/reconcile-invoice-payment-state";
+import {
+  postPaystackFeePayment,
+  type FeePostingLedgerData,
+} from "@/lib/fees/post-paystack-fee-payment";
 import { formatMoney } from "@/lib/fees/money";
 import { ensureReceiptVerification } from "@/lib/finance/receipt-verification";
 import { sendTrackedBrevoEmail } from "@/lib/email";
-import { learnReceiptNumber, renderLearnReceiptPdf } from "@/lib/learn/receipt-pdf";
+import { renderLearnReceiptPdf } from "@/lib/learn/receipt-pdf";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { buildTransferReconciliationUpdate } from "@/lib/finance/disbursements";
 import {
@@ -38,11 +32,6 @@ import {
   recordFeePaymentInLedger,
   recordStoreSaleInLedger,
 } from "@/lib/finance/writeLedgerEntry";
-import {
-  generatePaymentInternalReference,
-  type PaymentMethodForRef,
-} from "@/models/PaymentReferenceCounter";
-import { PaymentIntent } from "@/models/PaymentIntent";
 import { StoreOrder } from "@/models/StoreOrder";
 import { SchoolDisbursement } from "@/models/SchoolDisbursement";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
@@ -53,7 +42,6 @@ import {
   fulfillLearnPaymentSuccess,
   markLearnPaymentFailed,
 } from "@/lib/learn/fulfill-learn-payment";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
 import {
   buildPaystackWebhookAuditContext,
   resolveAuditIdempotencyKey,
@@ -562,22 +550,13 @@ async function sendFeePaymentFollowUps(args: {
 
 async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
   const { data } = event;
-  const { reference, amount, status, metadata } = data;
+  const { reference, status, metadata } = data;
 
   if (status !== "success") return;
 
   const schoolId = metadata?.schoolId;
   const invoiceId = metadata?.invoiceId;
   const studentId = metadata?.studentId;
-  const paymentIntentId =
-    metadata?.paymentIntentId &&
-    mongoose.Types.ObjectId.isValid(metadata.paymentIntentId)
-      ? new mongoose.Types.ObjectId(metadata.paymentIntentId)
-      : null;
-  const platformFeeMinor = Math.max(
-    0,
-    Math.round(Number(metadata?.edusentrixTransactionFeeMinor || 0))
-  );
 
   if (
     !schoolId ||
@@ -591,427 +570,84 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
     return;
   }
 
-  await connectToDatabase();
+  // Posting errors propagate so the webhook returns 500 and Paystack retries;
+  // the transaction guarantees nothing partial was committed.
+  const result = await postPaystackFeePayment({
+    data,
+    auditContext: buildPaystackWebhookAuditContext(req, {
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+      idempotencyKey: resolveAuditIdempotencyKey(req, `paystack:${reference}`),
+    }),
+  });
 
-  const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const invoiceIdObj = new mongoose.Types.ObjectId(invoiceId);
-  const studentIdObj = new mongoose.Types.ObjectId(studentId);
-  const gatewayAmountMinor = Math.max(0, Math.round(amount));
-  const processorFeeMinor = Math.max(0, Math.round(Number(data.fees || 0)));
-  let intent: {
-    amountMinor?: number;
-    parentPayableMinor?: number;
-    payerMode?: "payer_pays" | "school_absorbs" | "waived";
-    initiatedBy?: mongoose.Types.ObjectId | null;
-  } | null = null;
-  let intentLockAcquired = false;
-
-  if (paymentIntentId) {
-    const lockedIntent = await PaymentIntent.findOneAndUpdate(
-      {
-        _id: paymentIntentId,
-        status: { $in: ["initiated", "awaiting_webhook"] },
-      },
-      {
-        $set: {
-          status: "processing",
-          failureReason: null,
-        },
-      },
-      { new: true }
-    )
-      .select("amountMinor parentPayableMinor payerMode initiatedBy")
-      .lean<typeof intent>();
-
-    if (lockedIntent) {
-      intent = lockedIntent;
-      intentLockAcquired = true;
-    } else {
-      intent = await PaymentIntent.findById(paymentIntentId)
-        .select("amountMinor parentPayableMinor payerMode initiatedBy")
-        .lean<typeof intent>();
-    }
-  }
-  const parentUserId =
-    intent?.initiatedBy ||
-    (metadata?.parentUserId && mongoose.Types.ObjectId.isValid(metadata.parentUserId)
-      ? new mongoose.Types.ObjectId(metadata.parentUserId)
-      : null);
-  const metadataInvoiceAmountMinor = Number(metadata?.invoiceAmountMinor || 0);
-  const amountMinor = Math.max(
-    0,
-    Math.round(
-      Number(intent?.amountMinor || 0) ||
-        (Number.isFinite(metadataInvoiceAmountMinor)
-          ? metadataInvoiceAmountMinor
-          : 0) ||
-        gatewayAmountMinor - platformFeeMinor
-    )
-  );
-  const netSchoolAmountMinor = Math.max(
-    0,
-    gatewayAmountMinor - platformFeeMinor - processorFeeMinor
-  );
-
-  // Idempotency: payment already exists for this Paystack reference
-  const existingPaymentRaw = await Payment.findOne({
-    schoolId: schoolIdObj,
-    paystackReference: reference,
-    status: { $nin: ["reversed", "failed"] },
-  })
-    .select("_id")
-    .lean<{ _id: mongoose.Types.ObjectId } | null>();
-  const existingPayment = Array.isArray(existingPaymentRaw)
-    ? existingPaymentRaw[0]
-    : existingPaymentRaw;
-
-  if (existingPayment) {
-    await reconcileInvoicePaymentState({
-      schoolId: schoolIdObj,
-      invoiceId: invoiceIdObj,
-    }).catch((error) => {
-      console.error("Paystack webhook: existing payment rebalance failed", {
-        reference,
-        invoiceId,
-        error,
-      });
-    });
-    if (paymentIntentId) {
-      await PaymentIntent.findByIdAndUpdate(paymentIntentId, {
-        $set: {
-          status: "succeeded",
-          paymentId: existingPayment._id,
-          paystackReference: reference,
-          platformFeeMinor,
-          processorFeeMinor,
-          netSchoolAmountMinor,
-          parentPayableMinor: intent?.parentPayableMinor || gatewayAmountMinor,
-          failureReason: null,
-          expiresAt: null,
-        },
-      }).catch(() => undefined);
-    }
-    console.log(`Paystack webhook: Fee payment already recorded: ${reference}`);
-    return;
-  }
-
-  if (paymentIntentId && !intentLockAcquired) {
-    console.log("Paystack webhook: Fee payment is already being processed", {
+  if (result.outcome === "reconciliation_required") {
+    // Durably recorded on the intent; a retry cannot resolve it, so acknowledge.
+    console.error("Paystack webhook: Fee payment requires reconciliation", {
       reference,
-      paymentIntentId: String(paymentIntentId),
+      invoiceId,
+      reason: result.reason,
+      paymentIntentId: result.paymentIntentId ? String(result.paymentIntentId) : null,
     });
     return;
   }
 
-  const invoice = await Invoice.findOne({
-    _id: invoiceIdObj,
-    schoolId: schoolIdObj,
-    studentId: studentIdObj,
-  });
-
-  if (!invoice) {
-    console.error(`Paystack webhook: Invoice not found: ${invoiceId}`);
-    return;
-  }
-
-  const lineItems = await InvoiceLineItem.find({ invoiceId: invoice._id })
-    .sort({ displayOrder: 1 })
-    .lean();
-
-  const normalizedLineItems = lineItems.map((li: any) => ({
-    ...li,
-    _id: String(li._id),
-  }));
-
-  const { allocations, allocatedMinor, unallocatedMinor } = allocateToInvoiceLineItems({
-    lineItems: normalizedLineItems,
-    amountMinor,
-    mode: "auto",
-  });
-
-  const paymentId = new mongoose.Types.ObjectId();
-  const paymentDate = data.paid_at ? new Date(data.paid_at) : new Date();
-
-  applyAllocationsToInvoice(invoice, allocations, { lineItems: normalizedLineItems });
-
-  const allocatedIds = new Set(allocations.map((a) => String(a.invoiceLineItemId)));
-  const bulkUpdates = normalizedLineItems
-    .filter((li: any) => allocatedIds.has(String(li._id)))
-    .map((li: any) => {
-      const amountPaidMinor = li.amountPaidMinor ?? 0;
-      const amountOutstandingMinor =
-        li.amountOutstandingMinor ??
-        Math.max(0, (li.amountMinor ?? 0) - amountPaidMinor);
-      const isFullyPaid = amountOutstandingMinor <= 0;
-      const status = isFullyPaid
-        ? "paid"
-        : amountPaidMinor > 0
-        ? "partially_paid"
-        : "pending";
-
-      return {
-        updateOne: {
-          filter: { _id: li._id },
-          update: {
-            $set: {
-              amountPaidMinor,
-              amountOutstandingMinor,
-              isFullyPaid,
-              status,
-            },
-          },
-        },
-      };
+  if (result.outcome === "posted") {
+    await sendFeePaymentFollowUps({
+      schoolId: result.ledger.schoolId,
+      studentId: result.ledger.studentId,
+      invoiceId: result.ledger.invoiceId,
+      paymentId: result.ledger.paymentId,
+      parentUserId: result.followUp.parentUserId,
+      amountMinor: result.ledger.amountMinor,
+      balanceMinor: result.followUp.balanceMinor,
+      receiptNumber: result.followUp.receiptNumber,
+      reference,
+      paymentDate: result.ledger.paymentDate,
     });
-
-  if (bulkUpdates.length > 0) {
-    await InvoiceLineItem.bulkWrite(bulkUpdates);
+  } else {
+    console.log(`Paystack webhook: Fee payment already recorded: ${reference}`);
   }
 
-  let creditAddedMinor = 0;
-  if (unallocatedMinor > 0) {
-    creditAddedMinor = unallocatedMinor;
-    await StudentCreditBalance.updateOne(
-      { schoolId: schoolIdObj, studentId: studentIdObj },
-      {
-        $inc: { balanceMinor: creditAddedMinor },
-        $push: {
-          entries: {
-            type: "credit",
-            amountMinor: creditAddedMinor,
-            createdAt: new Date(),
-            reason: "Overpayment",
-            sourcePaymentId: paymentId,
-          },
-        },
-      },
-      { upsert: true }
-    );
-
-    await InvoiceEvent.create({
-      schoolId: schoolIdObj,
-      invoiceId: invoice._id,
-      studentId: studentIdObj,
-      eventType: "adjustment_added",
-      description: `Credit added from overpayment: ${formatMoney(creditAddedMinor)}`,
-      metadata: { amountMinor: creditAddedMinor, sourcePaymentId: paymentId },
-      relatedPaymentId: paymentId,
-      performedBy: null,
-    });
+  // Ledger writes are idempotent per payment, so re-running on redelivery
+  // repairs a ledger write that failed after the original commit.
+  if (result.ledger) {
+    await writeFeePaymentLedgerEntry(result.ledger);
   }
 
-  await InvoiceEvent.create({
-    schoolId: schoolIdObj,
-    invoiceId: invoice._id,
-    studentId: studentIdObj,
-    eventType: "payment_recorded",
-    description: `Payment recorded: ${formatMoney(amountMinor)} via Paystack`,
-    metadata: {
-      paymentId,
-      amountMinor,
-      platformFeeMinor,
-      processorFeeMinor,
-      netSchoolAmountMinor,
-      gatewayAmountMinor,
-      payerMode: intent?.payerMode || metadata?.payerMode || "school_absorbs",
-      allocatedMinor,
-      unallocatedMinor,
-      paymentMethod: "paystack",
-    },
-    relatedPaymentId: paymentId,
-    performedBy: null,
-  });
-
-  const internalReference = await generatePaymentInternalReference(
-    schoolIdObj,
-    "paystack" as PaymentMethodForRef
-  );
-  const receiptNumber = internalReference || learnReceiptNumber(String(paymentId));
-
-  const now = new Date();
-  await Payment.create({
-    _id: paymentId,
-    schoolId: schoolIdObj,
-    studentId: studentIdObj,
-    invoiceId: invoice._id,
-    paymentIntentId,
-    amountMinor,
-    platformFeeMinor,
-    processorFeeMinor,
-    netSchoolAmountMinor,
-    paymentDate,
-    paymentMethod: "paystack",
-    paystackReference: reference,
-    paystackTransactionId: data.id ? String(data.id) : null,
-    reconciliationStatus: "gateway_verified",
-    gatewayVerifiedAt: now,
-    gatewayResponse: {
-      id: data.id ?? null,
-      status: data.status,
-      channel: data.channel || null,
-      gatewayResponse: data.gateway_response || null,
-      currency: data.currency || null,
-      fees: processorFeeMinor,
-      gatewayAmountMinor,
-      paidAt: data.paid_at || null,
-      createdAt: data.created_at || null,
-      edusentrixTransactionFeeMinor: platformFeeMinor,
-      netSchoolAmountMinor,
-    },
-    internalReference,
-    receiptNumber,
-    status: "completed",
-    approvalStatus: "not_required",
-    receivedBy: null,
-  });
-
-  if (paymentIntentId) {
-    await PaymentIntent.findByIdAndUpdate(paymentIntentId, {
-      $set: {
-        status: "succeeded",
-        paymentId,
-        paystackReference: reference,
-        platformFeeMinor,
-        processorFeeMinor,
-        netSchoolAmountMinor,
-        parentPayableMinor: intent?.parentPayableMinor || gatewayAmountMinor,
-        failureReason: null,
-        expiresAt: null,
-      },
-    }).catch(() => undefined);
+  if (result.outcome === "posted") {
+    console.log(`Paystack webhook: Fee payment recorded for invoice ${invoiceId}, ref ${reference}`);
   }
+}
 
-  if (allocations.length > 0) {
-    await PaymentAllocation.bulkWrite(
-      allocations.map((a) => ({
-        updateOne: {
-          filter: {
-            paymentId,
-            invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
-            installmentScheduleId: null,
-            installmentNumber: null,
-          },
-          update: {
-            $setOnInsert: {
-              paymentId,
-              invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
-              amountMinor: a.amountMinor,
-              installmentScheduleId: null,
-              installmentNumber: null,
-              notes: null,
-            },
-          },
-          upsert: true,
-        },
-      })),
-      { ordered: false }
-    );
-  }
-
-  await PaymentAuditEvent.create({
-    schoolId: schoolIdObj,
-    paymentId,
-    invoiceId: invoice._id,
-    studentId: studentIdObj,
-    eventType: "payment_recorded",
-    title: "Payment recorded (Paystack webhook)",
-    description: `Recorded ${formatMoney(amountMinor)} via Paystack. Reference: ${reference}`,
-    actorId: null,
-    metadata: {
-      paystackReference: reference,
-      platformFeeMinor,
-      processorFeeMinor,
-      netSchoolAmountMinor,
-      gatewayAmountMinor,
-      allocatedMinor,
-      unallocatedMinor,
-      automated: true,
-    },
-  });
-
-  const financeAuditStreamKey = `school:${schoolId}:finance`;
-  const auditSession = await mongoose.startSession();
+async function writeFeePaymentLedgerEntry(ledger: FeePostingLedgerData) {
   try {
-    await auditSession.withTransaction(async () => {
-      await writeTransactionalAuditEvent(auditSession, {
-        actionCode: "payment.recorded",
-        scopeType: "school",
-        scopeId: schoolId,
-        result: "succeeded",
-        target: {
-          targetEntityType: "Payment",
-          targetEntityId: paymentId,
-          secondaryEntityType: "Invoice",
-          secondaryEntityId: invoice._id,
-        },
-        context: buildPaystackWebhookAuditContext(req, {
-          schoolId: schoolIdObj,
-          idempotencyKey: resolveAuditIdempotencyKey(req, `paystack:${reference}`),
-        }),
-        payload: {
-          metadata: {
-            amountMinor,
-            gatewayAmountMinor,
-            netSchoolAmountMinor,
-            channel: data.channel,
-          },
-        },
-        streamKey: financeAuditStreamKey,
-      });
-    });
-  } finally {
-    await auditSession.endSession();
-  }
-
-  const { invoice: reconciledInvoice } = await reconcileInvoicePaymentState({
-    schoolId: schoolIdObj,
-    invoiceId: invoice._id,
-  });
-  const finalInvoice = reconciledInvoice || invoice;
-
-  await sendFeePaymentFollowUps({
-    schoolId: schoolIdObj,
-    studentId: studentIdObj,
-    invoiceId: invoice._id,
-    paymentId,
-    parentUserId,
-    amountMinor,
-    balanceMinor: Math.max(0, Number(finalInvoice.totalOutstandingMinor || 0)),
-    receiptNumber,
-    reference,
-    paymentDate,
-  });
-
-  try {
-    const student = await Student.findById(studentId)
+    const student = await Student.findById(ledger.studentId)
       .select("firstName lastName guardians")
       .lean() as { firstName: string; lastName: string; guardians?: Array<{ name?: string; email?: string; phone?: string }> } | null;
 
     const primaryGuardian = student?.guardians?.[0];
 
     await recordFeePaymentInLedger({
-      schoolId,
-      paymentId: String(paymentId),
-      amountMinor,
-      currency: data.currency || "GHS",
+      schoolId: String(ledger.schoolId),
+      paymentId: String(ledger.paymentId),
+      amountMinor: ledger.amountMinor,
+      currency: ledger.currency,
       paymentMethod: "paystack",
-      paymentReference: reference,
-      studentId,
+      paymentReference: ledger.reference,
+      studentId: String(ledger.studentId),
       studentName: student ? `${student.firstName} ${student.lastName}` : "Unknown Student",
       guardianName: primaryGuardian?.name || null,
       guardianEmail: primaryGuardian?.email || null,
       guardianPhone: primaryGuardian?.phone || null,
-      invoiceNumber: invoice.invoiceNumber || null,
-      description: `Fee payment for ${invoice.invoiceNumber || "invoice"} (Paystack)`,
-      academicPeriodId: invoice.academicPeriodId ? String(invoice.academicPeriodId) : null,
-      occurredAt: paymentDate,
+      invoiceNumber: ledger.invoiceNumber,
+      description: `Fee payment for ${ledger.invoiceNumber || "invoice"} (Paystack)`,
+      academicPeriodId: ledger.academicPeriodId,
+      occurredAt: ledger.paymentDate,
       createdBy: null,
     });
   } catch (ledgerError) {
     console.error("Failed to write fee payment to ledger:", ledgerError);
   }
-
-  console.log(`Paystack webhook: Fee payment recorded for invoice ${invoiceId}, ref ${reference}`);
 }
 
 async function handleStoreOrderSuccess(event: PaystackEvent) {

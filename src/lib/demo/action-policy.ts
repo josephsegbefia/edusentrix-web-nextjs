@@ -68,6 +68,13 @@ const DEMO_POLICIES: DemoActionPolicy[] = [
     simulatedResponse: { success: true },
     userMessage: "File deletion is simulated in demo mode." },
 
+  // ── R2 storage foundation ────────────────────────────────────────
+  { service: "storage", action: "upload",                 disposition: "deny",
+    userMessage: "File uploads are disabled in demo mode." },
+  { service: "storage", action: "delete",                 disposition: "simulate",
+    simulatedResponse: { success: true },
+    userMessage: "File deletion is simulated in demo mode." },
+
   // ── Cron / background jobs ───────────────────────────────────────
   { service: "cron", action: "emailDispatch",             disposition: "simulate",
     userMessage: "Email dispatch cron is simulated in demo mode." },

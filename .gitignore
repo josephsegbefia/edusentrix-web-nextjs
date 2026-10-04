@@ -47,3 +47,7 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Runtime-created uploads must never be committed. public/ is only for
+# source-controlled application assets.
+public/uploads/

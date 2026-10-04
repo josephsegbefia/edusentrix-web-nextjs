@@ -36,6 +36,8 @@
     "library:backfill-reservation-expires": "tsx scripts/backfill-library-reservation-expires-at.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@clerk/backend": "^2.29.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/elements": "^0.24.14",

@@ -40,6 +40,7 @@ const DEMO_PUBLIC_PREFIXES = [
   "/api/banks/search",
   "/upload/parent-document",
   "/api/public/students/parent-documents",
+  "/api/storage/assets",
 ];
 
 // Define public routes (everything else is protected)
@@ -75,6 +76,7 @@ const isPublicRoute = createRouteMatcher([
   "/platform-bootstrap(.*)",
   "/api/platform/bootstrap(.*)",
   "/api/account/legal-acceptance",
+  "/api/storage/assets(.*)", // public/private decision is enforced by the asset gateway
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -155,6 +157,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/payment-return",
     "/platform-bootstrap",
     "/api/platform/bootstrap",
+    "/api/storage/assets",
   ];
 
   const isPublic =

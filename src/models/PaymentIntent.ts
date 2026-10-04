@@ -120,7 +120,7 @@ const paymentIntentSchema = new Schema<IPaymentIntent>(
     },
     paystackReference: { type: String, default: null, trim: true },
     currency: { type: String, default: "GHS", uppercase: true, trim: true },
-    idempotencyKey: { type: String, required: true, unique: true },
+    idempotencyKey: { type: String, required: true },
     initiatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     initiatedAt: { type: Date, required: true, default: Date.now },
     expiresAt: { type: Date, default: null },

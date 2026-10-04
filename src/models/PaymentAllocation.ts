@@ -24,13 +24,11 @@ const paymentAllocationSchema = new Schema<IPaymentAllocation>(
       type: Schema.Types.ObjectId,
       ref: "Payment",
       required: true,
-      index: true,
     },
     invoiceLineItemId: {
       type: Schema.Types.ObjectId,
       ref: "InvoiceLineItem",
       required: true,
-      index: true,
     },
     amountMinor: { type: Number, required: true },
     installmentScheduleId: {

@@ -101,7 +101,7 @@ const exploreContentSnapshotSchema = new Schema<IExploreContentSnapshot>(
       required: true,
       index: true,
     },
-    generationKey: { type: String, required: true, trim: true, index: true },
+    generationKey: { type: String, required: true, trim: true },
     contentVersion: { type: String, required: true, trim: true },
     schemaVersion: {
       type: String,

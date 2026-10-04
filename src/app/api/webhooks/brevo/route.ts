@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import { CommunicationProviderEvent } from "@/models/CommunicationProviderEvent";
 import { EmailEvent } from "@/models/EmailEvent";
 import { EmailMessage } from "@/models/EmailMessage";
 import { applySuppression } from "@/lib/email/suppressions";
@@ -120,17 +121,24 @@ export async function POST(req: NextRequest) {
     providerMessageId: messageId,
   }).lean();
 
-  const emailEvent = await EmailEvent.create({
-    emailMessageId: emailMessage?._id || null,
-    schoolId: emailMessage?.schoolId || null,
-    provider: "brevo",
-    eventType: event,
-    providerMessageId: messageId,
-    payload,
-    occurredAt: new Date(timestamp * 1000),
-  });
+  // EmailEvent requires a linked EmailMessage. Events for messages EduSentrix
+  // did not record (outbound mail is sent via Resend) are kept as unlinked
+  // provider events instead.
+  let emailEventId: string | null = null;
+  let providerEventId: string | null = null;
 
   if (emailMessage) {
+    const emailEvent = await EmailEvent.create({
+      emailMessageId: emailMessage._id,
+      schoolId: emailMessage.schoolId || null,
+      provider: "brevo",
+      eventType: event,
+      providerMessageId: messageId,
+      payload,
+      occurredAt: new Date(timestamp * 1000),
+    });
+    emailEventId = String(emailEvent._id);
+
     const newStatus = EVENT_TO_STATUS[event];
     if (newStatus) {
       const updateFields: Record<string, unknown> = { status: newStatus };
@@ -141,6 +149,19 @@ export async function POST(req: NextRequest) {
         $set: updateFields,
       });
     }
+  } else {
+    const providerEvent = await CommunicationProviderEvent.create({
+      channel: "email",
+      provider: "brevo",
+      eventType: event,
+      providerMessageId: messageId,
+      payload,
+      receivedAt: new Date(),
+    });
+    providerEventId = String(providerEvent._id);
+    console.warn(
+      `[Brevo Webhook] No EmailMessage for provider message ${messageId} (event ${event}); stored as unlinked provider event ${providerEventId}`,
+    );
   }
 
   if (SUPPRESSION_EVENTS.has(event) && email) {
@@ -159,8 +180,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  if (!emailEventId) {
+    return NextResponse.json({ status: "unmatched", providerEventId });
+  }
+
   return NextResponse.json({
     status: "ok",
-    eventId: String(emailEvent._id),
+    eventId: emailEventId,
   });
 }

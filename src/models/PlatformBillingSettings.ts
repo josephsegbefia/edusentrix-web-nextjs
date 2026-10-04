@@ -55,7 +55,6 @@ const platformBillingSettingsSchema = new Schema<IPlatformBillingSettings>(
     key: {
       type: String,
       required: true,
-      unique: true,
       default: "default",
       trim: true,
     },

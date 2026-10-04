@@ -68,7 +68,6 @@ const studentExploreRecordSchema = new Schema<IStudentExploreRecord>(
       type: Schema.Types.ObjectId,
       ref: "ExploreContentSnapshot",
       required: true,
-      index: true,
     },
     status: {
       type: String,

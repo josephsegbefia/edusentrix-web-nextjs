@@ -11,7 +11,7 @@ export interface IAuditStreamHead {
 
 const auditStreamHeadSchema = new Schema<IAuditStreamHead>(
   {
-    streamKey: { type: String, required: true, unique: true, trim: true },
+    streamKey: { type: String, required: true, trim: true },
     lastSeq: { type: Number, required: true, min: 0, default: 0 },
     lastHash: { type: String, required: true, default: () => "0".repeat(64) },
   },

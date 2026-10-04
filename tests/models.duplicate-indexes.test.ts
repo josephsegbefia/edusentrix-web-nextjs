@@ -11,22 +11,13 @@ import mongoose from "mongoose";
 
 const MODELS_DIR = path.resolve(process.cwd(), "src/models");
 
-/**
- * Duplicates whose declarations differ semantically. They are intentionally
- * left unchanged until reviewed; resolving one must remove it from this list.
- */
-const NEEDS_REVIEW = [
-  "LeoResponseCache {\"expiresAt\":1}",
-  "PromotionCycle {\"idempotencyKey\":1}",
-];
-
 /** Pre-existing compound duplicates Mongoose does not warn about; out of scope. */
 const KNOWN_COMPOUND = [
   "SubjectGrade {\"studentId\":1,\"academicPeriodId\":1,\"subjectId\":1}",
   "SubscriptionAddOn {\"schoolId\":1,\"addonType\":1}",
 ];
 
-const FIXED: Array<{ model: string; field: string; unique: boolean }> = [
+const FIXED: Array<{ model: string; field: string; unique: boolean; expireAfterSeconds?: number }> = [
   { model: "AuditStreamHead", field: "streamKey", unique: true },
   { model: "ExploreContentSnapshot", field: "generationKey", unique: false },
   { model: "PaymentAllocation", field: "paymentId", unique: false },
@@ -34,6 +25,8 @@ const FIXED: Array<{ model: string; field: string; unique: boolean }> = [
   { model: "PaymentIntent", field: "idempotencyKey", unique: true },
   { model: "PlatformBillingSettings", field: "key", unique: true },
   { model: "StudentExploreRecord", field: "contentSnapshotId", unique: false },
+  { model: "LeoResponseCache", field: "expiresAt", unique: false, expireAfterSeconds: 0 },
+  { model: "PromotionCycle", field: "idempotencyKey", unique: true },
 ];
 
 const duplicateWarnings: string[] = [];
@@ -59,7 +52,7 @@ function indexesOn(modelName: string, keyFields: string) {
 
 describe("schema index declarations", () => {
   test("each previously duplicated index is declared exactly once with its options preserved", () => {
-    for (const { model, field, unique } of FIXED) {
+    for (const { model, field, unique, expireAfterSeconds } of FIXED) {
       const declared = indexesOn(model, field);
       assert.equal(declared.length, 1, `${model}.${field} declared once`);
       const [key, options] = declared[0];
@@ -67,11 +60,11 @@ describe("schema index declarations", () => {
       assert.equal(Boolean(options.unique), unique, `${model}.${field} unique=${unique}`);
       assert.equal(options.sparse, undefined);
       assert.equal(options.partialFilterExpression, undefined);
-      assert.equal(options.expireAfterSeconds, undefined);
+      assert.equal(options.expireAfterSeconds, expireAfterSeconds, `${model}.${field} TTL`);
     }
   });
 
-  test("no model has duplicate index keys outside the reviewed allowlist", () => {
+  test("no model has duplicate index keys outside the known compound allowlist", () => {
     const duplicates: string[] = [];
     for (const name of mongoose.modelNames().sort()) {
       const counts = new Map<string, number>();
@@ -81,10 +74,10 @@ describe("schema index declarations", () => {
       }
       for (const [id, count] of counts) if (count > 1) duplicates.push(id);
     }
-    assert.deepEqual(duplicates.sort(), [...NEEDS_REVIEW, ...KNOWN_COMPOUND].sort());
+    assert.deepEqual(duplicates.sort(), [...KNOWN_COMPOUND].sort());
   });
 
-  test("the only remaining Mongoose duplicate-index warnings are the NEEDS_REVIEW items", () => {
-    assert.deepEqual(duplicateWarnings.sort(), ["{\"expiresAt\":1}", "{\"idempotencyKey\":1}"]);
+  test("Mongoose emits no duplicate-index warnings", () => {
+    assert.deepEqual(duplicateWarnings, []);
   });
 });

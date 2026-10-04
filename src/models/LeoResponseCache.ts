@@ -37,7 +37,7 @@ const leoResponseCacheSchema = new Schema<ILeoResponseCache>(
     contentText: { type: String, required: true },
     citations: { type: Schema.Types.Mixed, default: [] },
     toolsUsed: { type: [String], default: [] },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
   },
   { timestamps: true }
 );

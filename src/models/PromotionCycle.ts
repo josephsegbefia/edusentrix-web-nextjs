@@ -146,7 +146,7 @@ const promotionCycleSchema = new Schema<IPromotionCycle>(
       errors: { type: Number, required: true, default: 0 },
     },
     progress: { type: progressSchema, default: undefined },
-    idempotencyKey: { type: String, required: true, index: true },
+    idempotencyKey: { type: String, required: true },
     lockVersion: { type: Number, required: true, default: 0 },
     approvedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     approvedAt: { type: Date, default: null },

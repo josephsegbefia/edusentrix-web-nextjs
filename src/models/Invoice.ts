@@ -6,7 +6,7 @@ export interface IInvoice {
   schoolId: Types.ObjectId;
   studentId: Types.ObjectId;
   academicPeriodId: Types.ObjectId; // Links to AcademicPeriod
-  invoiceNumber: string; // Unique: "INV-2024-001" or "INV-{year}-{studentId}-{term}"
+  invoiceNumber: string; // Unique per school: "INV-{year}-{sequence}" (see invoice-numbering.ts)
   status: "draft" | "issued" | "partially_paid" | "paid" | "overdue" | "cancelled";
 
   // Totals (calculated, stored in minor units)
@@ -52,7 +52,7 @@ const invoiceSchema = new Schema<IInvoice>(
       required: true,
       index: true,
     },
-    invoiceNumber: { type: String, required: true, unique: true, trim: true },
+    invoiceNumber: { type: String, required: true, trim: true },
     status: {
       type: String,
       enum: ["draft", "issued", "partially_paid", "paid", "overdue", "cancelled"],
@@ -77,6 +77,12 @@ const invoiceSchema = new Schema<IInvoice>(
 
 // Unique constraint: one invoice per student per academic period
 invoiceSchema.index({ schoolId: 1, studentId: 1, academicPeriodId: 1 }, { unique: true });
+
+// Invoice numbers are allocated per school, so uniqueness is per school.
+invoiceSchema.index(
+  { schoolId: 1, invoiceNumber: 1 },
+  { unique: true, name: "unique_school_invoice_number" }
+);
 
 // Additional indexes
 invoiceSchema.index({ schoolId: 1, status: 1 });

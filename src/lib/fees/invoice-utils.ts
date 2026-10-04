@@ -9,6 +9,24 @@ export function generateInvoiceNumber(year: number, sequence: number): string {
   return `INV-${year}-${sequence.toString().padStart(4, "0")}`;
 }
 
+const INVOICE_NUMBER_PATTERN = /^INV-(\d{4})-(\d+)$/;
+
+/**
+ * Parse an `INV-{year}-{sequence}` number. Returns null for anything that does
+ * not match the generated format (legacy/manual values need human review).
+ */
+export function parseInvoiceNumber(
+  value: unknown
+): { year: number; sequence: number } | null {
+  if (typeof value !== "string") return null;
+  const match = INVOICE_NUMBER_PATTERN.exec(value.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const sequence = Number(match[2]);
+  if (!Number.isSafeInteger(sequence) || sequence < 1) return null;
+  return { year, sequence };
+}
+
 /**
  * Calculate invoice totals from line items
  */

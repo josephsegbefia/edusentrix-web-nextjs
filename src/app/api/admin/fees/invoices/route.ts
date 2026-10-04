@@ -10,10 +10,8 @@ import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { InstallmentSchedule } from "@/models/InstallmentSchedule";
 import { Student } from "@/models/Student";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
-import {
-  generateInvoiceNumber,
-  calculateInvoiceTotals,
-} from "@/lib/fees/invoice-utils";
+import { calculateInvoiceTotals } from "@/lib/fees/invoice-utils";
+import { allocateInvoiceNumber } from "@/lib/fees/invoice-numbering";
 import { calculateInstallmentAmounts, toMinorUnits } from "@/lib/fees/money";
 import mongoose from "mongoose";
 
@@ -197,6 +195,9 @@ export async function POST(req: NextRequest) {
     }
 
     let invoiceDoc: any = null;
+    // Reserved outside the transaction and reused on withTransaction retries,
+    // so a retried attempt never consumes a second number.
+    let invoiceNumber: string | null = null;
 
     await session.withTransaction(async () => {
       // ensure uniqueness
@@ -240,9 +241,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const year = new Date().getFullYear();
-      const count = await Invoice.countDocuments({ schoolId }).session(session);
-      const invoiceNumber = generateInvoiceNumber(year, count + 1);
+      invoiceNumber ??= await allocateInvoiceNumber(schoolId);
 
       const [createdInvoice] = await Invoice.create(
         [

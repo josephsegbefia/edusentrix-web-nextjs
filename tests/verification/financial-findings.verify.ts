@@ -2,8 +2,11 @@
  * Verification harness for docs/FINANCIAL_BACKGROUND_FINDINGS_VERIFICATION.md.
  *
  * Status:
- * - Claim 1 (invoice number collision): STILL REPRODUCES. These tests assert
- *   the bug occurs; the defect is unfixed.
+ * - Claim 1 (invoice number collision): FIXED by the atomic per-school invoice
+ *   number sequence. Tests 1.index and (a)-(d) now assert the bug no longer
+ *   occurs. The original bug-asserting versions are preserved verbatim in the
+ *   doc addendum and in commit 2a769b0. Ongoing protection lives in
+ *   tests/regression/invoice-numbering.test.ts.
  * - Claim 2 (PaymentIntent stuck in `processing`): FIXED by the Paystack fee
  *   posting hotfix. Tests 2a/2b/2c now assert the bug no longer occurs. The
  *   original bug-asserting versions are preserved verbatim in the doc
@@ -29,6 +32,7 @@ import { PaymentIntent } from "../../src/models/PaymentIntent";
 import { Payment } from "../../src/models/Payment";
 import { StudentCreditBalance } from "../../src/models/StudentCreditBalance";
 import { generateInvoiceNumber } from "../../src/lib/fees/invoice-utils";
+import { allocateInvoiceNumber, allocateInvoiceNumbers } from "../../src/lib/fees/invoice-numbering";
 import { stubServerOnly } from "../regression/helpers/stub-server-only";
 
 stubServerOnly();
@@ -103,8 +107,9 @@ function makeBarrier(size: number) {
 }
 
 /**
- * Mirrors POST src/app/api/admin/fees/invoices/route.ts (single create):
- * session.withTransaction -> countDocuments({ schoolId }) -> generateInvoiceNumber(year, count + 1) -> Invoice.create.
+ * Mirrors POST src/app/api/admin/fees/invoices/route.ts (single create, fixed):
+ * session.withTransaction -> invoiceNumber ??= allocateInvoiceNumber(schoolId) (no session) -> Invoice.create.
+ * The number is reserved once and reused on withTransaction retries.
  */
 async function createLikeSingleRoute(args: {
   schoolId: mongoose.Types.ObjectId;
@@ -115,12 +120,11 @@ async function createLikeSingleRoute(args: {
   const session = await mongoose.startSession();
   let attempts = 0;
   const numbersTried: string[] = [];
+  let invoiceNumber: string | null = null;
   try {
     await session.withTransaction(async () => {
       attempts += 1;
-      const year = new Date().getFullYear();
-      const count = await Invoice.countDocuments({ schoolId: args.schoolId }).session(session);
-      const invoiceNumber = generateInvoiceNumber(year, count + 1);
+      invoiceNumber ??= await allocateInvoiceNumber(args.schoolId);
       numbersTried.push(invoiceNumber);
       if (attempts === 1 && args.barrier) await args.barrier();
       await Invoice.create([invoiceDoc(args.schoolId, args.studentId, args.periodId, invoiceNumber)], { session });
@@ -134,8 +138,8 @@ async function createLikeSingleRoute(args: {
 }
 
 /**
- * Mirrors POST src/app/api/admin/fees/invoices/bulk/route.ts:
- * manual startTransaction -> countDocuments once -> count + i + 1 per student -> commit / abort (no retry).
+ * Mirrors POST src/app/api/admin/fees/invoices/bulk/route.ts (fixed):
+ * session.withTransaction -> one contiguous allocateInvoiceNumbers(count = N) range (no session, reused on retry) -> creates.
  */
 async function createLikeBulkRoute(args: {
   schoolId: mongoose.Types.ObjectId;
@@ -144,26 +148,29 @@ async function createLikeBulkRoute(args: {
   barrier?: () => Promise<void>;
 }) {
   const session = await mongoose.startSession();
-  session.startTransaction();
-  const numbers: string[] = [];
+  let numbers: string[] = [];
+  let attempts = 0;
   try {
-    const year = new Date().getFullYear();
-    const count = await Invoice.countDocuments({ schoolId: args.schoolId }).session(session);
-    if (args.barrier) await args.barrier();
-    for (let i = 0; i < args.studentIds.length; i++) {
-      const invoiceNumber = generateInvoiceNumber(year, count + i + 1);
-      numbers.push(invoiceNumber);
-      await Invoice.create([invoiceDoc(args.schoolId, args.studentIds[i], args.periodId, invoiceNumber)], { session });
-    }
-    await session.commitTransaction();
-    return { ok: true as const, numbers };
+    await session.withTransaction(async () => {
+      attempts += 1;
+      if (numbers.length < args.studentIds.length) {
+        numbers = (await allocateInvoiceNumbers({ schoolId: args.schoolId, count: args.studentIds.length })).numbers;
+      }
+      if (attempts === 1 && args.barrier) await args.barrier();
+      for (let i = 0; i < args.studentIds.length; i++) {
+        await Invoice.create([invoiceDoc(args.schoolId, args.studentIds[i], args.periodId, numbers[i]!)], { session });
+      }
+    });
+    return { ok: true as const, numbers, attempts };
   } catch (error) {
-    await session.abortTransaction().catch(() => undefined);
-    return { ok: false as const, numbers, error: errSummary(error), duplicateKey: isDuplicateKey(error) };
+    return { ok: false as const, numbers, attempts, error: errSummary(error), duplicateKey: isDuplicateKey(error) };
   } finally {
     await session.endSession();
   }
 }
+
+const seqOf = (invoiceNumber: string) => Number(invoiceNumber.split("-")[2]);
+const yearNumber = (sequence: number) => generateInvoiceNumber(new Date().getFullYear(), sequence);
 
 async function numbersPersisted(schoolId?: mongoose.Types.ObjectId) {
   const rows = await Invoice.find(schoolId ? { schoolId } : {}).select("schoolId invoiceNumber").lean();
@@ -177,21 +184,31 @@ async function duplicateNumberGroups() {
   ]);
 }
 
+/** Duplicates that matter after the fix: the same number twice inside one school. */
+async function sameSchoolDuplicateGroups() {
+  return Invoice.aggregate([
+    { $group: { _id: { schoolId: "$schoolId", invoiceNumber: "$invoiceNumber" }, n: { $sum: 1 } } },
+    { $match: { n: { $gt: 1 } } },
+  ]);
+}
+
 // ---------------------------------------------------------------------------
-// CLAIM 1 — invoice number collision
+// CLAIM 1 — invoice number collision (FIXED; asserts the fix)
 // ---------------------------------------------------------------------------
 describe("Claim 1: invoice number collision", () => {
-  test("index evidence: schema declares a GLOBAL unique index on invoiceNumber", async () => {
+  test("index evidence: schema declares a per-school unique index; no global invoiceNumber index", async () => {
     await Invoice.syncIndexes();
     const indexes = await Invoice.collection.indexes();
-    const numberIdx = indexes.find((i) => i.key && Object.keys(i.key).join(",") === "invoiceNumber");
     findings["1.index"] = indexes.map((i) => ({ name: i.name, key: i.key, unique: Boolean(i.unique) }));
-    assert.ok(numberIdx, "invoiceNumber index exists after syncIndexes");
-    assert.equal(numberIdx!.unique, true);
-    assert.deepEqual(Object.keys(numberIdx!.key), ["invoiceNumber"], "not scoped by schoolId");
+    const globalIdx = indexes.find((i) => i.key && Object.keys(i.key).join(",") === "invoiceNumber");
+    assert.equal(globalIdx, undefined, "no global invoiceNumber index");
+    const scoped = indexes.find((i) => i.key && Object.keys(i.key).join(",") === "schoolId,invoiceNumber");
+    assert.ok(scoped, "{schoolId, invoiceNumber} index exists after syncIndexes");
+    assert.equal(scoped!.unique, true);
+    assert.equal(scoped!.name, "unique_school_invoice_number");
   });
 
-  test("(a) cross-school, sequential, unique index present: school B's first invoice is rejected", async () => {
+  test("(a) cross-school, sequential, unique index present: every school creates its own 0001", async () => {
     await Invoice.syncIndexes();
     const period = oid();
     const schoolA = oid();
@@ -201,11 +218,12 @@ describe("Claim 1: invoice number collision", () => {
     const bulkB = await createLikeBulkRoute({ schoolId: schoolB, studentIds: [oid(), oid()], periodId: period });
     findings["1a.crossSchool.indexPresent"] = { a1, b1, bulkB, persisted: await numbersPersisted() };
     assert.equal(a1.ok, true);
-    assert.equal(b1.ok, false, "school B single create fails");
-    assert.equal(b1.duplicateKey, true, "with E11000 duplicate key");
-    assert.equal(bulkB.ok, false, "school B bulk create fails");
-    assert.equal(bulkB.duplicateKey, true);
-    assert.equal(await Invoice.countDocuments({ schoolId: schoolB }), 0, "bulk transaction aborted: zero invoices for B");
+    assert.equal(b1.ok, true, "school B single create succeeds");
+    assert.equal(a1.numbersTried[0], yearNumber(1));
+    assert.equal(b1.numbersTried[0], yearNumber(1), "same number in another school is allowed");
+    assert.equal(bulkB.ok, true, "school B bulk create succeeds");
+    assert.deepEqual(bulkB.numbers, [yearNumber(2), yearNumber(3)]);
+    assert.equal(await Invoice.countDocuments({ schoolId: schoolB }), 3);
   });
 
   test("(b1) same school, 2 concurrent single-route creates (withTransaction), unique index present", async () => {
@@ -218,12 +236,13 @@ describe("Claim 1: invoice number collision", () => {
       createLikeSingleRoute({ schoolId: school, studentId: oid(), periodId: period, barrier }),
     ]);
     findings["1b1.concurrentSingle.indexPresent"] = { results, persisted: await numbersPersisted(), dupGroups: await duplicateNumberGroups() };
-    // Both observed the same count on their first attempt:
-    assert.equal(results[0].numbersTried[0], results[1].numbersTried[0], "both generated the same number first");
+    assert.ok(results.every((r) => r.ok), "both succeed");
+    assert.notEqual(results[0].numbersTried[0], results[1].numbersTried[0], "distinct numbers on the first attempt");
+    assert.ok(results.every((r) => r.attempts === 1), "no write-conflict retry needed");
     assert.equal((await duplicateNumberGroups()).length, 0, "no persisted duplicate");
   });
 
-  test("(b2) same school, 2 concurrent bulk-route creates (manual txn), unique index present", async () => {
+  test("(b2) same school, 2 concurrent bulk-route creates, unique index present: both succeed", async () => {
     await Invoice.syncIndexes();
     const school = oid();
     const period = oid();
@@ -233,7 +252,12 @@ describe("Claim 1: invoice number collision", () => {
       createLikeBulkRoute({ schoolId: school, studentIds: [oid(), oid()], periodId: period, barrier }),
     ]);
     findings["1b2.concurrentBulk.indexPresent"] = { results, persisted: await numbersPersisted(), dupGroups: await duplicateNumberGroups() };
-    assert.equal(results.filter((r) => r.ok).length, 1, "exactly one bulk request succeeds");
+    assert.equal(results.filter((r) => r.ok).length, 2, "both bulk requests succeed");
+    for (const r of results) assert.equal(seqOf(r.numbers[1]!) - seqOf(r.numbers[0]!), 1, "contiguous range");
+    assert.deepEqual(
+      results.flatMap((r) => r.numbers).sort(),
+      [1, 2, 3, 4].map(yearNumber)
+    );
     assert.equal((await duplicateNumberGroups()).length, 0, "no persisted duplicate");
   });
 
@@ -250,10 +274,12 @@ describe("Claim 1: invoice number collision", () => {
       attempts: results.map((r) => r.attempts),
       persisted: await numbersPersisted(),
     };
+    assert.equal(results.filter((r) => r.ok).length, 5);
+    assert.deepEqual(results.map((r) => r.numbersTried[0]).sort(), [1, 2, 3, 4, 5].map(yearNumber));
     assert.equal((await duplicateNumberGroups()).length, 0);
   });
 
-  test("(c) unique index ABSENT (production autoIndex:false, index never created): duplicates persist silently", async () => {
+  test("(c) unique index ABSENT (production autoIndex:false, index never created): no same-school duplicates", async () => {
     await Invoice.createCollection();
     const before = await Invoice.collection.indexes();
     assert.ok(!before.some((i) => i.key && "invoiceNumber" in i.key), "no invoiceNumber index");
@@ -268,16 +294,15 @@ describe("Claim 1: invoice number collision", () => {
       createLikeSingleRoute({ schoolId: schoolC, studentId: oid(), periodId: period, barrier }),
       createLikeSingleRoute({ schoolId: schoolC, studentId: oid(), periodId: period, barrier }),
     ]);
-    const dupGroups = await duplicateNumberGroups();
-    findings["1c.noIndex"] = { a1, b1, concurrent, persisted: await numbersPersisted(), dupGroups };
+    const sameSchoolDups = await sameSchoolDuplicateGroups();
+    findings["1c.noIndex"] = { a1, b1, concurrent, persisted: await numbersPersisted(), sameSchoolDups };
     assert.equal(a1.ok && b1.ok, true, "both schools succeed");
     assert.ok(concurrent.every((r) => r.ok), "both concurrent creates succeed");
-    assert.ok(dupGroups.length >= 1, "identical invoice numbers persisted");
-    const dupForC = await Invoice.countDocuments({ schoolId: schoolC, invoiceNumber: concurrent[0].numbersTried[0] });
-    assert.equal(dupForC, 2, "same school has two invoices with the same number");
+    assert.notEqual(concurrent[0].numbersTried[0], concurrent[1].numbersTried[0], "counter alone keeps them distinct");
+    assert.equal(sameSchoolDups.length, 0, "no same-school duplicate even without the index");
   });
 
-  test("(d) delete a cancelled invoice, then create: count-based number reuses an existing number", async () => {
+  test("(d) delete a cancelled invoice, then create: the next number is never reused", async () => {
     await Invoice.syncIndexes();
     const school = oid();
     const period = oid();
@@ -291,9 +316,8 @@ describe("Claim 1: invoice number collision", () => {
     await Invoice.deleteOne({ _id: first!._id, schoolId: school });
     const next = await createLikeSingleRoute({ schoolId: school, studentId: oid(), periodId: period });
     findings["1d.afterDelete.indexPresent"] = { deleted: first!.invoiceNumber, next, persisted: await numbersPersisted(school) };
-    assert.equal(next.ok, false, "creation fails after a delete");
-    assert.equal(next.duplicateKey, true);
-    assert.equal(next.numbersTried[0], generateInvoiceNumber(new Date().getFullYear(), 3), "reuses INV-YYYY-0003");
+    assert.equal(next.ok, true, "creation succeeds after a delete");
+    assert.equal(next.numbersTried[0], yearNumber(4), "gets INV-YYYY-0004, never a reused number");
   });
 });
 

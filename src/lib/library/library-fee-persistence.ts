@@ -9,8 +9,8 @@ import {
   calculateInvoiceStatus,
   calculateInvoiceTotals,
   calculateLineItemStatus,
-  generateInvoiceNumber,
 } from "@/lib/fees/invoice-utils";
+import { allocateInvoiceNumber } from "@/lib/fees/invoice-numbering";
 import { toMinorUnits } from "@/lib/fees/money";
 import { stubLibraryFeeChargeIntent } from "@/lib/library/library-fee-hook";
 
@@ -99,10 +99,9 @@ export async function persistStudentLibraryReturnFees(args: {
     .exec();
 
   if (!invoice) {
-    const year = new Date().getFullYear();
-    const count = await Invoice.countDocuments({ schoolId: args.schoolId })
-      .session(args.session);
-    const invoiceNumber = generateInvoiceNumber(year, count + 1);
+    // Allocated outside the caller's transaction: a retried or aborted
+    // transaction leaves a gap, never a reused number.
+    const invoiceNumber = await allocateInvoiceNumber(args.schoolId);
     const created = await Invoice.create(
       [
         {

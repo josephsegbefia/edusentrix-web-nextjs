@@ -87,6 +87,7 @@ export const DEMO_SCOPED_COLLECTIONS: readonly CollectionRegistryEntry[] = [
   { modelName: "Payment",                 schoolIdField: "schoolId", deleteOrder: 6,  seedOrder: 72, description: "Payments" },
   { modelName: "PaymentIntent",           schoolIdField: "schoolId", deleteOrder: 6,  seedOrder: 90, description: "Payment intents" },
   { modelName: "PaymentReferenceCounter", schoolIdField: "schoolId", deleteOrder: 6,  seedOrder: 90, description: "Payment ref counter" },
+  { modelName: "InvoiceNumberSequence",   schoolIdField: "schoolId", deleteOrder: 6,  seedOrder: 90, description: "Invoice number counter" },
   { modelName: "StudentCreditBalance",    schoolIdField: "schoolId", deleteOrder: 6,  seedOrder: 90, description: "Student credit balances" },
   { modelName: "Invoice",                 schoolIdField: "schoolId", deleteOrder: 7,  seedOrder: 45, description: "Invoices" },
   { modelName: "FeeStructure",            schoolIdField: "schoolId", deleteOrder: 8,  seedOrder: 30, description: "Fee structures" },

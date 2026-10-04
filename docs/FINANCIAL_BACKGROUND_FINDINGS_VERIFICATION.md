@@ -412,3 +412,148 @@ Four other `Payment` index declarations in `src/models/Payment.ts` combine `spar
 - `{ schoolId, externalReference }`
 
 As a side effect, `Payment.createIndexes()` / `syncIndexes()` fail as a whole. That is why the tests and the index script build only targeted indexes. Each declaration needs a duplicate-data audit before it is corrected.
+
+---
+
+## Addendum: Invoice collision: FIXED
+
+The Claim 1 defect was fixed on branch `hotfix/financial-integrity`, after the Claim 2 hotfix. That supersedes the Claim 2 addendum's line "Claim 1 (invoice numbers) is unchanged and still reproduces".
+
+The Claim 1 section above is kept as historical evidence and was not rewritten.
+
+### What the verification harness asserts now
+
+[tests/verification/financial-findings.verify.ts](../tests/verification/financial-findings.verify.ts): the Claim 1 helpers now mirror the fixed routes, and every Claim 1 test asserts that the bug no longer occurs. Final run: **12 tests, 12 passed.**
+
+| Test | Originally asserted (buggy) | Now asserts (fixed) |
+|------|-----------------------------|---------------------|
+| `1.index` | `invoiceNumber_1` is unique and global | There is no global `invoiceNumber` index. `unique_school_invoice_number` `{ schoolId: 1, invoiceNumber: 1 }` is unique. |
+| `(a)` | School B's single and bulk creates fail with E11000, and the bulk create saves 0 invoices | Schools A and B both get `INV-YYYY-0001`. B's bulk create gets `0002` and `0003`. |
+| `(b1)` | Two concurrent single creates both generate the same number first | They get distinct numbers on the first attempt, with no retry needed |
+| `(b2)` | Exactly one of two concurrent bulk creates succeeds | Both succeed, each with a contiguous range, together covering `0001` to `0004` |
+| `(b3)` | No duplicate is saved (with retries) | All 5 succeed, numbered `0001` to `0005` |
+| `(c)` | Without the index, the same school saves two invoices with the same number | Even without the index, the counter alone prevents any same-school duplicate |
+| `(d)` | After deleting a cancelled invoice, the next create reuses `0003` and fails with E11000 | The next create succeeds with `0004`; no number is reused |
+
+### Original Claim 1 assertions, preserved verbatim
+
+These are the assertion lines from the test bodies at commit `2a769b0`. The full bodies and the count-based helpers `createLikeSingleRoute` and `createLikeBulkRoute` are in that commit.
+
+```ts
+test("index evidence: schema declares a GLOBAL unique index on invoiceNumber", ...
+    assert.ok(numberIdx, "invoiceNumber index exists after syncIndexes");
+    assert.equal(numberIdx!.unique, true);
+    assert.deepEqual(Object.keys(numberIdx!.key), ["invoiceNumber"], "not scoped by schoolId");
+
+test("(a) cross-school, sequential, unique index present: school B's first invoice is rejected", ...
+    assert.equal(a1.ok, true);
+    assert.equal(b1.ok, false, "school B single create fails");
+    assert.equal(b1.duplicateKey, true, "with E11000 duplicate key");
+    assert.equal(bulkB.ok, false, "school B bulk create fails");
+    assert.equal(bulkB.duplicateKey, true);
+    assert.equal(await Invoice.countDocuments({ schoolId: schoolB }), 0, "bulk transaction aborted: zero invoices for B");
+
+test("(b1) same school, 2 concurrent single-route creates (withTransaction), unique index present", ...
+    // Both observed the same count on their first attempt:
+    assert.equal(results[0].numbersTried[0], results[1].numbersTried[0], "both generated the same number first");
+    assert.equal((await duplicateNumberGroups()).length, 0, "no persisted duplicate");
+
+test("(b2) same school, 2 concurrent bulk-route creates (manual txn), unique index present", ...
+    assert.equal(results.filter((r) => r.ok).length, 1, "exactly one bulk request succeeds");
+    assert.equal((await duplicateNumberGroups()).length, 0, "no persisted duplicate");
+
+test("(b3) same school, 5 concurrent single-route creates, no artificial barrier, unique index present", ...
+    assert.equal((await duplicateNumberGroups()).length, 0);
+
+test("(c) unique index ABSENT (production autoIndex:false, index never created): duplicates persist silently", ...
+    assert.ok(!before.some((i) => i.key && "invoiceNumber" in i.key), "no invoiceNumber index");
+    assert.equal(a1.ok && b1.ok, true, "both schools succeed");
+    assert.ok(concurrent.every((r) => r.ok), "both concurrent creates succeed");
+    assert.ok(dupGroups.length >= 1, "identical invoice numbers persisted");
+    assert.equal(dupForC, 2, "same school has two invoices with the same number");
+
+test("(d) delete a cancelled invoice, then create: count-based number reuses an existing number", ...
+    assert.equal(next.ok, false, "creation fails after a delete");
+    assert.equal(next.duplicateKey, true);
+    assert.equal(next.numbersTried[0], generateInvoiceNumber(new Date().getFullYear(), 3), "reuses INV-YYYY-0003");
+```
+
+### Fix summary
+
+**Creation paths.** All three fee-invoice paths now allocate numbers from the same allocator:
+- Single create: `src/app/api/admin/fees/invoices/route.ts` `POST`.
+- Bulk create: `src/app/api/admin/fees/invoices/bulk/route.ts` `POST`.
+- Library charge: `src/lib/library/library-fee-persistence.ts` `persistStudentLibraryReturnFees`.
+
+No `countDocuments` or "latest + 1" logic remains. The demo seed scripts write their own non-`INV-YYYY-N` formats and are not production paths.
+
+**Counter.** `src/models/InvoiceNumberSequence.ts`, collection `invoicenumbersequences`:
+- `_id` is `invoice:<schoolId>:<year>`, so the default `_id` index is the only uniqueness guarantee needed.
+- Other fields: `schoolId`, `year`, `seq` (the last allocated sequence), and timestamps.
+- `seq` only ever moves forward, through `$inc` or `$max`.
+
+**Allocator.** `src/lib/fees/invoice-numbering.ts` `allocateInvoiceNumbers({ schoolId, count, year })` works as follows:
+1. Runs one atomic `findOneAndUpdate({ _id }, { $inc: { seq: count } }, { new: true })` and returns the contiguous range `seq - count + 1 .. seq`.
+2. The range is formatted by `generateInvoiceNumber`. Padding stays at 4 digits, and numbers grow past 9999 (`INV-2026-10000`) without wrapping.
+3. If the counter does not exist yet, it is first seeded with `$max` and an upsert, from the highest existing `INV-<year>-N` for that school. It is never seeded from a count. This protects the window between deploying and running the preparation script.
+
+**Transaction placement.** The allocation runs **outside** the invoice transaction, as its own committed write:
+- Inside the transaction, every create for a school would write the same counter document, so concurrent requests would hit write conflicts.
+- A number reserved by a transaction that aborts is burned. That leaves a gap, which is allowed; the number is never reused.
+- The single route keeps the reserved number in a variable outside the `withTransaction` callback, so a transient retry reuses it instead of allocating again.
+- The library path runs inside its caller's transaction. A retry there allocates a new number, leaving a gap but never a duplicate.
+
+**Bulk.**
+- The bulk route reserves one contiguous range with `$inc: { seq: N }` and reuses it on retries.
+- It now uses `session.withTransaction`, replacing the manual transaction that had no retry.
+- A failed batch rolls back its invoices, and its range stays burned.
+- The response shape is unchanged.
+
+**Index.**
+- `src/models/Invoice.ts` no longer declares `unique: true` on `invoiceNumber`.
+- It declares `{ schoolId: 1, invoiceNumber: 1 }` unique, named `unique_school_invoice_number`.
+- No equivalent duplicate index was added.
+
+**Regression tests.** Ongoing protection runs in `npm test`:
+- `tests/regression/invoice-numbering.test.ts` calls the real route handlers, with auth and the subscription gate stubbed, and the real library function.
+- `tests/regression/invoice-number-integrity-script.test.ts` covers the preparation script.
+
+### Preparation script
+
+`scripts/ensure-invoice-number-integrity.ts`:
+
+**Dry run (the default) is read-only.** It reports:
+- The target index status.
+- Any legacy `{ invoiceNumber: 1 }` index (`LEGACY_GLOBAL_UNIQUE` / `LEGACY_GLOBAL_NON_UNIQUE`).
+- Same-school duplicate numbers, which are **blocking**.
+- Cross-school duplicate numbers, for information only.
+- The highest sequence per school and year.
+- Existing counters and the planned seed for each.
+- Malformed numbers, as `NEEDS_REVIEW`.
+
+**`--apply`:**
+- Refuses while same-school duplicates or a conflicting index exist.
+- Otherwise creates the compound index if it is missing.
+- Seeds each counter with `$max` to the highest existing sequence. For example, existing `0001` and `0007` give a counter of 7, so the next number is `0008`.
+- Never lowers a counter, and a re-run is a no-op.
+
+**`--apply --drop-legacy-global-index`** is an explicit opt-in. It additionally drops the index whose key is exactly `{ invoiceNumber: 1 }`, and only after the compound unique index is verified present.
+
+**Always:** the script never deletes invoices, never modifies invoice numbers, and never drops any other index.
+
+### Production steps
+
+1. Deploy the code. Until step 3, the lazy `$max` seeding keeps new numbers above existing ones.
+2. Run `npx tsx scripts/ensure-invoice-number-integrity.ts` (dry run) and review the output. Resolve any same-school duplicates manually before continuing.
+3. Run `npx tsx scripts/ensure-invoice-number-integrity.ts --apply`.
+4. If the dry run reported `LEGACY_GLOBAL_UNIQUE`, run `npx tsx scripts/ensure-invoice-number-integrity.ts --apply --drop-legacy-global-index`. Until then, the global index still blocks the same number in two schools.
+5. Run the dry run again. Expect: target index `PRESENT`, no legacy global index, every counter `ok`, and no blocking duplicates.
+
+### Remaining risks
+
+- **Rolling deploy:** an old instance still running count-based code during a rolling deploy could generate a number the counter has also handed out.
+  - If any unique index on the number exists (the legacy global one or the new compound one), that collision is rejected with E11000.
+  - If no such index exists, the duplicate could be saved.
+  - Avoid running old and new instances at the same time while invoices are being created.
+- **Calendar year:** the year comes from the server clock (`new Date().getFullYear()`), as before, so a server's time zone decides when the new year's sequence starts.
+- **Malformed numbers** (`NEEDS_REVIEW`) are reported, not changed. They do not affect the counter.

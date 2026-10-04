@@ -17,7 +17,7 @@
 - `resolveLessonSubjectMode()` picks generation/render behaviour from subject name.
 - `getLessonSessionReadiness()` adds language, math, asset, and accessibility checks (used by UI strip and publish route).
 - Deterministic diagrams render from `diagramMeta` (no AI images for precise math).
-- Illustrations: teacher upload via UploadThing `lessonIllustration`, AI draft via Leo → OpenAI → UploadThing (requires approval), or future library.
+- Illustrations: teacher upload via R2 `lesson_illustration`, AI draft via Leo → OpenAI → R2 (requires approval), or future library.
 - `asset_plan` blocks are teacher-facing only; hidden from student payloads by default.
 
 ## Regression anchors

@@ -510,7 +510,7 @@ The RBAC system supports granular permissions and subroles via `src/lib/rbac/rba
 - **Runtime**: Node.js (via Next.js API Routes)
 - **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose 8](https://mongoosejs.com/)
 - **Authentication**: [Clerk](https://clerk.com/) (MFA, session management, webhooks)
-- **File Storage**: [UploadThing](https://uploadthing.com/) (primary) + [Cloudinary](https://cloudinary.com/) (legacy)
+- **File Storage**: [Cloudflare R2](https://developers.cloudflare.com/r2/) via private StoredAsset gateway
 - **Email**: [Brevo (Sendinblue)](https://www.brevo.com/) + [Nodemailer](https://nodemailer.com/) + IMAP (via [imapflow](https://imapflow.com/) + [mailparser](https://nodemailer.com/extras/mailparser/))
 - **AI**: [OpenAI](https://openai.com/) (lesson generation, exam drafting, student insights, financial briefs)
 - **Video**: [LiveKit](https://livekit.io/) (real-time video meetings)
@@ -603,8 +603,12 @@ MONGO_DB_NAME=edusentrix
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 
-# UploadThing (File Uploads)
-UPLOADTHING_TOKEN=your_uploadthing_token
+# Cloudflare R2 (File Uploads)
+R2_ACCOUNT_ID=your_r2_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET=edusentrix-prod-storage
+R2_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com
 
 # Paystack (Payments)
 PAYSTACK_SECRET_KEY=sk_test_...
@@ -753,7 +757,7 @@ edusentrix-web-nextjs/
 │   │   │   ├── subscription/   # Subscription APIs
 │   │   │   ├── demo/           # Demo sandbox APIs
 │   │   │   ├── cron/           # Scheduled job endpoints
-│   │   │   ├── uploadthing/    # UploadThing webhook route
+│   │   │   ├── storage/        # R2 presign, complete, and asset gateway
 │   │   │   ├── webhooks/       # Clerk & Paystack webhooks
 │   │   │   └── ...             # Other API endpoints
 │   │   ├── auth/               # Auth callbacks
@@ -804,7 +808,7 @@ edusentrix-web-nextjs/
 │   │   ├── leo/                # Leo AI conversation management
 │   │   ├── ai/                 # OpenAI integration
 │   │   ├── network/            # Offline queue, SSE manager, connection history
-│   │   ├── uploadthing/        # UploadThing client & server config
+│   │   ├── storage/            # Cloudflare R2 StoredAsset services
 │   │   ├── image/              # Background removal
 │   │   ├── audit/              # Audit event logging
 │   │   └── ...                 # Other modules (timetable, admissions, curriculum, etc.)

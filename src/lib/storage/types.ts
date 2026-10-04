@@ -52,6 +52,7 @@ export const STORAGE_ASSOCIATION_TYPES = [
   "book",
   "event",
   "document",
+  "teacherDocument",
   "request",
   "application",
   "cycle",
@@ -72,10 +73,11 @@ export type StorageAssociation = {
 };
 
 export type StorageActor = {
-  userId: Types.ObjectId;
+  userId: Types.ObjectId | null;
   schoolId: Types.ObjectId;
   roles: MembershipRole[];
   isPlatformOperator?: boolean;
+  isPublicToken?: boolean;
 };
 
 export type R2ObjectHead = {

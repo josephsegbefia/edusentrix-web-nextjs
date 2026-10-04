@@ -641,7 +641,7 @@ export default function PlatformSchoolDetailPage() {
                 <DialogTitle>Permanently delete school</DialogTitle>
                 <DialogDescription className="text-white/65">
                   This removes all database records for this school, deletes school users from Clerk, and deletes
-                  UploadThing and Cloudinary files referenced in those records. This cannot be undone.
+                  stored files referenced in those records. This cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3 py-2">

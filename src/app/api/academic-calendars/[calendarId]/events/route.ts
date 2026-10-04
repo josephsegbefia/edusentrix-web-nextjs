@@ -10,6 +10,7 @@ import { canEditCalendar } from "@/lib/academic-calendar/permissions";
 import { expandRecurringEvent, clampRange, getRangeDefaults } from "@/lib/academic-calendar/recurrence";
 import { DEFAULT_AUDIENCE_ROLES } from "@/lib/academic-calendar/types";
 import { resolveEditorIds } from "@/lib/academic-calendar/editors";
+import { normalizePersistedAssetUrl } from "@/lib/storage/urls";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -383,6 +384,19 @@ export async function POST(
         })
       : [];
 
+  let coverImageUrl: string | null = null;
+  try {
+    coverImageUrl = normalizePersistedAssetUrl(
+      parsed.data.coverImageUrl,
+      "Calendar cover"
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Invalid cover image" },
+      { status: 400 }
+    );
+  }
+
   const doc = await AcademicCalendarEvent.create({
     schoolId: context.schoolId,
     calendarId: calendarObjId,
@@ -394,7 +408,7 @@ export async function POST(
     allDay,
     location: parsed.data.location?.trim() || null,
     color: parsed.data.color || null,
-    coverImageUrl: parsed.data.coverImageUrl || null,
+    coverImageUrl,
     status: parsed.data.status || "draft",
     eventType: parsed.data.eventType || "academic",
     isNonTeachingDay: Boolean(isNonTeachingDay),

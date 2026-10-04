@@ -1,13 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FileDropzone } from "./FileDropzone";
 import { useToast } from "@/hooks/useToast";
-import { useUploadThing } from "@/lib/uploadthing/react";
-import {
-  getUploadThingErrorMessage,
-  logUploadThingClientError,
-} from "@/lib/uploadthing/client-errors";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
+import type { StorageKind } from "@/lib/storage/types";
 
 type SubjectRole =
   | "students"
@@ -22,6 +19,8 @@ type ImageUploaderProps = {
   schoolId: string;
   /** target subject role (where to store) — NOT the uploader's role */
   subjectRole: SubjectRole;
+  /** Override the inferred storage kind (e.g. store products). */
+  kind?: StorageKind;
   maxSizeMB?: number; // default 5
   onUploaded: (payload: {
     publicId: string;
@@ -38,33 +37,24 @@ type ImageUploaderProps = {
   initialPreviewUrl?: string | null;
 };
 
-type AvatarEndpoint =
-  | "studentAvatar"
-  | "teacherAvatar"
-  | "parentAvatar"
-  | "schoolAdminAvatar"
-  | "staffAvatar"
-  | "bursarAvatar"
-  | "schoolBrandImage";
-
-function endpointForRole(subjectRole: SubjectRole): AvatarEndpoint {
+function kindForRole(subjectRole: SubjectRole): StorageKind {
   switch (subjectRole) {
     case "students":
-      return "studentAvatar";
+      return "student_avatar";
     case "teachers":
-      return "teacherAvatar";
+      return "teacher_avatar";
     case "parents":
-      return "parentAvatar";
+      return "parent_avatar";
     case "school_admins":
-      return "schoolAdminAvatar";
+      return "school_admin_avatar";
     case "staff":
-      return "staffAvatar";
+      return "staff_avatar";
     case "bursars":
-      return "bursarAvatar";
+      return "bursar_avatar";
     case "schools":
-      return "schoolBrandImage";
+      return "school_brand_image";
     default:
-      return "teacherAvatar";
+      return "teacher_avatar";
   }
 }
 
@@ -82,6 +72,7 @@ function inferFormat(name: string, type?: string): string | undefined {
 export function ImageUploader({
   schoolId: _schoolId,
   subjectRole,
+  kind,
   maxSizeMB = 5,
   onUploaded,
   onError,
@@ -95,10 +86,9 @@ export function ImageUploader({
   );
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
-  const uploadErrorMessage = useRef<string | null>(null);
   const toast = useToast();
 
-  const endpoint = useMemo(() => endpointForRole(subjectRole), [subjectRole]);
+  const storageKind = useMemo(() => kind ?? kindForRole(subjectRole), [kind, subjectRole]);
 
   useEffect(() => {
     const trimmed = initialPreviewUrl?.trim();
@@ -107,21 +97,10 @@ export function ImageUploader({
     }
   }, [initialPreviewUrl]);
 
-  const { startUpload } = useUploadThing(endpoint, {
-    onUploadProgress: (progress) => {
-      setUploadProgress(Math.min(95, progress));
-    },
-    onUploadError: (error) => {
-      logUploadThingClientError(`${endpoint} onUploadError`, error);
-      uploadErrorMessage.current = getUploadThingErrorMessage(error);
-    },
-  });
-
   async function handleUpload(file: File) {
     try {
       setBusy(true);
       setUploadProgress(0);
-      uploadErrorMessage.current = null;
 
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -129,23 +108,16 @@ export function ImageUploader({
       };
       reader.readAsDataURL(file);
 
-      const result = await startUpload([file], { schoolId: _schoolId });
-      const uploaded = result?.[0];
+      const uploaded = await uploadFileToStorage({
+        kind: storageKind,
+        file,
+        onProgress: setUploadProgress,
+      });
 
-      if (!uploaded) {
-        throw new Error(uploadErrorMessage.current || "Upload did not return a file");
-      }
-
-      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
-      const key = uploaded.serverData?.key || uploaded.key;
-      if (!url || typeof url !== "string" || !url.trim()) {
-        throw new Error("Upload did not return a usable image URL");
-      }
-      const bytes = uploaded.size ?? file.size;
-      const format = inferFormat(uploaded.name || file.name, uploaded.type || file.type);
+      const format = inferFormat(uploaded.fileName || file.name, uploaded.mimeType || file.type);
 
       setUploadProgress(100);
-      setPreview(url.trim());
+      setPreview(uploaded.assetUrl);
       setLocalPreview(null);
 
       setTimeout(() => {
@@ -153,9 +125,9 @@ export function ImageUploader({
       }, 500);
 
       onUploaded({
-        publicId: key || "",
-        url: url.trim(),
-        bytes,
+        publicId: uploaded.assetId,
+        url: uploaded.assetUrl,
+        bytes: uploaded.sizeBytes,
         format,
       });
 
@@ -163,13 +135,7 @@ export function ImageUploader({
         description: "Your image is ready to use.",
       });
     } catch (error: unknown) {
-      if (error && typeof error === "object" && "message" in error) {
-        logUploadThingClientError(`${endpoint} handleUpload`, error as { message?: string; cause?: unknown });
-      }
-      const message =
-        error && typeof error === "object" && "message" in error
-          ? getUploadThingErrorMessage(error as { message?: string; cause?: unknown })
-          : "Upload error";
+      const message = error instanceof Error ? error.message : "Upload error";
       setLocalPreview(null);
       setUploadProgress(null);
       toast.error("Upload failed", {

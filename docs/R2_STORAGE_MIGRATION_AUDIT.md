@@ -667,3 +667,19 @@ Schema indexes: unique storageKey, `{schoolId,status}`, `{schoolId,kind,createdA
 - Remove the documented `public/uploads` exception
 - Do not enable a public R2 bucket
 
+## Appendix: R2 clean cutover (2026-10-04)
+
+Write cutover completed on `infra/cloudflare-r2-storage`. Production occupancy was already empty. No dual-write. No historical object migration. No public R2 bucket. Nothing committed or pushed. Cloudflare CORS was documented only, not applied.
+
+What changed after R2.1:
+
+- Private reads are domain-scoped. Same-school membership is no longer enough for another user's staged or associated private file.
+- `associateStoredAsset` plus `{ schoolId, association.type, association.id }` index.
+- All active UI uploaders use `src/lib/storage/client/upload.ts` (presign → XHR PUT → complete) and persist `/api/storage/assets/{id}` only.
+- Public admission/parent uploads use token-gated `/api/storage/public/uploads/{presign,complete}`.
+- Parent documents use R2 `createReadyAssetFromBytes`. `public/uploads` residue was deleted; the write invariant is now strict.
+- Leo illustrations use `putObject`. Scheme import reads via in-school StoredAsset `getObject`. Calendar covers reject `data:image/`. Deletes are internal URL soft-delete only.
+- UploadThing and Cloudinary packages, routes, middleware allowlist, and Next image hosts were removed. Demo `storage.upload` stays **deny**. New billing writers use `storage`/`r2`; historical `uploadthing` rows stay.
+
+NEEDS_REVIEW dispositions left as inspected: store products migrated to `store_product_image`; ProposalBranding.logoUrl, Teacher.qualifications.documentUrl, and EmailMessage.storageKey stay URL/external; unused Payment.attachments and StudentReportCard.pdfUrl left; placeholder exam/journal/message/poll/fundraising/flashcard/FinancialTransaction image fields left without invented UI.
+

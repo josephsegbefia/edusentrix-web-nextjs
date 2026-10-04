@@ -67,7 +67,7 @@ export const UpdateTeacherSchema = z.object({
     .union([z.string().url("Invalid photo URL"), z.literal("")])
     .optional()
     .nullable(),
-  /** UploadThing file key; used when replacing avatars. */
+  /** Stored asset id when replacing EduSentrix-owned avatars. */
   avatarPublicId: z.string().trim().max(240).optional().nullable(),
 
   // Teacher status

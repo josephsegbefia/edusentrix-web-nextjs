@@ -13,6 +13,7 @@ export async function GET(
     const url = new URL(req.url);
     const disposition =
       url.searchParams.get("disposition") === "inline" ? "inline" : "attachment";
+    const accessToken = url.searchParams.get("token");
 
     await connectToDatabase();
 
@@ -25,7 +26,12 @@ export async function GET(
       }
     }
 
-    const grant = await grantAssetDownload({ actor, assetId, disposition });
+    const grant = await grantAssetDownload({
+      actor,
+      assetId,
+      disposition,
+      accessToken,
+    });
     const response = NextResponse.redirect(grant.redirectUrl, 302);
     response.headers.set("Cache-Control", "private, no-store");
     return response;

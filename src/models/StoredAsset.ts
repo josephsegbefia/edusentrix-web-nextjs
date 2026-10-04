@@ -122,6 +122,10 @@ storedAssetSchema.index(
     partialFilterExpression: { status: "deleted", purgeAfter: { $exists: true } },
   }
 );
+storedAssetSchema.index(
+  { schoolId: 1, "association.type": 1, "association.id": 1 },
+  { name: "stored_asset_school_association" }
+);
 
 export const StoredAsset: Model<IStoredAsset> =
   (models.StoredAsset as Model<IStoredAsset>) ||

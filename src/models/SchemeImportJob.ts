@@ -43,7 +43,7 @@ export interface ISchemeImportJob {
   sourceKind?: SchemeImportSourceKind;
   fileName: string;
   fileUrl?: string | null;
-  /** UploadThing key when applicable */
+  /** Stored asset id when the import file is a StoredAsset. */
   fileKey?: string | null;
   parseError?: string | null;
   /** Shown when import succeeded via offline PDF parse or Leo was skipped. */

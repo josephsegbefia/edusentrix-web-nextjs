@@ -1,4 +1,4 @@
-// POST — attach an UploadThing file to a pending supplemental request.
+// POST — attach an uploaded file to a pending supplemental request.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

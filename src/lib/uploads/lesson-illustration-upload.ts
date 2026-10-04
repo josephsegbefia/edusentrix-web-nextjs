@@ -1,8 +1,8 @@
 import "server-only";
 
-import { UTApi } from "uploadthing/server";
+import { Types } from "mongoose";
 import { trackUsage } from "@/lib/billing/trackUsage";
-import type mongoose from "mongoose";
+import { createReadyAssetFromBytes } from "@/lib/storage/service";
 
 type UploadResult = {
   url: string;
@@ -10,43 +10,24 @@ type UploadResult = {
   size: number;
 };
 
-function unwrapUtUpload(
-  result: { data: { ufsUrl?: string; url?: string; key: string; size: number } | null; error: unknown },
-): UploadResult {
-  if (result.error || !result.data) {
-    const message =
-      result.error instanceof Error
-        ? result.error.message
-        : "UploadThing upload failed.";
-    throw new Error(message);
-  }
-  const url = result.data.ufsUrl || result.data.url;
-  if (!url) throw new Error("UploadThing did not return a file URL.");
-  return {
-    url,
-    key: result.data.key,
-    size: result.data.size,
-  };
-}
-
 async function trackIllustrationUpload(
-  schoolId: mongoose.Types.ObjectId | string,
-  size: number,
+  schoolId: Types.ObjectId | string,
+  size: number
 ) {
   try {
     await trackUsage({
       schoolId,
-      provider: "uploadthing",
+      provider: "storage",
       metricKey: "uploaded_assets",
       quantity: 1,
       unitLabel: "assets",
       allocationMethod: "direct",
       sourceType: "manual",
-      notes: "Lesson illustration stored via UploadThing.",
+      notes: "Lesson illustration stored via R2.",
     });
     await trackUsage({
       schoolId,
-      provider: "uploadthing",
+      provider: "storage",
       metricKey: "uploaded_bytes",
       quantity: Math.max(0, size),
       unitLabel: "bytes",
@@ -59,33 +40,50 @@ async function trackIllustrationUpload(
   }
 }
 
+function storageActor(schoolId: Types.ObjectId | string) {
+  return {
+    userId: null,
+    schoolId: new Types.ObjectId(String(schoolId)),
+    roles: ["school_admin" as const],
+    isPlatformOperator: true,
+  };
+}
+
 export async function uploadLessonIllustrationBuffer(input: {
-  schoolId: mongoose.Types.ObjectId | string;
+  schoolId: Types.ObjectId | string;
   buffer: Buffer;
   fileName: string;
   mimeType?: string;
 }): Promise<UploadResult> {
-  const utapi = new UTApi();
-  const file = new File([input.buffer], input.fileName, {
-    type: input.mimeType || "image/png",
+  const uploaded = await createReadyAssetFromBytes({
+    actor: storageActor(input.schoolId),
+    kind: "lesson_illustration",
+    fileName: input.fileName,
+    mimeType: input.mimeType || "image/png",
+    body: input.buffer,
   });
-  const result = await utapi.uploadFiles(file);
-  const uploaded = unwrapUtUpload(result);
-  await trackIllustrationUpload(input.schoolId, uploaded.size);
-  return uploaded;
+  await trackIllustrationUpload(input.schoolId, uploaded.sizeBytes);
+  return {
+    url: uploaded.assetUrl,
+    key: uploaded.assetId,
+    size: uploaded.sizeBytes,
+  };
 }
 
 export async function uploadLessonIllustrationFromUrl(input: {
-  schoolId: mongoose.Types.ObjectId | string;
+  schoolId: Types.ObjectId | string;
   url: string;
   fileName: string;
 }): Promise<UploadResult> {
-  const utapi = new UTApi();
-  const result = await utapi.uploadFilesFromUrl({
-    url: input.url,
-    name: input.fileName,
+  const response = await fetch(input.url, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) {
+    throw new Error("Could not download generated illustration");
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return uploadLessonIllustrationBuffer({
+    schoolId: input.schoolId,
+    buffer,
+    fileName: input.fileName,
+    mimeType: response.headers.get("content-type") || "image/png",
   });
-  const uploaded = unwrapUtUpload(result);
-  await trackIllustrationUpload(input.schoolId, uploaded.size);
-  return uploaded;
 }

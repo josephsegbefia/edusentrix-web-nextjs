@@ -13,7 +13,7 @@ import { WorkedExampleBlockView } from "@/components/lessons/blocks/WorkedExampl
 import { LessonIllustrationPreview } from "@/components/lessons/LessonIllustrationPreview";
 import { LessonDiagramView } from "@/components/lessons/diagrams/LessonDiagramView";
 import { validateLessonMathLatex } from "@/lib/lessons/katex-utils";
-import { uploadFiles } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import "katex/dist/katex.min.css";
 
@@ -314,22 +314,18 @@ export function IllustrationBlockEditor({ block, onChange, readOnly, schoolId }:
     }
     setUploading(true);
     try {
-      const result = await uploadFiles("lessonIllustration", {
-        files: [file],
-        input: schoolId ? { schoolId } : undefined,
+      const uploaded = await uploadFileToStorage({
+        kind: "lesson_illustration",
+        file,
       });
-      const uploaded = result?.[0];
-      const url = uploaded?.serverData?.url || uploaded?.ufsUrl || uploaded?.url;
-      const key = uploaded?.serverData?.key || uploaded?.key;
-      if (!url) throw new Error("Upload did not return a URL");
       onChange({
-        resourceUrl: url,
+        resourceUrl: uploaded.assetUrl,
         ...patchAssetMeta(block, {
           assetKind: "illustration",
           assetStatus: "needs_review",
           source: "teacher",
           required: block.assetMeta?.required ?? true,
-          uploadThingKey: key ?? null,
+          uploadThingKey: uploaded.assetId,
         }),
       });
       busyToast.success("Illustration uploaded.");

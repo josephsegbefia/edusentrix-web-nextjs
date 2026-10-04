@@ -41,6 +41,7 @@ const DEMO_PUBLIC_PREFIXES = [
   "/upload/parent-document",
   "/api/public/students/parent-documents",
   "/api/storage/assets",
+  "/api/storage/public/uploads",
 ];
 
 // Define public routes (everything else is protected)
@@ -67,7 +68,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/learn/mobile(.*)", // EduSentrix Learn mobile API handles its own student auth
   "/api/public/admissions(.*)", // public admission application APIs
   "/api/public/students/parent-documents(.*)", // public parent document upload APIs
-  "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
+  "/api/storage/public/uploads(.*)", // tokenized public admission/parent uploads
   "/api/webhooks/brevo(.*)", // Brevo outbound event + inbound parse webhooks
   "/api/webhooks/resend(.*)", // Resend webhook verifies Svix signatures
   "/api/webhooks/paystack(.*)", // Paystack transaction webhooks verify their own HMAC signature
@@ -124,7 +125,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   }
 
   // Allow all public routes to pass before touching Clerk auth. This is
-  // especially important for UploadThing callbacks/handshakes and webhooks.
+  // especially important for public storage asset/token routes and webhooks.
   const exactPublicPaths = new Set([
     "/",
     "/about",
@@ -150,7 +151,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/api/learn/mobile",
     "/api/public/admissions",
     "/api/public/students/parent-documents",
-    "/api/uploadthing",
+    "/api/storage/public/uploads",
     "/api/webhooks/brevo",
     "/api/webhooks/resend",
     "/api/webhooks/paystack",

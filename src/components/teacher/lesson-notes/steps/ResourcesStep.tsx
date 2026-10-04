@@ -17,7 +17,7 @@ import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
 import type { ResourceSuggestionsGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import { cn } from "@/lib/utils";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
-import { useUploadThing } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 import type { LessonNoteFormData, LessonNoteResource } from "@/types/lesson-notes";
 import { COMMON_TLMS, RESOURCE_TYPES } from "@/types/lesson-notes";
 
@@ -287,7 +287,7 @@ export function ResourcesStep({ formData, onUpdate, aiContext }: ResourcesStepPr
 
 function ResourceCard({
   resource,
-  schoolId,
+  schoolId: _schoolId,
   onUpdate,
   onRemove,
 }: {
@@ -303,17 +303,6 @@ function ResourceCard({
   const isFileType = FILE_UPLOAD_TYPES.includes(resource.type || "");
   const hasUrl = !!resource.url;
   const isUploading = uploadProgress !== null && uploadProgress < 100;
-
-  // Use UploadThing for file uploads
-  const { startUpload } = useUploadThing("assignmentAttachment", {
-    onUploadProgress: (progress) => {
-      setUploadProgress(Math.min(95, progress));
-    },
-    onUploadError: (error) => {
-      setUploadError(error.message || "Upload failed");
-      setUploadProgress(null);
-    },
-  });
 
   const getTypeIcon = () => {
     switch (resource.type) {
@@ -344,14 +333,12 @@ function ResourceCard({
     setUploadError(null);
 
     try {
-      const result = await startUpload([file], { schoolId });
-      const uploaded = result?.[0];
-
-      if (!uploaded) {
-        throw new Error("Upload did not return a file");
-      }
-
-      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
+      const uploaded = await uploadFileToStorage({
+        kind: "assignment_attachment",
+        file,
+        onProgress: setUploadProgress,
+      });
+      const url = uploaded.assetUrl;
       
       setUploadProgress(100);
       setTimeout(() => {

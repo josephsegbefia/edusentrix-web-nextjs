@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { parseStoredAssetId } from "@/lib/storage/urls";
 import { School } from "@/models/School";
 import { SchoolSettings } from "@/models/SchoolSettings";
 
@@ -102,18 +103,7 @@ export async function assertPdfSchemeImportEnabled(
   return { ok: true };
 }
 
-/** Only UploadThing / utfs assets (prevents SSRF on arbitrary URLs). */
+/** Only in-app StoredAsset URLs (prevents SSRF on arbitrary hosts). */
 export function isTrustedSchemeImportFileUrl(url: string): boolean {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.toLowerCase();
-    if (host === "utfs.io" || host.endsWith(".utfs.io")) return true;
-    if (host === "ufs.sh" || host.endsWith(".ufs.sh")) return true;
-    if (host.includes("uploadthing.com")) return true;
-    if (host.includes("uploadthing") && host.endsWith("com")) return true;
-    if (u.protocol === "https:" && host === "localhost") return process.env.NODE_ENV === "development";
-    return false;
-  } catch {
-    return false;
-  }
+  return Boolean(parseStoredAssetId(url));
 }

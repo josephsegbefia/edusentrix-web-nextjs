@@ -4,13 +4,9 @@ import path from "node:path";
 import { describe, test } from "node:test";
 
 const SRC = path.resolve(process.cwd(), "src");
-const LEGACY_EXCEPTION = path.normalize(
-  "src/app/api/parent/documents/upload/route.ts"
-);
 
 const WRITE_CALL =
   /\b(?:writeFileSync|writeFile|createWriteStream)\s*\(/;
-const PUBLIC_HINT = /["'`][^"'`]*public[^"'`]*["'`]|public\/uploads|["'`]uploads["'`]/;
 
 function walk(dir: string, files: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -23,19 +19,17 @@ function walk(dir: string, files: string[] = []): string[] {
 }
 
 describe("public/ runtime write invariant", () => {
-  test("only the documented parent-document route writes under public/", () => {
+  test("no runtime writes under public/", () => {
     const offenders: string[] = [];
     for (const file of walk(SRC)) {
       const rel = path.relative(process.cwd(), file).split(path.sep).join("/");
       const source = readFileSync(file, "utf8");
       if (!WRITE_CALL.test(source)) continue;
-      if (!PUBLIC_HINT.test(source) && !source.includes("public") ) continue;
       const writesPublic =
         /writeFile(?:Sync)?\([\s\S]{0,200}public/.test(source) ||
         /createWriteStream\([\s\S]{0,200}public/.test(source) ||
         /path\.join\([^)]*["']public["']/.test(source);
       if (!writesPublic) continue;
-      if (rel === LEGACY_EXCEPTION) continue;
       offenders.push(rel);
     }
     assert.deepEqual(
@@ -43,5 +37,25 @@ describe("public/ runtime write invariant", () => {
       [],
       `Unexpected runtime writes under public/: ${offenders.join(", ")}`
     );
+  });
+
+  test("calendar covers cannot persist data URLs", () => {
+    const create = readFileSync(
+      path.join(process.cwd(), "src/app/api/academic-calendars/[calendarId]/events/route.ts"),
+      "utf8"
+    );
+    const update = readFileSync(
+      path.join(process.cwd(), "src/app/api/academic-calendars/[calendarId]/events/[eventId]/route.ts"),
+      "utf8"
+    );
+    const uploader = readFileSync(
+      path.join(process.cwd(), "src/components/ui/image-upload.tsx"),
+      "utf8"
+    );
+    assert.match(create, /normalizePersistedAssetUrl/);
+    assert.match(update, /normalizePersistedAssetUrl/);
+    assert.match(uploader, /academic_calendar_cover/);
+    assert.match(uploader, /cannot be stored as data URLs/);
+    assert.equal(uploader.includes("onChange(result)"), false);
   });
 });

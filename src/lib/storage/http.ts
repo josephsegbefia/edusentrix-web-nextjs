@@ -48,6 +48,11 @@ export async function enforceKindUploadPolicy(
     }
   }
   if (definition.authPolicy === "library_cover") {
+    if (!actor.userId) {
+      throw new StorageAuthorizationError(
+        "Not allowed to upload library covers for this school"
+      );
+    }
     const allowed = await canUploadLibraryBookCover({
       schoolId: actor.schoolId,
       userId: actor.userId,

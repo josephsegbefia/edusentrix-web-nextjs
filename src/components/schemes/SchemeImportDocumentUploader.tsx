@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { FileDropzone } from "@/components/upload/FileDropzone";
-import { useUploadThing } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 import { SCHEME_IMPORT_COLUMN_LABELS } from "@/lib/schemes/scheme-import-required-columns";
 
 type SchemeImportDocumentUploaderProps = {
@@ -59,57 +59,31 @@ export function SchemeImportDocumentUploader({
   const [busy, setBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [validatePhase, setValidatePhase] = useState<string | null>(null);
-  const uploadErrorMessage = useRef<string | null>(null);
 
   const requiredColumnsHint = useMemo(
     () => SCHEME_IMPORT_COLUMN_LABELS.join(" · "),
     [],
   );
 
-  const { startUpload } = useUploadThing("teacherDocument", {
-    onUploadProgress: (progress) => {
-      setUploadProgress(Math.min(95, progress));
-    },
-    onUploadError: (error) => {
-      const cause =
-        error.cause instanceof Error
-          ? error.cause.message
-          : typeof error.cause === "string"
-            ? error.cause
-            : null;
-      uploadErrorMessage.current =
-        error.message === "Failed to run middleware" && cause
-          ? cause
-          : error.message || "Upload failed";
-    },
-  });
-
   async function handleUpload(file: File) {
     try {
       setBusy(true);
       setUploadProgress(null);
-      uploadErrorMessage.current = null;
 
       setValidatePhase("Checking that this file is a NaCCA/GES Scheme of Learning table…");
       await validateSchemeImportFile(file);
       setValidatePhase(null);
 
       setUploadProgress(0);
-      const result = await startUpload([file], { schoolId });
-      const uploaded = result?.[0];
+      const uploaded = await uploadFileToStorage({
+        kind: "scheme_import",
+        file,
+        onProgress: setUploadProgress,
+      });
 
-      if (!uploaded) {
-        throw new Error(uploadErrorMessage.current || "Upload did not return a file");
-      }
-
-      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
-      const uploadKey = uploaded.serverData?.key || uploaded.key;
-      const publicId = uploaded.serverData?.customId || uploadKey;
-      const bytes = uploaded.size ?? file.size;
-      const format = inferFormat(uploaded.name || file.name, uploaded.type || file.type);
-      const mimeType = uploaded.type || file.type;
+      const format = inferFormat(uploaded.fileName || file.name, uploaded.mimeType || file.type);
       const normalizedFormat =
-        format && publicId.toLowerCase().endsWith(`.${format.toLowerCase()}`)
+        format && uploaded.assetId.toLowerCase().endsWith(`.${format.toLowerCase()}`)
           ? undefined
           : format;
 
@@ -117,13 +91,13 @@ export function SchemeImportDocumentUploader({
       setTimeout(() => setUploadProgress(null), 500);
 
       onUploaded({
-        publicId,
-        url,
-        bytes,
+        publicId: uploaded.assetId,
+        url: uploaded.assetUrl,
+        bytes: uploaded.sizeBytes,
         format: normalizedFormat,
-        mimeType,
-        fileName: uploaded.name || file.name,
-        uploadKey,
+        mimeType: uploaded.mimeType,
+        fileName: uploaded.fileName || file.name,
+        uploadKey: uploaded.assetId,
       });
     } catch (error: unknown) {
       setUploadProgress(null);

@@ -4,7 +4,7 @@ import type { Model } from "mongoose";
 import { clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { deleteUploadedFiles } from "@/lib/uploads/delete";
-import { detectUploadProvider } from "@/lib/uploads/provider";
+import { parseStoredAssetId } from "@/lib/storage/urls";
 import {
   deleteOrderedCollections,
   type CollectionRegistryEntry,
@@ -89,10 +89,7 @@ async function loadModel(modelName: string): Promise<Model<unknown> | null> {
 function collectUploadUrls(value: unknown, out: Set<string>): void {
   if (value == null) return;
   if (typeof value === "string") {
-    if (
-      value.startsWith("http") &&
-      detectUploadProvider(value) !== "unknown"
-    ) {
+    if (parseStoredAssetId(value)) {
       out.add(value);
     }
     return;

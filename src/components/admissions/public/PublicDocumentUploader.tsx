@@ -4,7 +4,7 @@ import * as React from "react";
 import { CheckCircle2, FileText, Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useUploadThing } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 import type { AdmissionDocumentRequirement } from "@/lib/admissions/types";
 import { toast } from "sonner";
 
@@ -55,11 +55,6 @@ export function PublicDocumentUploader({
   const [progress, setProgress] = React.useState<number | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const { startUpload } = useUploadThing("admissionDocument", {
-    onUploadProgress: (p) => setProgress(Math.min(95, p)),
-    onUploadError: (err) => toast.error(err.message || "Upload failed"),
-  });
-
   async function handleFile(file: File) {
     if (
       requirement.maxSizeMb &&
@@ -77,7 +72,7 @@ export function PublicDocumentUploader({
       return;
     }
 
-    const uploadInput = supplementalRequestToken
+    const extraPresignBody = supplementalRequestToken
       ? { supplementalRequestToken }
       : studentParentDocumentToken
         ? { studentParentDocumentToken }
@@ -97,18 +92,21 @@ export function PublicDocumentUploader({
     try {
       setBusy(true);
       setProgress(0);
-      const result = await startUpload([file], uploadInput);
-      const uploaded = result?.[0];
-      if (!uploaded) throw new Error("Upload did not return a file");
-
-      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
+      const uploaded = await uploadFileToStorage({
+        kind: studentParentDocumentToken ? "parent_document" : "admission_document",
+        file,
+        onProgress: setProgress,
+        presignPath: "/api/storage/public/uploads/presign",
+        completePath: "/api/storage/public/uploads/complete",
+        extraPresignBody,
+      });
       const doc: UploadedDocument = {
         requirementId: requirement.id,
         label: requirement.label,
-        fileUrl: url,
-        fileName: uploaded.name || file.name,
-        sizeBytes: uploaded.size ?? file.size,
-        mimeType: uploaded.type || file.type,
+        fileUrl: uploaded.assetUrl,
+        fileName: uploaded.fileName || file.name,
+        sizeBytes: uploaded.sizeBytes,
+        mimeType: uploaded.mimeType || file.type,
       };
 
       if (supplementalRequestToken) {

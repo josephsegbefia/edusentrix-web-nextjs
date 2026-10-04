@@ -10,7 +10,7 @@ export type UploaderSchoolAccess = {
 
 /**
  * Lightweight upload school resolution without active-school cookies.
- * UploadThing middleware must not depend on selected-school cookies or throw
+ * Upload school resolution must not depend on selected-school cookies or throw
  * NextResponse objects from tenant guards.
  */
 export async function resolveUploaderSchoolAccess(input: {

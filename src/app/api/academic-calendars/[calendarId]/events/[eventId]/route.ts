@@ -9,6 +9,7 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { canEditCalendar } from "@/lib/academic-calendar/permissions";
 import { DEFAULT_AUDIENCE_ROLES } from "@/lib/academic-calendar/types";
 import { resolveEditorIds } from "@/lib/academic-calendar/editors";
+import { normalizePersistedAssetUrl } from "@/lib/storage/urls";
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -213,7 +214,17 @@ export async function PATCH(
   }
   if (parsed.data.color !== undefined) update.color = parsed.data.color || null;
   if (parsed.data.coverImageUrl !== undefined) {
-    update.coverImageUrl = parsed.data.coverImageUrl || null;
+    try {
+      update.coverImageUrl = normalizePersistedAssetUrl(
+        parsed.data.coverImageUrl,
+        "Calendar cover"
+      );
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Invalid cover image" },
+        { status: 400 }
+      );
+    }
   }
   if (parsed.data.status !== undefined) update.status = parsed.data.status;
   if (parsed.data.eventType !== undefined) update.eventType = parsed.data.eventType;

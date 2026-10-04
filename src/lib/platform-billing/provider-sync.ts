@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
-import { isUploadThingUrl } from "@/lib/uploads/provider";
 import {
   PLATFORM_BILLING_PROVIDER_LABELS,
   PLATFORM_BILLING_PROVIDERS,
   type PlatformBillingProvider,
 } from "@/lib/platform-billing/providers";
+import { StoredAsset } from "@/models/StoredAsset";
 import { AIFeatureUsageEvent } from "@/models/AIFeatureUsageEvent";
 import { Homework } from "@/models/Homework";
 import { Message } from "@/models/Message";
@@ -30,7 +30,7 @@ export const AUTO_SYNC_PROVIDERS: readonly PlatformBillingProvider[] = [
   "mongodb",
   "vercel",
   "openai",
-  "uploadthing",
+  "storage",
   "paystack",
   "internal",
 ] as const;
@@ -45,12 +45,12 @@ export const PROVIDER_SYNC_NOTES: Record<PlatformBillingProvider, string> = {
   openai:
     "Automatic sync derives AI token usage from recorded platform AI usage events.",
   uploadthing:
-    "Automatic sync derives upload usage from UploadThing-backed assets already recorded in the platform database.",
+    "Historical UploadThing rows stay as recorded. New storage usage is synced under the storage provider.",
+  storage:
+    "Automatic sync derives upload usage from StoredAsset records already saved in the platform database.",
   paystack:
     "Automatic sync uses completed paystack-backed payments already recorded by the platform.",
   email:
-    "Automatic sync not implemented yet. Use manual cost and usage attribution until provider integration is added.",
-  storage:
     "Automatic sync not implemented yet. Use manual cost and usage attribution until provider integration is added.",
   internal:
     "Automatic sync derives current operational footprint from internal platform records.",
@@ -65,12 +65,6 @@ const OPENAI_COST_PER_1M_TOKENS_MINOR = Math.max(
   0,
   Number(process.env.OPENAI_COST_PER_1M_TOKENS_MINOR || "0")
 );
-const UPLOADTHING_COST_PER_GB_MINOR = Math.max(
-  0,
-  Number(process.env.UPLOADTHING_COST_PER_GB_MINOR || "0")
-);
-const BYTES_PER_GB = 1024 * 1024 * 1024;
-
 export type ProviderSyncResult = {
   provider: PlatformBillingProvider;
   metricsUpserted: number;
@@ -104,12 +98,14 @@ function isAutoSyncProvider(provider: PlatformBillingProvider) {
 }
 
 export function getProviderSyncCatalog() {
-  return PLATFORM_BILLING_PROVIDERS.map((provider) => ({
-    value: provider,
-    label: PLATFORM_BILLING_PROVIDER_LABELS[provider],
-    autoSyncAvailable: isAutoSyncProvider(provider),
-    note: PROVIDER_SYNC_NOTES[provider],
-  }));
+  return PLATFORM_BILLING_PROVIDERS.filter((provider) => provider !== "uploadthing").map(
+    (provider) => ({
+      value: provider,
+      label: PLATFORM_BILLING_PROVIDER_LABELS[provider],
+      autoSyncAvailable: isAutoSyncProvider(provider),
+      note: PROVIDER_SYNC_NOTES[provider],
+    })
+  );
 }
 
 function toInclusiveRangeEnd(date: Date) {
@@ -995,106 +991,51 @@ type UploadStat = {
   assetsWithoutKnownSize: number;
 };
 
-function appendUploadStat(
-  target: Map<string, UploadStat>,
-  schoolId: mongoose.Types.ObjectId,
-  url?: string | null,
-  size?: number | null
-) {
-  if (!url || !isUploadThingUrl(url)) return;
-
-  const key = String(schoolId);
-  const current =
-    target.get(key) ||
-    {
-      schoolId,
-      assetCount: 0,
-      totalBytes: 0,
-      assetsWithKnownSize: 0,
-      assetsWithoutKnownSize: 0,
-    };
-
-  current.assetCount += 1;
-  const numericSize = Number(size || 0);
-  if (numericSize > 0) {
-    current.totalBytes += numericSize;
-    current.assetsWithKnownSize += 1;
-  } else {
-    current.assetsWithoutKnownSize += 1;
-  }
-
-  target.set(key, current);
-}
-
-async function syncUploadThingProvider(args: {
+async function syncStorageProvider(args: {
   periodStart: Date;
   periodEnd: Date;
   actor: ProviderSyncActor;
 }): Promise<ProviderSyncResult> {
-  type TeacherDocumentRow = {
-    schoolId: mongoose.Types.ObjectId;
-    fileUrl?: string;
-    fileSize?: number | null;
-  };
-  type AttachmentLike = {
-    url?: string;
-    size?: number;
-  };
-  type AttachmentContainer = {
-    schoolId: mongoose.Types.ObjectId;
-    attachments?: AttachmentLike[];
-  };
-
   const range = {
     $gte: args.periodStart,
     $lte: toInclusiveRangeEnd(args.periodEnd),
   };
 
-  const [teacherDocuments, homeworks, submissions, messages, notices] =
-    await Promise.all([
-      TeacherDocument.find({ createdAt: range })
-        .select("schoolId fileUrl fileSize")
-        .lean<TeacherDocumentRow[]>(),
-      Homework.find({ createdAt: range })
-        .select("schoolId attachments")
-        .lean<AttachmentContainer[]>(),
-      Submission.find({ createdAt: range })
-        .select("schoolId attachments")
-        .lean<AttachmentContainer[]>(),
-      Message.find({ createdAt: range })
-        .select("schoolId attachments")
-        .lean<AttachmentContainer[]>(),
-      Notice.find({ createdAt: range })
-        .select("schoolId attachments")
-        .lean<AttachmentContainer[]>(),
-    ]);
+  const assets = await StoredAsset.find({
+    status: "ready",
+    completedAt: range,
+  })
+    .select("schoolId sizeBytes")
+    .lean<Array<{ schoolId: mongoose.Types.ObjectId; sizeBytes?: number | null }>>();
 
   const bySchool = new Map<string, UploadStat>();
-
-  for (const doc of teacherDocuments) {
-    appendUploadStat(bySchool, doc.schoolId, doc.fileUrl, doc.fileSize);
-  }
-
-  for (const collection of [homeworks, submissions, messages, notices]) {
-    for (const item of collection) {
-      for (const attachment of item.attachments || []) {
-        appendUploadStat(bySchool, item.schoolId, attachment.url, attachment.size);
-      }
+  for (const asset of assets) {
+    const key = String(asset.schoolId);
+    const current =
+      bySchool.get(key) ||
+      {
+        schoolId: asset.schoolId,
+        assetCount: 0,
+        totalBytes: 0,
+        assetsWithKnownSize: 0,
+        assetsWithoutKnownSize: 0,
+      };
+    current.assetCount += 1;
+    const numericSize = Number(asset.sizeBytes || 0);
+    if (numericSize > 0) {
+      current.totalBytes += numericSize;
+      current.assetsWithKnownSize += 1;
+    } else {
+      current.assetsWithoutKnownSize += 1;
     }
+    bySchool.set(key, current);
   }
 
-  const costPerByteMinor = UPLOADTHING_COST_PER_GB_MINOR / BYTES_PER_GB;
   let metricsUpserted = 0;
-
   for (const row of bySchool.values()) {
-    const estimatedCostMinor = Math.max(
-      0,
-      Math.round(row.totalBytes * costPerByteMinor)
-    );
-
     await upsertUsageMetric({
       schoolId: row.schoolId,
-      provider: "uploadthing",
+      provider: "storage",
       metricKey: "uploaded_assets",
       quantity: row.assetCount,
       unitLabel: "assets",
@@ -1104,28 +1045,24 @@ async function syncUploadThingProvider(args: {
       sourceType: "provider_sync",
       periodStart: args.periodStart,
       periodEnd: args.periodEnd,
-      notes:
-        "UploadThing-backed asset count derived from persisted platform attachments in the selected period.",
+      notes: "R2 StoredAsset count for the selected period. Cost is not estimated.",
       actor: args.actor,
     });
     metricsUpserted += 1;
 
     await upsertUsageMetric({
       schoolId: row.schoolId,
-      provider: "uploadthing",
+      provider: "storage",
       metricKey: "uploaded_bytes",
       quantity: row.totalBytes,
       unitLabel: "bytes",
-      unitCostMinor: costPerByteMinor,
-      estimatedCostMinor,
+      unitCostMinor: 0,
+      estimatedCostMinor: 0,
       allocationMethod: "direct",
       sourceType: "provider_sync",
       periodStart: args.periodStart,
       periodEnd: args.periodEnd,
-      notes:
-        UPLOADTHING_COST_PER_GB_MINOR > 0
-          ? `Estimated from known attachment sizes and UPLOADTHING_COST_PER_GB_MINOR. ${row.assetsWithoutKnownSize} assets had no stored byte size.`
-          : `Known upload volume captured from attachment metadata. ${row.assetsWithoutKnownSize} assets had no stored byte size, and cost remains zero until UPLOADTHING_COST_PER_GB_MINOR is set.`,
+      notes: `R2 StoredAsset byte volume. ${row.assetsWithoutKnownSize} assets had no stored byte size.`,
       actor: args.actor,
     });
     metricsUpserted += 1;
@@ -1147,43 +1084,35 @@ async function syncUploadThingProvider(args: {
     }
   );
 
-  const totalEstimatedCostMinor = Math.max(
-    0,
-    Math.round(totals.bytes * costPerByteMinor)
-  );
-
   await upsertServiceCostEntry({
-    provider: "uploadthing",
+    provider: "storage",
     category: "upload_volume_estimate",
-    description: "Estimated UploadThing cost from known UploadThing-backed asset volume.",
-    amountMinor: totalEstimatedCostMinor,
+    description: "R2 storage usage recorded from StoredAsset volume. No Cloudflare pricing is applied.",
+    amountMinor: 0,
     allocationMethod: "direct",
     sourceType: "provider_sync",
     periodStart: args.periodStart,
     periodEnd: args.periodEnd,
-    notes:
-      UPLOADTHING_COST_PER_GB_MINOR > 0
-        ? "Estimated from UploadThing-backed asset sizes and UPLOADTHING_COST_PER_GB_MINOR."
-        : "UploadThing asset usage was detected, but UPLOADTHING_COST_PER_GB_MINOR is not configured, so cost is recorded as zero.",
+    notes: "New storage estimates are labeled r2/storage. Historical storage provider rows are left unchanged.",
     actor: args.actor,
   });
 
   return {
-    provider: "uploadthing",
+    provider: "storage",
     metricsUpserted,
     costEntriesUpserted: 1,
     summary:
       bySchool.size > 0
-        ? `Synced UploadThing usage for ${bySchool.size} schools across ${totals.assets} uploaded assets.`
-        : "No UploadThing-backed assets were found for the selected period.",
+        ? `Synced R2 storage usage for ${bySchool.size} schools across ${totals.assets} uploaded assets.`
+        : "No StoredAsset records were found for the selected period.",
     metadata: {
       schoolsTouched: bySchool.size,
       uploadedAssets: totals.assets,
       uploadedBytes: totals.bytes,
       assetsWithKnownSize: totals.withKnownSize,
       assetsWithoutKnownSize: totals.withoutKnownSize,
-      costRateConfigured: UPLOADTHING_COST_PER_GB_MINOR > 0,
-      totalEstimatedCostMinor,
+      costRateConfigured: false,
+      totalEstimatedCostMinor: 0,
     },
   };
 }
@@ -1376,8 +1305,8 @@ export async function runPlatformBillingProviderSync(args: {
       return syncVercelProvider(args);
     case "openai":
       return syncOpenAIProvider(args);
-    case "uploadthing":
-      return syncUploadThingProvider(args);
+    case "storage":
+      return syncStorageProvider(args);
     case "paystack":
       return syncPaystackProvider(args);
     case "internal":

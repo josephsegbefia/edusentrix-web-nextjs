@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import { uploadFiles } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
+import type { StorageKind } from "@/lib/storage/types";
 
 type SubjectRole =
   | "students"
@@ -21,22 +22,22 @@ type UploadResult = {
   publicId: string;
 };
 
-function endpointForRole(subjectRole: SubjectRole) {
+function kindForRole(subjectRole: SubjectRole): StorageKind {
   switch (subjectRole) {
     case "students":
-      return "studentAvatar" as const;
+      return "student_avatar";
     case "teachers":
-      return "teacherAvatar" as const;
+      return "teacher_avatar";
     case "parents":
-      return "parentAvatar" as const;
+      return "parent_avatar";
     case "school_admins":
-      return "schoolAdminAvatar" as const;
+      return "school_admin_avatar";
     case "staff":
-      return "staffAvatar" as const;
+      return "staff_avatar";
     case "bursars":
-      return "bursarAvatar" as const;
+      return "bursar_avatar";
     default:
-      return "teacherAvatar" as const;
+      return "teacher_avatar";
   }
 }
 
@@ -46,23 +47,13 @@ export function useUploadFile({
 }: UseUploadFileOptions) {
   const upload = useCallback(
     async (file: File): Promise<UploadResult> => {
-      const endpoint = endpointForRole(subjectRole);
-      const result = await uploadFiles(endpoint, {
-        files: [file],
-        input: { schoolId: _schoolId },
+      const uploaded = await uploadFileToStorage({
+        kind: kindForRole(subjectRole),
+        file,
       });
-      const uploaded = result?.[0];
-
-      if (!uploaded) {
-        throw new Error("Upload did not return a file");
-      }
-
-      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
-      const publicId = uploaded.serverData?.key || uploaded.key;
-
-      return { url, publicId };
+      return { url: uploaded.assetUrl, publicId: uploaded.assetId };
     },
-    [_schoolId, subjectRole]
+    [subjectRole]
   );
 
   return { upload };

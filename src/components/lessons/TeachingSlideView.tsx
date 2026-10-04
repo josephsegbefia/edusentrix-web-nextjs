@@ -31,7 +31,11 @@ export const TEACHING_SLIDE_TYPE_COLORS: Record<string, string> = {
 
 function isImageResourceUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url) || url.includes("utfs.io");
+  if (/\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(url)) return true;
+  if (/\/api\/storage\/assets\/[a-fA-F0-9]{24}/.test(url)) {
+    return true;
+  }
+  return /image\//i.test(url);
 }
 
 function SlideBody({ bodyHtml }: { bodyHtml: string }) {

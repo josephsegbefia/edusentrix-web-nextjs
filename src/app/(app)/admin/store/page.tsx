@@ -364,6 +364,7 @@ export default function AdminSchoolStorePage() {
                     <ImageUploader
                       schoolId={schoolId}
                       subjectRole="schools"
+                      kind="store_product_image"
                       label="Upload product image"
                       onUploaded={(payload) => setImageUrl(payload.url)}
                     />

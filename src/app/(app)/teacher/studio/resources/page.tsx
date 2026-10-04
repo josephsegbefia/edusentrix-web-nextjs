@@ -568,7 +568,7 @@ export default function TeacherResourcesPage() {
                   className="border-white/10 bg-black/20 text-white/75"
                 />
                 <p className="text-xs text-white/45">
-                  Link input is hidden for non-link types. Upload the file with UploadThing.
+                  Link input is hidden for non-link types. Upload the file instead.
                 </p>
               </div>
             )}
@@ -888,7 +888,7 @@ export default function TeacherResourcesPage() {
           <DialogHeader>
             <DialogTitle className="text-white">Upload Resource File</DialogTitle>
             <DialogDescription className="text-white/60">
-              Upload with UploadThing for {form.type.toUpperCase()} resources.
+              Upload a file for {form.type.toUpperCase()} resources.
             </DialogDescription>
           </DialogHeader>
           {schoolId ? (

@@ -6,6 +6,7 @@ import { Upload, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Image from "next/image";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 
 interface ImageUploadProps {
   value?: string;
@@ -43,19 +44,26 @@ export function ImageUpload({
 
     setIsUploading(true);
     try {
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreview(result);
-        // For now, we'll use the data URL. Later, this will be replaced with uploadthing/cloudinary
-        // TODO: Upload to uploadthing/cloudinary and get URL
-        onChange(result);
-        setIsUploading(false);
+        setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      const uploaded = await uploadFileToStorage({
+        kind: "academic_calendar_cover",
+        file,
+      });
+      if (uploaded.assetUrl.startsWith("data:")) {
+        throw new Error("Calendar covers cannot be stored as data URLs");
+      }
+      setPreview(uploaded.assetUrl);
+      onChange(uploaded.assetUrl);
     } catch (error) {
       console.error("Error processing image:", error);
+      setPreview(value || null);
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
       setIsUploading(false);
     }
   };
@@ -64,7 +72,7 @@ export function ImageUpload({
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -82,7 +90,7 @@ export function ImageUpload({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   const handleRemove = (e: React.MouseEvent) => {
@@ -176,7 +184,7 @@ export function ImageUpload({
       </div>
       {preview && (
         <p className="mt-2 text-xs text-muted text-center">
-          Image uploaded. Will be saved to cloud storage on form submit.
+          Image uploaded. Will be saved with this calendar event.
         </p>
       )}
     </div>

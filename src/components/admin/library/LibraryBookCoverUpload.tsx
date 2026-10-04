@@ -3,7 +3,7 @@
 import * as React from "react";
 import { FileDropzone } from "@/components/upload/FileDropzone";
 import { useToast } from "@/hooks/useToast";
-import { useUploadThing } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 
 type LibraryBookCoverUploadProps = {
   schoolId: string;
@@ -31,54 +31,34 @@ export function LibraryBookCoverUpload({
   const [preview, setPreview] = React.useState<string | null>(previewUrl);
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [localPreview, setLocalPreview] = React.useState<string | null>(null);
-  const uploadErrorMessage = React.useRef<string | null>(null);
   const toast = useToast();
 
   React.useEffect(() => {
     setPreview(previewUrl);
   }, [previewUrl]);
 
-  const { startUpload } = useUploadThing("libraryBookCover", {
-    onUploadProgress: (progress) => setUploadProgress(Math.min(95, progress)),
-    onUploadError: (error) => {
-      uploadErrorMessage.current = error.message || "Upload failed";
-    },
-  });
-
   async function handleUpload(file: File) {
     if (readOnly) return;
     try {
       setBusy(true);
       setUploadProgress(0);
-      uploadErrorMessage.current = null;
 
       const reader = new FileReader();
       reader.onloadend = () => setLocalPreview(reader.result as string);
       reader.readAsDataURL(file);
 
-      const result = await startUpload([file], { schoolId });
-      const uploaded = result?.[0];
-      if (!uploaded) {
-        throw new Error(uploadErrorMessage.current || "Upload did not return a file");
-      }
-
-      const url =
-        (uploaded as { serverData?: { url?: string } }).serverData?.url ||
-        (uploaded as { ufsUrl?: string }).ufsUrl ||
-        (uploaded as { url?: string }).url ||
-        "";
-      const internalFile = uploaded as { serverData?: { key?: string }; key?: string };
-      const key = internalFile.serverData?.key ?? internalFile.key ?? "";
-      if (!url || !key) {
-        throw new Error("Upload response missing url or key");
-      }
+      const uploaded = await uploadFileToStorage({
+        kind: "library_book_cover",
+        file,
+        onProgress: setUploadProgress,
+      });
 
       setUploadProgress(100);
-      setPreview(url);
+      setPreview(uploaded.assetUrl);
       setLocalPreview(null);
       setTimeout(() => setUploadProgress(null), 400);
 
-      onUploaded({ url, key });
+      onUploaded({ url: uploaded.assetUrl, key: uploaded.assetId });
       toast.success("Cover uploaded", {
         description: "The image is attached to this catalogue record.",
       });

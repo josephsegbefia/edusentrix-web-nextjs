@@ -3,8 +3,11 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import mongoose, { Types } from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { disableAutoIndexing } from "../regression/helpers/disable-auto-indexing";
+import { stubServerOnly } from "../regression/helpers/stub-server-only";
 import { createMockR2Port } from "./helpers/mock-r2";
 import type { StorageActor } from "@/lib/storage/types";
+
+stubServerOnly();
 
 const DB_NAME = "stored_asset_lifecycle";
 const SCHOOL_ID = "64b7f0c2a1d2e3f405060708";
@@ -28,17 +31,19 @@ async function seedReadyAsset(input: {
   visibility?: "public" | "private";
   schoolId?: string;
   key?: string;
+  uploadedByUserId?: Types.ObjectId;
+  kind?: "notice_attachment" | "teacher_document" | "expense_receipt";
 }) {
   return StoredAsset.create({
     schoolId: new Types.ObjectId(input.schoolId ?? SCHOOL_ID),
-    uploadedByUserId: new Types.ObjectId(),
+    uploadedByUserId: input.uploadedByUserId ?? new Types.ObjectId(),
     provider: "r2",
     storageKey: input.key ?? `schools/${SCHOOL_ID}/pending/notice_attachment/${crypto.randomUUID()}.pdf`,
     fileName: "notice.pdf",
     extension: "pdf",
     mimeType: "application/pdf",
     sizeBytes: input.status === "ready" || input.status === "deleted" ? 12 : 0,
-    kind: "notice_attachment",
+    kind: input.kind ?? "notice_attachment",
     visibility: input.visibility ?? "private",
     status: input.status ?? "ready",
   });
@@ -81,6 +86,7 @@ describe("StoredAsset model", () => {
     assert.equal(keys.filter((key) => key === "storageKey").length, 1);
     assert.ok(keys.includes("schoolId,status"));
     assert.ok(keys.includes("purgeAfter"));
+    assert.ok(keys.includes("schoolId,association.type,association.id"));
   });
 
   test("soft-delete metadata fields exist", async () => {
@@ -246,9 +252,14 @@ describe("download and recovery", () => {
     );
   });
 
-  test("private assets require same-school authorization; public uses the gateway", async () => {
+  test("private staged assets are uploader or admin only; public uses the gateway", async () => {
     const r2 = createMockR2Port();
-    const privateAsset = await seedReadyAsset({ status: "ready", visibility: "private" });
+    const owner = actor();
+    const privateAsset = await seedReadyAsset({
+      status: "ready",
+      visibility: "private",
+      uploadedByUserId: owner.userId ?? undefined,
+    });
     const publicAsset = await seedReadyAsset({
       status: "ready",
       visibility: "public",
@@ -260,8 +271,17 @@ describe("download and recovery", () => {
       () => service.grantAssetDownload({ actor: null, assetId: String(privateAsset._id), r2 }),
       /Not allowed/
     );
+    await assert.rejects(
+      () =>
+        service.grantAssetDownload({
+          actor: actor(),
+          assetId: String(privateAsset._id),
+          r2,
+        }),
+      /Not allowed/
+    );
     const allowed = await service.grantAssetDownload({
-      actor: actor(),
+      actor: owner,
       assetId: String(privateAsset._id),
       r2,
     });
@@ -283,7 +303,10 @@ describe("download and recovery", () => {
   test("soft delete sets purgeAfter and restore checks the object still exists", async () => {
     const r2 = createMockR2Port();
     const user = actor();
-    const asset = await seedReadyAsset({ status: "ready" });
+    const asset = await seedReadyAsset({
+      status: "ready",
+      uploadedByUserId: user.userId ?? undefined,
+    });
     r2.objects.set(asset.storageKey, {
       body: new Uint8Array([1]),
       contentType: "application/pdf",

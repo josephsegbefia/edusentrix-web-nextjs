@@ -93,8 +93,14 @@ export default async function PlatformSettingsPage() {
       note: "Transactional and manual email delivery",
     },
     {
-      label: "UploadThing",
-      configured: Boolean(process.env.UPLOADTHING_TOKEN),
+      label: "Cloudflare R2",
+      configured: Boolean(
+        process.env.R2_ACCOUNT_ID &&
+          process.env.R2_ACCESS_KEY_ID &&
+          process.env.R2_SECRET_ACCESS_KEY &&
+          process.env.R2_BUCKET &&
+          process.env.R2_ENDPOINT
+      ),
       note: "Attachment and asset storage",
     },
     {

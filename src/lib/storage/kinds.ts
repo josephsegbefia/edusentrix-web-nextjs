@@ -61,7 +61,6 @@ export type MimeLimit = {
 
 export type StorageKindDefinition = {
   kind: StorageKind;
-  uploadThingEndpoint: string | null;
   limits: readonly MimeLimit[];
   defaultVisibility: StorageVisibility;
   keyCategory: string;
@@ -106,13 +105,9 @@ const RECEIPT_LIMITS: readonly MimeLimit[] = [
   IMAGE_8MB,
 ];
 
-function avatar(
-  kind: StorageKind,
-  uploadThingEndpoint: string
-): StorageKindDefinition {
+function avatar(kind: StorageKind): StorageKindDefinition {
   return {
     kind,
-    uploadThingEndpoint,
     limits: [IMAGE_8MB],
     defaultVisibility: "public",
     keyCategory: "avatar",
@@ -122,15 +117,14 @@ function avatar(
 }
 
 export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> = {
-  student_avatar: avatar("student_avatar", "studentAvatar"),
-  teacher_avatar: avatar("teacher_avatar", "teacherAvatar"),
-  parent_avatar: avatar("parent_avatar", "parentAvatar"),
-  school_admin_avatar: avatar("school_admin_avatar", "schoolAdminAvatar"),
-  staff_avatar: avatar("staff_avatar", "staffAvatar"),
-  bursar_avatar: avatar("bursar_avatar", "bursarAvatar"),
+  student_avatar: avatar("student_avatar"),
+  teacher_avatar: avatar("teacher_avatar"),
+  parent_avatar: avatar("parent_avatar"),
+  school_admin_avatar: avatar("school_admin_avatar"),
+  staff_avatar: avatar("staff_avatar"),
+  bursar_avatar: avatar("bursar_avatar"),
   school_brand_image: {
     kind: "school_brand_image",
-    uploadThingEndpoint: "schoolBrandImage",
     limits: [IMAGE_8MB],
     defaultVisibility: "public",
     keyCategory: "branding",
@@ -139,7 +133,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   store_product_image: {
     kind: "store_product_image",
-    uploadThingEndpoint: "schoolBrandImage",
     limits: [IMAGE_8MB],
     defaultVisibility: "public",
     keyCategory: "store_product",
@@ -148,7 +141,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   library_book_cover: {
     kind: "library_book_cover",
-    uploadThingEndpoint: "libraryBookCover",
     limits: [IMAGE_8MB],
     defaultVisibility: "public",
     keyCategory: "library_cover",
@@ -157,7 +149,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   teacher_document: {
     kind: "teacher_document",
-    uploadThingEndpoint: "teacherDocument",
     limits: TEACHER_DOCUMENT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "teacher_document",
@@ -166,7 +157,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   student_record_document: {
     kind: "student_record_document",
-    uploadThingEndpoint: "studentRecordDocument",
     limits: TEACHER_DOCUMENT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "student_record",
@@ -175,7 +165,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   expense_receipt: {
     kind: "expense_receipt",
-    uploadThingEndpoint: "expenseReceipt",
     limits: RECEIPT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "expense_receipt",
@@ -184,7 +173,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   assignment_attachment: {
     kind: "assignment_attachment",
-    uploadThingEndpoint: "assignmentAttachment",
     limits: ASSIGNMENT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "assignment",
@@ -193,7 +181,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   lesson_resource: {
     kind: "lesson_resource",
-    uploadThingEndpoint: "assignmentAttachment",
     limits: ASSIGNMENT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "lesson_resource",
@@ -202,7 +189,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   submission_attachment: {
     kind: "submission_attachment",
-    uploadThingEndpoint: "submissionAttachment",
     limits: ASSIGNMENT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "submission",
@@ -211,7 +197,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   lesson_illustration: {
     kind: "lesson_illustration",
-    uploadThingEndpoint: "lessonIllustration",
     limits: [IMAGE_8MB],
     defaultVisibility: "public",
     keyCategory: "lesson_illustration",
@@ -220,7 +205,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   notice_attachment: {
     kind: "notice_attachment",
-    uploadThingEndpoint: "noticeAttachment",
     limits: NOTICE_LIMITS,
     defaultVisibility: "private",
     keyCategory: "notice",
@@ -229,7 +213,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   scheme_import: {
     kind: "scheme_import",
-    uploadThingEndpoint: "teacherDocument",
     limits: TEACHER_DOCUMENT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "scheme_import",
@@ -238,7 +221,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   academic_calendar_cover: {
     kind: "academic_calendar_cover",
-    uploadThingEndpoint: null,
     limits: [IMAGE_8MB],
     defaultVisibility: "public",
     keyCategory: "calendar",
@@ -247,7 +229,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   admission_document: {
     kind: "admission_document",
-    uploadThingEndpoint: "admissionDocument",
     limits: ADMISSION_LIMITS,
     defaultVisibility: "private",
     keyCategory: "admission",
@@ -256,7 +237,6 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
   },
   parent_document: {
     kind: "parent_document",
-    uploadThingEndpoint: "admissionDocument",
     limits: RECEIPT_LIMITS,
     defaultVisibility: "private",
     keyCategory: "parent_document",

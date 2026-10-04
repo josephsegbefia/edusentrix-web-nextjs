@@ -120,6 +120,7 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       downloadSchemeImportFile({
         fileUrl: input.fileUrl,
         fileKey: input.fileKey,
+        schoolId: String(input.schoolId),
         expectPdf: pdfMode,
       }),
     (result) => !result.ok && result.status >= 500,

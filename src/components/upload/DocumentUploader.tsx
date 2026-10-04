@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { FileDropzone } from "./FileDropzone";
-import { useUploadThing } from "@/lib/uploadthing/react";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
+import type { StorageKind } from "@/lib/storage/types";
 
 type DocumentUploaderProps = {
   schoolId: string;
@@ -16,7 +17,6 @@ type DocumentUploaderProps = {
     mimeType?: string;
     /** Original client file name (for imports and filenames). */
     fileName?: string;
-    /** UploadThing file key (for server-side re-download). */
     uploadKey?: string;
   }) => void;
   onError?: (msg: string) => void;
@@ -24,28 +24,20 @@ type DocumentUploaderProps = {
   label?: string;
 };
 
-type DocumentEndpoint =
-  | "teacherDocument"
-  | "studentRecordDocument"
-  | "expenseReceipt"
-  | "assignmentAttachment"
-  | "submissionAttachment"
-  | "noticeAttachment";
-
-function endpointForCategory(category: string): DocumentEndpoint {
+function kindForCategory(category: string): StorageKind {
   const normalized = (category || "").toLowerCase().trim();
 
-  if (normalized.includes("student")) return "studentRecordDocument";
-  if (normalized.includes("teacher")) return "teacherDocument";
+  if (normalized.includes("student")) return "student_record_document";
+  if (normalized.includes("teacher")) return "teacher_document";
   if (normalized.includes("expense") || normalized.includes("receipt")) {
-    return "expenseReceipt";
+    return "expense_receipt";
   }
-  if (normalized.includes("assignment") || normalized.includes("submission")) {
-    return "submissionAttachment";
+  if (normalized.includes("submission") || normalized.includes("assignment")) {
+    return "submission_attachment";
   }
-  if (normalized.includes("notice")) return "noticeAttachment";
+  if (normalized.includes("notice")) return "notice_attachment";
 
-  return "teacherDocument";
+  return "teacher_document";
 }
 
 function inferFormat(name: string, type?: string): string | undefined {
@@ -70,48 +62,22 @@ export function DocumentUploader({
 }: DocumentUploaderProps) {
   const [busy, setBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const uploadErrorMessage = useRef<string | null>(null);
-  const endpoint = useMemo(() => endpointForCategory(category), [category]);
-
-  const { startUpload } = useUploadThing(endpoint, {
-    onUploadProgress: (progress) => {
-      setUploadProgress(Math.min(95, progress));
-    },
-    onUploadError: (error) => {
-      const cause =
-        error.cause instanceof Error
-          ? error.cause.message
-          : typeof error.cause === "string"
-            ? error.cause
-            : null;
-      uploadErrorMessage.current =
-        error.message === "Failed to run middleware" && cause
-          ? cause
-          : error.message || "Upload failed";
-    },
-  });
+  const kind = useMemo(() => kindForCategory(category), [category]);
 
   async function handleUpload(file: File) {
     try {
       setBusy(true);
       setUploadProgress(0);
-      uploadErrorMessage.current = null;
 
-      const result = await startUpload([file], { schoolId: _schoolId });
-      const uploaded = result?.[0];
+      const uploaded = await uploadFileToStorage({
+        kind,
+        file,
+        onProgress: setUploadProgress,
+      });
 
-      if (!uploaded) {
-        throw new Error(uploadErrorMessage.current || "Upload did not return a file");
-      }
-
-      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
-      const uploadKey = uploaded.serverData?.key || uploaded.key;
-      const publicId = uploaded.serverData?.customId || uploadKey;
-      const bytes = uploaded.size ?? file.size;
-      const format = inferFormat(uploaded.name || file.name, uploaded.type || file.type);
-      const mimeType = uploaded.type || file.type;
+      const format = inferFormat(uploaded.fileName || file.name, uploaded.mimeType || file.type);
       const normalizedFormat =
-        format && publicId.toLowerCase().endsWith(`.${format.toLowerCase()}`)
+        format && uploaded.assetId.toLowerCase().endsWith(`.${format.toLowerCase()}`)
           ? undefined
           : format;
 
@@ -121,13 +87,13 @@ export function DocumentUploader({
       }, 500);
 
       onUploaded({
-        publicId,
-        url,
-        bytes,
+        publicId: uploaded.assetId,
+        url: uploaded.assetUrl,
+        bytes: uploaded.sizeBytes,
         format: normalizedFormat,
-        mimeType,
-        fileName: uploaded.name || file.name,
-        uploadKey,
+        mimeType: uploaded.mimeType,
+        fileName: uploaded.fileName || file.name,
+        uploadKey: uploaded.assetId,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Upload error";

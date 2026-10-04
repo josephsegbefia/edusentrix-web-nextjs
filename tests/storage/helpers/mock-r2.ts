@@ -56,8 +56,11 @@ export function createMockR2Port(initial: Record<string, StoredObject> = {}): R2
       if (!object) {
         return { body: null };
       }
+      async function* stream() {
+        yield object.body;
+      }
       return {
-        body: null,
+        body: stream(),
         contentType: object.contentType,
         contentLength: object.body.byteLength,
       };

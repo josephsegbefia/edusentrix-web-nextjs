@@ -27,6 +27,7 @@ const TARGET_KEY_FIELDS = [
   "schoolId,status",
   "schoolId,kind,createdAt",
   "purgeAfter",
+  "schoolId,association.type,association.id",
 ] as const;
 
 type ExistingIndex = {

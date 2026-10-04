@@ -1,8 +1,6 @@
-// src/app/api/public/admissions/applications/[token]/documents/route.ts
 // Attach an already-uploaded file to a submitted application using the
-// applicant's tracker token. The actual binary upload is handled by
-// UploadThing (admissionDocument route); this endpoint just records the
-// metadata against the application.
+// applicant's tracker token. The binary upload is handled by the public
+// storage token routes; this endpoint records metadata against the application.
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";

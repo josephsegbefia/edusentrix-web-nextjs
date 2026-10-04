@@ -1,28 +1,35 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { getParentWardIds, requireParent } from "@/lib/auth/requireParent";
+import { enforceDemoPolicy } from "@/lib/demo/action-policy";
+import { associateStoredAsset, createReadyAssetFromBytes } from "@/lib/storage/service";
 import { Student } from "@/models/Student";
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
-
-function safeFileName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "document";
-}
+const ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
 
 export async function POST(req: NextRequest) {
   try {
+    enforceDemoPolicy("storage", "upload");
     const ctx = await requireParent();
     await connectToDatabase();
     const form = await req.formData();
     const requestId = String(form.get("requestId") || "");
     const wardId = String(form.get("wardId") || "");
     const file = form.get("file");
-    if (!mongoose.Types.ObjectId.isValid(requestId) || !mongoose.Types.ObjectId.isValid(wardId) || !(file instanceof File)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(requestId) ||
+      !mongoose.Types.ObjectId.isValid(wardId) ||
+      !(file instanceof File)
+    ) {
       return NextResponse.json({ success: false, error: "Invalid upload payload" }, { status: 400 });
     }
     if (file.size > MAX_FILE_BYTES) {
@@ -43,17 +50,34 @@ export async function POST(req: NextRequest) {
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    const filename = `${randomUUID()}-${safeFileName(file.name || "document")}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "parent-documents", String(ctx.schoolId));
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, filename), bytes);
-    const fileUrl = `/uploads/parent-documents/${String(ctx.schoolId)}/${filename}`;
+    const uploaded = await createReadyAssetFromBytes({
+      actor: {
+        userId: ctx.userId,
+        schoolId: ctx.schoolId,
+        roles: ctx.roles,
+      },
+      kind: "parent_document",
+      fileName: file.name || requestDoc.label,
+      mimeType: file.type || "application/octet-stream",
+      body: bytes,
+      association: { type: "student", id: wardId },
+    });
+    await associateStoredAsset({
+      assetId: uploaded.assetId,
+      schoolId: String(ctx.schoolId),
+      association: { type: "request", id: requestId },
+      actor: {
+        userId: ctx.userId,
+        schoolId: ctx.schoolId,
+        roles: ctx.roles,
+      },
+    });
 
     student.recordDocuments = student.recordDocuments ?? [];
     student.recordDocuments.push({
       name: file.name || requestDoc.label,
       type: "parent_request",
-      fileUrl,
+      fileUrl: uploaded.assetUrl,
       fileMime: file.type || null,
       fileSize: file.size,
       notes: requestDoc.message ? `Request instructions: ${requestDoc.message}` : null,
@@ -63,7 +87,7 @@ export async function POST(req: NextRequest) {
     requestDoc.fulfilledAt = new Date();
     await student.save();
 
-    return NextResponse.json({ success: true, data: { success: true, fileUrl } });
+    return NextResponse.json({ success: true, data: { success: true, fileUrl: uploaded.assetUrl } });
   } catch (error) {
     if (error instanceof Response) return error;
     const message = error instanceof Error ? error.message : "Failed to upload document";

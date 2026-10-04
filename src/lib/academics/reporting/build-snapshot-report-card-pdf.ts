@@ -4,6 +4,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
+import { getStoredAssetBytes } from "@/lib/storage/service";
+import { parseStoredAssetId } from "@/lib/storage/urls";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import type { ReportCardViewData, ReportCardViewSubjectRow } from "@/types/academics/report-card-view";
 
@@ -100,14 +102,17 @@ function drawMetric(page: PDFPage, label: string, value: string, x: number, y: n
 }
 
 async function fetchLogo(url?: string | null) {
-  if (!url || !/^https?:\/\//i.test(url)) return null;
+  if (!url) return null;
+  const assetId = parseStoredAssetId(url);
+  if (!assetId) return null;
   try {
-    const response = await fetch(url, { cache: "force-cache" });
-    if (!response.ok) return null;
-    const contentType = response.headers.get("content-type") || "";
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (contentType.includes("png") || url.toLowerCase().includes(".png")) return { bytes, type: "png" as const };
-    if (contentType.includes("jpeg") || contentType.includes("jpg") || /\.(jpe?g)(\?|$)/i.test(url)) {
+    const downloaded = await getStoredAssetBytes({ assetId });
+    const mime = downloaded.mimeType.toLowerCase();
+    const bytes = new Uint8Array(downloaded.buffer);
+    if (mime.includes("png") || downloaded.fileName.toLowerCase().endsWith(".png")) {
+      return { bytes, type: "png" as const };
+    }
+    if (mime.includes("jpeg") || mime.includes("jpg") || /\.jpe?g$/i.test(downloaded.fileName)) {
       return { bytes, type: "jpg" as const };
     }
   } catch {

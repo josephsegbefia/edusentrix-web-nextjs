@@ -6,11 +6,7 @@ import { cn } from "@/lib/utils";
 import { Camera, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/useToast";
-import { useUploadThing } from "@/lib/uploadthing/react";
-import {
-  getUploadThingErrorMessage,
-  logUploadThingClientError,
-} from "@/lib/uploadthing/client-errors";
+import { uploadFileToStorage } from "@/lib/storage/client/upload";
 
 const ACCEPT = ["image/jpeg", "image/png", "image/webp"] as const;
 const MAX_SIZE_MB = 5;
@@ -38,14 +34,13 @@ function isAcceptedImage(file: File) {
 
 export function TeacherDetailAvatar({
   teacherId,
-  schoolId,
+  schoolId: _schoolId,
   firstName,
   lastName,
   fullName,
   photoUrl,
 }: TeacherDetailAvatarProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const uploadErrorMessage = React.useRef<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [dragOver, setDragOver] = React.useState(false);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(photoUrl);
@@ -56,13 +51,6 @@ export function TeacherDetailAvatar({
   React.useEffect(() => {
     setPreviewUrl(photoUrl);
   }, [photoUrl]);
-
-  const { startUpload } = useUploadThing("teacherAvatar", {
-    onUploadError: (error) => {
-      logUploadThingClientError("teacherAvatar onUploadError", error);
-      uploadErrorMessage.current = getUploadThingErrorMessage(error);
-    },
-  });
 
   async function persistPhotoUrl(url: string, publicId: string) {
     const res = await fetch(`/api/admin/teachers/${teacherId}`, {
@@ -109,26 +97,18 @@ export function TeacherDetailAvatar({
 
     try {
       setBusy(true);
-      uploadErrorMessage.current = null;
 
       const reader = new FileReader();
       reader.onloadend = () => setLocalPreview(reader.result as string);
       reader.readAsDataURL(file);
 
-      const result = await startUpload([file], { schoolId });
-      const uploaded = result?.[0];
-      if (!uploaded) {
-        throw new Error(uploadErrorMessage.current || "Upload did not return a file");
-      }
+      const uploaded = await uploadFileToStorage({
+        kind: "teacher_avatar",
+        file,
+        association: { type: "teacher", id: teacherId },
+      });
 
-      const url =
-        uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url || "";
-      const key = uploaded.serverData?.key || uploaded.key || "";
-      if (!url.trim()) {
-        throw new Error("Upload did not return a usable image URL");
-      }
-
-      await persistPhotoUrl(url.trim(), key);
+      await persistPhotoUrl(uploaded.assetUrl, uploaded.assetId);
       toast.success("Photo updated", {
         description: "The teacher profile photo has been saved.",
       });

@@ -61,14 +61,7 @@ const DEMO_POLICIES: DemoActionPolicy[] = [
   { service: "clerk", action: "deleteUser",               disposition: "deny",
     userMessage: "User deletion is disabled in demo mode." },
 
-  // ── UploadThing ──────────────────────────────────────────────────
-  { service: "uploadthing", action: "upload",             disposition: "deny",
-    userMessage: "File uploads are disabled in demo mode." },
-  { service: "uploadthing", action: "deleteFiles",        disposition: "simulate",
-    simulatedResponse: { success: true },
-    userMessage: "File deletion is simulated in demo mode." },
-
-  // ── R2 storage foundation ────────────────────────────────────────
+  // ── R2 storage ───────────────────────────────────────────────────
   { service: "storage", action: "upload",                 disposition: "deny",
     userMessage: "File uploads are disabled in demo mode." },
   { service: "storage", action: "delete",                 disposition: "simulate",

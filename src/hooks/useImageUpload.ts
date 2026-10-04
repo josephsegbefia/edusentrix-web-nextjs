@@ -1,10 +1,6 @@
 /**
- * Hook for processing images with optional background removal
- * 
+ * Hook for processing images with optional background removal.
  * Currently handles background removal client-side.
- * Once UploadThing is installed, this will be extended to handle uploads too.
- * 
- * @see UPLOADTHING_MIGRATION_PLAN.md for integration details
  */
 "use client";
 

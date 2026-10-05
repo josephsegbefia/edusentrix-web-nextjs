@@ -121,17 +121,17 @@ Invitation sends remain **immediate Resend**, with `EMAIL_DISPATCH` used only as
 | Name | Explore adventure generation |
 | Domain | Learn / AI |
 | Initiating route/function | `GET src/app/api/learn/mobile/explore/adventures/route.ts` (`after()`); on-demand generate routes; teacher session explore; admin regenerate |
-| Current execution | `after()` or request-bound `runExploreGenerationForClaimedJob` |
+| Current execution | `BackgroundJob` `EXPLORE_GENERATION` + Inngest. Domain `ExploreGenerationJob` remains. |
 | Persistence | `ExploreGenerationJob` (`generationKey` unique) |
 | Retry | Stale lock ~2m, `maxAttempts` 2 |
 | Idempotency | Unique `generationKey` |
 | Progress | Mobile poll `generation-status` |
 | Notification | Mobile UI only |
-| Request-bound | Feed kickoff: partial. On-demand: yes |
-| Restart-safe | Weak (`after()` can drop) |
+| Request-bound | No (HTTP 202 / generating) |
+| Restart-safe | Yes |
 | Appropriate for Inngest | Yes |
 | Priority | P0 |
-| Classification | `MIGRATE_TO_INNGEST` |
+| Classification | Migrated in Prompt 3 |
 
 `scheduleExploreGenerationForDeliveredSession` has no callers — `NEEDS_REVIEW`, P2.
 
@@ -240,14 +240,19 @@ There is no automated R2 purge cron or backup replication worker in `src/`.
 
 ## 12. Interactive AI (Leo / lesson helpers)
 
-Routes under `src/app/api/leo/lessons/**` and similar short teacher/admin assistants are **request-bound**. Default: `KEEP_SYNCHRONOUS`, P2.
+Short Leo chat, hints, lesson-note wizard actions, exam drafts, and insights stay **request-bound**. See [BACKGROUND_WORK_ENGINE_AI_MIGRATION.md](./BACKGROUND_WORK_ENGINE_AI_MIGRATION.md).
 
-Candidates to migrate later (long / multi-entity):
+Migrated in Prompt 3:
+
+- Session / week lesson content → `AI_LESSON_GENERATION`
+- Explore generation → `EXPLORE_GENERATION`
+- Lesson illustration drafts → `AI_LESSON_ILLUSTRATION`
+
+Still later:
 
 - Admin insights `batch-generate`
 - Period / report generation (`src/app/api/admin/reports/generate/route.ts`)
-
-Classification for those: `MIGRATE_TO_INNGEST`, P1. Not migrated in Prompt 1.
+- Scheme PDF AI (Prompt 4 import)
 
 ---
 
@@ -273,14 +278,15 @@ These future `BackgroundJob` kinds are registered as metadata. **Workers stay on
 | `IMAP_RECOVERY` | §2 |
 | `COMMUNICATION_OUTBOX` | §3 |
 | `SCHOOL_PROVISIONING` | §4 |
-| `EXPLORE_GENERATION` | §5 |
+| `EXPLORE_GENERATION` | §5 — Prompt 3 worker |
 | `LIBRARY_IMPORT` | §6 |
 | `SCHEME_IMPORT` | §7 |
 | `FINANCE_RECONCILIATION` | §9 reconciliation |
 | `SUBSCRIPTION_MAINTENANCE` | renewal / plan-change crons |
-| `AI_LESSON_GENERATION` | future long lesson generation |
-| `AI_CONTENT_GENERATION` | course/module/content |
-| `AI_DOCUMENT_ANALYSIS` | document AI |
+| `AI_LESSON_GENERATION` | Prompt 3 worker |
+| `AI_LESSON_ILLUSTRATION` | Prompt 3 worker |
+| `AI_CONTENT_GENERATION` | course/module/content placeholder |
+| `AI_DOCUMENT_ANALYSIS` | document AI placeholder |
 | `BULK_IMPORT` | future generic imports |
 | `REPORT_GENERATION` | long reports |
 | `STORAGE_PURGE` | delayed R2 purge |

@@ -271,6 +271,9 @@ export async function runLessonsLeoCompletion(args: {
   maxTokens?: number;
   /** Override model. Defaults to "gpt-4o-mini". Use "gpt-4o" for deep content generation. */
   model?: "gpt-4o-mini" | "gpt-4o";
+  /** Skip usage writes when a background checkpoint already recorded this call. */
+  recordUsage?: boolean;
+  timeoutMs?: number;
 }): Promise<
   | {
       ok: true;
@@ -283,7 +286,10 @@ export async function runLessonsLeoCompletion(args: {
     }
   | { ok: false; error: string }
 > {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+    timeout: args.timeoutMs ?? 90_000,
+  });
   let completion;
   try {
     completion = await openai.chat.completions.create({
@@ -326,26 +332,28 @@ export async function runLessonsLeoCompletion(args: {
     }
   }
 
-  await trackUsage({
-    schoolId: args.context.schoolId,
-    provider: "openai",
-    metricKey: "ai_calls",
-    quantity: 1,
-    unitLabel: "calls",
-    allocationMethod: "direct",
-    sourceType: "manual",
-    notes: "Leo lessons draft API.",
-  });
-  await trackUsage({
-    schoolId: args.context.schoolId,
-    provider: "openai",
-    metricKey: "total_tokens",
-    quantity: Math.max(0, Number(completion.usage?.total_tokens || 0)),
-    unitLabel: "tokens",
-    allocationMethod: "direct",
-    sourceType: "manual",
-    notes: "Leo lessons draft token usage.",
-  });
+  if (args.recordUsage !== false) {
+    await trackUsage({
+      schoolId: args.context.schoolId,
+      provider: "openai",
+      metricKey: "ai_calls",
+      quantity: 1,
+      unitLabel: "calls",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Leo lessons draft API.",
+    });
+    await trackUsage({
+      schoolId: args.context.schoolId,
+      provider: "openai",
+      metricKey: "total_tokens",
+      quantity: Math.max(0, Number(completion.usage?.total_tokens || 0)),
+      unitLabel: "tokens",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Leo lessons draft token usage.",
+    });
+  }
 
   return {
     ok: true,

@@ -25,8 +25,8 @@ import {
   EXPLORE_GENERATION_RETRY_AFTER_SECONDS,
   findReadyExploreAdventure,
   markJobStatus,
-  tryClaimExploreGenerationJob,
 } from "@/lib/learn/explore/explore-generation.service";
+import { enqueueExploreGenerationWork } from "@/lib/learn/explore/enqueue-explore-generation";
 import { buildGuidedAdventureContentV2 } from "@/lib/learn/explore/explore-schemas";
 import type {
   ExploreGenerationMode,
@@ -128,18 +128,67 @@ async function hydrateReadyAdventure(input: {
   });
 }
 
+export async function runExploreGenerationPipeline(input: {
+  auth: LearnMobileStudentContext;
+  jobId: Types.ObjectId;
+  mode: ExploreGenerationMode;
+  exploreContext: ResolvedExploreGenerationContext;
+  existingAdventureId?: Types.ObjectId;
+  onProgress?: (stage: "generating" | "safety_checking" | "repairing" | "saving") => Promise<void>;
+}) {
+  return runGenerationPipelineSafely(input);
+}
+
 async function runGenerationPipeline(input: {
   auth: LearnMobileStudentContext;
   jobId: Types.ObjectId;
   mode: ExploreGenerationMode;
   exploreContext: ResolvedExploreGenerationContext;
   existingAdventureId?: Types.ObjectId;
+  onProgress?: (stage: "generating" | "safety_checking" | "repairing" | "saving") => Promise<void>;
 }) {
   const ctx = input.exploreContext;
 
   await markJobStatus(input.jobId, "generating");
+  await input.onProgress?.("generating");
 
-  const aiResult = await generateExploreAiContent({ context: ctx, mode: input.mode });
+  const existingJob = await ExploreGenerationJob.findById(input.jobId)
+    .select("providerCheckpoint")
+    .lean<{ providerCheckpoint?: { output?: unknown; usageRecorded?: boolean } | null } | null>();
+
+  let aiResult: Awaited<ReturnType<typeof generateExploreAiContent>>;
+  if (existingJob?.providerCheckpoint?.output) {
+    aiResult = {
+      ok: true,
+      output: existingJob.providerCheckpoint.output as Awaited<
+        ReturnType<typeof generateExploreAiContent>
+      > extends { ok: true; output: infer T }
+        ? T
+        : never,
+      provider: "checkpoint",
+      model: "checkpoint",
+      promptVersion: "checkpoint",
+      temperature: 0,
+      usedTemplateFallback: false,
+    };
+  } else {
+    aiResult = await generateExploreAiContent({ context: ctx, mode: input.mode });
+    if (aiResult.ok) {
+      await ExploreGenerationJob.updateOne(
+        { _id: input.jobId },
+        {
+          $set: {
+            providerCheckpoint: {
+              output: aiResult.output,
+              provider: aiResult.provider,
+              model: aiResult.model,
+              usageRecorded: true,
+            },
+          },
+        }
+      );
+    }
+  }
   if (!aiResult.ok) {
     await markJobStatus(input.jobId, "failed", {
       errorCode: "AI_GENERATION_FAILED",
@@ -176,6 +225,7 @@ async function runGenerationPipeline(input: {
 
   while (repairAttempts <= EXPLORE_MAX_SAFETY_REPAIR_ATTEMPTS) {
     await markJobStatus(input.jobId, repairAttempts > 0 ? "repairing" : "safety_checking");
+    await input.onProgress?.(repairAttempts > 0 ? "repairing" : "safety_checking");
 
     const review = reviewExploreContentSafety({
       content,
@@ -185,6 +235,7 @@ async function runGenerationPipeline(input: {
 
     if (review.outcome === "passed" || review.outcome === "teacher_review_required") {
       const safetyResult = toExploreSafetyResult(review, repairAttempts);
+      await input.onProgress?.("saving");
 
       const saved = await saveExploreAdventureBundle({
         generationKey: ctx.generationKey,
@@ -239,6 +290,7 @@ async function runGenerationPipeline(input: {
         ok: true as const,
         generationKey: ctx.generationKey,
         adventureId: buildExploreAdventureId(saved.adventure._id),
+        snapshotId: String(saved.snapshot._id),
         adventure,
       };
     }
@@ -344,39 +396,18 @@ async function runGenerationPipelineSafely(
   }
 }
 
-/** Claim and run the Leo pipeline for an existing job (feed kickoff, delivery schedule, etc.). */
+/** Enqueue Inngest work for an existing domain job. Does not call the provider. */
 export async function runExploreGenerationForClaimedJob(input: {
   auth: LearnMobileStudentContext;
   jobId: Types.ObjectId;
   mode?: ExploreGenerationMode;
 }): Promise<void> {
   await connectToDatabase();
-
   const job = await ExploreGenerationJob.findById(input.jobId).lean<IExploreGenerationJob | null>();
   if (!job) return;
-
-  const resolved = await resolveExploreGenerationContext({
-    auth: input.auth,
-    lessonId: `session-${job.lessonId}`,
-    subjectId: String(job.subjectOfferingId),
-  });
-
-  if (!resolved.ok) {
-    await markJobStatus(job._id, "failed", {
-      errorCode: resolved.code,
-      errorMessage: resolved.message,
-    });
-    return;
-  }
-
-  const claimed = await tryClaimExploreGenerationJob(job._id);
-  if (!claimed) return;
-
-  await runGenerationPipelineSafely({
-    auth: input.auth,
-    jobId: claimed._id,
-    mode: input.mode ?? job.mode ?? "go_deeper",
-    exploreContext: resolved.context,
+  await enqueueExploreGenerationWork({
+    exploreJob: job,
+    trigger: "system",
   });
 }
 
@@ -497,6 +528,10 @@ export async function lazyGenerateOrGetExploreAdventure(
   }
 
   if (jobResult.kind === "generating") {
+    await enqueueExploreGenerationWork({
+      exploreJob: jobResult.job,
+      trigger: "student",
+    });
     const fallbackAdventures = await loadFallbackExploreAdventures({
       auth: context,
       excludeGenerationKey: jobResult.generationKey,
@@ -531,98 +566,23 @@ export async function lazyGenerateOrGetExploreAdventure(
     };
   }
 
-  const claimed = await tryClaimExploreGenerationJob(jobResult.job._id);
-
-  if (!claimed) {
-    const freshJob = await ExploreGenerationJob.findById(jobResult.job._id).lean();
-    const fallbackAdventures = await loadFallbackExploreAdventures({
-      auth: context,
-      excludeGenerationKey: ctx.generationKey,
-    });
-
-    const state =
-      freshJob?.status === "safety_checking"
-        ? "safety_checking"
-        : freshJob?.status === "repairing"
-          ? "repairing"
-          : freshJob?.status === "ready"
-            ? "generating"
-            : "generating";
-
-    if (freshJob?.status === "ready" && freshJob.adventureId) {
-      const adventure = await hydrateReadyAdventure({
-        auth: context,
-        adventureId: freshJob.adventureId,
-        relatedLessonTitles: ctx.relatedLessonTitles,
-      });
-
-      if (adventure) {
-        return {
-          ok: true,
-          data: {
-            state: "ready",
-            adventureId: adventure.id,
-            adventure,
-            generationKey: ctx.generationKey,
-          },
-        };
-      }
-    }
-
-    return {
-      ok: true,
-      data: {
-        state: state === "generating" ? state : "generating",
-        generationKey: ctx.generationKey,
-        message: "Leo is preparing this Explore mission.",
-        retryAfterSeconds: EXPLORE_GENERATION_RETRY_AFTER_SECONDS,
-        fallbackAdventures,
-      },
-    };
-  }
-
-  const pipeline = await runGenerationPipelineSafely({
-    auth: context,
-    jobId: claimed._id,
-    mode,
-    exploreContext: ctx,
+  await enqueueExploreGenerationWork({
+    exploreJob: jobResult.job,
+    trigger: "student",
   });
-
-  if (pipeline.ok) {
-    return {
-      ok: true,
-      data: {
-        state: "ready",
-        adventureId: pipeline.adventureId,
-        adventure: pipeline.adventure,
-        generationKey: pipeline.generationKey,
-      },
-    };
-  }
 
   const fallbackAdventures = await loadFallbackExploreAdventures({
     auth: context,
     excludeGenerationKey: ctx.generationKey,
   });
 
-  if ("state" in pipeline && pipeline.state === "blocked") {
-    return {
-      ok: true,
-      data: {
-        state: "blocked",
-        generationKey: pipeline.generationKey,
-        message: pipeline.message,
-        fallbackAdventures,
-      },
-    };
-  }
-
   return {
     ok: true,
     data: {
-      state: "failed",
+      state: "generating",
       generationKey: ctx.generationKey,
-      message: pipeline.message ?? "Leo could not prepare this Explore mission.",
+      message: "Leo is preparing this Explore mission.",
+      retryAfterSeconds: EXPLORE_GENERATION_RETRY_AFTER_SECONDS,
       fallbackAdventures,
     },
   };
@@ -715,16 +675,6 @@ export async function adminRegenerateExploreAdventure(input: {
     flashcardHints: [],
   };
 
-  const auth: LearnMobileStudentContext = {
-    schoolId: input.schoolId,
-    studentId: input.reviewerId,
-    sessionId: input.reviewerId,
-    accountId: input.reviewerId,
-    gradeId: null,
-    classGroupId: adventure.classGroupId,
-    mustChangePassword: false,
-  };
-
   const mode = input.mode ?? "go_deeper";
 
   let job: IExploreGenerationJob | null = await ExploreGenerationJob.findOne({
@@ -773,47 +723,23 @@ export async function adminRegenerateExploreAdventure(input: {
     return { ok: false, message: "Could not start regeneration job." };
   }
 
-  const claimed = await tryClaimExploreGenerationJob(job._id);
-  if (!claimed) {
-    return {
-      ok: true,
-      state: "generating",
-      generationKey: exploreContext.generationKey,
-      message: "Leo is already regenerating this mission.",
-      retryAfterSeconds: EXPLORE_GENERATION_RETRY_AFTER_SECONDS,
-    };
-  }
+  await ExploreGenerationJob.updateOne(
+    { _id: job._id },
+    { $unset: { providerCheckpoint: 1 } }
+  );
 
-  const pipeline = await runGenerationPipelineSafely({
-    auth,
-    jobId: claimed._id,
-    mode,
-    exploreContext,
-    existingAdventureId: adventure._id,
+  await enqueueExploreGenerationWork({
+    exploreJob: job,
+    trigger: "admin",
+    initiatedByUserId: input.reviewerId,
+    sessionId: adventure.lessonId,
   });
-
-  if (pipeline.ok) {
-    return {
-      ok: true,
-      state: "ready",
-      adventureId: pipeline.adventureId,
-      message: "Leo regenerated this Explore mission with a new content snapshot.",
-    };
-  }
-
-  if ("state" in pipeline && pipeline.state === "blocked") {
-    return {
-      ok: true,
-      state: "blocked",
-      generationKey: pipeline.generationKey,
-      message: pipeline.message,
-    };
-  }
 
   return {
     ok: true,
-    state: "failed",
+    state: "generating",
     generationKey: exploreContext.generationKey,
-    message: pipeline.message ?? "Regeneration failed.",
+    message: "Leo is regenerating this Explore mission.",
+    retryAfterSeconds: EXPLORE_GENERATION_RETRY_AFTER_SECONDS,
   };
 }

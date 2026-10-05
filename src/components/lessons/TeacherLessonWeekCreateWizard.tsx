@@ -51,7 +51,12 @@ import { cn } from "@/lib/utils";
 import type { CreateWeekPlanSessionInput } from "@/types/lessons-v2";
 import type { LessonContentBlock, WeekSplitSessionProposal } from "@/types/lesson-content-blocks";
 import { LessonContentBlocksEditor } from "@/components/lessons/LessonContentBlocksEditor";
-import { useGenerateSessionContent, useProposeWeekSplit } from "@/hooks/teacher/useLessonsLeo";
+import {
+  fetchLessonGenerationRequest,
+  pollLessonGenerationRequest,
+  useGenerateSessionContent,
+  useProposeWeekSplit,
+} from "@/hooks/teacher/useLessonsLeo";
 import { validateCoverageWeights } from "@/lib/lessons/coverage-weights";
 import { normalizeSplittableSectionKeys } from "@/lib/lessons/splittable-section-keys";
 import {
@@ -134,7 +139,7 @@ function buildSessionGenerationPayload(
   index: number,
   includedSlots: SlotDraft[],
   priorHandoffs: PriorSessionHandoff[],
-): GenerateSessionContentInput["session"] {
+): NonNullable<GenerateSessionContentInput["session"]> {
   const sequenceInWeek = index + 1;
   const previousSlot = index > 0 ? includedSlots[index - 1] : null;
 
@@ -158,16 +163,28 @@ function buildSessionGenerationPayload(
             summarizeContentBlocksForHandoff(previousSlot.contentBlocks) ?? undefined,
         }
       : undefined,
-    priorSessions: priorHandoffs.length > 0 ? priorHandoffs : undefined,
+    priorSessions:
+      priorHandoffs.length > 0
+        ? priorHandoffs.map((handoff) => ({
+            title: handoff.title,
+            focusSummary: handoff.focusSummary ?? undefined,
+            keyPointsSummary: handoff.keyPointsSummary ?? undefined,
+          }))
+        : undefined,
   };
 }
 
 type Props = {
   noteId: string;
   initialClassGroupId?: string | null;
+  generationRequestId?: string | null;
 };
 
-export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: Props) {
+export function TeacherLessonWeekCreateWizard({
+  noteId,
+  initialClassGroupId,
+  generationRequestId,
+}: Props) {
   const router = useRouter();
   const busyToast = useBusyToast();
   const [step, setStep] = React.useState<WizardStep>("context");
@@ -334,39 +351,45 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
     [],
   );
 
-  const generateAllSessionContent = async () => {
-    if (!leoEnabled || includedSlots.length === 0) return;
-    const generated = new Map<string, LessonContentBlock[]>();
-    await busyToast.promise(
-      (async () => {
-        const priorHandoffs: PriorSessionHandoff[] = [];
-        for (let index = 0; index < includedSlots.length; index += 1) {
-          const slot = includedSlots[index]!;
-          const blocks = await generateContent.mutateAsync({
-            lessonNoteId: noteId,
-            session: buildSessionGenerationPayload(slot, index, includedSlots, priorHandoffs),
-          });
-          generated.set(slot.slotDraftId, blocks);
-          priorHandoffs.push({
-            title: slot.title,
-            focusSummary: slot.focusSummary ?? null,
-            keyPointsSummary: summarizeContentBlocksForHandoff(blocks),
-          });
-        }
-      })(),
-      {
-        loading: "Generating teachable content for all sessions...",
-        success: "Session content generated",
-        error: (e) => (e instanceof Error ? e.message : "Content generation failed"),
-      },
-    );
-
+  const applyGenerationDraft = React.useCallback((draft: Awaited<ReturnType<typeof fetchLessonGenerationRequest>>) => {
+    const bySlot = new Map(draft.slots.map((slot) => [slot.slotDraftId, slot.contentBlocks]));
     setSlotDrafts((prev) =>
       prev.map((slot) => {
-        const blocks = generated.get(slot.slotDraftId);
-        return blocks ? { ...slot, contentBlocks: blocks } : slot;
+        const blocks = bySlot.get(slot.slotDraftId);
+        return blocks?.length ? { ...slot, contentBlocks: blocks } : slot;
       }),
     );
+  }, []);
+
+  React.useEffect(() => {
+    if (!generationRequestId) return;
+    void fetchLessonGenerationRequest(generationRequestId)
+      .then(applyGenerationDraft)
+      .catch(() => null);
+  }, [applyGenerationDraft, generationRequestId]);
+
+  const generateAllSessionContent = async () => {
+    if (!leoEnabled || includedSlots.length === 0 || !classGroupId) return;
+    try {
+      const accepted = await generateContent.mutateAsync({
+        lessonNoteId: noteId,
+        regenerate: includedSlots.some((slot) => slot.contentBlocks.length > 0),
+        weekBatch: {
+          classGroupId,
+          weekStartDate: ctx?.weekStartDate,
+          slots: includedSlots.map((slot, index) => ({
+            ...buildSessionGenerationPayload(slot, index, includedSlots, []),
+            slotDraftId: slot.slotDraftId,
+          })),
+        },
+      });
+      busyToast.success("Generation started. You can continue working.");
+      const draft = await pollLessonGenerationRequest(accepted.generationRequestId);
+      applyGenerationDraft(draft);
+      busyToast.success("Session content generated");
+    } catch (error) {
+      busyToast.error(error instanceof Error ? error.message : "Content generation failed");
+    }
   };
 
   React.useEffect(() => {
@@ -384,7 +407,6 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
         sequenceInWeek: index + 1,
         title: s.title,
         durationMinutes: s.durationMinutes,
-        scheduledDate: s.scheduledDate,
         startTime: s.startTime,
         endTime: s.endTime,
         periodCount: s.periodCount,
@@ -1088,29 +1110,57 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                             focusSummary: s.focusSummary ?? null,
                             keyPointsSummary: summarizeContentBlocksForHandoff(s.contentBlocks),
                           }));
-                        const blocks = await busyToast.promise(
-                          generateContent.mutateAsync({
+                        try {
+                          const accepted = await generateContent.mutateAsync({
                             lessonNoteId: noteId,
-                            session: buildSessionGenerationPayload(
-                              activeSlot,
-                              Math.max(0, activeIndex),
-                              includedSlots,
-                              priorHandoffs,
+                            regenerate: activeSlot.contentBlocks.length > 0,
+                            session: {
+                              ...buildSessionGenerationPayload(
+                                activeSlot,
+                                Math.max(0, activeIndex),
+                                includedSlots,
+                                priorHandoffs,
+                              ),
+                              slotDraftId: activeSlot.slotDraftId,
+                            },
+                            weekBatch: classGroupId
+                              ? {
+                                  classGroupId,
+                                  weekStartDate: ctx?.weekStartDate,
+                                  slots: [
+                                    {
+                                      ...buildSessionGenerationPayload(
+                                        activeSlot,
+                                        Math.max(0, activeIndex),
+                                        includedSlots,
+                                        priorHandoffs,
+                                      ),
+                                      slotDraftId: activeSlot.slotDraftId,
+                                    },
+                                  ],
+                                }
+                              : undefined,
+                          });
+                          busyToast.success("Generation started. You can continue working.");
+                          const draft = await pollLessonGenerationRequest(
+                            accepted.generationRequestId,
+                          );
+                          const blocks =
+                            draft.slots.find((slot) => slot.slotDraftId === activeSlot.slotDraftId)
+                              ?.contentBlocks ??
+                            draft.slots[0]?.contentBlocks ??
+                            [];
+                          setSlotDrafts((prev) =>
+                            prev.map((s) =>
+                              s.slotDraftId === activeSlot.slotDraftId
+                                ? { ...s, contentBlocks: blocks }
+                                : s,
                             ),
-                          }),
-                          {
-                            loading: "Generating content…",
-                            success: "Blocks generated",
-                            error: (e) => (e instanceof Error ? e.message : "Failed"),
-                          },
-                        );
-                        setSlotDrafts((prev) =>
-                          prev.map((s) =>
-                            s.slotDraftId === activeSlot.slotDraftId
-                              ? { ...s, contentBlocks: blocks }
-                              : s,
-                          ),
-                        );
+                          );
+                          busyToast.success("Blocks generated");
+                        } catch (error) {
+                          busyToast.error(error instanceof Error ? error.message : "Failed");
+                        }
                       }
                     : undefined
                 }

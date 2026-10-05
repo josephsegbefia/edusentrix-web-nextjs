@@ -97,6 +97,8 @@ export interface ILessonSession {
   /** Teacher session plan (manual, Phase B). */
   planNotes?: string | null;
   contentBlocks: ILessonContentBlock[];
+  /** AI draft waiting for teacher review/apply. Never auto-published. */
+  pendingAiContentBlocks?: ILessonContentBlock[];
   teachingDeck?: TeachingDeck | null;
   aiMetadata?: ILessonSessionAiMetadata;
   assessmentItems: ILessonAssessmentItem[];
@@ -261,6 +263,7 @@ const lessonSessionSchema = new Schema<ILessonSession>(
     contentVersion: { type: Number, default: 1 },
     planNotes: { type: String, trim: true, maxlength: 12000, default: null },
     contentBlocks: { type: [contentBlockSchema], default: [] },
+    pendingAiContentBlocks: { type: [contentBlockSchema], default: [] },
     assessmentItems: { type: [assessmentItemSchema], default: [] },
     boardNotes: { type: boardNotesSchema, default: null },
     notebookNotesPublished: { type: Boolean, default: false },

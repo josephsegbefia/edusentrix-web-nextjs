@@ -17,7 +17,6 @@ import {
   createExploreGenerationJob,
   EXPLORE_GENERATION_RETRY_AFTER_SECONDS,
 } from "@/lib/learn/explore/explore-generation.service";
-import { runExploreGenerationForClaimedJob } from "@/lib/learn/explore/explore-lazy-generate.service";
 import type { ExploreGenerationJobStatus } from "@/lib/learn/explore/explore-types";
 import {
   buildQuizSubmitResponse,
@@ -425,10 +424,12 @@ export async function getLazyExploreGenerationStatus(
   });
 
   if (refreshed.kind === "job_created") {
-    await runExploreGenerationForClaimedJob({
-      auth: context,
-      jobId: refreshed.job._id,
-      mode: refreshed.job.mode,
+    const { enqueueExploreGenerationWork } = await import(
+      "@/lib/learn/explore/enqueue-explore-generation"
+    );
+    await enqueueExploreGenerationWork({
+      exploreJob: refreshed.job,
+      trigger: "student",
     });
 
     job = await ExploreGenerationJob.findById(refreshed.job._id).lean<IExploreGenerationJob | null>();

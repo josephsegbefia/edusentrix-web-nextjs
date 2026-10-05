@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import type {
-  GenerateSessionContentResponse,
   LessonContentBlock,
   ProposeWeekSplitResponse,
   WeekSplitSessionProposal,
@@ -40,7 +39,7 @@ export function useProposeWeekSplit() {
 export type GenerateSessionContentInput = {
   lessonNoteId: string;
   sessionId?: string;
-  session: {
+  session?: {
     title: string;
     durationMinutes: number;
     noteSectionKeys: string[];
@@ -52,6 +51,7 @@ export type GenerateSessionContentInput = {
     isDoublePeriod?: boolean;
     focusSummary?: string;
     sequenceInWeek?: number;
+    slotDraftId?: string;
     previousSession?: {
       title: string;
       focusSummary?: string;
@@ -63,7 +63,64 @@ export type GenerateSessionContentInput = {
       keyPointsSummary?: string;
     }>;
   };
+  weekBatch?: {
+    classGroupId: string;
+    weekStartDate?: string;
+    slots: NonNullable<GenerateSessionContentInput["session"]>[];
+  };
+  regenerate?: boolean;
 };
+
+export type EnqueuedLessonGeneration = {
+  jobId: string;
+  generationRequestId: string;
+  status: string;
+};
+
+export type LessonGenerationRequestDto = {
+  id: string;
+  status: string;
+  lastError?: string | null;
+  slots: Array<{
+    slotDraftId: string;
+    title: string;
+    status: string;
+    contentBlocks: LessonContentBlock[];
+    error?: string | null;
+  }>;
+  job?: { status: string; progressPercent: number; progressMessage: string | null } | null;
+};
+
+export async function fetchLessonGenerationRequest(
+  generationRequestId: string
+): Promise<LessonGenerationRequestDto> {
+  const res = await fetch(`/api/leo/lessons/generation-requests/${generationRequestId}`, {
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.success) {
+    throw new Error(json?.error || "Failed to load generation draft");
+  }
+  return json.data as LessonGenerationRequestDto;
+}
+
+export async function pollLessonGenerationRequest(
+  generationRequestId: string,
+  options?: { intervalMs?: number; timeoutMs?: number }
+): Promise<LessonGenerationRequestDto> {
+  const intervalMs = options?.intervalMs ?? 2500;
+  const timeoutMs = options?.timeoutMs ?? 8 * 60_000;
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const draft = await fetchLessonGenerationRequest(generationRequestId);
+    if (draft.status === "succeeded") return draft;
+    if (draft.status === "failed" || draft.status === "cancelled") {
+      throw new Error(draft.lastError || "Lesson generation failed");
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error("Lesson generation is still running. You can keep working and open it from notifications.");
+}
 
 export function useGenerateSessionContent() {
   return useMutation({
@@ -73,11 +130,15 @@ export function useGenerateSessionContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const json = (await res.json().catch(() => null)) as GenerateSessionContentResponse | null;
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || "Failed to generate session content");
+      const json = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        error?: string;
+        data?: EnqueuedLessonGeneration;
+      } | null;
+      if (!res.ok || !json?.success || !json.data) {
+        throw new Error(json?.error || "Failed to start lesson generation");
       }
-      return json.data?.contentBlocks ?? ([] as LessonContentBlock[]);
+      return json.data;
     },
   });
 }

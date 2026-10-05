@@ -55,6 +55,7 @@ export function formatLessonSessionDetail(input: {
     status: s.status,
     planNotes: s.planNotes?.trim() || null,
     contentBlocks: normalizeContentBlocks(s.contentBlocks ?? []),
+    pendingAiContentBlocks: normalizeContentBlocks(s.pendingAiContentBlocks ?? []),
     contentVersion: s.contentVersion || 1,
     unreviewedAiBlockCount: countUnreviewedAiBlocks(normalizeContentBlocks(s.contentBlocks ?? [])),
     studentVisibility: s.studentVisibility,

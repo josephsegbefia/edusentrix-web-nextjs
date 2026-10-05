@@ -1,9 +1,9 @@
-import { NextRequest, after } from "next/server";
-import { connectToDatabase } from "@/db/connectToDatabase";
+import { NextRequest } from "next/server";
 import { requireLearnMobileStudent } from "@/lib/learn/mobile-auth";
 import { USE_LAZY_EXPLORE } from "@/lib/learn/explore/explore-flags";
 import { kickoffLazyExploreFeedGeneration } from "@/lib/learn/explore/explore-feed-kickoff.service";
-import { runExploreGenerationForClaimedJob } from "@/lib/learn/explore/explore-lazy-generate.service";
+import { enqueueExploreGenerationWork } from "@/lib/learn/explore/enqueue-explore-generation";
+import { ExploreGenerationJob } from "@/models/ExploreGenerationJob";
 import { buildLazyExploreAdventuresFeed } from "@/lib/learn/explore/explore-mobile.service";
 import { buildMobileExploreAdventuresList } from "@/lib/learn/mobile-explore";
 import { mobileApiFailure, mobileApiSuccess } from "@/lib/learn/mobile-api-response";
@@ -15,17 +15,13 @@ export async function GET(request: NextRequest) {
   if (USE_LAZY_EXPLORE) {
     const kickoff = await kickoffLazyExploreFeedGeneration(auth.context);
     if (kickoff.runInBackground && kickoff.jobId) {
-      after(async () => {
-        try {
-          await connectToDatabase();
-          await runExploreGenerationForClaimedJob({
-            auth: auth.context,
-            jobId: kickoff.jobId!,
-          });
-        } catch (error) {
-          console.error("[learn/mobile/explore/adventures] background generation:", error);
-        }
-      });
+      const job = await ExploreGenerationJob.findById(kickoff.jobId);
+      if (job) {
+        await enqueueExploreGenerationWork({
+          exploreJob: job,
+          trigger: "system",
+        });
+      }
     }
   }
 

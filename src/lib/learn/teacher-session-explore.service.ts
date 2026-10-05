@@ -11,7 +11,7 @@ import {
   createExploreGenerationJob,
   findReadyExploreAdventure,
 } from "@/lib/learn/explore/explore-generation.service";
-import { runExploreGenerationForClaimedJob } from "@/lib/learn/explore/explore-lazy-generate.service";
+import { enqueueExploreGenerationWork } from "@/lib/learn/explore/enqueue-explore-generation";
 import { loadExploreSnapshotForAdventure } from "@/lib/learn/explore/explore-content.service";
 import { applyTeacherExploreAdminReview } from "@/lib/learn/learn-explore-qa";
 import {
@@ -353,21 +353,12 @@ export async function generateTeacherSessionExplore(input: {
     };
   }
 
-  const jobId = jobResult.job._id;
-  const run = await runExploreGenerationForClaimedJob({
-    jobId,
-    auth: worker,
+  await enqueueExploreGenerationWork({
+    exploreJob: jobResult.job,
+    trigger: "teacher",
+    initiatedByUserId: input.userId,
+    sessionId: session._id,
   });
-
-  if (run.ok && "adventureId" in run) {
-    const adventureOid = run.adventureId.replace(/^adventure-/, "");
-    if (Types.ObjectId.isValid(adventureOid)) {
-      await ExploreAdventure.updateOne(
-        { _id: adventureOid },
-        { $set: { createdBy: "teacher" } },
-      );
-    }
-  }
 
   return {
     ok: true as const,

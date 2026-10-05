@@ -84,6 +84,7 @@ export type LessonSessionDetailDto = LessonWeekPlanSessionDto & {
   sharedClassGroupIds?: string[];
   subjectOfferingId: string;
   contentBlocks: LessonContentBlock[];
+  pendingAiContentBlocks?: LessonContentBlock[];
   contentVersion: number;
   unreviewedAiBlockCount: number;
   studentVisibility: "hidden" | "published";

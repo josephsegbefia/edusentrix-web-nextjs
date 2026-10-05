@@ -14,6 +14,7 @@ export default function TeacherLessonWeekCreatePage() {
   const searchParams = useSearchParams();
   const noteId = searchParams.get("noteId")?.trim() || "";
   const classGroupId = searchParams.get("classGroupId")?.trim() || null;
+  const generationRequestId = searchParams.get("generationRequestId")?.trim() || null;
 
   const { data: contextData } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
@@ -53,5 +54,11 @@ export default function TeacherLessonWeekCreatePage() {
     );
   }
 
-  return <TeacherLessonWeekCreateWizard noteId={noteId} initialClassGroupId={classGroupId} />;
+  return (
+    <TeacherLessonWeekCreateWizard
+      noteId={noteId}
+      initialClassGroupId={classGroupId}
+      generationRequestId={generationRequestId}
+    />
+  );
 }

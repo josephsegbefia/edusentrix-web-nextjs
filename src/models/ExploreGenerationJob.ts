@@ -26,6 +26,13 @@ export interface IExploreGenerationJob {
   lockExpiresAt?: Date | null;
   errorCode?: string | null;
   errorMessage?: string | null;
+  backgroundJobId?: Types.ObjectId | null;
+  providerCheckpoint?: {
+    output?: unknown;
+    provider?: string;
+    model?: string;
+    usageRecorded?: boolean;
+  } | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -101,6 +108,8 @@ const exploreGenerationJobSchema = new Schema<IExploreGenerationJob>(
     lockExpiresAt: { type: Date, default: null, index: true },
     errorCode: { type: String, default: null, trim: true },
     errorMessage: { type: String, default: null, trim: true },
+    backgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null },
+    providerCheckpoint: { type: Schema.Types.Mixed, default: null },
   },
   { timestamps: true }
 );

@@ -65,7 +65,7 @@ Implemented with `serve` from `inngest/next` (v4 exports `GET`, `POST`, `PUT`).
 
 Clerk middleware allowlists `/api/inngest(.*)` the same way as `/api/cron` and webhooks. There is no custom bypass header. Demo host also allowlists `/api/inngest`.
 
-Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`.
+Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`. Prompt 3 always registers `AI_LESSON_GENERATION`, `EXPLORE_GENERATION`, and `AI_LESSON_ILLUSTRATION`.
 
 ## Environment variables
 
@@ -181,8 +181,21 @@ Outbound delivery and invitation retries use `BackgroundJob` kind `EMAIL_DISPATC
 
 See [BACKGROUND_WORK_ENGINE_EMAIL_MIGRATION.md](./BACKGROUND_WORK_ENGINE_EMAIL_MIGRATION.md).
 
+## Prompt 3 AI generation
+
+Long-running lesson content, Explore adventures, and lesson illustrations enqueue `BackgroundJob` and return HTTP 202. Conversational Leo stays request-bound.
+
+- Domain requests: `LessonAiGenerationRequest`, `ExploreGenerationJob` (domain state), `LessonIllustrationRequest`.
+- Workers persist drafts only. No auto-publish.
+- Inngest AI concurrency: global 6 + per-school 2.
+- Explore student/system jobs do not notify. Teacher/admin jobs do.
+- Dry-run leftover Explore jobs: `scripts/migrate-explore-generation-jobs-to-background-engine.ts`.
+- Production unique indexes: `scripts/ensure-ai-generation-indexes.ts` (dry-run default).
+
+See [BACKGROUND_WORK_ENGINE_AI_MIGRATION.md](./BACKGROUND_WORK_ENGINE_AI_MIGRATION.md).
+
 ## Prompt 1 vs later
 
-Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), EMAIL_DISPATCH worker, GET/LIST/cancel, notifications, health, index script, email migration script, tests.
+Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), EMAIL_DISPATCH worker, AI lesson/Explore/illustration workers, GET/LIST/cancel, notifications, health, index script, email + Explore migration scripts, tests.
 
-Not migrated: ProvisioningJob, CommunicationOutboxJob, ExploreGenerationJob, LibraryImportJob, SchemeImportJob, AI generation, IMAP recovery cron, R2 purge, backups.
+Not migrated: ProvisioningJob, CommunicationOutboxJob, LibraryImportJob, SchemeImportJob, IMAP recovery cron, R2 purge, backups, Task Center UI.

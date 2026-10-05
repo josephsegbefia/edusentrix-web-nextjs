@@ -347,22 +347,19 @@ export function IllustrationBlockEditor({ block, onChange, readOnly, schoolId }:
     }
     setGenerating(true);
     try {
-      const res = await fetch("/api/leo/lessons/generate-illustration-draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, sessionTitle: block.title || "Lesson illustration" }),
+      const { enqueueAndPollIllustrationDraft } = await import(
+        "@/lib/lessons/poll-illustration-request"
+      );
+      const draft = await enqueueAndPollIllustrationDraft({
+        prompt,
+        sessionTitle: block.title || "Lesson illustration",
       });
-      const json = (await res.json()) as {
-        success?: boolean;
-        error?: string;
-        data?: { imageUrl: string; uploadThingKey?: string };
-      };
-      if (!res.ok || !json.success || !json.data?.imageUrl) {
-        throw new Error(json.error || "Could not generate illustration draft.");
+      if (!draft.imageUrl) {
+        throw new Error("Could not generate illustration draft.");
       }
-      const uploadKey = json.data.uploadThingKey;
+      const uploadKey = draft.uploadThingKey;
       onChange({
-        resourceUrl: json.data.imageUrl,
+        resourceUrl: draft.imageUrl,
         ...patchAssetMeta(block, {
           assetKind: "illustration",
           assetStatus: "draft",

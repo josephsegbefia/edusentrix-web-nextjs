@@ -167,6 +167,7 @@ export async function generateLessonIllustrationDraft(input: {
   fact?: string;
   detail?: string;
   sessionTitle?: string;
+  recordUsage?: boolean;
 }): Promise<
   | { ok: true; imageUrl: string; uploadThingKey: string; generationPrompt: string }
   | { ok: false; error: string }
@@ -179,7 +180,7 @@ export async function generateLessonIllustrationDraft(input: {
     return { ok: false, error: "Provide a fact card or illustration prompt." };
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 120_000 });
   const plannerModels = resolvePlannerModels();
   const imageModels = resolveImageModels();
 
@@ -217,6 +218,10 @@ export async function generateLessonIllustrationDraft(input: {
     aiCallCount += 1;
     renderNote = `png:${generated.model}`;
 
+    if (!generated.result) {
+      return { ok: false, error: "Leo could not render an illustration image." };
+    }
+
     if (generated.result.buffer) {
       pngBuffer = generated.result.buffer;
     } else if (generated.result.remoteUrl) {
@@ -227,16 +232,18 @@ export async function generateLessonIllustrationDraft(input: {
         fileName,
       });
 
-      await trackUsage({
-        schoolId: input.schoolId,
-        provider: "openai",
-        metricKey: "ai_calls",
-        quantity: aiCallCount,
-        unitLabel: "calls",
-        allocationMethod: "direct",
-        sourceType: "manual",
-        notes: `Leo lesson illustration draft (${renderNote}, ${aiCallCount} steps).`,
-      });
+      if (input.recordUsage !== false) {
+        await trackUsage({
+          schoolId: input.schoolId,
+          provider: "openai",
+          metricKey: "ai_calls",
+          quantity: aiCallCount,
+          unitLabel: "calls",
+          allocationMethod: "direct",
+          sourceType: "manual",
+          notes: `Leo lesson illustration draft (${renderNote}, ${aiCallCount} steps).`,
+        });
+      }
 
       return {
         ok: true,
@@ -269,16 +276,18 @@ export async function generateLessonIllustrationDraft(input: {
       mimeType: "image/png",
     });
 
-    await trackUsage({
-      schoolId: input.schoolId,
-      provider: "openai",
-      metricKey: "ai_calls",
-      quantity: aiCallCount,
-      unitLabel: "calls",
-      allocationMethod: "direct",
-      sourceType: "manual",
-      notes: `Leo lesson illustration draft (${renderNote}, ${aiCallCount} steps).`,
-    });
+    if (input.recordUsage !== false) {
+      await trackUsage({
+        schoolId: input.schoolId,
+        provider: "openai",
+        metricKey: "ai_calls",
+        quantity: aiCallCount,
+        unitLabel: "calls",
+        allocationMethod: "direct",
+        sourceType: "manual",
+        notes: `Leo lesson illustration draft (${renderNote}, ${aiCallCount} steps).`,
+      });
+    }
 
     return {
       ok: true,

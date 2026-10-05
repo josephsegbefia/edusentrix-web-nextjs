@@ -21,7 +21,10 @@ import { SessionBoardNotesPanel } from "@/components/lessons/SessionBoardNotesPa
 import { useCompleteLessonDelivery } from "@/hooks/teacher/useLessonSessionTeach";
 import { LessonContentBlocksEditor } from "@/components/lessons/LessonContentBlocksEditor";
 import { LessonQualityStrip } from "@/components/lessons/LessonQualityStrip";
-import { useGenerateSessionContent } from "@/hooks/teacher/useLessonsLeo";
+import {
+  pollLessonGenerationRequest,
+  useGenerateSessionContent,
+} from "@/hooks/teacher/useLessonsLeo";
 import type { LessonContentBlock } from "@/types/lesson-content-blocks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +133,11 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
     }
     setPlanNotes(session.planNotes || "");
     setTitle(session.title);
-    setContentBlocks(session.contentBlocks ?? []);
+    setContentBlocks(
+      session.contentBlocks?.length
+        ? session.contentBlocks
+        : session.pendingAiContentBlocks ?? [],
+    );
     setLearnTeacherPriority(Boolean(session.learnTeacherPriority));
     setDirty(false);
   }, [session, activeClassGroupId]);
@@ -187,8 +194,8 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
 
   const generateWithLeo = async () => {
     if (!session) return;
-    const blocks = await busyToast.promise(
-      generateContent.mutateAsync({
+    try {
+      const accepted = await generateContent.mutateAsync({
         lessonNoteId: session.lessonNoteId,
         sessionId: session.id,
         session: {
@@ -198,15 +205,20 @@ export function TeacherLessonSessionDetail({ sessionId }: Props) {
           coverageWeight: session.noteSectionAllocation.coverageWeight,
           sequenceInWeek: session.sequenceInWeek,
         },
-      }),
-      {
-        loading: "Leo is drafting content…",
-        success: "Content blocks generated",
-        error: (e) => (e instanceof Error ? e.message : "Generation failed"),
-      },
-    );
-    setContentBlocks(blocks);
-    setDirty(true);
+        regenerate: Boolean(session.contentBlocks?.length || session.pendingAiContentBlocks?.length),
+      });
+      busyToast.success("Generation started. You can continue working.");
+      const draft = await pollLessonGenerationRequest(accepted.generationRequestId);
+      const blocks = draft.slots[0]?.contentBlocks ?? [];
+      if (!blocks.length) {
+        throw new Error("Leo did not return usable content blocks.");
+      }
+      setContentBlocks(blocks);
+      setDirty(true);
+      busyToast.success("Content draft is ready to review");
+    } catch (error) {
+      busyToast.error(error instanceof Error ? error.message : "Generation failed");
+    }
   };
 
   const patchVisibility = async (patch: {

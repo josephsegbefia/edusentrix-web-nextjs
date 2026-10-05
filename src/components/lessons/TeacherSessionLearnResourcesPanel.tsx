@@ -134,24 +134,19 @@ export function TeacherSessionLearnResourcesPanel({
     if (!card.fact.trim() || !card.detail.trim()) return;
     setIllustrationLoadingId(card.localId);
     try {
-      const res = await fetch("/api/leo/lessons/generate-illustration-draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fact: card.fact,
-          detail: card.detail,
-          prompt: card.illustrationPrompt ?? undefined,
-          sessionTitle,
-        }),
+      const { enqueueAndPollIllustrationDraft } = await import(
+        "@/lib/lessons/poll-illustration-request"
+      );
+      const draft = await enqueueAndPollIllustrationDraft({
+        fact: card.fact,
+        detail: card.detail,
+        prompt: card.illustrationPrompt ?? undefined,
+        sessionTitle,
       });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || "Illustration draft failed");
-      }
       updatePendingCard(card.localId, {
-        illustrationUrl: json.data?.imageUrl ?? null,
-        illustrationUploadThingKey: json.data?.uploadThingKey ?? null,
-        illustrationGenerationBrief: json.data?.generationPrompt ?? null,
+        illustrationUrl: draft.imageUrl ?? null,
+        illustrationUploadThingKey: draft.uploadThingKey ?? null,
+        illustrationGenerationBrief: draft.generationPrompt ?? null,
         illustrationReview: "draft",
       });
       busyToast.success("Illustration draft ready — review before publishing");

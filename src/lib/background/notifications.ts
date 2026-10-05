@@ -14,6 +14,64 @@ export type BackgroundJobNotificationResult = {
     | "duplicate";
 };
 
+export function resolveBackgroundJobNotificationCopy(
+  job: IBackgroundJob,
+  outcome: "succeeded" | "failed"
+): { title: string; body: string; actionUrl?: string } {
+  const policy = getBackgroundJobKindPolicy(job.kind);
+  const result = job.result && typeof job.result === "object" ? job.result : {};
+  const notification =
+    result.notification && typeof result.notification === "object"
+      ? (result.notification as Record<string, unknown>)
+      : {};
+  const actionUrl =
+    typeof notification.actionUrl === "string"
+      ? notification.actionUrl
+      : typeof result.actionUrl === "string"
+        ? result.actionUrl
+        : undefined;
+
+  if (outcome === "succeeded") {
+    return {
+      title:
+        typeof notification.title === "string"
+          ? notification.title
+          : defaultSuccessTitle(job.kind, policy.displayLabel),
+      body:
+        typeof notification.body === "string"
+          ? notification.body
+          : defaultSuccessBody(job.kind, policy.displayLabel),
+      actionUrl,
+    };
+  }
+
+  return {
+    title:
+      typeof notification.failureTitle === "string"
+        ? notification.failureTitle
+        : `${policy.displayLabel} failed`,
+    body:
+      typeof notification.failureBody === "string"
+        ? notification.failureBody
+        : job.lastErrorMessage || `${policy.displayLabel} could not be completed. You can retry.`,
+    actionUrl,
+  };
+}
+
+function defaultSuccessTitle(kind: string, fallback: string): string {
+  if (kind === "AI_LESSON_GENERATION") return "Lesson draft ready to review";
+  if (kind === "EXPLORE_GENERATION") return "Explore generation complete";
+  if (kind === "AI_LESSON_ILLUSTRATION") return "Illustration draft ready";
+  return `${fallback} completed`;
+}
+
+function defaultSuccessBody(kind: string, fallback: string): string {
+  if (kind === "AI_LESSON_GENERATION") return "Your lesson draft is ready to review.";
+  if (kind === "EXPLORE_GENERATION") return "Explore content generation is complete.";
+  if (kind === "AI_LESSON_ILLUSTRATION") return "Your illustration draft is ready to review.";
+  return `${fallback} finished successfully.`;
+}
+
 function notificationTarget(job: IBackgroundJob): Types.ObjectId | null {
   return job.notificationTargetUserId ?? job.initiatedByUserId ?? job.targetUserId ?? null;
 }
@@ -50,14 +108,9 @@ async function createJobNotification(input: {
     return { created: false, skipped: true, reason: "duplicate" };
   }
 
-  const title =
-    input.outcome === "succeeded"
-      ? `${policy.displayLabel} completed`
-      : `${policy.displayLabel} failed`;
-  const body =
-    input.outcome === "succeeded"
-      ? `${policy.displayLabel} finished successfully.`
-      : input.job.lastErrorMessage || `${policy.displayLabel} could not be completed.`;
+  const copy = resolveBackgroundJobNotificationCopy(input.job, input.outcome);
+  const title = copy.title;
+  const body = copy.body;
 
   await Notification.create({
     schoolId: input.job.schoolId,
@@ -69,7 +122,7 @@ async function createJobNotification(input: {
     priority: input.outcome === "failed" ? "high" : "normal",
     entityType: "BackgroundJob",
     entityId: input.job._id,
-    actionUrl: undefined,
+    actionUrl: copy.actionUrl,
     metadata: {
       dedupeKey,
       jobId: String(input.job._id),

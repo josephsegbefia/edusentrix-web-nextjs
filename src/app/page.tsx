@@ -16,6 +16,8 @@ import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { DemoLandingPage } from "@/components/demo/DemoLandingPage";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "EduSentrix — Collect fees, run operations, delight parents",
   description:

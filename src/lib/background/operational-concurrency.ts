@@ -12,6 +12,6 @@ export const PROVISIONING_INNGEST_CONCURRENCY = [
 ] as const;
 
 export const OUTBOX_INNGEST_CONCURRENCY = [
-  { limit: 8 },
+  { limit: 5 },
   { limit: 2, key: "event.data.schoolId" },
 ] as const;

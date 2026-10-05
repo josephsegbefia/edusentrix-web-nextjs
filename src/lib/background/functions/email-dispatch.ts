@@ -33,7 +33,7 @@ export function createEmailDispatchBackgroundJobFunction() {
       id: "email-dispatch",
       retries,
       triggers: [{ event: BACKGROUND_JOB_REQUESTED_EVENT }],
-      concurrency: { limit: 8 },
+      concurrency: { limit: 5 },
       onFailure: async ({ event, error }) => {
         const original = event.data.event.data as { jobId?: string } | undefined;
         const jobId = original?.jobId;

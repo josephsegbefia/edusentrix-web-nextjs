@@ -41,6 +41,11 @@ export function useAdminSchemeImportJob(jobId: string | null) {
       return json.data.job;
     },
     enabled: Boolean(jobId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === "queued" || status === "parsing") return 2000;
+      return false;
+    },
   });
 }
 

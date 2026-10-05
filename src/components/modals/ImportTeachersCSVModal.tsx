@@ -29,6 +29,26 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
+async function pollTeacherBulkImport(bulkImportJobId: string) {
+  for (let i = 0; i < 90; i++) {
+    const res = await fetch(`/api/admin/bulk-imports/${bulkImportJobId}`, { cache: "no-store" });
+    const json = await res.json();
+    if (!res.ok || !json.success || !json.data) {
+      throw new Error(json.error || "Failed to load import status");
+    }
+    if (["completed", "completed_with_errors", "failed"].includes(json.data.status)) {
+      return {
+        ...json.data,
+        results: json.data.result?.results || [],
+        successful: json.data.successfulRows ?? json.data.successful ?? 0,
+        failed: json.data.failedRows ?? json.data.failed ?? 0,
+      };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  throw new Error("Import is still running. Refresh later to see results.");
+}
+
 export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
   const [file, setFile] = React.useState<File | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
@@ -115,16 +135,20 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
         body: formData,
       });
 
+      const data = await res.json().catch(() => ({ error: "Failed to import teachers" }));
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to import teachers" }));
-        throw new Error(error.error || "Failed to import teachers");
+        throw new Error(data.error || "Failed to import teachers");
       }
 
-      const data = await res.json();
-      setResults(data.data?.results || []);
+      let payload = data.data;
+      if (res.status === 202 && data.bulkImportJobId) {
+        payload = await pollTeacherBulkImport(String(data.bulkImportJobId));
+      }
 
-      const successful = data.data?.successful || 0;
-      const failed = data.data?.failed || 0;
+      setResults(payload?.results || payload?.result?.results || []);
+
+      const successful = payload?.successful || payload?.successfulRows || 0;
+      const failed = payload?.failed || payload?.failedRows || 0;
 
       if (successful > 0) {
         toast.success(`Successfully imported ${successful} teacher(s)`);

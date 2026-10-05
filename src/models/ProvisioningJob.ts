@@ -9,6 +9,7 @@ export interface IProvisioningJob {
   attempts: number;
   lastError?: string | null;
   nextRunAt?: Date | null;
+  backgroundJobId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +32,7 @@ const provisioningJobSchema = new Schema<IProvisioningJob>(
     attempts: { type: Number, default: 0 },
     lastError: { type: String, default: null },
     nextRunAt: { type: Date, default: null },
+    backgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null },
   },
   {
     timestamps: true,

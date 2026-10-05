@@ -48,10 +48,15 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: result.error }, { status: result.status });
     }
 
-    return Response.json({
-      success: true,
-      data: { job: result.job },
-    });
+    return Response.json(
+      {
+        success: true,
+        data: { job: result.job },
+        jobId: result.jobId,
+        schemeImportJobId: result.schemeImportJobId,
+      },
+      { status: 202 }
+    );
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

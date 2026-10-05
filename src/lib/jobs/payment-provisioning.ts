@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { enqueueSchoolProvisioningBackgroundJob } from "@/lib/jobs/enqueue-school-provisioning";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
 import { School } from "@/models/School";
 
@@ -22,23 +23,30 @@ export async function enqueueSchoolPaymentProvisioning(input: {
     status: { $in: ["pending", "running", "failed"] },
   }).sort({ updatedAt: -1 });
 
+  const previousPayload =
+    existing && typeof existing.payload === "object" && existing.payload ? existing.payload : {};
+  const backgroundRevision = Number(previousPayload.backgroundRevision ?? 0) + 1;
+
+  let domain = existing;
   if (existing) {
     existing.status = "pending";
     existing.lastError = null;
     existing.nextRunAt = null;
     existing.payload = {
-      ...(typeof existing.payload === "object" && existing.payload ? existing.payload : {}),
+      ...previousPayload,
       requestedBy: input.requestedBy ? String(input.requestedBy) : null,
       requestedAt: now.toISOString(),
+      backgroundRevision,
     };
     await existing.save();
   } else {
-    await ProvisioningJob.create({
+    domain = await ProvisioningJob.create({
       kind: "paystack_subaccount",
       schoolId,
       payload: {
         requestedBy: input.requestedBy ? String(input.requestedBy) : null,
         requestedAt: now.toISOString(),
+        backgroundRevision,
       },
       status: "pending",
       attempts: 0,
@@ -63,5 +71,11 @@ export async function enqueueSchoolPaymentProvisioning(input: {
       "billing.paymentSetup.lastUpdatedAt": now,
       "billing.paymentSetup.lastUpdatedBy": input.requestedBy || null,
     },
+  });
+
+  await enqueueSchoolProvisioningBackgroundJob({
+    schoolId,
+    domain: domain!,
+    initiatedByUserId: input.requestedBy,
   });
 }

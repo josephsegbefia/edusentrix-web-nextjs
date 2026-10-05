@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { serializeCommunication } from "@/lib/communications/api/serialize";
 import { queueCommunication } from "@/lib/communications/delivery/communicationDeliveryService";
-import { processCommunicationOutbox } from "@/lib/communications/delivery/processOutboxJobs";
+import { enqueueCommunicationOutboxJobs } from "@/lib/communications/delivery/enqueue-communication-outbox";
 import { Communication } from "@/models/Communication";
 
 export async function POST(
@@ -36,10 +36,10 @@ export async function POST(
     }
 
     const result = await queueCommunication(communicationId, auth.schoolId);
-    const processed = await processCommunicationOutbox({
+    const queued = await enqueueCommunicationOutboxJobs({
       schoolId: auth.schoolId,
       communicationId,
-      limit: 100,
+      initiatedByUserId: auth.userId,
     });
 
     return Response.json({
@@ -49,7 +49,7 @@ export async function POST(
         queuedCount: result.queuedCount,
         skippedCount: result.skippedCount,
         recipientCount: result.recipientCount,
-        processed,
+        processed: { enqueued: queued.enqueued, reused: queued.reused },
       },
     });
   } catch (error) {

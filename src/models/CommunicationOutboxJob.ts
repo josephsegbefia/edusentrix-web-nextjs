@@ -15,6 +15,7 @@ export interface ICommunicationOutboxJob {
   lockedAt?: Date | null;
   lastError?: string | null;
   payload?: Record<string, unknown>;
+  backgroundJobId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +55,7 @@ const communicationOutboxJobSchema = new Schema<ICommunicationOutboxJob>(
     lockedAt: { type: Date, default: null },
     lastError: { type: String, default: null, trim: true },
     payload: { type: Schema.Types.Mixed, default: {} },
+    backgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null },
   },
   { timestamps: true },
 );

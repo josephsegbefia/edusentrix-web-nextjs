@@ -154,11 +154,7 @@ function AdminSchemeImportInner() {
       );
     }
     try {
-      setParsePhase(
-        isPdf
-          ? "Download complete. Leo is reading the PDF and extracting scheme rows with AI first…"
-          : "Reading spreadsheet rows…",
-      );
+      setParsePhase("Upload accepted. Queuing scheme parse…");
       const created = await createMutation.mutateAsync({
         fileUrl: payload.url,
         fileName: name,
@@ -282,7 +278,7 @@ function AdminSchemeImportInner() {
           <FileUp className="h-5 w-5 text-blue-200" />
           <h2 className="text-lg font-semibold">1. Upload</h2>
         </div>
-        {!jobId || job?.status === "failed" ? (
+        {!jobId || job?.status === "failed" || job?.status === "cancelled" ? (
           <div className="mt-4">
             {schoolRes?.data?.id ? (
               <SchemeImportDocumentUploader
@@ -323,6 +319,16 @@ function AdminSchemeImportInner() {
       </section>
 
       {jobLoading && jobId ? <p className="text-sm text-white/65">Loading import...</p> : null}
+      {job?.status === "queued" || job?.status === "parsing" ? (
+        <div className="flex items-start gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100">
+          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+          <p>
+            {job.status === "queued"
+              ? "Scheme import is queued. Leo will parse the document in the background."
+              : "Parsing the uploaded scheme document…"}
+          </p>
+        </div>
+      ) : null}
       {jobError ? <p className="text-sm text-rose-300">{jobError.message}</p> : null}
       {job?.status === "failed" && job.parseError ? (
         <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-sm text-rose-100">

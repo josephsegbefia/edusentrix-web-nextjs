@@ -1,4 +1,10 @@
-export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
+export type SchemeImportJobStatus =
+  | "queued"
+  | "parsing"
+  | "parsed"
+  | "confirmed"
+  | "cancelled"
+  | "failed";
 
 export type SchemeImportSourceKind =
   | "spreadsheet"

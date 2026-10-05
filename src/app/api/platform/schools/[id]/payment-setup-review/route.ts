@@ -9,7 +9,6 @@ import {
   sendPaymentSetupNotification,
 } from "@/lib/school-payments/payment-setup-notifications";
 import { enqueueSchoolPaymentProvisioning } from "@/lib/jobs/payment-provisioning";
-import { triggerProvisioningRunnerBestEffort } from "@/lib/jobs/trigger-provisioning-runner";
 import {
   markPaystackSubaccountJobsDoneForSchool,
   provisionPaystackSubaccountForSchool,
@@ -122,7 +121,6 @@ export async function POST(
           queueAfterSyncFailureMessage: publicMessage,
           queueAfterSyncFailureDetail: detail,
         });
-        await triggerProvisioningRunnerBestEffort();
 
         provisionStatus = "pending_provisioning";
         provisioningMessage =

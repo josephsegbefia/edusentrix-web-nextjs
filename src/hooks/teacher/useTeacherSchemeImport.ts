@@ -40,6 +40,11 @@ export function useTeacherSchemeImportJob(jobId: string | null) {
     },
     enabled: Boolean(jobId),
     staleTime: 15_000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === "queued" || status === "parsing") return 2000;
+      return false;
+    },
   });
 }
 

@@ -65,7 +65,7 @@ Implemented with `serve` from `inngest/next` (v4 exports `GET`, `POST`, `PUT`).
 
 Clerk middleware allowlists `/api/inngest(.*)` the same way as `/api/cron` and webhooks. There is no custom bypass header. Demo host also allowlists `/api/inngest`.
 
-Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`. Prompt 3 always registers `AI_LESSON_GENERATION`, `EXPLORE_GENERATION`, and `AI_LESSON_ILLUSTRATION`.
+Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`. Prompt 3 always registers `AI_LESSON_GENERATION`, `EXPLORE_GENERATION`, and `AI_LESSON_ILLUSTRATION`. Prompt 4 always registers `LIBRARY_IMPORT`, `SCHEME_IMPORT`, `SCHOOL_PROVISIONING`, `COMMUNICATION_OUTBOX`, and `BULK_IMPORT`.
 
 ## Environment variables
 
@@ -194,8 +194,21 @@ Long-running lesson content, Explore adventures, and lesson illustrations enqueu
 
 See [BACKGROUND_WORK_ENGINE_AI_MIGRATION.md](./BACKGROUND_WORK_ENGINE_AI_MIGRATION.md).
 
+## Prompt 4 operational work
+
+Library import, scheme parse, Paystack subaccount provisioning, communication outbox, and student/teacher CSV imports enqueue `BackgroundJob` and return HTTP 202.
+
+- Domain records remain. BackgroundJob owns retries.
+- Library CSV stays on the domain job (bounded). Scheme files stay on R2.
+- Outbox email delegates to `EMAIL_DISPATCH`.
+- `/api/provisioning/run` and `/api/jobs/communications/process-outbox` are HTTP 410.
+- Dry-run leftover rows: `scripts/migrate-operational-jobs-to-background-engine.ts`.
+- Production indexes: `scripts/ensure-operational-job-indexes.ts` (dry-run default). Creates only new BulkImportJob indexes (`schoolId`, `status`, `{ schoolId, createdAt }`). Prompt 4 added no unique indexes and does not index domain `backgroundJobId`. Do not run `--apply` against production from this pass.
+
+See [BACKGROUND_WORK_ENGINE_OPERATIONAL_MIGRATION.md](./BACKGROUND_WORK_ENGINE_OPERATIONAL_MIGRATION.md).
+
 ## Prompt 1 vs later
 
-Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), EMAIL_DISPATCH worker, AI lesson/Explore/illustration workers, GET/LIST/cancel, notifications, health, index script, email + Explore migration scripts, tests.
+Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), EMAIL_DISPATCH, AI, library/scheme/provisioning/outbox/bulk-import workers, GET/LIST/cancel, notifications, health, index + migration scripts, tests.
 
-Not migrated: ProvisioningJob, CommunicationOutboxJob, LibraryImportJob, SchemeImportJob, IMAP recovery cron, R2 purge, backups, Task Center UI.
+Not migrated: IMAP recovery cron, remaining scheduled crons, R2 purge/backup, report generation worker, Task Center UI.

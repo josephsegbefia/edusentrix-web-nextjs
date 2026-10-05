@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { enqueueSchoolPaymentProvisioning } from "@/lib/jobs/payment-provisioning";
-import { triggerProvisioningRunnerBestEffort } from "@/lib/jobs/trigger-provisioning-runner";
 import {
   markPaystackSubaccountJobsDoneForSchool,
   provisionPaystackSubaccountForSchool,
@@ -122,7 +121,6 @@ export async function POST() {
         queueAfterSyncFailureMessage: publicMessage,
         queueAfterSyncFailureDetail: detail,
       });
-      await triggerProvisioningRunnerBestEffort();
 
       const latestJob = await loadLatestProvisioningJob(String(access.schoolId));
 
@@ -139,8 +137,6 @@ export async function POST() {
     }
 
     const latestJob = await loadLatestProvisioningJob(String(access.schoolId));
-
-    await triggerProvisioningRunnerBestEffort();
 
     return NextResponse.json({
       success: true,

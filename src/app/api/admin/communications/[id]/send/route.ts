@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { queueCommunication } from "@/lib/communications/delivery/communicationDeliveryService";
-import { processCommunicationOutbox } from "@/lib/communications/delivery/processOutboxJobs";
+import { enqueueCommunicationOutboxJobs } from "@/lib/communications/delivery/enqueue-communication-outbox";
 import { serializeCommunication } from "@/lib/communications/api/serialize";
 
 export async function POST(
@@ -19,14 +19,12 @@ export async function POST(
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return Response.json({ success: false, error: "Invalid communication id" }, { status: 400 });
     }
-    const result = await queueCommunication(
-      new mongoose.Types.ObjectId(id),
-      new mongoose.Types.ObjectId(String(schoolId)),
-    );
-    const processed = await processCommunicationOutbox({
-      schoolId: new mongoose.Types.ObjectId(String(schoolId)),
-      communicationId: new mongoose.Types.ObjectId(id),
-      limit: 100,
+    const schoolOid = new mongoose.Types.ObjectId(String(schoolId));
+    const communicationId = new mongoose.Types.ObjectId(id);
+    const result = await queueCommunication(communicationId, schoolOid);
+    const queued = await enqueueCommunicationOutboxJobs({
+      schoolId: schoolOid,
+      communicationId,
     });
 
     return Response.json({
@@ -36,7 +34,7 @@ export async function POST(
         queuedCount: result.queuedCount,
         skippedCount: result.skippedCount,
         recipientCount: result.recipientCount,
-        processed,
+        processed: { enqueued: queued.enqueued, reused: queued.reused },
       },
     });
   } catch (error) {

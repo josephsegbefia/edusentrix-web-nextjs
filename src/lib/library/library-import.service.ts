@@ -340,7 +340,12 @@ export async function executeLibraryImportJob(
   userId: mongoose.Types.ObjectId
 ): Promise<ILibraryImportJob | null> {
   const claimed = await LibraryImportJob.findOneAndUpdate(
-    { _id: jobId, schoolId, status: "pending" },
+    {
+      _id: jobId,
+      schoolId,
+      status: { $in: ["pending", "processing"] },
+      csvText: { $type: "string" },
+    },
     { $set: { status: "processing" } },
     { new: true }
   ).lean<ILibraryImportJob | null>();

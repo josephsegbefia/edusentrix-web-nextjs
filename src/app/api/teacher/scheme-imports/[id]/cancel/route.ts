@@ -4,7 +4,7 @@ import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { SchemeImportJob, type ISchemeImportJob } from "@/models/SchemeImportJob";
-import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
+import { cancelSchemeImportJob } from "@/lib/schemes/cancel-scheme-import";
 
 function canAccessImportJob(
   ctx: Awaited<ReturnType<typeof requireTeacher>>,
@@ -31,19 +31,19 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     if (!job || !canAccessImportJob(ctx, job.toObject())) {
       return Response.json({ success: false, error: "Job not found" }, { status: 404 });
     }
-    if (job.status !== "parsed") {
-      return Response.json(
-        { success: false, error: "Only pending previews can be cancelled" },
-        { status: 409 }
-      );
+    const result = await cancelSchemeImportJob({
+      schoolId: ctx.schoolId,
+      jobId: id,
+      actorUserId: ctx.userId,
+      isSchoolAdmin: ctx.isAdmin,
+    });
+    if (!result.ok) {
+      return Response.json({ success: false, error: result.error }, { status: result.status });
     }
-
-    job.status = "cancelled";
-    await job.save();
 
     return Response.json({
       success: true,
-      data: { job: serializeSchemeImportJob(job.toObject()) },
+      data: { job: result.job },
     });
   } catch (error: unknown) {
     if (error instanceof Response) return error;

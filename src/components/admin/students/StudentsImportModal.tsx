@@ -110,6 +110,36 @@ function downloadTemplate(template: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+async function pollBulkImport(bulkImportJobId: string): Promise<ImportResult> {
+  for (let i = 0; i < 90; i++) {
+    const res = await fetch(`/api/admin/bulk-imports/${bulkImportJobId}`, { cache: "no-store" });
+    const json = (await res.json()) as {
+      success?: boolean;
+      error?: string;
+      data?: {
+        status: string;
+        created: number;
+        failed: number;
+        errors: { row: number; message: string }[];
+      };
+    };
+    if (!res.ok || !json.success || !json.data) {
+      throw new Error(json.error || "Failed to load import status");
+    }
+    if (["completed", "completed_with_errors", "failed"].includes(json.data.status)) {
+      return {
+        success: json.data.created > 0,
+        created: json.data.created,
+        failed: json.data.failed,
+        errors: json.data.errors || [],
+        error: json.data.status === "failed" ? json.data.errors?.[0]?.message : undefined,
+      };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  throw new Error("Import is still running. Refresh later to see results.");
+}
+
 async function uploadImportFile(input: {
   file: File;
   classGroupId?: string;
@@ -126,6 +156,10 @@ async function uploadImportFile(input: {
   });
 
   const json = await res.json();
+
+  if (res.status === 202 && json.bulkImportJobId) {
+    return pollBulkImport(String(json.bulkImportJobId));
+  }
 
   if (!res.ok && !json.errors) {
     throw new Error(json.error || "Import failed");

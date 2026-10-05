@@ -1,22 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
-import mongoose from "mongoose";
-import {
-  isAcceptedStudentImportFilename,
-  parseStudentImportFile,
-} from "@/lib/students/student-import-parse";
-import {
-  importStudentsFromRows,
-  resolveFixedClassTarget,
-} from "@/lib/students/student-import-service";
+import { isAcceptedStudentImportFilename } from "@/lib/students/student-import-parse";
+import { resolveFixedClassTarget } from "@/lib/students/student-import-service";
+import { persistAndEnqueueBulkImport, serializeBulkImportJob } from "@/lib/imports/enqueue-bulk-import";
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
       "students.edit",
     ]);
     await connectToDatabase();
@@ -54,10 +48,14 @@ export async function POST(req: NextRequest) {
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
+    const userIdObj =
+      userId instanceof mongoose.Types.ObjectId
+        ? userId
+        : new mongoose.Types.ObjectId(String(userId));
 
-    let fixedClass = null;
+    let classGroupId: mongoose.Types.ObjectId | null = null;
     if (typeof classGroupIdRaw === "string" && classGroupIdRaw.trim()) {
-      fixedClass = await resolveFixedClassTarget({
+      const fixedClass = await resolveFixedClassTarget({
         schoolId: schoolIdObj,
         classGroupId: classGroupIdRaw.trim(),
       });
@@ -67,39 +65,30 @@ export async function POST(req: NextRequest) {
           { status: 404 }
         );
       }
+      classGroupId = new mongoose.Types.ObjectId(fixedClass.classGroupId);
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const rows = parseStudentImportFile(buffer, file.name);
-
-    const result = await importStudentsFromRows({
+    const queued = await persistAndEnqueueBulkImport({
       schoolId: schoolIdObj,
-      rows,
-      fixedClass,
+      createdBy: userIdObj,
+      targetKind: "students",
+      fileName: file.name,
+      mimeType: file.type,
+      fileBytes: Buffer.from(await file.arrayBuffer()),
+      classGroupId,
     });
 
-    if (
-      result.created === 0 &&
-      result.errors.length === 1 &&
-      result.errors[0]?.row === 0
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.errors[0].message,
-          created: 0,
-          failed: result.failed,
-          errors: result.errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(result, { status: result.created > 0 ? 201 : 400 });
+    return NextResponse.json(
+      {
+        success: true,
+        jobId: queued.jobId,
+        bulkImportJobId: queued.bulkImportJobId,
+        data: serializeBulkImportJob(queued.job),
+      },
+      { status: 202 }
+    );
   } catch (e: unknown) {
-    console.error("Student import error:", e);
-    const message =
-      e instanceof Error ? e.message : "Failed to import students";
+    const message = e instanceof Error ? e.message : "Failed to import students";
     return NextResponse.json(
       { success: false, error: message, created: 0, failed: 0, errors: [] },
       { status: 500 }

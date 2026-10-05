@@ -62,6 +62,10 @@ function defaultSuccessTitle(kind: string, fallback: string): string {
   if (kind === "AI_LESSON_GENERATION") return "Lesson draft ready to review";
   if (kind === "EXPLORE_GENERATION") return "Explore generation complete";
   if (kind === "AI_LESSON_ILLUSTRATION") return "Illustration draft ready";
+  if (kind === "LIBRARY_IMPORT") return "Library import completed";
+  if (kind === "SCHEME_IMPORT") return "Scheme import ready";
+  if (kind === "SCHOOL_PROVISIONING") return "Payment provisioning completed";
+  if (kind === "BULK_IMPORT") return "Bulk import complete";
   return `${fallback} completed`;
 }
 
@@ -69,6 +73,10 @@ function defaultSuccessBody(kind: string, fallback: string): string {
   if (kind === "AI_LESSON_GENERATION") return "Your lesson draft is ready to review.";
   if (kind === "EXPLORE_GENERATION") return "Explore content generation is complete.";
   if (kind === "AI_LESSON_ILLUSTRATION") return "Your illustration draft is ready to review.";
+  if (kind === "LIBRARY_IMPORT") return "Library import complete.";
+  if (kind === "SCHEME_IMPORT") return "Scheme import is ready for review.";
+  if (kind === "SCHOOL_PROVISIONING") return "School payment provisioning completed.";
+  if (kind === "BULK_IMPORT") return "Bulk import complete.";
   return `${fallback} finished successfully.`;
 }
 

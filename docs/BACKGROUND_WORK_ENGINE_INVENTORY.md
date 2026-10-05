@@ -79,17 +79,17 @@ Invitation sends remain **immediate Resend**, with `EMAIL_DISPATCH` used only as
 | Name | Communication outbox |
 | Domain | Communications |
 | Initiating route/function | Admin/teacher send routes; `src/app/api/jobs/communications/process-outbox/route.ts` |
-| Current execution | Inline `processCommunicationOutbox` after `queueCommunication`; optional secret runner |
+| Current execution | `BackgroundJob` `COMMUNICATION_OUTBOX` + Inngest. Email channel enqueues `EMAIL_DISPATCH`. |
 | Persistence | `CommunicationOutboxJob`, `CommunicationDelivery` |
-| Retry | `attempts` increment; `maxAttempts` unused for automatic re-queue |
-| Idempotency | Unique `deliveryId` |
+| Retry | Inngest EMAIL policy. Already-delivered is a no-op. |
+| Idempotency | Unique `deliveryId`; job key `comm-outbox:{deliveryId}` |
 | Progress | Communication stats |
-| Notification | in_app / email / SMS / WhatsApp |
-| Request-bound | Yes on send API |
-| Restart-safe | Weak (depends on later runner) |
+| Notification | Recipient channels only; no operator BackgroundJob notify |
+| Request-bound | No (enqueue then 200) |
+| Restart-safe | Yes |
 | Appropriate for Inngest | Yes |
 | Priority | P0 |
-| Classification | `MIGRATE_TO_INNGEST` |
+| Classification | Migrated in Prompt 4 |
 
 ---
 
@@ -100,17 +100,17 @@ Invitation sends remain **immediate Resend**, with `EMAIL_DISPATCH` used only as
 | Name | Paystack subaccount provisioning |
 | Domain | Billing / provisioning |
 | Initiating route/function | `src/app/api/admin/settings/payment-setup/provision/route.ts`; platform payment-setup-review; `enqueueSchoolPaymentProvisioning` |
-| Current execution | Sync Paystack attempt, else `ProvisioningJob` + `triggerProvisioningRunnerBestEffort` → `/api/provisioning/run` |
+| Current execution | Optional sync Paystack attempt; retry via `BackgroundJob` `SCHOOL_PROVISIONING`. `/api/provisioning/run` is HTTP 410. |
 | Persistence | `ProvisioningJob` (legacy collection `provisioningjpbs`) |
-| Retry | Exponential backoff, max 10, stale `running` reclaim |
-| Idempotency | Skip if subaccount exists; one active job per school |
-| Progress | Job status on payment-setup UI |
-| Notification | Payment-setup emails |
-| Request-bound | Partial |
-| Restart-safe | Yes if runner is scheduled |
+| Retry | Inngest PROVISIONING policy (2). Skip Paystack if subaccount already exists. |
+| Idempotency | Skip if subaccount exists; key `provisioning:{schoolId}:paystack_subaccount` |
+| Progress | Stage-based + payment-setup UI |
+| Notification | Operator in-app on terminal outcome |
+| Request-bound | Sync attempt only when Paystack succeeds immediately |
+| Restart-safe | Yes |
 | Appropriate for Inngest | Yes (cautious side effects) |
 | Priority | P0 |
-| Classification | `MIGRATE_TO_INNGEST` |
+| Classification | Migrated in Prompt 4 |
 
 ---
 
@@ -144,17 +144,17 @@ Invitation sends remain **immediate Resend**, with `EMAIL_DISPATCH` used only as
 | Name | Library CSV import |
 | Domain | Library |
 | Initiating route/function | `POST src/app/api/admin/library/imports/route.ts` |
-| Current execution | `after()` → `executeLibraryImportJob` |
-| Persistence | `LibraryImportJob` (may store `csvText` while pending) |
-| Retry | None automatic |
-| Idempotency | New job per POST |
-| Progress | `GET .../imports/[jobId]`; UI poll |
-| Notification | Audit on complete |
-| Request-bound | Partial (`after()`) |
-| Restart-safe | No |
+| Current execution | `BackgroundJob` `LIBRARY_IMPORT` + Inngest. Bounded `csvText` stays on the domain job. |
+| Persistence | `LibraryImportJob` (`csvText` while pending/processing) |
+| Retry | Inngest IMPORT policy. Malformed CSV is permanent. |
+| Idempotency | `library-import:{schoolId}:{jobId}` |
+| Progress | BackgroundJob stages + `GET .../imports/[jobId]` |
+| Notification | “Library import complete.” |
+| Request-bound | No |
+| Restart-safe | Yes |
 | Appropriate for Inngest | Yes |
 | Priority | P0 |
-| Classification | `MIGRATE_TO_INNGEST` |
+| Classification | Migrated in Prompt 4 |
 
 ---
 
@@ -165,17 +165,17 @@ Invitation sends remain **immediate Resend**, with `EMAIL_DISPATCH` used only as
 | Name | Scheme of learning import |
 | Domain | Academics |
 | Initiating route/function | Admin/teacher `scheme-imports` POST → `createSchemeImportJobFromUpload` |
-| Current execution | Fully request-bound parse (PDF/AI/spreadsheet); in-request `setTimeout` retries |
-| Persistence | `SchemeImportJob` (`parsedRows`, wizard status) |
-| Retry | In-request transient only |
-| Idempotency | New job per upload |
-| Progress | Poll job routes |
-| Notification | None |
-| Request-bound | Yes |
-| Restart-safe | No |
-| Appropriate for Inngest | Maybe if PDF/AI timeouts hurt UX |
-| Priority | P1 |
-| Classification | `NEEDS_REVIEW` (confirm stays `KEEP_SYNCHRONOUS`) |
+| Current execution | Parse via `BackgroundJob` `SCHEME_IMPORT`. Confirm stays request-bound. |
+| Persistence | `SchemeImportJob` (`queued`/`parsing`/`parsed`/… + `parsedRows`) |
+| Retry | Inngest IMPORT / AI transient. Malformed file permanent. |
+| Idempotency | `scheme-import:{schoolId}:{jobId}` |
+| Progress | Stage-based + poll job routes |
+| Notification | “Scheme import is ready for review.” |
+| Request-bound | Confirm / validate only |
+| Restart-safe | Yes for parse |
+| Appropriate for Inngest | Yes |
+| Priority | P0 |
+| Classification | Parse migrated in Prompt 4. Confirm `KEEP_SYNCHRONOUS`. |
 
 ---
 
@@ -276,18 +276,18 @@ These future `BackgroundJob` kinds are registered as metadata. **Workers stay on
 | --- | --- |
 | `EMAIL_DISPATCH` | §1 |
 | `IMAP_RECOVERY` | §2 |
-| `COMMUNICATION_OUTBOX` | §3 |
-| `SCHOOL_PROVISIONING` | §4 |
+| `COMMUNICATION_OUTBOX` | §3 — Prompt 4 worker |
+| `SCHOOL_PROVISIONING` | §4 — Prompt 4 worker |
 | `EXPLORE_GENERATION` | §5 — Prompt 3 worker |
-| `LIBRARY_IMPORT` | §6 |
-| `SCHEME_IMPORT` | §7 |
+| `LIBRARY_IMPORT` | §6 — Prompt 4 worker |
+| `SCHEME_IMPORT` | §7 — Prompt 4 parse worker |
+| `BULK_IMPORT` | Prompt 4 student/teacher CSV |
 | `FINANCE_RECONCILIATION` | §9 reconciliation |
 | `SUBSCRIPTION_MAINTENANCE` | renewal / plan-change crons |
 | `AI_LESSON_GENERATION` | Prompt 3 worker |
 | `AI_LESSON_ILLUSTRATION` | Prompt 3 worker |
 | `AI_CONTENT_GENERATION` | course/module/content placeholder |
 | `AI_DOCUMENT_ANALYSIS` | document AI placeholder |
-| `BULK_IMPORT` | future generic imports |
 | `REPORT_GENERATION` | long reports |
 | `STORAGE_PURGE` | delayed R2 purge |
 | `STORAGE_BACKUP` | backup replication |

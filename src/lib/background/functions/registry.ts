@@ -5,6 +5,11 @@ import { createSmokeBackgroundJobFunction } from "./smoke";
 import { createAiLessonGenerationBackgroundJobFunction } from "./ai-lesson-generation";
 import { createExploreGenerationBackgroundJobFunction } from "./explore-generation";
 import { createAiLessonIllustrationBackgroundJobFunction } from "./ai-lesson-illustration";
+import { createLibraryImportBackgroundJobFunction } from "./library-import";
+import { createSchemeImportBackgroundJobFunction } from "./scheme-import";
+import { createSchoolProvisioningBackgroundJobFunction } from "./school-provisioning";
+import { createCommunicationOutboxBackgroundJobFunction } from "./communication-outbox";
+import { createBulkImportBackgroundJobFunction } from "./bulk-import";
 
 export function getRegisteredInngestFunctions(): InngestFunction.Any[] {
   const functions: InngestFunction.Any[] = [
@@ -12,6 +17,11 @@ export function getRegisteredInngestFunctions(): InngestFunction.Any[] {
     createAiLessonGenerationBackgroundJobFunction(),
     createExploreGenerationBackgroundJobFunction(),
     createAiLessonIllustrationBackgroundJobFunction(),
+    createLibraryImportBackgroundJobFunction(),
+    createSchemeImportBackgroundJobFunction(),
+    createSchoolProvisioningBackgroundJobFunction(),
+    createCommunicationOutboxBackgroundJobFunction(),
+    createBulkImportBackgroundJobFunction(),
   ];
   if (shouldRegisterSmokeFunction()) {
     functions.push(createSmokeBackgroundJobFunction());

@@ -30,6 +30,7 @@ export interface ILibraryImportJob {
   failedRows: number;
   errors: ILibraryImportJobError[];
   createdBy: Types.ObjectId;
+  backgroundJobId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +67,7 @@ const libraryImportJobSchema = new Schema<ILibraryImportJob>(
     failedRows: { type: Number, default: 0, min: 0 },
     errors: { type: [errorSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    backgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null },
   },
   { timestamps: true, suppressReservedKeysWarning: true }
 );

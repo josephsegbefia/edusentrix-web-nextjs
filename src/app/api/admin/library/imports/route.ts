@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { LIBRARY_PERMISSIONS } from "@/lib/library/library.permissions";
-import { auditLibraryImportCompleted } from "@/lib/library/library-audit";
 import { libraryImportBodySchema } from "@/lib/library/library.validators";
 import { serializeImportJob } from "@/lib/library/library-import.shared";
-import {
-  enqueueLibraryImport,
-  executeLibraryImportJob,
-} from "@/lib/library/library-import.service";
+import { enqueueLibraryImport } from "@/lib/library/library-import.service";
+import { enqueueLibraryImportBackgroundJob } from "@/lib/library/enqueue-library-import";
 import type { ILibraryImportJob } from "@/models/LibraryImportJob";
 
 function toOid(id: unknown) {
@@ -41,28 +38,20 @@ export async function POST(req: NextRequest) {
       );
     }
     const jobOid = job._id as mongoose.Types.ObjectId;
-
-    after(async () => {
-      try {
-        await connectToDatabase();
-        const finished = await executeLibraryImportJob(toOid(schoolId), jobOid, toOid(userId));
-        if (finished) {
-          await auditLibraryImportCompleted(req, toOid(schoolId), toOid(userId), jobOid, {
-            type: finished.type,
-            fileName: finished.fileName,
-            status: finished.status,
-            totalRows: finished.totalRows,
-            successfulRows: finished.successfulRows,
-            failedRows: finished.failedRows,
-          });
-        }
-      } catch (e) {
-        console.error("library import worker:", e);
-      }
+    const queued = await enqueueLibraryImportBackgroundJob({
+      schoolId: toOid(schoolId),
+      libraryImportJobId: jobOid,
+      initiatedByUserId: toOid(userId),
     });
 
     return NextResponse.json(
-      { success: true, data: serializeImportJob(job), jobId: String(jobOid) },
+      {
+        success: true,
+        data: serializeImportJob(job),
+        jobId: String(jobOid),
+        libraryImportJobId: String(jobOid),
+        backgroundJobId: queued.jobId,
+      },
       { status: 202 }
     );
   } catch (e) {

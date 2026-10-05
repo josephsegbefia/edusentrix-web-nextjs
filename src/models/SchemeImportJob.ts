@@ -1,6 +1,12 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
 
-export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
+export type SchemeImportJobStatus =
+  | "queued"
+  | "parsing"
+  | "parsed"
+  | "confirmed"
+  | "cancelled"
+  | "failed";
 
 export type SchemeImportSourceKind =
   | "spreadsheet"
@@ -50,6 +56,7 @@ export interface ISchemeImportJob {
   parseWarning?: string | null;
   parsedRows: ISchemeImportParsedRow[];
   resultSchemeId?: Types.ObjectId | null;
+  backgroundJobId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -103,8 +110,8 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     },
     status: {
       type: String,
-      enum: ["parsed", "confirmed", "cancelled", "failed"],
-      default: "parsed",
+      enum: ["queued", "parsing", "parsed", "confirmed", "cancelled", "failed"],
+      default: "queued",
       index: true,
     },
     fileName: { type: String, required: true, trim: true, maxlength: 400 },
@@ -114,6 +121,7 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     parseWarning: { type: String, trim: true, maxlength: 4000, default: null },
     parsedRows: { type: [parsedRowSchema], default: [] },
     resultSchemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", default: null },
+    backgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null },
   },
   { timestamps: true, suppressReservedKeysWarning: true }
 );
@@ -123,11 +131,14 @@ schemeImportJobSchema.index({ schoolId: 1, createdAt: -1 });
 const existingSchemeImportJob = models.SchemeImportJob as Model<ISchemeImportJob> | undefined;
 if (existingSchemeImportJob) {
   const sourceKindPath = existingSchemeImportJob.schema.path("sourceKind");
-  const enumValues =
+  const statusPath = existingSchemeImportJob.schema.path("status");
+  const sourceEnum =
     sourceKindPath && "enumValues" in sourceKindPath
       ? (sourceKindPath.enumValues as string[])
       : [];
-  if (!enumValues.includes("pdf_manual")) {
+  const statusEnum =
+    statusPath && "enumValues" in statusPath ? (statusPath.enumValues as string[]) : [];
+  if (!sourceEnum.includes("pdf_manual") || !statusEnum.includes("queued")) {
     delete models.SchemeImportJob;
   }
 }

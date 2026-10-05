@@ -1,9 +1,7 @@
-import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { PERMISSIONS } from "@/lib/rbac";
-import { SchemeImportJob } from "@/models/SchemeImportJob";
-import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
+import { cancelSchemeImportJob } from "@/lib/schemes/cancel-scheme-import";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,30 +12,18 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     ]);
     await connectToDatabase();
     const { id } = await params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return Response.json({ success: false, error: "Invalid id" }, { status: 400 });
-    }
-
-    const job = await SchemeImportJob.findOne({
-      _id: new mongoose.Types.ObjectId(id),
+    const result = await cancelSchemeImportJob({
       schoolId: ctx.schoolId,
+      jobId: id,
+      actorUserId: ctx.userId,
+      isSchoolAdmin: true,
     });
-    if (!job) {
-      return Response.json({ success: false, error: "Job not found" }, { status: 404 });
+    if (!result.ok) {
+      return Response.json({ success: false, error: result.error }, { status: result.status });
     }
-    if (job.status !== "parsed") {
-      return Response.json(
-        { success: false, error: "Only pending previews can be cancelled" },
-        { status: 409 }
-      );
-    }
-
-    job.status = "cancelled";
-    await job.save();
-
     return Response.json({
       success: true,
-      data: { job: serializeSchemeImportJob(job.toObject()) },
+      data: { job: result.job },
     });
   } catch (error: unknown) {
     if (error instanceof Response) return error;

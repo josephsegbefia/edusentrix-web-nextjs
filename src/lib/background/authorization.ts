@@ -53,6 +53,18 @@ export function decideBackgroundJobAccess(
   return { ok: false, reason: "forbidden" };
 }
 
+export function canRetryBackgroundJob(
+  actor: BackgroundJobActor,
+  job: IBackgroundJob
+): { ok: true } | { ok: false; reason: "not_found" | "forbidden" | "not_retryable" | "not_failed" } {
+  const access = decideBackgroundJobAccess(actor, job);
+  if (!access.ok) return access;
+  const policy = getBackgroundJobKindPolicy(job.kind);
+  if (!policy.manualRetryAllowed) return { ok: false, reason: "not_retryable" };
+  if (job.status !== "failed") return { ok: false, reason: "not_failed" };
+  return { ok: true };
+}
+
 export function canCancelBackgroundJob(
   actor: BackgroundJobActor,
   job: IBackgroundJob

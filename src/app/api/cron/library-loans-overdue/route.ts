@@ -1,31 +1,8 @@
-// POST/GET — mark open loans past due as `overdue` (all tenants).
-//
-// Auth: `LIBRARY_CRON_SECRET` or fallback `CRON_SECRET`, via
-// `Authorization: Bearer <secret>` or `x-cron-secret: <secret>`.
+import { retiredCronHandlers } from "@/lib/background/retired-cron";
 
-import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { markOpenLoansOverdueGlobally } from "@/lib/library/library-jobs";
-import { isLibraryCronAuthorized } from "@/lib/library/library-reservation-scheduler";
+export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  if (!isLibraryCronAuthorized(req)) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    await connectToDatabase();
-    const data = await markOpenLoansOverdueGlobally();
-    return NextResponse.json({ success: true, data });
-  } catch (e) {
-    console.error("library-loans-overdue cron:", e);
-    return NextResponse.json(
-      { success: false, error: "Failed to mark overdue loans" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  return POST(req);
-}
+export const { GET, POST } = retiredCronHandlers(
+  "Library overdue marking now uses an Inngest schedule",
+  "LIBRARY_CRON_SECRET"
+);

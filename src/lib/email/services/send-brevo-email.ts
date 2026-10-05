@@ -497,3 +497,8 @@ function resolveCategoryKey(messageClass: string): string | null {
       return null;
   }
 }
+
+/** Canonical provider-neutral name. Outbound send is Resend. */
+export const sendTrackedEmail = sendTrackedBrevoEmail;
+export type SendTrackedEmailInput = SendBrevoEmailInput;
+export type SendTrackedEmailResult = SendBrevoEmailResult;

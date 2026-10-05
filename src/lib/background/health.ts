@@ -1,6 +1,7 @@
 import { BackgroundJob } from "@/models/BackgroundJob";
 import { getBackgroundJobKindPolicy, type BackgroundJobKind } from "./job-kinds";
 import { isInngestConfigured } from "./inngest";
+import { countOrphanDomainJobs } from "./reconciliation";
 import { queryStaleBackgroundJobs } from "./stale-jobs";
 
 export type BackgroundWorkHealth = {
@@ -20,7 +21,9 @@ export type BackgroundWorkHealth = {
     runningWithOldHeartbeat: number;
     queuedNotDispatched: number;
     dispatchFailed: number;
+    exhaustedRecovery: number;
   };
+  orphanDomainJobs: number;
   inngestConfigured: boolean;
 };
 
@@ -38,6 +41,7 @@ export async function getBackgroundWorkHealth(): Promise<BackgroundWorkHealth> {
     oldestRunning,
     kindRows,
     stale,
+    orphanDomainJobs,
   ] = await Promise.all([
     BackgroundJob.countDocuments({ status: "queued" }),
     BackgroundJob.countDocuments({ status: "dispatch_failed" }),
@@ -59,6 +63,7 @@ export async function getBackgroundWorkHealth(): Promise<BackgroundWorkHealth> {
       { $group: { _id: "$kind", count: { $sum: 1 } } },
     ]),
     queryStaleBackgroundJobs(),
+    countOrphanDomainJobs(),
   ]);
 
   const jobsByKind: Record<string, number> = {};
@@ -89,6 +94,7 @@ export async function getBackgroundWorkHealth(): Promise<BackgroundWorkHealth> {
     jobsByKind,
     jobsByWorkloadClass,
     stale,
+    orphanDomainJobs,
     inngestConfigured: isInngestConfigured(),
   };
 }

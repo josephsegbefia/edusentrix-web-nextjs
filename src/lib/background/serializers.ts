@@ -1,4 +1,6 @@
 import type { IBackgroundJob } from "@/models/BackgroundJob";
+import type { BackgroundJobActor } from "./authorization";
+import { canRetryBackgroundJob } from "./authorization";
 import { getBackgroundJobKindPolicy } from "./job-kinds";
 import { isTerminalBackgroundJobStatus } from "./job-status";
 
@@ -17,6 +19,9 @@ export type SafeBackgroundJobDTO = {
   failedAt: string | null;
   cancelledAt: string | null;
   cancellable: boolean;
+  cancelRequested: boolean;
+  retryAllowed: boolean;
+  actionUrl: string | null;
   error: { code: string; message: string } | null;
   resultRef: { subjectType: string | null; subjectId: string | null } | null;
 };
@@ -25,7 +30,27 @@ function iso(value?: Date | null): string | null {
   return value ? new Date(value).toISOString() : null;
 }
 
-export function toSafeBackgroundJobDTO(job: IBackgroundJob): SafeBackgroundJobDTO {
+export function safeBackgroundJobActionUrl(
+  result?: Record<string, unknown> | null
+): string | null {
+  if (!result || typeof result !== "object") return null;
+  const nested = result.notification;
+  const fromNested =
+    nested &&
+    typeof nested === "object" &&
+    typeof (nested as { actionUrl?: unknown }).actionUrl === "string"
+      ? (nested as { actionUrl: string }).actionUrl
+      : null;
+  const fromRoot = typeof result.actionUrl === "string" ? result.actionUrl : null;
+  const url = fromNested || fromRoot;
+  if (!url || !url.startsWith("/") || url.startsWith("//")) return null;
+  return url;
+}
+
+export function toSafeBackgroundJobDTO(
+  job: IBackgroundJob,
+  actor?: BackgroundJobActor | null
+): SafeBackgroundJobDTO {
   const policy = getBackgroundJobKindPolicy(job.kind);
   const resultRef =
     job.subjectType || job.subjectId
@@ -50,6 +75,9 @@ export function toSafeBackgroundJobDTO(job: IBackgroundJob): SafeBackgroundJobDT
     failedAt: iso(job.failedAt),
     cancelledAt: iso(job.cancelledAt),
     cancellable: policy.cancellable && !isTerminalBackgroundJobStatus(job.status),
+    cancelRequested: job.status === "cancel_requested",
+    retryAllowed: actor ? canRetryBackgroundJob(actor, job).ok : false,
+    actionUrl: safeBackgroundJobActionUrl(job.result),
     error:
       job.lastErrorMessage || job.lastErrorCode
         ? {

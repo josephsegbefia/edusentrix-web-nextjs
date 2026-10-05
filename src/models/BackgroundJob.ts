@@ -49,6 +49,9 @@ export interface IBackgroundJob {
   notificationTargetUserId?: Types.ObjectId | null;
   cancelRequestedAt?: Date | null;
   cancelRequestedByUserId?: Types.ObjectId | null;
+  retryOfJobId?: Types.ObjectId | null;
+  recoveryAttempts: number;
+  lastRecoveryAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -134,6 +137,13 @@ const backgroundJobSchema = new Schema<IBackgroundJob>(
       ref: "User",
       default: null,
     },
+    retryOfJobId: {
+      type: Schema.Types.ObjectId,
+      ref: "BackgroundJob",
+      default: null,
+    },
+    recoveryAttempts: { type: Number, default: 0, min: 0 },
+    lastRecoveryAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

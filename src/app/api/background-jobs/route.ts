@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   parseBackgroundJobListFilter,
   parseBackgroundJobListKind,
+  parseBackgroundJobListScope,
   listCurrentUserBackgroundJobs,
 } from "@/lib/background/list-jobs";
 import { resolveBackgroundJobRouteActor } from "@/lib/background/route-auth";
@@ -25,11 +26,13 @@ export async function GET(req: NextRequest) {
     if (kindParam && !kind) {
       return NextResponse.json({ success: false, error: "Unknown job kind" }, { status: 400 });
     }
+    const scope = parseBackgroundJobListScope(url.searchParams.get("scope"));
 
     const { jobs, total } = await listCurrentUserBackgroundJobs({
       actor: auth.actor,
       filter,
       kind,
+      scope,
       limit,
       offset,
     });
@@ -37,7 +40,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        jobs: jobs.map(toSafeBackgroundJobDTO),
+        jobs: jobs.map((job) => toSafeBackgroundJobDTO(job, auth.actor)),
         pagination: {
           total,
           limit,

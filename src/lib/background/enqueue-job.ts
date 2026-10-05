@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Types } from "mongoose";
+import { Types, type FilterQuery } from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   BackgroundJob,
@@ -18,11 +18,7 @@ import { sanitizeBackgroundErrorMessage } from "./errors";
 import { assertBoundedBackgroundJobPayload } from "./payload-limits";
 import { getBackgroundRetryPolicy } from "./retry-policies";
 import { isDuplicateKeyError, optionalObjectId } from "./object-id";
-import {
-  markJobDispatchFailed,
-  markJobQueuedForRedispatch,
-  persistInngestEventId,
-} from "./state-machine";
+import { markJobDispatchFailed, persistInngestEventId } from "./state-machine";
 
 export type EnqueueBackgroundJobInput = {
   kind: BackgroundJobKind | string;
@@ -37,6 +33,7 @@ export type EnqueueBackgroundJobInput = {
   notifyOnSuccess?: boolean;
   notifyOnFailure?: boolean;
   notificationTargetUserId?: string | Types.ObjectId | null;
+  retryOfJobId?: string | Types.ObjectId | null;
 };
 
 export type EnqueueBackgroundJobResult = {
@@ -143,6 +140,8 @@ export async function enqueueBackgroundJob(
       notifyOnSuccess: input.notifyOnSuccess ?? policy.notifyOnSuccessDefault,
       notifyOnFailure: input.notifyOnFailure ?? policy.notifyOnFailureDefault,
       notificationTargetUserId: optionalObjectId(input.notificationTargetUserId),
+      retryOfJobId: optionalObjectId(input.retryOfJobId),
+      recoveryAttempts: 0,
       input: input.input,
     });
   } catch (error) {
@@ -171,6 +170,46 @@ async function reuseExistingJob(job: IBackgroundJob): Promise<EnqueueBackgroundJ
   };
 }
 
+export const MAX_DISPATCH_RECOVERY_ATTEMPTS = 5;
+const DISPATCH_CLAIM_LOCK_MS = 30 * 1000;
+
+function notDispatchedResult(job: IBackgroundJob): EnqueueBackgroundJobResult {
+  return {
+    jobId: String(job._id),
+    job,
+    created: false,
+    dispatched: Boolean(job.inngestEventId) && job.status !== "dispatch_failed",
+    inngestEventId: job.inngestEventId ?? null,
+  };
+}
+
+function claimFilterForRedispatch(job: IBackgroundJob): FilterQuery<IBackgroundJob> | null {
+  const missingEvent = {
+    $or: [{ inngestEventId: null }, { inngestEventId: { $exists: false } }],
+  };
+  if (job.status === "dispatch_failed") {
+    return { _id: job._id, status: "dispatch_failed", ...missingEvent };
+  }
+  if (job.status === "queued") {
+    const staleClaimBefore = new Date(Date.now() - DISPATCH_CLAIM_LOCK_MS);
+    return {
+      _id: job._id,
+      status: "queued",
+      $and: [
+        missingEvent,
+        {
+          $or: [
+            { lastRecoveryAt: null },
+            { lastRecoveryAt: { $exists: false } },
+            { lastRecoveryAt: { $lte: staleClaimBefore } },
+          ],
+        },
+      ],
+    };
+  }
+  return null;
+}
+
 export async function redispatchBackgroundJob(
   jobId: string | Types.ObjectId
 ): Promise<EnqueueBackgroundJobResult> {
@@ -190,19 +229,34 @@ export async function redispatchBackgroundJob(
     };
   }
 
-  if (job.status === "dispatch_failed") {
-    await markJobQueuedForRedispatch(job._id);
-  } else if (job.status !== "queued") {
-    return {
-      jobId: String(job._id),
-      job,
-      created: false,
-      dispatched: Boolean(job.inngestEventId),
-      inngestEventId: job.inngestEventId ?? null,
-    };
+  if ((job.recoveryAttempts ?? 0) >= MAX_DISPATCH_RECOVERY_ATTEMPTS) {
+    return notDispatchedResult(job);
   }
 
-  const fresh = (await BackgroundJob.findById(job._id)) ?? job;
-  const result = await dispatchJobEvent(fresh);
+  const claimFilter = claimFilterForRedispatch(job);
+  if (!claimFilter) {
+    return notDispatchedResult(job);
+  }
+
+  const claimed = await BackgroundJob.findOneAndUpdate(
+    claimFilter,
+    {
+      $set: {
+        status: "queued",
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        failureCategory: null,
+        lastRecoveryAt: new Date(),
+      },
+      $inc: { recoveryAttempts: 1 },
+    },
+    { new: true }
+  );
+  if (!claimed) {
+    const fresh = (await BackgroundJob.findById(job._id)) ?? job;
+    return notDispatchedResult(fresh);
+  }
+
+  const result = await dispatchJobEvent(claimed);
   return { ...result, created: false };
 }

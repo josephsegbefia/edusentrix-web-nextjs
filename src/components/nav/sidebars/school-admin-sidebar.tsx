@@ -86,6 +86,7 @@ import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 import { useAdminLessonNotes } from "@/hooks/admin/useAdminLessonNotes";
 import { useEmailUnreadCount } from "@/hooks/admin/useEmailInbox";
 import { useAdminUnreadNotificationCount } from "@/hooks/admin/useAdminNotifications";
+import { useBackgroundTaskCount } from "@/hooks/useBackgroundTasks";
 
 type NavItemBase = {
   label: string;
@@ -129,6 +130,11 @@ const navSections: NavSection[] = [
         label: "Notifications",
         href: "/admin/notifications",
         icon: Bell,
+      },
+      {
+        label: "Work",
+        href: "/admin/background-tasks",
+        icon: ListChecks,
       },
     ],
   },
@@ -569,6 +575,7 @@ function NavContent({
   const { data: unreadNotifications = 0 } = useAdminUnreadNotificationCount(
     !shouldRestrictSchoolAdminNav,
   );
+  const { data: activeTaskCount = 0 } = useBackgroundTaskCount(!shouldRestrictSchoolAdminNav);
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -810,12 +817,15 @@ function NavContent({
               const showEmailBadge = href === "/admin/email" && unreadEmails > 0;
               const showNotificationBadge =
                 href === "/admin/notifications" && unreadNotifications > 0;
-              const showNavBadge = showEmailBadge || showNotificationBadge;
+              const showWorkBadge = href === "/admin/background-tasks" && activeTaskCount > 0;
+              const showNavBadge = showEmailBadge || showNotificationBadge || showWorkBadge;
               const navBadgeCount = showEmailBadge
                 ? unreadEmails
                 : showNotificationBadge
                   ? unreadNotifications
-                  : 0;
+                  : showWorkBadge
+                    ? activeTaskCount
+                    : 0;
 
               if (collapsed) {
                 if (locked) {

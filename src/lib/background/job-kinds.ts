@@ -43,6 +43,8 @@ export type BackgroundJobKindPolicy = {
   schoolScoped: boolean;
   notifyOnSuccessDefault: boolean;
   notifyOnFailureDefault: boolean;
+  /** User/operator may create a NEW execution for a terminal failed job. */
+  manualRetryAllowed: boolean;
 };
 
 const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
@@ -56,6 +58,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   COMMUNICATION_OUTBOX: {
     kind: "COMMUNICATION_OUTBOX",
@@ -67,6 +70,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   SCHOOL_PROVISIONING: {
     kind: "SCHOOL_PROVISIONING",
@@ -78,6 +82,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: false,
   },
   EXPLORE_GENERATION: {
     kind: "EXPLORE_GENERATION",
@@ -89,6 +94,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: true,
   },
   AI_LESSON_GENERATION: {
     kind: "AI_LESSON_GENERATION",
@@ -100,6 +106,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: true,
   },
   AI_LESSON_ILLUSTRATION: {
     kind: "AI_LESSON_ILLUSTRATION",
@@ -111,6 +118,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: true,
   },
   AI_CONTENT_GENERATION: {
     kind: "AI_CONTENT_GENERATION",
@@ -122,6 +130,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: false,
   },
   AI_DOCUMENT_ANALYSIS: {
     kind: "AI_DOCUMENT_ANALYSIS",
@@ -133,6 +142,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: false,
   },
   LIBRARY_IMPORT: {
     kind: "LIBRARY_IMPORT",
@@ -144,6 +154,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: true,
   },
   SCHEME_IMPORT: {
     kind: "SCHEME_IMPORT",
@@ -155,6 +166,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: true,
   },
   BULK_IMPORT: {
     kind: "BULK_IMPORT",
@@ -166,6 +178,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: true,
   },
   REPORT_GENERATION: {
     kind: "REPORT_GENERATION",
@@ -177,6 +190,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: false,
   },
   FINANCE_RECONCILIATION: {
     kind: "FINANCE_RECONCILIATION",
@@ -188,6 +202,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: true,
     notifyOnSuccessDefault: true,
     notifyOnFailureDefault: true,
+    manualRetryAllowed: false,
   },
   STORAGE_PURGE: {
     kind: "STORAGE_PURGE",
@@ -199,6 +214,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   STORAGE_BACKUP: {
     kind: "STORAGE_BACKUP",
@@ -210,6 +226,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   STORAGE_RECONCILIATION: {
     kind: "STORAGE_RECONCILIATION",
@@ -221,6 +238,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   IMAP_RECOVERY: {
     kind: "IMAP_RECOVERY",
@@ -232,6 +250,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   SUBSCRIPTION_MAINTENANCE: {
     kind: "SUBSCRIPTION_MAINTENANCE",
@@ -243,6 +262,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
   SYSTEM_BACKGROUND_SMOKE: {
     kind: "SYSTEM_BACKGROUND_SMOKE",
@@ -254,6 +274,7 @@ const KIND_POLICIES: Record<BackgroundJobKind, BackgroundJobKindPolicy> = {
     schoolScoped: false,
     notifyOnSuccessDefault: false,
     notifyOnFailureDefault: false,
+    manualRetryAllowed: false,
   },
 };
 
@@ -270,4 +291,8 @@ export function requireBackgroundJobKind(value: string): BackgroundJobKind {
     throw new Error(`Unknown background job kind: ${value}`);
   }
   return value;
+}
+
+export function userVisibleBackgroundJobKinds(): BackgroundJobKind[] {
+  return BACKGROUND_JOB_KINDS.filter((kind) => getBackgroundJobKindPolicy(kind).userVisible);
 }

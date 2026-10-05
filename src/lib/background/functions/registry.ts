@@ -10,6 +10,7 @@ import { createSchemeImportBackgroundJobFunction } from "./scheme-import";
 import { createSchoolProvisioningBackgroundJobFunction } from "./school-provisioning";
 import { createCommunicationOutboxBackgroundJobFunction } from "./communication-outbox";
 import { createBulkImportBackgroundJobFunction } from "./bulk-import";
+import { getRegisteredScheduleFunctions } from "./schedules";
 
 export function getRegisteredInngestFunctions(): InngestFunction.Any[] {
   const functions: InngestFunction.Any[] = [
@@ -22,6 +23,7 @@ export function getRegisteredInngestFunctions(): InngestFunction.Any[] {
     createSchoolProvisioningBackgroundJobFunction(),
     createCommunicationOutboxBackgroundJobFunction(),
     createBulkImportBackgroundJobFunction(),
+    ...getRegisteredScheduleFunctions(),
   ];
   if (shouldRegisterSmokeFunction()) {
     functions.push(createSmokeBackgroundJobFunction());

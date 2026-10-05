@@ -1,3 +1,8 @@
+/**
+ * LEGACY_INBOUND_COMPATIBILITY
+ * Resend is the active outbound provider. This route remains for historical
+ * Brevo delivery events only. Do not send new outbound mail through Brevo.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectToDatabase } from "@/db/connectToDatabase";

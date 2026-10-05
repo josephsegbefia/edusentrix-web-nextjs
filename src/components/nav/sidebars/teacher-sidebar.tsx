@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import ActiveLink from "../active/ActiveLink";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherUnreadNotificationCount } from "@/hooks/teacher/useTeacherNotifications";
+import { useBackgroundTaskCount } from "@/hooks/useBackgroundTasks";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import type { DelegationModule } from "@/lib/delegations/types";
@@ -41,6 +42,7 @@ import {
   ClipboardSignature,
   Presentation,
   PieChart,
+  ListChecks,
 } from "lucide-react";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
@@ -202,6 +204,11 @@ const navSections: NavSection[] = [
         icon: Bell,
       },
       {
+        label: "Work",
+        href: "/teacher/background-tasks",
+        icon: ListChecks,
+      },
+      {
         label: "Notices",
         href: "/teacher/communication/notices",
         icon: Megaphone,
@@ -333,6 +340,7 @@ function NavContent({
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>({});
   const { data } = useTeacherContext();
   const { data: unreadNotifications } = useTeacherUnreadNotificationCount();
+  const { data: activeTaskCount = 0 } = useBackgroundTaskCount();
   const permissions = data?.data.permissions as Permission[] | undefined;
   const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
   const canViewStudio = can(permissions, PERMISSIONS.assignmentsView);
@@ -353,7 +361,9 @@ function NavContent({
               badgeCount:
                 item.href === "/teacher/notifications"
                   ? Math.max(0, unreadNotifications ?? 0)
-                  : item.badgeCount,
+                  : item.href === "/teacher/background-tasks"
+                    ? Math.max(0, activeTaskCount)
+                    : item.badgeCount,
             }))
             .filter((item) =>
               item.href === "/teacher/homeroom/timetable" ||
@@ -362,14 +372,11 @@ function NavContent({
                 : true
             )
             .filter(
-              (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
-            )
-            .filter(
               (item) => !item.permission || can(permissions, item.permission)
             ),
         }))
         .filter((section) => section.items.length > 0),
-    [showStudio, homeroomClassGroupId, permissions, unreadNotifications]
+    [showStudio, homeroomClassGroupId, permissions, unreadNotifications, activeTaskCount]
   );
 
   const filteredLessonNavChildren = React.useMemo(

@@ -10,6 +10,7 @@ import type { Types } from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { renderGenericBrandedEmail } from "@/lib/email/branded-template";
 import { sendTrackedBrevoEmail } from "@/lib/email/services/send-brevo-email";
+import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
@@ -399,6 +400,7 @@ export async function sendWeeklyDigestForSchool(
         templateKey: TEMPLATE_KEY,
         schoolId: String(schoolId),
         schoolName,
+        async: true,
       });
       result.sent += 1;
     } catch (err) {
@@ -410,4 +412,17 @@ export async function sendWeeklyDigestForSchool(
     }
   }
   return result;
+}
+
+export async function sendWeeklyDigestsForActiveCycles(options: { dryRun?: boolean } = {}) {
+  await connectToDatabase();
+  const distinct = await AdmissionCycle.distinct("schoolId", {
+    status: { $in: ["published", "paused"] },
+  });
+  const schoolIds = (distinct as Types.ObjectId[]).slice(0, 50);
+  const results: DigestSendResult[] = [];
+  for (const schoolId of schoolIds) {
+    results.push(await sendWeeklyDigestForSchool(schoolId, options));
+  }
+  return { schoolCount: schoolIds.length, results };
 }

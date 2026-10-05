@@ -207,8 +207,21 @@ Library import, scheme parse, Paystack subaccount provisioning, communication ou
 
 See [BACKGROUND_WORK_ENGINE_OPERATIONAL_MIGRATION.md](./BACKGROUND_WORK_ENGINE_OPERATIONAL_MIGRATION.md).
 
+## Prompt 5 — Task Center, schedules, recovery
+
+- Task Center: `/admin/background-tasks` and `/teacher/background-tasks`. Polls `GET /api/background-jobs` (4s while active, 15s idle, pauses when hidden).
+- Operator console: `/platform/background-work` (`platform.system.settings.read`).
+- Manual retry creates a **new** BackgroundJob (`retryOfJobId`). Redispatch only recovers `dispatch_failed`.
+- Inngest UTC schedules replaced the business HTTP crons. `vercel.json` has no required crons. Old `/api/cron/*` business routes return 410. Demo maintenance stays HTTP.
+- Stale detection is workload-aware. Reconciliation redispatches `dispatch_failed` with backoff, marks domain-completed jobs succeeded, and flags ambiguous cases.
+- Retention: keep succeeded/failed/cancelled BackgroundJob rows for audit. Physical cleanup is deferred.
+- Outbound email: Resend. `sendTrackedEmail` is canonical; `sendTrackedBrevoEmail` is a deprecated alias.
+- Storage purge/backup are **not** implemented. Primary R2 is not the backup.
+
+See [BACKGROUND_WORK_ENGINE_PRODUCTION_RUNBOOK.md](./BACKGROUND_WORK_ENGINE_PRODUCTION_RUNBOOK.md).
+
 ## Prompt 1 vs later
 
-Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), EMAIL_DISPATCH, AI, library/scheme/provisioning/outbox/bulk-import workers, GET/LIST/cancel, notifications, health, index + migration scripts, tests.
+Implemented: BackgroundJob + Inngest foundation, EMAIL_DISPATCH, AI, operational imports/provisioning/outbox, Task Center, operator console, retry/redispatch, stale reconciliation, Inngest schedules for implemented business crons.
 
-Not migrated: IMAP recovery cron, remaining scheduled crons, R2 purge/backup, report generation worker, Task Center UI.
+Deferred: storage purge/backup, report generation worker, demo/calendar/leave schedules, subscription lifecycle script, `trackUsage` billing ledger.

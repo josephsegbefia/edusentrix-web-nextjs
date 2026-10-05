@@ -36,7 +36,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: toSafeBackgroundJobDTO(job) });
+    return NextResponse.json({ success: true, data: toSafeBackgroundJobDTO(job, auth.actor) });
   } catch (error) {
     if (error instanceof NextResponse) return error;
     console.error("Failed to load background job:", error);

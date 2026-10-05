@@ -29,7 +29,7 @@ export const LEGAL_BACKGROUND_JOB_TRANSITIONS: Record<
   BackgroundJobStatus,
   readonly BackgroundJobStatus[]
 > = {
-  queued: ["running", "dispatch_failed", "cancel_requested", "cancelled"],
+  queued: ["running", "dispatch_failed", "cancel_requested", "cancelled", "succeeded"],
   dispatch_failed: ["queued", "cancel_requested", "cancelled"],
   running: ["waiting", "succeeded", "failed", "cancel_requested", "cancelled"],
   waiting: ["running", "cancel_requested", "cancelled", "failed"],

@@ -113,6 +113,10 @@ export const PLATFORM_ROUTE_ACCESS_RULES: PlatformRouteAccessRule[] = [
     requiredPermissions: ["platform.system.settings.read"],
   },
   {
+    href: "/platform/background-work",
+    requiredPermissions: ["platform.system.settings.read"],
+  },
+  {
     href: "/platform/audit",
     requiredPermissions: ["platform.audit.read"],
   },

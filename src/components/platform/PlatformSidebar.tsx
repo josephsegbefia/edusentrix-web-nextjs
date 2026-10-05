@@ -33,6 +33,7 @@ import {
   ListTodo,
   FileText,
   ContactRound,
+  Activity,
 } from "lucide-react";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
@@ -186,6 +187,12 @@ const navSections: NavSection[] = [
         label: "Webhooks",
         href: "/platform/webhooks",
         icon: Webhook,
+        requiredPermissions: ["platform.system.settings.read"],
+      },
+      {
+        label: "Background work",
+        href: "/platform/background-work",
+        icon: Activity,
         requiredPermissions: ["platform.system.settings.read"],
       },
       {

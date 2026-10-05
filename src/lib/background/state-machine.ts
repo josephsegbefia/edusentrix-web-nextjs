@@ -48,23 +48,15 @@ export async function markJobDispatchFailed(
   });
 }
 
-export async function markJobQueuedForRedispatch(
-  jobId: Types.ObjectId | string
-): Promise<IBackgroundJob | null> {
-  return transitionJob(jobId, "queued", ["dispatch_failed"], {
-    status: "queued",
-    lastErrorCode: null,
-    lastErrorMessage: null,
-    failureCategory: null,
-  });
-}
-
 export async function persistInngestEventId(
   jobId: Types.ObjectId | string,
   inngestEventId: string
 ): Promise<IBackgroundJob | null> {
-  return BackgroundJob.findByIdAndUpdate(
-    jobId,
+  return BackgroundJob.findOneAndUpdate(
+    {
+      _id: jobId,
+      $or: [{ inngestEventId: null }, { inngestEventId: { $exists: false } }],
+    },
     { $set: { inngestEventId } },
     { new: true }
   );
@@ -132,7 +124,7 @@ export async function markJobSucceeded(
   }
   const now = new Date();
   return BackgroundJob.findOneAndUpdate(
-    { _id: jobId, status: { $in: ["running", "waiting", "cancel_requested"] } },
+    { _id: jobId, status: { $in: ["queued", "running", "waiting", "cancel_requested"] } },
     {
       $set: {
         status: "succeeded",

@@ -5,6 +5,7 @@ import { BackgroundJob } from "@/models/BackgroundJob";
 import { canCancelBackgroundJob } from "@/lib/background/authorization";
 import { resolveBackgroundJobRouteActor } from "@/lib/background/route-auth";
 import { toSafeBackgroundJobDTO } from "@/lib/background/serializers";
+import { writeBackgroundJobAudit } from "@/lib/background/audit";
 import { requestJobCancellation } from "@/lib/background/state-machine";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,12 @@ export async function POST(
     }
 
     const updated = (await requestJobCancellation(job._id, auth.actor.userId)) ?? job;
-    return NextResponse.json({ success: true, data: toSafeBackgroundJobDTO(updated) });
+    await writeBackgroundJobAudit({
+      actionCode: "background.job.cancel_requested",
+      actor: auth.actor,
+      job: updated,
+    });
+    return NextResponse.json({ success: true, data: toSafeBackgroundJobDTO(updated, auth.actor) });
   } catch (error) {
     if (error instanceof NextResponse) return error;
     console.error("Failed to cancel background job:", error);

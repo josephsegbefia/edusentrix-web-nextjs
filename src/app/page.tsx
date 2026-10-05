@@ -15,6 +15,7 @@ import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { DemoLandingPage } from "@/components/demo/DemoLandingPage";
+import { SiteNav } from "@/components/marketing/SiteNav";
 
 export const dynamic = "force-dynamic";
 
@@ -41,61 +42,6 @@ export default function HomePage() {
       <FinalCTA />
       <Footer />
     </main>
-  );
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ NAV ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function SiteNav() {
-  return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-neutral-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="group inline-flex items-center gap-4">
-          <div className="relative flex h-12 w-[3.65rem] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-lg shadow-black/30 ring-1 ring-white/5 transition-all duration-200 group-hover:scale-[1.03] group-hover:border-cyan-400/25 group-hover:shadow-cyan-500/15 sm:h-14 sm:w-[4.35rem]">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
-            />
-            <Image
-              src={EDUSENTRIX_LOGO_PATH}
-              alt={EDUSENTRIX_LOGO_ALT}
-              fill
-              sizes="(min-width: 640px) 70px, 58px"
-              className="relative object-contain px-1.5 py-1"
-              priority
-            />
-          </div>
-          <div className="flex flex-col">
-            <EduSentrixWordmark className="text-xl font-semibold tracking-tight sm:text-[1.35rem]" />
-            <span className="hidden text-[11px] font-medium uppercase tracking-[0.24em] text-white/35 sm:block">
-              School OS for Africa
-            </span>
-          </div>
-        </Link>
-        <nav className="hidden items-center gap-8 text-sm font-medium lg:flex">
-          <a href="#features" className="text-white/60 transition-colors hover:text-white">Features</a>
-          <a href="#how" className="text-white/60 transition-colors hover:text-white">How it works</a>
-          <a href="#faq" className="text-white/60 transition-colors hover:text-white">FAQ</a>
-        </nav>
-        <div className="flex items-center gap-3">
-          <Link href="/sign-in" className="hidden rounded-xl px-4 py-2.5 text-sm font-medium text-white/70 transition-all hover:bg-white/5 hover:text-white sm:inline-flex">
-            Sign in
-          </Link>
-          <a
-            href="https://demo.tryedusentrix.app"
-            className="hidden items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-300 backdrop-blur-sm transition-all hover:border-cyan-400/50 hover:bg-cyan-500/20 hover:text-cyan-200 md:inline-flex"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Explore live demo
-          </a>
-          <Link href="/enroll" className="rounded-xl bg-linear-to-r from-violet-500 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02] hover:shadow-violet-500/40">
-            Enrol your school
-          </Link>
-        </div>
-      </div>
-    </header>
   );
 }
 

@@ -1,6 +1,5 @@
 /**
- * Proves async:true only queues EmailDispatchJob and never calls Resend
- * unless runEmailDispatchJob is invoked.
+ * Proves async:true persists EmailMessage + one BackgroundJob and never calls Resend.
  */
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, mock, test } from "node:test";
@@ -14,6 +13,7 @@ stubServerOnly();
 const DB_NAME = "email_dispatch_async";
 let mongod: MongoMemoryServer;
 let resendCalls = 0;
+let sendCalls: Array<{ id?: string; name: string; data: Record<string, unknown> }>;
 
 before(async () => {
   mongod = await MongoMemoryServer.create();
@@ -29,10 +29,16 @@ before(async () => {
     throw new Error(`unexpected fetch: ${url}`);
   });
   await mongoose.connect(mongod.getUri(), { dbName: DB_NAME });
-});
+}, { timeout: 180_000 });
 
 beforeEach(async () => {
   resendCalls = 0;
+  sendCalls = [];
+  const { inngestEventPort } = await import("../src/lib/background/inngest-port");
+  inngestEventPort.send = async (event) => {
+    sendCalls.push(event);
+    return { ids: ["evt_ok"] };
+  };
   const collections = await mongoose.connection.db?.collections();
   for (const collection of collections || []) {
     await collection.deleteMany({});
@@ -45,10 +51,11 @@ after(async () => {
 });
 
 describe("sendTrackedBrevoEmail async mode", () => {
-  test("async:true does not call Resend and creates one pending dispatch job", async () => {
+  test("async:true does not call Resend and creates one BackgroundJob", async () => {
     const { sendTrackedBrevoEmail } = await import("../src/lib/email/services/send-brevo-email");
-    const { EmailDispatchJob } = await import("../src/models/EmailDispatchJob");
+    const { BackgroundJob } = await import("../src/models/BackgroundJob");
     const { EmailMessage } = await import("../src/models/EmailMessage");
+    const { EmailDispatchJob } = await import("../src/models/EmailDispatchJob");
 
     const result = await sendTrackedBrevoEmail({
       to: "admin@example.com",
@@ -61,12 +68,16 @@ describe("sendTrackedBrevoEmail async mode", () => {
     assert.equal(result.status, "queued");
     assert.equal(resendCalls, 0);
     const messages = await EmailMessage.find({}).lean();
-    const jobs = await EmailDispatchJob.find({}).lean();
+    const jobs = await BackgroundJob.find({ kind: "EMAIL_DISPATCH" }).lean();
     assert.equal(messages.length, 1);
     assert.equal(messages[0]?.status, "queued");
     assert.equal(jobs.length, 1);
-    assert.equal(jobs[0]?.status, "pending");
-    assert.equal(String(jobs[0]?.emailMessageId), String(messages[0]?._id));
+    assert.equal(jobs[0]?.status, "queued");
+    assert.equal(jobs[0]?.input?.emailMessageId, String(messages[0]?._id));
+    assert.equal(await EmailDispatchJob.countDocuments(), 0);
+    assert.equal(sendCalls.length, 1);
+    assert.doesNotMatch(JSON.stringify(sendCalls[0]?.data), /Hello/);
+    assert.doesNotMatch(JSON.stringify(jobs[0]?.input), /contentBase64/);
   });
 
   test("platform school creation source no longer uses async:true", () => {

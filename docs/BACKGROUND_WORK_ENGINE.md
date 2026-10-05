@@ -65,7 +65,7 @@ Implemented with `serve` from `inngest/next` (v4 exports `GET`, `POST`, `PUT`).
 
 Clerk middleware allowlists `/api/inngest(.*)` the same way as `/api/cron` and webhooks. There is no custom bypass header. Demo host also allowlists `/api/inngest`.
 
-Prompt 1 registers only `SYSTEM_BACKGROUND_SMOKE`, and only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`.
+Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`.
 
 ## Environment variables
 
@@ -167,8 +167,22 @@ Stale-job helpers exist (`queryStaleBackgroundJobs`) but do **not** auto-fail or
 
 Keep functions in `src/lib/background/functions/` and serve them with the same `edusentrix` client. A later worker process can import `getRegisteredInngestFunctions()` without rewriting domain workflows.
 
+## Prompt 2 email dispatch
+
+Outbound delivery and invitation retries use `BackgroundJob` kind `EMAIL_DISPATCH`.
+
+- `EmailMessage` remains the delivery record.
+- Job input is `{ emailMessageId }` only. Inngest events stay routing IDs.
+- Idempotency key: `email-dispatch:<emailMessageId>` (explicit helper may use `:retry` after a terminal failed job).
+- Critical invitations still send immediately via `issueInvitation` (`enqueueOnFailure: true`).
+- `GET /api/cron/email-dispatch` is retired (HTTP 410). IMAP and subscription crons stay.
+- `EmailDispatchJob` is LEGACY_READ_ONLY. Migrate leftover rows with `scripts/migrate-email-dispatch-jobs-to-background-engine.ts` (dry-run default).
+- Health: `GET /api/platform/email/dispatch-health` (`platform.system.settings.read`). Counts only; no PII.
+
+See [BACKGROUND_WORK_ENGINE_EMAIL_MIGRATION.md](./BACKGROUND_WORK_ENGINE_EMAIL_MIGRATION.md).
+
 ## Prompt 1 vs later
 
-Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), GET/LIST/cancel, notifications, health, index script, tests.
+Implemented: client, route, model, kinds, events, enqueue, idempotency, dispatch-failure recovery, state machine, worker wrapper, smoke (non-prod), EMAIL_DISPATCH worker, GET/LIST/cancel, notifications, health, index script, email migration script, tests.
 
-Not migrated: EmailDispatchJob, invitation retry, ProvisioningJob, CommunicationOutboxJob, ExploreGenerationJob, LibraryImportJob, SchemeImportJob, AI generation, crons, R2 purge, backups, webhook follow-ups.
+Not migrated: ProvisioningJob, CommunicationOutboxJob, ExploreGenerationJob, LibraryImportJob, SchemeImportJob, AI generation, IMAP recovery cron, R2 purge, backups.

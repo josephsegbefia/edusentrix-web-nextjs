@@ -1,8 +1,8 @@
 import "server-only";
 
 import { EmailBatch, type IEmailBatch } from "@/models/EmailBatch";
-import { EmailDispatchJob } from "@/models/EmailDispatchJob";
 import { EmailMessage } from "@/models/EmailMessage";
+import { enqueueEmailMessageForRetry } from "./enqueue-dispatch-job";
 import { lookupTemplateRegistry } from "./registry";
 import {
   resolveSenderEmail,
@@ -46,7 +46,7 @@ export interface CreateBatchResult {
 
 /**
  * Create a batch of outbound emails.
- * Persists one EmailMessage + one EmailDispatchJob per recipient,
+ * Persists one EmailMessage + one EMAIL_DISPATCH BackgroundJob per recipient,
  * linked to a single EmailBatch for tracking.
  *
  * Transactional emails bypass this — use `sendTrackedBrevoEmail` directly.
@@ -179,20 +179,7 @@ export async function createEmailBatch(
       routingToken,
     });
 
-    await EmailDispatchJob.create({
-      kind: "batch_chunk",
-      emailMessageId: message._id,
-      emailBatchId: batch._id,
-      schoolId: input.schoolId || null,
-      senderFamily: registry.senderFamily,
-      trafficClass: registry.trafficClass,
-      priority: registry.priority,
-      status: "pending",
-      maxAttempts: 5,
-      rateScopeKey: input.schoolId
-        ? `school:${input.schoolId}`
-        : "platform",
-    });
+    await enqueueEmailMessageForRetry(message._id);
 
     jobsCreated++;
   }
@@ -215,19 +202,20 @@ export async function createEmailBatch(
 }
 
 /**
- * Cancel a pending/queued batch. Marks remaining dispatch jobs as dead-letter.
+ * Cancel a pending/queued batch. Remaining messages become dead_letter so the
+ * EMAIL_DISPATCH worker no-ops them.
  */
 export async function cancelBatch(batchId: string): Promise<void> {
   await EmailBatch.findByIdAndUpdate(batchId, {
     $set: { status: "cancelled" },
   });
 
-  await EmailDispatchJob.updateMany(
+  await EmailMessage.updateMany(
     {
-      emailBatchId: batchId,
-      status: { $in: ["pending", "failed"] },
+      batchId,
+      status: { $in: ["queued", "failed", "deferred"] },
     },
-    { $set: { status: "dead_letter", lastError: "Batch cancelled" } },
+    { $set: { status: "dead_letter", failureReason: "Batch cancelled" } },
   );
 }
 

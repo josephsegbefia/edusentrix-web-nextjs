@@ -21,6 +21,8 @@ async function queueLibraryTransactionalEmail(params: {
     | "LIBRARY_LOAN_DUE_SOON"
     | "LIBRARY_LOAN_ISSUED";
   recipientRole: string;
+  relatedEntityType: "LibraryLoan" | "LibraryReservation";
+  relatedEntityId: string;
 }): Promise<void> {
   try {
     const [{ sendTrackedBrevoEmail }, { stripHtml }] = await Promise.all([
@@ -45,6 +47,8 @@ async function queueLibraryTransactionalEmail(params: {
       schoolLogo: (school as { logo?: string } | null)?.logo ?? null,
       recipientUserId: String(params.userId),
       recipientRole: params.recipientRole,
+      relatedEntityType: params.relatedEntityType,
+      relatedEntityId: params.relatedEntityId,
       async: true,
     });
   } catch (e) {
@@ -116,6 +120,8 @@ export async function enqueueLibraryOverdueReminderNotifications(args: {
         innerHtml: `<p>Hello,</p><p>${body}</p><p><a href="${abs}" style="color:#4f46e5;">Open library</a></p>`,
         templateKey: "LIBRARY_LOAN_OVERDUE_REMINDER",
         recipientRole: loan.borrowerType,
+        relatedEntityType: "LibraryLoan",
+        relatedEntityId: String(loan._id),
       });
     }
   }
@@ -192,6 +198,8 @@ export async function enqueueLibraryLoanDueSoonNotifications(args: {
         innerHtml: `<p>Hello,</p><p>${body}</p><p><a href="${abs}" style="color:#4f46e5;">Open library</a></p>`,
         templateKey: "LIBRARY_LOAN_DUE_SOON",
         recipientRole: loan.borrowerType,
+        relatedEntityType: "LibraryLoan",
+        relatedEntityId: String(loan._id),
       });
     }
 
@@ -285,6 +293,8 @@ export async function enqueueLibraryLoanIssuedNotifications(args: {
         innerHtml: `<p>Hello,</p><p>${patronBody}</p><p><a href="${abs}" style="color:#4f46e5;">Open library</a></p>`,
         templateKey: "LIBRARY_LOAN_ISSUED",
         recipientRole: loan.borrowerType,
+        relatedEntityType: "LibraryLoan",
+        relatedEntityId: String(loan._id),
       });
     }
 
@@ -331,6 +341,8 @@ export async function enqueueLibraryLoanIssuedNotifications(args: {
           innerHtml: `<p>Hello,</p><p>${parentBody}</p><p><a href="${parentAbs}" style="color:#4f46e5;">Open parent library</a></p>`,
           templateKey: "LIBRARY_LOAN_ISSUED",
           recipientRole: "parent",
+          relatedEntityType: "LibraryLoan",
+          relatedEntityId: String(loan._id),
         });
       }
     }
@@ -450,6 +462,8 @@ export async function enqueueLibraryReservationReadyNotifications(args: {
         innerHtml: `<p>Hello,</p><p>${patronBody}</p><p><a href="${abs}" style="color:#4f46e5;">View title</a></p>`,
         templateKey: "LIBRARY_HOLD_READY",
         recipientRole: res.borrowerType,
+        relatedEntityType: "LibraryReservation",
+        relatedEntityId: String(res._id),
       });
     }
 
@@ -496,6 +510,8 @@ export async function enqueueLibraryReservationReadyNotifications(args: {
           innerHtml: `<p>Hello,</p><p>${parentBody}</p><p><a href="${parentAbs}" style="color:#4f46e5;">Open parent library</a></p>`,
           templateKey: "LIBRARY_HOLD_READY",
           recipientRole: "parent",
+          relatedEntityType: "LibraryReservation",
+          relatedEntityId: String(res._id),
         });
       }
     }

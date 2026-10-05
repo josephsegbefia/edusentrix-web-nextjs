@@ -295,27 +295,18 @@ export async function POST(req: NextRequest) {
 
     let emailStatus: "sent" | "queued" | "failed" = "failed";
     try {
-      const result = await sendTrackedBrevoEmail(confirmationInput);
+      const result = await sendTrackedBrevoEmail({
+        ...confirmationInput,
+        enqueueOnFailure: true,
+      });
       emailStatus = result.status === "sent" || result.status === "queued"
         ? result.status
         : "failed";
     } catch (emailError) {
       console.error(
-        "POST /api/platform/applications - Immediate confirmation email failed; queueing retry:",
+        "POST /api/platform/applications - Confirmation email failed:",
         emailError
       );
-      try {
-        const queued = await sendTrackedBrevoEmail({
-          ...confirmationInput,
-          async: true,
-        });
-        emailStatus = queued.status === "queued" ? "queued" : "failed";
-      } catch (queueError) {
-        console.error(
-          "POST /api/platform/applications - Could not queue confirmation email:",
-          queueError,
-        );
-      }
     }
 
     return NextResponse.json({

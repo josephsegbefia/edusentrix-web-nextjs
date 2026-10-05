@@ -20,6 +20,35 @@ export type ResendSendInput = {
 
 export type ResendSendResult = { providerMessageId?: string };
 
+export class ResendSendError extends Error {
+  readonly statusCode: number;
+  readonly retryAfterMs?: number;
+
+  constructor(input: {
+    message: string;
+    statusCode: number;
+    retryAfterMs?: number;
+  }) {
+    super(input.message);
+    this.name = "ResendSendError";
+    this.statusCode = input.statusCode;
+    this.retryAfterMs = input.retryAfterMs;
+  }
+}
+
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header?.trim()) return undefined;
+  const seconds = Number(header.trim());
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
+  const date = Date.parse(header);
+  if (!Number.isNaN(date)) {
+    return Math.max(0, date - Date.now());
+  }
+  return undefined;
+}
+
 function normalizeTagValue(value: string): string | null {
   const normalized = value
     .replace(/[^A-Za-z0-9_-]/g, "-")
@@ -118,7 +147,11 @@ export async function resendSend(input: ResendSendInput): Promise<ResendSendResu
   });
   const body = await response.json().catch(() => null) as { id?: string; message?: string; name?: string } | null;
   if (!response.ok) {
-    throw new Error(body?.message || body?.name || `Resend email request failed (${response.status})`);
+    throw new ResendSendError({
+      message: body?.message || body?.name || `Resend email request failed (${response.status})`,
+      statusCode: response.status,
+      retryAfterMs: parseRetryAfterMs(response.headers.get("Retry-After")),
+    });
   }
   return { providerMessageId: body?.id };
 }

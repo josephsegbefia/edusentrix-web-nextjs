@@ -23,7 +23,9 @@ import {
 } from "@/lib/fees/post-paystack-fee-payment";
 import { formatMoney } from "@/lib/fees/money";
 import { ensureReceiptVerification } from "@/lib/finance/receipt-verification";
-import { sendTrackedBrevoEmail } from "@/lib/email";
+import { enqueueEmailMessageForRetry, sendTrackedBrevoEmail } from "@/lib/email";
+import { isSucceededEmailStatus } from "@/lib/email/email-dispatch-keys";
+import { findReusableOutboundEmailMessage } from "@/lib/email/reconstruct-dispatch-attachments";
 import { renderLearnReceiptPdf } from "@/lib/learn/receipt-pdf";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { buildTransferReconciliationUpdate } from "@/lib/finance/disbursements";
@@ -321,7 +323,7 @@ async function handleLearnAccessFailure(event: PaystackEvent) {
   });
 }
 
-async function sendFeePaymentFollowUps(args: {
+export async function sendFeePaymentFollowUps(args: {
   schoolId: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
   invoiceId: mongoose.Types.ObjectId;
@@ -475,6 +477,18 @@ async function sendFeePaymentFollowUps(args: {
     }
 
     if (parentUser?.email) {
+      const existingReceipt = await findReusableOutboundEmailMessage({
+        relatedEntityType: "Payment",
+        relatedEntityId: String(args.paymentId),
+        to: parentUser.email,
+      });
+      if (existingReceipt) {
+        if (!isSucceededEmailStatus(existingReceipt.status) && existingReceipt.status !== "dead_letter") {
+          await enqueueEmailMessageForRetry(existingReceipt._id);
+        }
+        return;
+      }
+
       const verification = await ensureReceiptVerification({
         schoolId: args.schoolId,
         schoolName,

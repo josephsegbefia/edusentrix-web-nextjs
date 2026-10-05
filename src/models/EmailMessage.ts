@@ -118,6 +118,7 @@ export interface IEmailMessage {
 
   failureReason?: string | null;
   skipReason?: string | null;
+  dispatchClaimedAt?: Date | null;
   sentAt?: Date | null;
   deliveredAt?: Date | null;
   openedAt?: Date | null;
@@ -280,6 +281,7 @@ const emailMessageSchema = new Schema<IEmailMessage>(
 
     failureReason: { type: String, default: null, trim: true },
     skipReason: { type: String, default: null, trim: true },
+    dispatchClaimedAt: { type: Date, default: null },
     sentAt: { type: Date, default: null },
     deliveredAt: { type: Date, default: null },
     openedAt: { type: Date, default: null },

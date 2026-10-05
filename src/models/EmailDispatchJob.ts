@@ -1,3 +1,8 @@
+/**
+ * LEGACY_READ_ONLY after Prompt 2.
+ * Historical rows remain for health/demo. Production send/retry/batch paths
+ * must not create or claim these jobs. Delivery uses BackgroundJob EMAIL_DISPATCH.
+ */
 import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type EmailDispatchJobKind =

@@ -34,11 +34,11 @@ Classification key:
 | --- | --- |
 | Name | Email dispatch queue |
 | Domain | Email |
-| Initiating route/function | `sendTrackedBrevoEmail({ async: true })` in `src/lib/email/services/send-brevo-email.ts`; retry via `enqueueEmailMessageForRetry` in `src/lib/email/enqueue-dispatch-job.ts`; cron `src/app/api/cron/email-dispatch/route.ts` |
-| Current execution | Mongo `EmailDispatchJob` + Vercel cron `*/5 * * * *` → `runEmailDispatchJob` (`src/lib/jobs/emailDispatch.ts`) |
-| Persistence | `EmailDispatchJob`, `EmailMessage`, `EmailBatch` |
-| Retry | Backoff, `maxAttempts`, stale `running` reclaim, `dead_letter` |
-| Idempotency | Resend key `email-{messageId}`; skip if already sent |
+| Initiating route/function | `sendTrackedBrevoEmail({ async: true })` / `enqueueEmailMessageForRetry` → `enqueueBackgroundJob({ kind: "EMAIL_DISPATCH" })` |
+| Current execution | Mongo `BackgroundJob` + Inngest `email-dispatch` worker (`src/lib/background/functions/email-dispatch.ts`). Legacy `EmailDispatchJob` is read-only. |
+| Persistence | `BackgroundJob`, `EmailMessage`, `EmailBatch` |
+| Retry | Inngest EMAIL policy (5 attempts). Permanent provider errors are NonRetriable. |
+| Idempotency | Job key `email-dispatch:<emailMessageId>`; Resend `Idempotency-Key: email-<messageId>` |
 | Progress | Batch counters; message status |
 | Notification | Email delivery + communication delivery sync |
 | Request-bound | No |
@@ -47,7 +47,7 @@ Classification key:
 | Priority | P0 |
 | Classification | `MIGRATE_TO_INNGEST` |
 
-Invitation sends remain **immediate Resend**, with this queue used only as failure fallback. Do not migrate in Prompt 1.
+Invitation sends remain **immediate Resend**, with `EMAIL_DISPATCH` used only as failure fallback. Migrated in Prompt 2.
 
 ---
 
@@ -183,7 +183,7 @@ Invitation sends remain **immediate Resend**, with this queue used only as failu
 
 | Name | Path | Schedule | Classification | Priority |
 | --- | --- | --- | --- | --- |
-| Email dispatch | `/api/cron/email-dispatch` | `*/5 * * * *` | `MIGRATE_TO_INNGEST` | P0 |
+| Email dispatch | `/api/cron/email-dispatch` | retired (HTTP 410) | Migrated in Prompt 2 — Inngest `EMAIL_DISPATCH` | P0 |
 | IMAP recovery | `/api/cron/imap-recovery` | `*/10 * * * *` | `MIGRATE_TO_INNGEST` | P1 |
 | Subscription renewal notices | `/api/cron/subscription-renewal-notices` | `0 8 * * *` | `MIGRATE_TO_INNGEST` (email leg) | P1 |
 | Subscription plan changes | `/api/cron/subscription-plan-changes` | `15 0 * * *` | `NEEDS_REVIEW` / keep cron | P2 |

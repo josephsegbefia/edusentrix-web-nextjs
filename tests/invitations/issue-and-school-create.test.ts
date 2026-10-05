@@ -57,6 +57,8 @@ beforeEach(async () => {
   resendShouldFail = false;
   clerkUrl = "https://accounts.example.com/invite?__clerk_ticket=ticket1";
   clerkCalls.length = 0;
+  const { inngestEventPort } = await import("../../src/lib/background/inngest-port");
+  inngestEventPort.send = async () => ({ ids: ["evt_ok"] });
   const collections = await mongoose.connection.db?.collections();
   for (const collection of collections || []) {
     await collection.deleteMany({});
@@ -82,7 +84,7 @@ describe("issueInvitation", () => {
   test("creates Clerk metadata, canonical Invitation, and immediate Resend send", async () => {
     const { issueInvitation } = await import("../../src/lib/invitations/issue-invitation");
     const { Invitation } = await import("../../src/models/Invitation");
-    const { EmailDispatchJob } = await import("../../src/models/EmailDispatchJob");
+    const { BackgroundJob } = await import("../../src/models/BackgroundJob");
     const actor = await createActor();
     const schoolId = new mongoose.Types.ObjectId();
 
@@ -110,8 +112,7 @@ describe("issueInvitation", () => {
     assert.equal(invites.length, 1);
     assert.equal(invites[0]?.email, "admin@school.com");
     assert.equal(invites[0]?.role, "school_admin");
-    const jobs = await EmailDispatchJob.find({}).lean();
-    assert.equal(jobs.length, 0);
+    assert.equal(await BackgroundJob.countDocuments({ kind: "EMAIL_DISPATCH" }), 0);
   });
 
   test("missing Clerk URL fails closed and never emails a ticketless fallback", async () => {
@@ -139,7 +140,7 @@ describe("issueInvitation", () => {
     resendShouldFail = true;
     const { issueInvitation } = await import("../../src/lib/invitations/issue-invitation");
     const { Invitation } = await import("../../src/models/Invitation");
-    const { EmailDispatchJob } = await import("../../src/models/EmailDispatchJob");
+    const { BackgroundJob } = await import("../../src/models/BackgroundJob");
     const { EmailMessage } = await import("../../src/models/EmailMessage");
     const actor = await createActor();
     const schoolId = new mongoose.Types.ObjectId();
@@ -157,11 +158,11 @@ describe("issueInvitation", () => {
     assert.equal(result.deliveryCode, "INVITATION_CREATED_EMAIL_QUEUED");
     assert.equal(resendCalls, 1);
     assert.equal(await Invitation.countDocuments({ schoolId, status: "pending" }), 1);
-    const jobs = await EmailDispatchJob.find({ status: "pending" }).lean();
+    const jobs = await BackgroundJob.find({ kind: "EMAIL_DISPATCH" }).lean();
     assert.equal(jobs.length, 1);
     const messages = await EmailMessage.find({}).lean();
     assert.equal(messages.length, 1);
-    assert.equal(String(jobs[0]?.emailMessageId), String(messages[0]?._id));
+    assert.equal(jobs[0]?.input?.emailMessageId, String(messages[0]?._id));
   });
 
   test("retry helper is idempotent for the same EmailMessage", async () => {
@@ -170,7 +171,7 @@ describe("issueInvitation", () => {
     const { enqueueEmailMessageForRetry } = await import(
       "../../src/lib/email/enqueue-dispatch-job"
     );
-    const { EmailDispatchJob } = await import("../../src/models/EmailDispatchJob");
+    const { BackgroundJob } = await import("../../src/models/BackgroundJob");
     const actor = await createActor();
 
     const result = await issueInvitation({
@@ -184,7 +185,7 @@ describe("issueInvitation", () => {
     assert.ok(result.emailMessageId);
     await enqueueEmailMessageForRetry(result.emailMessageId!);
     await enqueueEmailMessageForRetry(result.emailMessageId!);
-    assert.equal(await EmailDispatchJob.countDocuments({ emailMessageId: result.emailMessageId }), 1);
+    assert.equal(await BackgroundJob.countDocuments({ kind: "EMAIL_DISPATCH" }), 1);
   });
 
   test("reuse of a pending invitation does not create a second row", async () => {
@@ -261,7 +262,7 @@ describe("createSchoolFromPlatform invitation delivery", () => {
       "../../src/lib/platform/schools/create-school-from-platform"
     );
     const { School } = await import("../../src/models/School");
-    const { EmailDispatchJob } = await import("../../src/models/EmailDispatchJob");
+    const { BackgroundJob } = await import("../../src/models/BackgroundJob");
     const actor = await createActor();
 
     const result = await createSchoolFromPlatform({
@@ -282,7 +283,7 @@ describe("createSchoolFromPlatform invitation delivery", () => {
     assert.equal(result.adminInvitation.status, "pending");
     assert.equal(result.adminInvitation.emailStatus, "queued");
     assert.ok(result.adminInvitation.invitationId);
-    assert.ok((await EmailDispatchJob.countDocuments({ status: "pending" })) >= 1);
+    assert.ok((await BackgroundJob.countDocuments({ kind: "EMAIL_DISPATCH" })) >= 1);
   });
 
   test("same school/admin email is deduplicated and missing school email is safe", async () => {

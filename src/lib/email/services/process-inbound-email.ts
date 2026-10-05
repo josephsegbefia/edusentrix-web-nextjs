@@ -2,8 +2,8 @@ import "server-only";
 
 import { EmailMessage } from "@/models/EmailMessage";
 import { EmailThread } from "@/models/EmailThread";
-import { EmailDispatchJob } from "@/models/EmailDispatchJob";
 import type { EmailMailboxScope } from "@/models/EmailMessage";
+import { attachUnroutedInboundMessage } from "../attach-unrouted-inbound";
 import { parseReplyAlias } from "../routing";
 import { findOrCreateThread, updateThreadAfterMessage } from "../threading";
 import {
@@ -302,16 +302,19 @@ export async function processInboundEmail(
     };
   }
 
-  await EmailDispatchJob.create({
-    kind: "inbound_route",
-    emailMessageId: message._id,
-    schoolId: schoolId || null,
-    trafficClass: "system",
-    priority: "normal",
-    status: "pending",
-    maxAttempts: 5,
-    payload: { rawPayload: input.rawPayload || {} },
-  });
+  try {
+    const attached = await attachUnroutedInboundMessage(String(message._id));
+    if (attached.attached) {
+      const fresh = await EmailMessage.findById(message._id).select("threadId").lean();
+      return {
+        messageId: String(message._id),
+        threadId: fresh?.threadId ? String(fresh.threadId) : undefined,
+        routed: Boolean(fresh?.threadId),
+      };
+    }
+  } catch (error) {
+    console.error("[process-inbound-email] unrouted inbound attach failed", error);
+  }
 
   return {
     messageId: String(message._id),

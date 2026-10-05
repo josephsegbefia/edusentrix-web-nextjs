@@ -28,6 +28,8 @@ before(async () => {
   process.env.MONGO_DB_NAME = DB_NAME;
   const { connectToDatabase } = await import("../../src/db/connectToDatabase");
   await connectToDatabase();
+  const { BackgroundJob } = await import("../../src/models/BackgroundJob");
+  await BackgroundJob.syncIndexes();
 }, { timeout: 180_000 });
 
 after(async () => {

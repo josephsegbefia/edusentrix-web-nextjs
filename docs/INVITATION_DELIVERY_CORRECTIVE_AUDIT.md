@@ -21,14 +21,16 @@ Classification after the Coolify/Vercel-cron corrective pass.
 
 ## Remaining `async: true` email flows
 
-Classified **B — APPROPRIATE_BACKGROUND_JOB**. They still need `/api/cron/email-dispatch` or an equivalent Coolify scheduler:
+Classified **B — APPROPRIATE_BACKGROUND_JOB**. Delivery now uses `BackgroundJob` `EMAIL_DISPATCH` + Inngest. They do **not** need `/api/cron/email-dispatch` or a Coolify email cron:
 
 - `src/lib/lessons/lesson-publish-notifications.ts`
 - `src/lib/library/library-notifications.ts`
-- `src/lib/subscriptions/renewal-notices.ts`
+- `src/lib/subscriptions/renewal-notices.ts` (delivery only; scheduling remains cron)
 - `src/lib/subscriptions/subscription-receipts.ts`
 - `src/app/api/webhooks/paystack/route.ts`
-- `src/app/api/platform/applications/route.ts` confirmation retry fallback
+- `src/app/api/platform/applications/route.ts` confirmation uses `enqueueOnFailure` on the same EmailMessage
+
+See `docs/BACKGROUND_WORK_ENGINE_EMAIL_MIGRATION.md`.
 
 **A — MUST_SEND_IMMEDIATELY:** invitation / authentication / onboarding links. Implemented in this pass.
 

@@ -55,6 +55,8 @@ async function queueLessonPublishedStudentEmail(params: {
       schoolLogo: (school as { logo?: string } | null)?.logo ?? null,
       recipientUserId: String(params.userId),
       recipientRole: "student",
+      relatedEntityType: "Lesson",
+      relatedEntityId: String(params.lessonId),
       async: true,
     });
   } catch (e) {

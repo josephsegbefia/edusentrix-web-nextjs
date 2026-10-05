@@ -2,7 +2,6 @@ import "server-only";
 import { Types } from "mongoose";
 
 import { EmailMessage, type IEmailMessage } from "@/models/EmailMessage";
-import { EmailDispatchJob } from "@/models/EmailDispatchJob";
 import { School } from "@/models/School";
 import { EmailThread } from "@/models/EmailThread";
 import { lookupTemplateRegistry } from "../registry";
@@ -312,16 +311,7 @@ export async function sendTrackedBrevoEmail(
   });
 
   if (input.async) {
-    await EmailDispatchJob.create({
-      kind: "outbound_single",
-      emailMessageId: message._id,
-      schoolId: input.schoolId || null,
-      senderFamily: registry.senderFamily,
-      trafficClass: registry.trafficClass,
-      priority: registry.priority,
-      status: "pending",
-      maxAttempts: 10,
-    });
+    await enqueueEmailMessageForRetry(message._id);
 
     return {
       messageId: String(message._id),
@@ -336,17 +326,7 @@ export async function sendTrackedBrevoEmail(
   });
 
   if (!rateCheck.allowed) {
-    await EmailDispatchJob.create({
-      kind: "outbound_single",
-      emailMessageId: message._id,
-      schoolId: input.schoolId || null,
-      senderFamily: registry.senderFamily,
-      trafficClass: registry.trafficClass,
-      priority: registry.priority,
-      status: "pending",
-      maxAttempts: 10,
-      nextRunAt: new Date(Date.now() + (rateCheck.retryAfterMs || 60_000)),
-    });
+    await enqueueEmailMessageForRetry(message._id);
 
     return {
       messageId: String(message._id),

@@ -42,6 +42,7 @@ const DEMO_PUBLIC_PREFIXES = [
   "/api/public/students/parent-documents",
   "/api/storage/assets",
   "/api/storage/public/uploads",
+  "/api/inngest",
 ];
 
 // Define public routes (everything else is protected)
@@ -73,6 +74,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks/resend(.*)", // Resend webhook verifies Svix signatures
   "/api/webhooks/paystack(.*)", // Paystack transaction webhooks verify their own HMAC signature
   "/api/cron(.*)", // Cron jobs authenticate with their own secrets
+  "/api/inngest(.*)", // Inngest Cloud / local dev server; SDK signing protects execution
   // Secret URL + OTP-gated first platform admin bootstrap (see PLATFORM_ADMIN_BOOTSTRAP_SECRET)
   "/platform-bootstrap(.*)",
   "/api/platform/bootstrap(.*)",
@@ -155,6 +157,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/api/webhooks/brevo",
     "/api/webhooks/resend",
     "/api/webhooks/paystack",
+    "/api/inngest",
     "/payment-return",
     "/platform-bootstrap",
     "/api/platform/bootstrap",

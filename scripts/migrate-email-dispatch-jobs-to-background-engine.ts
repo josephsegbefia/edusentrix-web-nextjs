@@ -16,7 +16,7 @@ import { connectToDatabase } from "../src/db/connectToDatabase";
 import { BackgroundJob } from "../src/models/BackgroundJob";
 import { EmailDispatchJob } from "../src/models/EmailDispatchJob";
 import { EmailMessage } from "../src/models/EmailMessage";
-import { enqueueBackgroundJob } from "../src/lib/background/enqueue-job";
+import { enqueueBackgroundJob } from "../src/lib/background/enqueue-job-core";
 import { emailDispatchIdempotencyKey } from "../src/lib/email/email-dispatch-keys";
 import { isSucceededEmailStatus } from "../src/lib/email/email-dispatch-keys";
 

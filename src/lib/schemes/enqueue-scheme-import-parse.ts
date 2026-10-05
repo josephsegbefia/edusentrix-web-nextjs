@@ -1,8 +1,7 @@
 import "server-only";
 
 import mongoose from "mongoose";
-import { enqueueBackgroundJob, redispatchBackgroundJob } from "@/lib/background/enqueue-job";
-import { isTerminalBackgroundJobStatus } from "@/lib/background/job-status";
+import { enqueueBackgroundJob } from "@/lib/background/enqueue-job";
 import {
   assertPdfSchemeImportEnabled,
   assertSchemeImportEnabled,
@@ -11,9 +10,10 @@ import {
 import { isPdfSource } from "@/lib/schemes/scheme-import-pdf-utils";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
 import { parseStoredAssetId } from "@/lib/storage/urls";
-import { BackgroundJob } from "@/models/BackgroundJob";
 import { SchemeImportJob } from "@/models/SchemeImportJob";
 import { StoredAsset } from "@/models/StoredAsset";
+
+export { requeueSchemeImportParse } from "@/lib/background/domain-enqueue";
 
 export type EnqueueSchemeImportInput = {
   schoolId: mongoose.Types.ObjectId;
@@ -106,46 +106,4 @@ export async function enqueueSchemeImportParse(input: EnqueueSchemeImportInput):
     jobId: queued.jobId,
     schemeImportJobId: String(domain._id),
   };
-}
-
-export async function requeueSchemeImportParse(input: {
-  schoolId: mongoose.Types.ObjectId;
-  schemeImportJobId: mongoose.Types.ObjectId;
-  initiatedByUserId: mongoose.Types.ObjectId;
-}): Promise<{ jobId: string; created: boolean; status: string }> {
-  const domain = await SchemeImportJob.findOne({
-    _id: input.schemeImportJobId,
-    schoolId: input.schoolId,
-  });
-  if (!domain) {
-    throw new Error("Scheme import job not found");
-  }
-  if (domain.backgroundJobId) {
-    const existing = await BackgroundJob.findById(domain.backgroundJobId);
-    if (existing && existing.status === "dispatch_failed") {
-      const redispatched = await redispatchBackgroundJob(existing._id);
-      return { jobId: redispatched.jobId, created: false, status: redispatched.job.status };
-    }
-    if (existing && !isTerminalBackgroundJobStatus(existing.status)) {
-      return { jobId: String(existing._id), created: false, status: existing.status };
-    }
-  }
-
-  const queued = await enqueueBackgroundJob({
-    kind: "SCHEME_IMPORT",
-    schoolId: input.schoolId,
-    initiatedByUserId: input.initiatedByUserId,
-    notificationTargetUserId: input.initiatedByUserId,
-    subjectType: "SchemeImportJob",
-    subjectId: domain._id,
-    idempotencyKey: `scheme-import:${String(input.schoolId)}:${String(domain._id)}`,
-    input: { schemeImportJobId: String(domain._id) },
-  });
-  domain.backgroundJobId = new mongoose.Types.ObjectId(queued.jobId);
-  if (domain.status === "failed") {
-    domain.status = "queued";
-    domain.parseError = null;
-  }
-  await domain.save();
-  return { jobId: queued.jobId, created: queued.created, status: queued.job.status };
 }

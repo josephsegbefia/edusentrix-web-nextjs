@@ -13,7 +13,7 @@ import { resolve } from "path";
 import mongoose from "mongoose";
 import { connectToDatabase } from "../src/db/connectToDatabase";
 import { ExploreGenerationJob } from "../src/models/ExploreGenerationJob";
-import { enqueueExploreGenerationWork } from "../src/lib/learn/explore/enqueue-explore-generation";
+import { enqueueExploreGenerationWork } from "../src/lib/background/domain-enqueue";
 
 const UNFINISHED = ["pending", "generating", "safety_checking", "repairing"] as const;
 

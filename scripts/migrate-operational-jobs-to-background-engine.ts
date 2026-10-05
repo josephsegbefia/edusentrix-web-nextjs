@@ -15,10 +15,12 @@ import { LibraryImportJob } from "../src/models/LibraryImportJob";
 import { SchemeImportJob } from "../src/models/SchemeImportJob";
 import { ProvisioningJob } from "../src/models/ProvisioningJob";
 import { CommunicationOutboxJob } from "../src/models/CommunicationOutboxJob";
-import { enqueueLibraryImportBackgroundJob } from "../src/lib/library/enqueue-library-import";
-import { requeueSchemeImportParse } from "../src/lib/schemes/enqueue-scheme-import-parse";
-import { enqueueSchoolProvisioningBackgroundJob } from "../src/lib/jobs/enqueue-school-provisioning";
-import { enqueueOneCommunicationOutboxJob } from "../src/lib/communications/delivery/enqueue-communication-outbox";
+import {
+  enqueueLibraryImportBackgroundJob,
+  requeueSchemeImportParse,
+  enqueueSchoolProvisioningBackgroundJob,
+  enqueueOneCommunicationOutboxJob,
+} from "../src/lib/background/domain-enqueue";
 
 export type OperationalMigrationRow = {
   kind: string;

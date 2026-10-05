@@ -11,15 +11,10 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { School } from "@/models/School";
 import { clerkClient } from "@clerk/nextjs/server";
 import { Invitation } from "@/models/Invitation";
-import { sendTrackedBrevoEmail } from "@/lib/email";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
-import {
-  getAppUrl,
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { getAppUrl } from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import {
@@ -620,95 +615,79 @@ export async function POST(req: NextRequest) {
       }
     } else {
       try {
-        const clerk = await clerkClient();
-        const redirectUrl = withInvitedEmail(
-          `${getInvitationRedirectUrl()}?next=${encodeURIComponent("/teacher")}`,
-          effectiveEmail
-        );
-        const clerkInvitation = await clerk.invitations.createInvitation({
-          emailAddress: effectiveEmail,
-          redirectUrl,
-          notify: false,
-          publicMetadata: {
-            role: "teacher",
-            schoolId: String(schoolIdObj),
-          },
-          ignoreExisting: true,
-        });
-        clerkInvitationId = clerkInvitation.id;
-
         const school = await School.findById(schoolIdObj)
           .select("name")
           .lean();
         const schoolName = school ? (school as any).name : "your school";
-
-        const { renderTemplate } = await import("@/lib/email/templates");
-        const rendered = renderTemplate("USER_INVITE", {
-          name: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
+        const issued = await issueInvitation({
+          email: effectiveEmail,
           role: "teacher",
+          schoolId: schoolIdObj,
+          invitedBy: userId,
+          recipientName: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
           schoolName,
-          setupLink: getInvitationAcceptUrl(
-            clerkInvitation,
-            redirectUrl,
-            effectiveEmail
-          ),
-        });
-
-        await sendTrackedBrevoEmail({
-          to: effectiveEmail,
-          subject: rendered.subject,
-          htmlContent: rendered.htmlContent,
-          textContent: rendered.textContent,
-          templateKey: "TEACHER_INVITE",
-          schoolId: String(schoolIdObj),
-          schoolName,
-          actorId: String(userId),
+          redirectNext: "/teacher",
           actorRole: "school_admin",
           relatedEntityType: "invitation",
+          invitationMetadata: {
+            firstName: normalizedBody.firstName,
+            lastName: normalizedBody.lastName,
+            subjectIds: mergedSubjectIdStrings,
+            teachingAssignments: normalizedBody.teachingAssignments || [],
+            homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+            invitationEmailSuppressed: false,
+            e2eTeacherLoginBypass: false,
+          },
         });
-        await trackUsage({
-          schoolId,
-          provider: "email",
-          metricKey: "transactional_emails_sent",
-          quantity: 1,
-          unitLabel: "emails",
-          allocationMethod: "direct",
-          sourceType: "manual",
-          notes: "Teacher invitation email sent.",
-        });
+        clerkInvitationId = issued.clerkInvitationId || undefined;
+        invitationStatus = issued.invitationStatus;
+        if (issued.emailStatus === "sent") {
+          await trackUsage({
+            schoolId,
+            provider: "email",
+            metricKey: "transactional_emails_sent",
+            quantity: 1,
+            unitLabel: "emails",
+            allocationMethod: "direct",
+            sourceType: "manual",
+            notes: "Teacher invitation email sent.",
+          });
+        }
       } catch (inviteError) {
         console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
         invitationStatus = "failed";
       }
     }
 
-    try {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+    if (devLoginBypassEnabled) {
+      try {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
 
-      await Invitation.create({
-        email: effectiveEmail,
-        role: "teacher",
-        schoolId: schoolIdObj,
-        status: invitationStatus,
-        clerkInvitationId,
-        sentAt: new Date(),
-        acceptedAt: devLoginBypassEnabled ? new Date() : undefined,
-        expiresAt,
-        resendCount: 0,
-        invitedBy: new mongoose.Types.ObjectId(userId),
-        metadata: {
-          firstName: normalizedBody.firstName,
-          lastName: normalizedBody.lastName,
-          subjectIds: mergedSubjectIdStrings,
-          teachingAssignments: normalizedBody.teachingAssignments || [],
-          homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
-          invitationEmailSuppressed: devLoginBypassEnabled,
-          e2eTeacherLoginBypass: devLoginBypassEnabled,
-        },
-      });
-    } catch (inviteRecordError) {
-      console.error("Failed to create invitation record:", inviteRecordError);
+        await Invitation.create({
+          email: effectiveEmail,
+          role: "teacher",
+          schoolId: schoolIdObj,
+          status: invitationStatus,
+          clerkInvitationId,
+          sentAt: new Date(),
+          acceptedAt: new Date(),
+          expiresAt,
+          resendCount: 0,
+          invitedBy: new mongoose.Types.ObjectId(userId),
+          metadata: {
+            firstName: normalizedBody.firstName,
+            lastName: normalizedBody.lastName,
+            subjectIds: mergedSubjectIdStrings,
+            teachingAssignments: normalizedBody.teachingAssignments || [],
+            homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+            invitationEmailSuppressed: true,
+            e2eTeacherLoginBypass: true,
+          },
+        });
+      } catch (inviteRecordError) {
+        console.error("Failed to create invitation record:", inviteRecordError);
+      }
     }
 
     // Record activity

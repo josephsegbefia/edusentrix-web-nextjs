@@ -8,6 +8,7 @@
 
 // High-level send services
 export { sendTrackedBrevoEmail } from "./services/send-brevo-email";
+export { enqueueEmailMessageForRetry } from "./enqueue-dispatch-job";
 export type {
   SendBrevoEmailInput,
   SendBrevoEmailResult,

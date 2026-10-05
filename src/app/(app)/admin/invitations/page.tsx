@@ -258,7 +258,11 @@ export default function InvitationsPage() {
     try {
       await busy.promise(resendMutation.mutateAsync(id), {
         loading: "Resending invitation...",
-        success: "Invitation resent successfully",
+        success: (result) =>
+          result?.data?.emailStatus === "sent"
+            ? "Invitation resent successfully"
+            : result?.data?.warning ||
+              "Invitation resent; email delivery is pending",
         error: "Failed to resend invitation",
       });
     } catch {

@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { clerkClient } from "@clerk/nextjs/server";
 import { requirePaymentSetupAccess } from "@/lib/auth/requirePaymentSetupAccess";
 import { trackUsage } from "@/lib/billing/trackUsage";
-import { sendTrackedBrevoEmail } from "@/lib/email";
-import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
-import {
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
 import { assignPendingBillingOwnerInvitation } from "@/lib/school-payments/billing-owner-lifecycle";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
@@ -107,93 +100,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const redirectUrl = withInvitedEmail(
-      `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
-        "/admin/settings/payment-setup"
-      )}`,
-      normalizedEmail
-    );
-    const clerk = await clerkClient();
-    let clerkInvitationId: string | undefined;
-    let clerkInvitation: { id: string; url?: string | null } | null = null;
-    let invitationStatus: "pending" | "failed" = "pending";
-    let invitationError: string | null = null;
-    let emailDeliveryWarning: string | null = null;
-
-    try {
-      clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: normalizedEmail,
-        redirectUrl,
-        notify: false,
-        publicMetadata: {
-          role: "billing_owner",
-          schoolId: String(access.schoolId),
-        },
-        ignoreExisting: true,
-      });
-      clerkInvitationId = clerkInvitation.id;
-    } catch (inviteError: unknown) {
-      console.error("Billing owner invitation error:", inviteError);
-      invitationStatus = "failed";
-      invitationError =
-        inviteError instanceof Error
-          ? inviteError.message
-          : "Failed to create billing owner invitation";
-    }
-
-    if (invitationStatus === "pending") {
-      try {
-        const rendered = renderTemplate("USER_INVITE", {
-          name: parsed.data.ownerName,
-          role: "billing owner",
-          schoolName: school.name || "your school",
-          setupLink: getInvitationAcceptUrl(
-            clerkInvitation,
-            redirectUrl,
-            normalizedEmail
-          ),
-        });
-
-        await sendTrackedBrevoEmail({
-          to: normalizedEmail,
-          subject: rendered.subject,
-          htmlContent: rendered.htmlContent,
-          textContent: rendered.textContent,
-          templateKey: "BILLING_OWNER_INVITE",
-          schoolId: String(access.schoolId),
-          schoolName: school.name || undefined,
-          actorId: String(access.userId),
-          actorRole: "school_admin",
-          relatedEntityType: "invitation",
-        });
-      } catch (emailError: unknown) {
-        console.error("Billing owner invite email error:", emailError);
-        emailDeliveryWarning =
-          emailError instanceof Error
-            ? emailError.message
-            : "Failed to send billing owner email";
-      }
-    }
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const created = await Invitation.create({
+    const issued = await issueInvitation({
       email: normalizedEmail,
       role: "billing_owner",
       schoolId: schoolIdObj,
-      status: invitationStatus,
-      clerkInvitationId,
-      sentAt: new Date(),
-      expiresAt,
-      resendCount: 0,
-      invitedBy: new mongoose.Types.ObjectId(String(access.userId)),
-      metadata: {
+      invitedBy: access.userId,
+      recipientName: parsed.data.ownerName,
+      schoolName: school.name || "your school",
+      redirectNext: "/admin/settings/payment-setup",
+      actorRole: "school_admin",
+      relatedEntityType: "invitation",
+      invitationMetadata: {
         firstName: parsed.data.ownerName,
         accessSurface: "payment_setup",
         paymentAuthorityMode: inviteMode,
       },
     });
+    const invitationStatus = issued.invitationStatus;
+    const invitationError = issued.warning || null;
+    const created = await Invitation.findById(issued.invitationId);
 
     if (invitationStatus === "pending" && inviteMode === "owner_initial") {
       await assignPendingBillingOwnerInvitation({
@@ -209,7 +134,7 @@ export async function POST(req: NextRequest) {
       userId: new mongoose.Types.ObjectId(String(access.userId)),
       type: "invitation.sent",
       entityType: "invitation",
-      entityId: String(created._id),
+      entityId: issued.invitationId,
       description:
         invitationStatus === "pending"
           ? `Invited billing owner: ${normalizedEmail}`
@@ -218,7 +143,8 @@ export async function POST(req: NextRequest) {
         email: normalizedEmail,
         role: "billing_owner",
         status: invitationStatus,
-        emailDeliveryWarning,
+        emailStatus: issued.emailStatus,
+        deliveryCode: issued.deliveryCode,
       },
     });
 
@@ -240,7 +166,8 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error: invitationError || "Failed to create billing owner invitation",
-          invitationId: String(created._id),
+          invitationId: issued.invitationId,
+          emailStatus: issued.emailStatus,
         },
         { status: 500 }
       );
@@ -249,13 +176,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        invitationId: String(created._id),
+        invitationId: issued.invitationId,
         email: normalizedEmail,
-        role: created.role,
-        status: created.status,
+        role: "billing_owner",
+        status: invitationStatus,
+        emailStatus: issued.emailStatus,
+        deliveryCode: issued.deliveryCode,
         mode: inviteMode,
-        expiresAt: created.expiresAt.toISOString(),
-        warning: emailDeliveryWarning,
+        expiresAt: created?.expiresAt?.toISOString(),
+        warning: issued.warning,
       },
     });
   } catch (error) {

@@ -194,25 +194,16 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
-import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
-import { sendTrackedBrevoEmail } from "@/lib/email";
-import { renderTemplate } from "@/lib/email/templates";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
 import {
   buildPlatformAdminAuditContext,
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
-import { clerkClient } from "@clerk/nextjs/server";
-import {
-  getAppUrl,
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
 const BodySchema = z.object({
   note: z.string().optional(),
 });
@@ -410,94 +401,63 @@ export async function POST(
       approvedApp = app;
     });
 
-    // 4) Send Clerk invitation (verify + set password)
-    const APP_URL = getAppUrl();
+    let adminInvitation:
+      | {
+          invitationId: string | null;
+          status: "pending" | "failed";
+          emailStatus: "sent" | "queued" | "failed";
+          warning?: string;
+        }
+      | undefined;
 
-    try {
-      const clerk = await clerkClient();
+    if (schoolIdCreated) {
       const adminEmail = String(approvedApp.adminEmail || "").trim().toLowerCase();
-      const redirectUrl = withInvitedEmail(
-        getInvitationRedirectUrl(),
-        adminEmail
-      );
-      const clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: adminEmail,
-        redirectUrl,
-        notify: false,
-        publicMetadata: {
+      try {
+        const issued = await issueInvitation({
+          email: adminEmail,
           role: "school_admin",
-          schoolId: schoolIdCreated ? String(schoolIdCreated) : undefined,
-        },
-        ignoreExisting: true,
-      });
-
-      const rendered = renderTemplate("SCHOOL_INVITE", {
-        schoolName: approvedApp.schoolName,
-        setupLink: getInvitationAcceptUrl(
-          clerkInvitation,
-          redirectUrl,
-          adminEmail
-        ),
-      });
-
-      await sendTrackedBrevoEmail({
-        to: adminEmail,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey: "SCHOOL_ADMIN_INVITE",
-        schoolId: schoolIdCreated ? String(schoolIdCreated) : undefined,
-        schoolName: approvedApp.schoolName,
-        actorId: String(platformAdminId),
-        actorRole: "platform_admin",
-        relatedEntityType: "application",
-        relatedEntityId: id,
-      });
-
-      if (schoolIdCreated) {
-        const invitationExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-        await Invitation.findOneAndUpdate(
-          {
-            schoolId: schoolIdCreated,
-            email: adminEmail,
-            role: "school_admin",
-            status: "pending",
+          schoolId: schoolIdCreated,
+          invitedBy: platformAdminId,
+          recipientName:
+            `${approvedApp.adminFirstName || ""} ${approvedApp.adminLastName || ""}`.trim() ||
+            adminEmail,
+          schoolName: approvedApp.schoolName,
+          actorRole: "platform_admin",
+          relatedEntityType: "application",
+          relatedEntityId: id,
+          invitationMetadata: {
+            firstName: approvedApp.adminFirstName || "",
+            lastName: approvedApp.adminLastName || "",
+            applicationId: id,
+            source: "platform_application_approval",
           },
-          {
-            $set: {
-              clerkInvitationId: clerkInvitation.id,
-              sentAt: new Date(),
-              expiresAt: invitationExpiresAt,
-              invitedBy: platformAdminId,
-              metadata: {
-                firstName: approvedApp.adminFirstName || "",
-                lastName: approvedApp.adminLastName || "",
-                applicationId: id,
-                source: "platform_application_approval",
-              },
-            },
-            $setOnInsert: {
-              email: adminEmail,
-              role: "school_admin",
-              schoolId: schoolIdCreated,
-              resendCount: 0,
-            },
-          },
-          {
-            upsert: true,
-            new: true,
-            setDefaultsOnInsert: true,
-          }
+        });
+        adminInvitation = {
+          invitationId: issued.invitationId,
+          status: issued.invitationStatus,
+          emailStatus: issued.emailStatus,
+          warning: issued.warning,
+        };
+      } catch (e) {
+        console.error(
+          "Clerk invitation error (ensure Email identifiers are enabled):",
+          e
         );
+        adminInvitation = {
+          invitationId: null,
+          status: "failed",
+          emailStatus: "failed",
+          warning:
+            e instanceof Error ? e.message : "Failed to issue admin invitation",
+        };
       }
-    } catch (e) {
-      console.error(
-        "Clerk invitation error (ensure Email identifiers are enabled):",
-        e
-      );
     }
 
-    return NextResponse.json({ success: true, schoolId: schoolIdCreated });
+    return NextResponse.json({
+      success: true,
+      schoolId: schoolIdCreated,
+      adminInvitation,
+    });
   } catch (e: any) {
     console.log("Approval failed", e);
     return NextResponse.json(

@@ -7,6 +7,7 @@ const { APP_URL = "" } = process.env;
 export type TemplateKey =
   | "SCHOOL_INVITE"
   | "SCHOOL_ONBOARDING"
+  | "SCHOOL_CREATED_CONTACT"
   | "ADMIN_CREATED"
   | "USER_INVITE"
   | "APPLICATION_RECEIVED"
@@ -18,6 +19,10 @@ export type TemplatePayload = {
   SCHOOL_INVITE: { schoolName: string; setupLink: string };
   APPLICATION_RECEIVED: { name: string };
   SCHOOL_ONBOARDING: { schoolName: string; contactPerson: string };
+  SCHOOL_CREATED_CONTACT: {
+    schoolName: string;
+    supportEmail?: string;
+  };
   ADMIN_CREATED: {
     name: string;
     email: string;
@@ -99,6 +104,26 @@ export const EmailTemplates: {
     });
     return {
       subject: "EduSentrix: Application Received",
+      htmlContent,
+      textContent: stripHtml(htmlContent),
+    };
+  },
+
+  SCHOOL_CREATED_CONTACT: (data) => {
+    const supportEmail = data.supportEmail?.trim() || "support@tryedusentrix.app";
+    const htmlContent = renderBrandedEmail({
+      title: "Your school workspace has been created",
+      eyebrow: "School workspace",
+      preheader: `${data.schoolName} now has an EduSentrix workspace.`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello,</p>
+        <p style="margin:0 0 14px;">An EduSentrix workspace has been created for <strong>${data.schoolName}</strong>.</p>
+        <p style="margin:0 0 14px;">The primary school administrator invitation has been issued separately to the designated admin email. This message is informational and does not contain an account setup link.</p>
+        <p style="margin:0;">If you need help, contact <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+      `,
+    });
+    return {
+      subject: "Your EduSentrix school workspace has been created",
       htmlContent,
       textContent: stripHtml(htmlContent),
     };

@@ -340,7 +340,25 @@ export default function PlatformSchoolDetailPage() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to send admin invite");
       }
-      toast.success(`Invite email sent to ${json.data?.email || "school admin"}.`);
+      const emailStatus = json.data?.emailStatus as
+        | "sent"
+        | "queued"
+        | "failed"
+        | undefined;
+      const email = json.data?.email || "school admin";
+      if (emailStatus === "sent") {
+        toast.success(`Invite email sent to ${email}.`);
+      } else if (emailStatus === "queued") {
+        toast.warning(
+          json.data?.warning ||
+            `Invitation created. Email delivery is queued for retry to ${email}.`
+        );
+      } else {
+        toast.warning(
+          json.data?.warning ||
+            `Invitation created but email delivery failed for ${email}.`
+        );
+      }
       await loadData();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to send admin invite");

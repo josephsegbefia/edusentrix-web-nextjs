@@ -2,19 +2,12 @@ import { NextRequest } from "next/server";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
-import { clerkClient } from "@clerk/nextjs/server";
-import { sendTrackedBrevoEmail } from "@/lib/email";
-import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
-import {
-  getAppUrl,
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
+import { invitationTemplateKeyForRole } from "@/lib/invitations/templates";
 import {
   assignPendingBillingOwnerInvitation,
   assignPendingPaymentSetupDelegate,
@@ -78,99 +71,39 @@ export async function POST(
       );
     }
 
-    // Resend via Clerk
-    const APP_URL = getAppUrl();
-    const redirectUrl = withInvitedEmail(
-      (
+    const school = await School.findById(schoolIdObj)
+      .select("name")
+      .lean();
+    const schoolName = school ? (school as any).name : "your school";
+    const recipientName =
+      invitation.metadata?.firstName && invitation.metadata?.lastName
+        ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`
+        : invitation.email;
+    const redirectNext =
       invitation.role === "billing_owner" ||
       (invitation.role === "bursar" &&
         invitation.metadata?.accessSurface === "payment_setup_delegate")
-        ? `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
-            "/admin/settings/payment-setup"
-          )}`
-        : getInvitationRedirectUrl()
-      ),
-      invitation.email
-    );
+        ? "/admin/settings/payment-setup"
+        : invitation.role === "teacher"
+          ? "/teacher"
+          : undefined;
 
     try {
-      const clerk = await clerkClient();
-      const clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: invitation.email,
-        redirectUrl,
-        notify: false,
-        publicMetadata: {
-          role: invitation.role,
-          schoolId: String(schoolId),
-        },
-        ignoreExisting: true,
-      });
-
-      const school = await School.findById(schoolIdObj)
-        .select("name")
-        .lean();
-      const schoolName = school ? (school as any).name : "your school";
-
-      const displayRole =
-        invitation.role === "billing_owner"
-          ? "billing owner"
-          : invitation.role === "bursar" &&
-              invitation.metadata?.accessSurface === "payment_setup_delegate"
-            ? "finance delegate"
-            : invitation.role;
-
-      const recipientName =
-        invitation.metadata?.firstName && invitation.metadata?.lastName
-          ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`
-          : invitation.email;
-
-      const rendered = renderTemplate("USER_INVITE", {
-        name: recipientName,
-        role: displayRole,
+      invitationTemplateKeyForRole(invitation.role);
+      const issued = await issueInvitation({
+        email: invitation.email,
+        role: invitation.role,
+        schoolId: schoolIdObj,
+        invitedBy: userId,
+        recipientName,
         schoolName,
-        setupLink: getInvitationAcceptUrl(
-          clerkInvitation,
-          redirectUrl,
-          invitation.email
-        ),
-      });
-
-      const templateKey =
-        invitation.role === "billing_owner"
-          ? "BILLING_OWNER_INVITE"
-          : invitation.role === "bursar"
-            ? "BURSAR_INVITE"
-            : invitation.role === "parent"
-              ? "PARENT_INVITE"
-              : "TEACHER_INVITE";
-
-      await sendTrackedBrevoEmail({
-        to: invitation.email,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey,
-        schoolId: String(schoolIdObj),
-        schoolName,
-        actorId: String(userId),
+        redirectNext,
         actorRole: "school_admin",
         relatedEntityType: "invitation",
         relatedEntityId: invitationId,
+        existingInvitationId: invitationId,
+        invitationMetadata: invitation.metadata || {},
       });
-
-      // Update invitation record
-      await Invitation.updateOne(
-        { _id: new mongoose.Types.ObjectId(invitationId) },
-        {
-          $set: {
-            clerkInvitationId: clerkInvitation.id,
-            lastResentAt: new Date(),
-            status: "pending",
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-          },
-          $inc: { resendCount: 1 },
-        }
-      );
 
       if (
         invitation.role === "billing_owner" &&
@@ -219,44 +152,39 @@ export async function POST(
         metadata: {
           email: invitation.email,
           role: invitation.role,
-          resendCount: invitation.resendCount + 1,
+          resendCount: issued.resendCount,
+          emailStatus: issued.emailStatus,
+          deliveryCode: issued.deliveryCode,
         },
       });
 
-      // Record activity
-      await recordActivity({
-        schoolId: schoolIdObj,
-        userId: new mongoose.Types.ObjectId(userId),
-        type: "invitation.resent",
-        entityType: "invitation",
-        entityId: invitationId,
-        description: `Resent invitation to ${invitation.email}`,
-        ...delegationAuditFields({
-          isDelegatedActor: !authCtx.isSchoolAdmin,
-          activeDelegationId: authCtx.activeDelegationId,
-          module: "invitations",
-          action: "invitation.resent",
-        }),
-        metadata: {
-          invitationId,
-          email: invitation.email,
-          role: invitation.role,
-          resendCount: invitation.resendCount + 1,
-        },
-      });
+      if (issued.invitationStatus === "failed") {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: issued.warning || "Failed to resend invitation",
+            invitationId: issued.invitationId,
+            emailStatus: issued.emailStatus,
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
 
       return Response.json({
         success: true,
-        message: "Invitation resent successfully",
+        message:
+          issued.emailStatus === "sent"
+            ? "Invitation resent successfully"
+            : issued.warning || "Invitation resent; email delivery is pending",
+        data: {
+          invitationId: issued.invitationId,
+          emailStatus: issued.emailStatus,
+          deliveryCode: issued.deliveryCode,
+          warning: issued.warning,
+        },
       });
     } catch (clerkError: unknown) {
       console.error("Clerk resend error:", clerkError);
-
-      // Update status to failed
-      await Invitation.updateOne(
-        { _id: new mongoose.Types.ObjectId(invitationId) },
-        { $set: { status: "failed" } }
-      );
 
       const errorMessage =
         clerkError instanceof Error

@@ -16,8 +16,8 @@ import {
   PLATFORM_STAFF_ROLE_PRESETS,
 } from "@/lib/platform/permissions/presets";
 import {
-  getInvitationAcceptUrl,
   getInvitationRedirectUrl,
+  requireInvitationAcceptUrl,
   withInvitedEmail,
 } from "@/lib/utils/getAppUrl";
 import { PlatformAuditLog } from "@/models/PlatformAuditLog";
@@ -157,12 +157,10 @@ export async function POST(req: NextRequest) {
       ignoreExisting: true,
     })) as Invitation;
 
-    const acceptUrl = getInvitationAcceptUrl(
-      invitation,
-      redirectUrl,
-      input.email
-    );
-    if (!acceptUrl) {
+    let acceptUrl: string;
+    try {
+      acceptUrl = requireInvitationAcceptUrl(invitation, input.email);
+    } catch {
       return NextResponse.json(
         {
           success: false,
@@ -231,6 +229,7 @@ export async function POST(req: NextRequest) {
         permissionCount: permissions.length,
         criticalPermissions,
         clerkInvitationId: invitation.id,
+        emailStatus: emailDeliveryWarning ? "failed" : "sent",
         emailDeliveryWarning,
       },
     });
@@ -244,6 +243,7 @@ export async function POST(req: NextRequest) {
         status: "invited",
         permissionCount: permissions.length,
         clerkInvitationId: invitation.id,
+        emailStatus: emailDeliveryWarning ? "failed" : "sent",
         emailDeliveryWarning,
       },
     });

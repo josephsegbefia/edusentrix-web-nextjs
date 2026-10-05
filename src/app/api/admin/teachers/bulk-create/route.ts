@@ -7,19 +7,11 @@ import { SubjectOffering } from "@/models/SubjectOffering";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { School } from "@/models/School";
-import { Invitation } from "@/models/Invitation";
-import { clerkClient } from "@clerk/nextjs/server";
-import { sendTrackedBrevoEmail } from "@/lib/email";
-import { renderTemplate } from "@/lib/email/templates";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { parse } from "csv-parse/sync";
 import * as XLSX from "xlsx";
 import mongoose from "mongoose";
-import {
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
@@ -220,12 +212,6 @@ export async function POST(req: NextRequest) {
       email?: string;
       error?: string;
     }> = [];
-
-    const redirectUrlForEmail = (email: string) =>
-      withInvitedEmail(
-        `${getInvitationRedirectUrl()}?next=${encodeURIComponent("/teacher")}`,
-        email
-      );
 
     // Fetch school name for emails
     const school = await School.findById(schoolIdObj).select("name").lean();
@@ -557,68 +543,18 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        let clerkInvitationId: string | undefined;
-        let invitationStatus: "pending" | "failed" = "pending";
-
         try {
-          const clerk = await clerkClient();
-          const redirectUrl = redirectUrlForEmail(normalizedEmail);
-          const clerkInvitation = await clerk.invitations.createInvitation({
-            emailAddress: normalizedEmail,
-            redirectUrl,
-            notify: false,
-            publicMetadata: {
-              role: "teacher",
-              schoolId: String(schoolIdObj),
-            },
-            ignoreExisting: true,
-          });
-          clerkInvitationId = clerkInvitation.id;
-
-          const rendered = renderTemplate("USER_INVITE", {
-            name: `${row.firstName} ${row.lastName}`,
-            role: "teacher",
-            schoolName,
-            setupLink: getInvitationAcceptUrl(
-              clerkInvitation,
-              redirectUrl,
-              normalizedEmail
-            ),
-          });
-
-          await sendTrackedBrevoEmail({
-            to: normalizedEmail,
-            subject: rendered.subject,
-            htmlContent: rendered.htmlContent,
-            textContent: rendered.textContent,
-            templateKey: "TEACHER_INVITE",
-            schoolId: String(schoolIdObj),
-            schoolName,
-            actorId: String(adminUserId),
-            actorRole: "school_admin",
-            relatedEntityType: "invitation",
-          });
-        } catch (inviteError) {
-          console.error(`Clerk invitation error for ${normalizedEmail}:`, inviteError);
-          invitationStatus = "failed";
-        }
-
-        try {
-          const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + 7);
-
-          await Invitation.create({
+          await issueInvitation({
             email: normalizedEmail,
             role: "teacher",
             schoolId: schoolIdObj,
-            status: invitationStatus,
-            clerkInvitationId,
-            sentAt: new Date(),
-            acceptedAt: undefined,
-            expiresAt,
-            resendCount: 0,
-            invitedBy: new mongoose.Types.ObjectId(adminUserId),
-            metadata: {
+            invitedBy: adminUserId,
+            recipientName: `${row.firstName} ${row.lastName}`,
+            schoolName,
+            redirectNext: "/teacher",
+            actorRole: "school_admin",
+            relatedEntityType: "invitation",
+            invitationMetadata: {
               firstName: row.firstName,
               lastName: row.lastName,
               subjects: splitMultiValue(row.subjects || ""),
@@ -628,8 +564,8 @@ export async function POST(req: NextRequest) {
               invitationEmailSuppressed: false,
             },
           });
-        } catch (inviteRecordError) {
-          console.error(`Failed to create invitation record for ${normalizedEmail}:`, inviteRecordError);
+        } catch (inviteError) {
+          console.error(`Clerk invitation error for ${normalizedEmail}:`, inviteError);
         }
 
         // Log activity

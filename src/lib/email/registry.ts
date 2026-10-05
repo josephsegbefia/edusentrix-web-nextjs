@@ -56,6 +56,17 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateRegistryEntry> = {
     brand: "edusentrix",
     preferenceClass: "transactional",
   },
+  SCHOOL_CREATED_CONTACT: {
+    messageClass: "system",
+    trafficClass: "transactional",
+    priority: "high",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "hello",
+    mailboxScope: "platform",
+    brand: "edusentrix",
+    preferenceClass: "transactional",
+  },
   ADMIN_CREATED: {
     messageClass: "invitation",
     trafficClass: "transactional",

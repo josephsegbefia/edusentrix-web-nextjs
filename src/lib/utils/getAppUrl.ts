@@ -87,3 +87,25 @@ export function getInvitationAcceptUrl(
   const url = acceptUrl || fallbackUrl || getInvitationRedirectUrl();
   return withInvitedEmail(url, invitedEmail);
 }
+
+/**
+ * Fail-closed invitation URL for branded `notify: false` emails.
+ * A ticketless /sign-up fallback is not a valid Clerk acceptance link.
+ */
+export function requireInvitationAcceptUrl(
+  invitation:
+    | { url?: string | null; emailAddress?: string | null }
+    | null
+    | undefined,
+  explicitInvitedEmail?: string | null
+): string {
+  const acceptUrl = invitation?.url?.trim();
+  if (!acceptUrl) {
+    throw new Error(
+      "Clerk invitation is missing an acceptance URL. A ticketless sign-up link cannot be emailed."
+    );
+  }
+  const invitedEmail =
+    explicitInvitedEmail?.trim() || invitation?.emailAddress?.trim();
+  return withInvitedEmail(acceptUrl, invitedEmail);
+}

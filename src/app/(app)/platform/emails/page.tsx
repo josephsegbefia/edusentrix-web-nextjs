@@ -28,6 +28,10 @@ const SAMPLE_PAYLOADS: { [K in TemplateKey]: TemplatePayload[K] } = {
     schoolName: "North Ridge Academy",
     contactPerson: "Ama Boateng",
   },
+  SCHOOL_CREATED_CONTACT: {
+    schoolName: "North Ridge Academy",
+    supportEmail: "support@tryedusentrix.app",
+  },
   ADMIN_CREATED: {
     name: "Kofi Mensah",
     email: "admin@northridge.edu.gh",

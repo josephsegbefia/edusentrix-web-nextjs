@@ -430,7 +430,11 @@ export default function PaymentSetupPage() {
       }),
       {
         loading: "Sending billing owner invite...",
-        success: "Billing owner invitation sent.",
+        success: (result) =>
+          result?.emailStatus === "sent"
+            ? "Billing owner invitation sent."
+            : result?.warning ||
+              "Billing owner invitation created; email delivery is pending.",
         error: (inviteError) =>
           inviteError.message || "Failed to invite billing owner",
       }
@@ -448,7 +452,11 @@ export default function PaymentSetupPage() {
       }),
       {
         loading: "Sending finance delegate invite...",
-        success: "Finance delegate invitation sent.",
+        success: (result) =>
+          result?.emailStatus === "sent"
+            ? "Finance delegate invitation sent."
+            : result?.warning ||
+              "Finance delegate invitation created; email delivery is pending.",
         error: (inviteError) =>
           inviteError.message || "Failed to invite finance delegate",
       }

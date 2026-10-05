@@ -12,8 +12,6 @@
 
 import "server-only";
 import mongoose, { Types } from "mongoose";
-import { clerkClient } from "@clerk/nextjs/server";
-
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
@@ -22,13 +20,7 @@ import { Guardian } from "@/models/Guardian";
 import { ClassGroup } from "@/models/ClassGroup";
 import { School } from "@/models/School";
 import { Invitation } from "@/models/Invitation";
-import { sendTrackedBrevoEmail } from "@/lib/email";
-import { renderTemplate } from "@/lib/email/templates";
-import {
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
 import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 
@@ -240,78 +232,28 @@ async function inviteParentIfNeeded(args: {
     .lean<{ _id: Types.ObjectId } | null>();
   if (existingPendingInvite) return false;
 
-  const redirectUrl = withInvitedEmail(
-    getInvitationRedirectUrl(),
-    args.emailLower
-  );
-  let clerkInvitationId: string | undefined;
-  let invitationStatus: "pending" | "failed" = "pending";
-  let acceptUrl: string | null = null;
-
   try {
-    const clerk = await clerkClient();
-    const clerkInvitation = await clerk.invitations.createInvitation({
-      emailAddress: args.emailLower,
-      redirectUrl,
-      notify: false,
-      publicMetadata: {
-        role: "parent",
-        schoolId: String(args.schoolId),
-      },
-      ignoreExisting: true,
-    });
-    clerkInvitationId = clerkInvitation.id;
-    acceptUrl = getInvitationAcceptUrl(
-      clerkInvitation,
-      redirectUrl,
-      args.emailLower
-    );
-
-    const rendered = renderTemplate("USER_INVITE", {
-      name: `${args.guardianFirstName} ${args.guardianLastName}`.trim() || "Parent",
-      role: "parent",
-      schoolName: args.schoolName,
-      setupLink: acceptUrl,
-    });
-
-    await sendTrackedBrevoEmail({
-      to: args.emailLower,
-      subject: rendered.subject,
-      htmlContent: rendered.htmlContent,
-      textContent: rendered.textContent,
-      templateKey: "USER_INVITE",
-      schoolId: String(args.schoolId),
-      schoolName: args.schoolName,
-      actorId: String(args.invitedBy),
-      actorRole: "school_admin",
-      relatedEntityType: "invitation",
-    });
-  } catch (err) {
-    console.error("Admissions parent invite failed:", err);
-    invitationStatus = "failed";
-  }
-
-  try {
-    await Invitation.create({
+    const issued = await issueInvitation({
       email: args.emailLower,
       role: "parent",
       schoolId: args.schoolId,
-      status: invitationStatus,
-      clerkInvitationId,
-      sentAt: new Date(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       invitedBy: args.invitedBy,
-      metadata: {
+      recipientName:
+        `${args.guardianFirstName} ${args.guardianLastName}`.trim() || "Parent",
+      schoolName: args.schoolName,
+      actorRole: "school_admin",
+      relatedEntityType: "invitation",
+      invitationMetadata: {
         firstName: args.guardianFirstName,
         lastName: args.guardianLastName,
         admissionsApplicationRef: args.applicationRef,
       },
     });
-  } catch (recordErr) {
-    console.error("Failed to record admissions parent invitation:", recordErr);
+    return issued.invitationStatus === "pending";
+  } catch (err) {
+    console.error("Admissions parent invite failed:", err);
+    return false;
   }
-
-  return invitationStatus === "pending";
 }
 
 export async function provisionApplication(

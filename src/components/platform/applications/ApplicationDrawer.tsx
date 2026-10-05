@@ -490,14 +490,31 @@ export default function ApplicationDrawer({
 
   const approve = useMutation({
     mutationFn: async () => {
-      const req = fetch(`/api/platform/applications/${id}/approve`, {
+      const res = await fetch(`/api/platform/applications/${id}/approve`, {
         method: "POST",
       });
-      await promise(req, {
-        loading: "Approving…",
-        success: "Application approved",
-        error: "Approve failed",
-      });
+      const json = (await res.json().catch(() => null)) as
+        | {
+            success?: boolean;
+            error?: string;
+            adminInvitation?: {
+              emailStatus?: "sent" | "queued" | "failed";
+              warning?: string;
+            };
+          }
+        | null;
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.error || "Approve failed");
+      }
+      const emailStatus = json?.adminInvitation?.emailStatus;
+      if (emailStatus === "queued" || emailStatus === "failed") {
+        toast.warning(
+          json?.adminInvitation?.warning ||
+            "Application approved. Admin invitation email was not delivered yet."
+        );
+      } else {
+        toast.success("Application approved");
+      }
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ["applications:metrics"] });
@@ -541,7 +558,11 @@ export default function ApplicationDrawer({
         | {
             success?: boolean;
             error?: string;
-            data?: { email?: string };
+            data?: {
+              email?: string;
+              emailStatus?: "sent" | "queued" | "failed";
+              warning?: string;
+            };
           }
         | null;
 
@@ -552,9 +573,21 @@ export default function ApplicationDrawer({
       return json;
     },
     onSuccess: (payload) => {
-      toast.success(
-        `Invite email sent to ${payload.data?.email || "school admin"}.`
-      );
+      const email = payload.data?.email || "school admin";
+      const emailStatus = payload.data?.emailStatus;
+      if (emailStatus === "sent") {
+        toast.success(`Invite email sent to ${email}.`);
+      } else if (emailStatus === "queued") {
+        toast.warning(
+          payload.data?.warning ||
+            `Invitation created. Email delivery is queued for retry to ${email}.`
+        );
+      } else {
+        toast.warning(
+          payload.data?.warning ||
+            `Invitation created but email delivery failed for ${email}.`
+        );
+      }
       qc.invalidateQueries({ queryKey: ["applications:detail", id] });
       qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
     },

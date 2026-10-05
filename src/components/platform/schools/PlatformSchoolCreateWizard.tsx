@@ -13,6 +13,8 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { CURRICULUM_PROFILES, type CurriculumCode } from "@/constants/curriculum-profiles";
+import { toast } from "sonner";
+import { invitationEmailUserMessage } from "@/lib/invitations/delivery-copy";
 
 export function PlatformSchoolCreateWizard() {
   const router = useRouter();
@@ -56,6 +58,15 @@ export function PlatformSchoolCreateWizard() {
       });
       const payload = await res.json();
       if (!res.ok || !payload.success) throw new Error(payload.error || "Failed to create school");
+      const emailStatus = payload.data?.adminInvitation?.emailStatus;
+      if (emailStatus === "sent") {
+        toast.success(invitationEmailUserMessage("sent", adminEmail));
+      } else if (emailStatus === "queued" || emailStatus === "failed") {
+        toast.warning(
+          payload.data?.adminInvitation?.warning ||
+            invitationEmailUserMessage(emailStatus, adminEmail)
+        );
+      }
       shouldKeepBusy = true;
       router.push(`/platform/schools/${payload.data.schoolId}`);
       router.refresh();

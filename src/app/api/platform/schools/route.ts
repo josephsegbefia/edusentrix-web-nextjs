@@ -77,6 +77,13 @@ export async function POST(req: NextRequest) {
       data: {
         schoolId: String(result.school._id),
         setupTaskId: String(result.task._id),
+        adminInvitation: {
+          status: result.adminInvitation.status,
+          emailStatus: result.adminInvitation.emailStatus,
+          invitationId: result.adminInvitation.invitationId,
+          warning: result.adminInvitation.warning,
+        },
+        schoolContactEmail: result.schoolContactEmail,
       },
     });
   } catch (error) {

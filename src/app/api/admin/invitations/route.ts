@@ -1,20 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { clerkClient } from "@clerk/nextjs/server";
 import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
-import { sendTrackedBrevoEmail } from "@/lib/email";
-import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
-import {
-  getAppUrl,
-  getInvitationAcceptUrl,
-  getInvitationRedirectUrl,
-  withInvitedEmail,
-} from "@/lib/utils/getAppUrl";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import {
@@ -202,94 +194,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const APP_URL = getAppUrl();
-    const redirectUrl = withInvitedEmail(
-      getInvitationRedirectUrl(),
-      effectiveEmail
-    );
-    let clerkInvitationId: string | undefined;
-    let invitationStatus: "pending" | "failed" = "pending";
-    let invitationError: string | null = null;
+    const school = await School.findById(schoolIdObj)
+      .select("name")
+      .lean<{ name?: string } | null>();
+    const schoolName = school?.name || "your school";
+    const inviteeName =
+      parsed.data.firstName && parsed.data.lastName
+        ? `${parsed.data.firstName} ${parsed.data.lastName}`.trim()
+        : effectiveEmail;
 
-    try {
-      const clerk = await clerkClient();
-      const clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: effectiveEmail,
-        redirectUrl,
-        notify: false,
-        publicMetadata: {
-          role: "bursar",
-          schoolId: String(schoolIdObj),
-        },
-        ignoreExisting: true,
-      });
-      clerkInvitationId = clerkInvitation.id;
-
-      const school = await School.findById(schoolIdObj)
-        .select("name")
-        .lean<{ name?: string } | null>();
-      const schoolName = school?.name || "your school";
-      const inviteeName =
-        parsed.data.firstName && parsed.data.lastName
-          ? `${parsed.data.firstName} ${parsed.data.lastName}`.trim()
-          : effectiveEmail;
-
-      const rendered = renderTemplate("USER_INVITE", {
-        name: inviteeName,
-        role: "bursar",
-        schoolName,
-        setupLink: getInvitationAcceptUrl(
-          clerkInvitation,
-          redirectUrl,
-          effectiveEmail
-        ),
-      });
-
-      await sendTrackedBrevoEmail({
-        to: effectiveEmail,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey: "BURSAR_INVITE",
-        schoolId: String(schoolIdObj),
-        schoolName,
-        actorId: String(userId),
-        actorRole: "school_admin",
-        relatedEntityType: "invitation",
-      });
-      await trackUsage({
-        schoolId,
-        provider: "email",
-        metricKey: "transactional_emails_sent",
-        quantity: 1,
-        unitLabel: "emails",
-        allocationMethod: "direct",
-        sourceType: "manual",
-        notes: "Bursar invitation email sent.",
-      });
-    } catch (inviteError: unknown) {
-      console.error("Bursar invitation error:", inviteError);
-      invitationStatus = "failed";
-      invitationError =
-        inviteError instanceof Error
-          ? inviteError.message
-          : "Failed to create bursar invitation";
-    }
-
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-
-    const created = await Invitation.create({
+    const issued = await issueInvitation({
       email: effectiveEmail,
       role: "bursar",
       schoolId: schoolIdObj,
-      status: invitationStatus,
-      clerkInvitationId,
-      sentAt: new Date(),
-      expiresAt,
-      resendCount: 0,
-      invitedBy: new mongoose.Types.ObjectId(String(userId)),
-      metadata: {
+      invitedBy: userId,
+      recipientName: inviteeName,
+      schoolName,
+      actorRole: "school_admin",
+      relatedEntityType: "invitation",
+      invitationMetadata: {
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
         phone: parsed.data.phone,
@@ -302,7 +225,7 @@ export async function POST(req: NextRequest) {
       userId: new mongoose.Types.ObjectId(String(userId)),
       type: "invitation.sent",
       entityType: "invitation",
-      entityId: String(created._id),
+      entityId: issued.invitationId,
       description: `Invited bursar: ${effectiveEmail}`,
       ...delegationAuditFields({
         isDelegatedActor: !authCtx.isSchoolAdmin,
@@ -313,7 +236,9 @@ export async function POST(req: NextRequest) {
       metadata: {
         email: effectiveEmail,
         role: "bursar",
-        status: invitationStatus,
+        status: issued.invitationStatus,
+        emailStatus: issued.emailStatus,
+        deliveryCode: issued.deliveryCode,
       },
     });
     await trackUsage({
@@ -327,27 +252,45 @@ export async function POST(req: NextRequest) {
       notes: "Bursar invitation issued.",
     });
 
-    if (invitationStatus === "failed") {
+    if (issued.invitationStatus === "failed") {
       return new Response(
         JSON.stringify({
           success: false,
-          error: invitationError || "Failed to create bursar invitation",
-          invitationId: String(created._id),
+          error: issued.warning || "Failed to create bursar invitation",
+          invitationId: issued.invitationId,
+          emailStatus: issued.emailStatus,
         }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
+    if (issued.emailStatus === "sent") {
+      await trackUsage({
+        schoolId,
+        provider: "email",
+        metricKey: "transactional_emails_sent",
+        quantity: 1,
+        unitLabel: "emails",
+        allocationMethod: "direct",
+        sourceType: "manual",
+        notes: "Bursar invitation email sent.",
+      });
+    }
+
+    const created = await Invitation.findById(issued.invitationId);
     return Response.json(
       {
         success: true,
         data: {
-          _id: String(created._id),
-          email: created.email,
-          role: created.role,
-          status: created.status,
-          sentAt: created.sentAt.toISOString(),
-          expiresAt: created.expiresAt.toISOString(),
+          _id: issued.invitationId,
+          email: effectiveEmail,
+          role: "bursar",
+          status: issued.invitationStatus,
+          emailStatus: issued.emailStatus,
+          deliveryCode: issued.deliveryCode,
+          warning: issued.warning,
+          sentAt: created?.sentAt?.toISOString(),
+          expiresAt: created?.expiresAt?.toISOString(),
         },
       },
       { status: 201 }

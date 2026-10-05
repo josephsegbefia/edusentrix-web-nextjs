@@ -369,7 +369,9 @@ export function useInviteBillingOwner() {
         invitationId: string;
         email: string;
         role: "billing_owner";
-        status: "pending";
+        status: "pending" | "failed";
+        emailStatus?: "sent" | "queued" | "failed";
+        warning?: string;
         expiresAt: string;
       };
     },
@@ -397,7 +399,9 @@ export function useInviteFinanceDelegate() {
         invitationId: string;
         email: string;
         role: "bursar";
-        status: "pending";
+        status: "pending" | "failed";
+        emailStatus?: "sent" | "queued" | "failed";
+        warning?: string;
         expiresAt: string;
       };
     },

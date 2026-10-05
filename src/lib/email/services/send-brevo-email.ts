@@ -20,6 +20,7 @@ import { checkRateLimit, recordSend } from "../rate-limiter";
 import type { EmailThreadType } from "@/models/EmailThread";
 import { renderGenericBrandedEmail, stripHtml } from "../branded-template";
 import { isCategoryAllowed, resolveEmailPreference } from "../preferences";
+import { enqueueEmailMessageForRetry } from "../enqueue-dispatch-job";
 
 export interface SendBrevoEmailInput {
   to: string;
@@ -58,6 +59,12 @@ export interface SendBrevoEmailInput {
 
   /** If true, persist message as queued and create a dispatch job instead of sending immediately. */
   async?: boolean;
+
+  /**
+   * If true, a failed immediate provider send enqueues the same EmailMessage
+   * for retry and returns queued/failed instead of throwing.
+   */
+  enqueueOnFailure?: boolean;
 }
 
 export interface SendBrevoEmailResult {
@@ -396,6 +403,23 @@ export async function sendTrackedBrevoEmail(
     await EmailMessage.findByIdAndUpdate(message._id, {
       $set: { status: "failed", failureReason: msg },
     });
+
+    if (input.enqueueOnFailure) {
+      try {
+        const queued = await enqueueEmailMessageForRetry(message._id);
+        return {
+          messageId: String(message._id),
+          threadId: String(thread._id),
+          status: queued.enqueued ? "queued" : "failed",
+        };
+      } catch {
+        return {
+          messageId: String(message._id),
+          threadId: String(thread._id),
+          status: "failed",
+        };
+      }
+    }
 
     throw error;
   }

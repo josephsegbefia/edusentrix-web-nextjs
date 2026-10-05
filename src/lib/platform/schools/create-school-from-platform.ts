@@ -8,9 +8,17 @@ import {
   ensureCanonicalUserForEmail,
   ensureMembershipForUser,
 } from "@/lib/auth/canonical-user";
-import { generateOnboardingMagicLink } from "@/lib/auth/generateOnboardingMagicLink";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
+import { issueInvitation } from "@/lib/invitations/issue-invitation";
+import type { InvitationEmailStatus } from "@/lib/invitations/delivery-copy";
+
+export type SchoolContactEmailStatus =
+  | "sent"
+  | "queued"
+  | "failed"
+  | "not_provided"
+  | "same_as_admin";
 
 export type CreateSchoolFromPlatformInput = {
   actorUserId: mongoose.Types.ObjectId;
@@ -39,6 +47,36 @@ function splitName(fullName: string) {
     firstName: parts[0] || fullName,
     lastName: parts.slice(1).join(" "),
   };
+}
+
+async function sendSchoolCreatedContactEmail(input: {
+  schoolId: mongoose.Types.ObjectId;
+  schoolName: string;
+  schoolEmail: string;
+  actorUserId: mongoose.Types.ObjectId;
+}): Promise<SchoolContactEmailStatus> {
+  const rendered = renderTemplate("SCHOOL_CREATED_CONTACT", {
+    schoolName: input.schoolName,
+  });
+
+  const result = await sendTrackedBrevoEmail({
+    to: input.schoolEmail,
+    subject: rendered.subject,
+    htmlContent: rendered.htmlContent,
+    textContent: rendered.textContent,
+    templateKey: "SCHOOL_CREATED_CONTACT",
+    schoolId: String(input.schoolId),
+    schoolName: input.schoolName,
+    actorId: String(input.actorUserId),
+    actorRole: "platform_admin",
+    relatedEntityType: "School",
+    relatedEntityId: String(input.schoolId),
+    enqueueOnFailure: true,
+  });
+
+  if (result.status === "sent") return "sent";
+  if (result.status === "queued") return "queued";
+  return "failed";
 }
 
 export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformInput) {
@@ -96,6 +134,70 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
     checklist: [],
   });
 
+  let adminInvitation = {
+    invitationId: null as string | null,
+    status: "failed" as "pending" | "failed",
+    emailStatus: "failed" as InvitationEmailStatus,
+    warning: undefined as string | undefined,
+  };
+
+  try {
+    const issued = await issueInvitation({
+      email: normalizedAdminEmail,
+      role: "school_admin",
+      schoolId: school._id,
+      invitedBy: input.actorUserId,
+      recipientName: input.admin.fullName,
+      schoolName: school.name,
+      recipientUserId: String(adminUser._id),
+      actorRole: "platform_admin",
+      relatedEntityType: "School",
+      relatedEntityId: String(school._id),
+      invitationMetadata: {
+        firstName: nameParts.firstName,
+        lastName: nameParts.lastName,
+        name: input.admin.fullName,
+        jobTitle: input.admin.jobTitle,
+        accessSurface: "school_admin_onboarding",
+        source: "platform_school_create",
+      },
+    });
+    adminInvitation = {
+      invitationId: issued.invitationId,
+      status: issued.invitationStatus,
+      emailStatus: issued.emailStatus,
+      warning: issued.warning,
+    };
+  } catch (err) {
+    console.error("[createSchoolFromPlatform] admin invitation failed:", err);
+    adminInvitation.warning =
+      err instanceof Error ? err.message : "Failed to issue admin invitation";
+  }
+
+  const schoolEmail = input.school.email?.toLowerCase().trim() || "";
+  let schoolContactEmail: { status: SchoolContactEmailStatus } = {
+    status: "not_provided",
+  };
+
+  if (!schoolEmail) {
+    schoolContactEmail = { status: "not_provided" };
+  } else if (schoolEmail === normalizedAdminEmail) {
+    schoolContactEmail = { status: "same_as_admin" };
+  } else {
+    try {
+      const status = await sendSchoolCreatedContactEmail({
+        schoolId: school._id,
+        schoolName: school.name,
+        schoolEmail,
+        actorUserId: input.actorUserId,
+      });
+      schoolContactEmail = { status };
+    } catch (err) {
+      console.error("[createSchoolFromPlatform] school contact email failed:", err);
+      schoolContactEmail = { status: "failed" };
+    }
+  }
+
   await PlatformAuditLog.create({
     actorId: input.actorUserId,
     schoolId: school._id,
@@ -106,40 +208,26 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
       adminUserId: String(adminUser._id),
       setupTaskId: String(task._id),
       createdVia: "platform_operations_console",
+      adminInvitationStatus: adminInvitation.status,
+      adminEmailStatus: adminInvitation.emailStatus,
+      schoolContactEmailStatus: schoolContactEmail.status,
     },
   });
 
-  // Automatically assign a Pilot subscription on school creation.
-  // Wrapped in try-catch so a subscription failure never blocks school creation.
   try {
     await assignPilotSubscription({
       schoolId: school._id,
       actorEmail: null,
     });
   } catch (err) {
-    // Log but do not propagate — the school is still usable without a subscription.
     console.error("[createSchoolFromPlatform] Failed to assign pilot subscription:", err);
   }
 
-  const setupLink = await generateOnboardingMagicLink(normalizedAdminEmail);
-  const invitation = renderTemplate("SCHOOL_INVITE", {
-    schoolName: school.name,
-    setupLink,
-  });
-  await sendTrackedBrevoEmail({
-    to: normalizedAdminEmail,
-    toName: input.admin.fullName,
-    subject: invitation.subject,
-    htmlContent: invitation.htmlContent,
-    textContent: invitation.textContent,
-    templateKey: "SCHOOL_INVITE",
-    schoolId: String(school._id),
-    relatedEntityType: "School",
-    relatedEntityId: String(school._id),
-    recipientUserId: String(adminUser._id),
-    recipientRole: "school_admin",
-    async: true,
-  });
-
-  return { school, adminUser, task };
+  return {
+    school,
+    adminUser,
+    task,
+    adminInvitation,
+    schoolContactEmail,
+  };
 }

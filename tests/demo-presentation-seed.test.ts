@@ -56,10 +56,21 @@ describe("presentation seed idempotency", () => {
 
       const first = await seedPresentationForSchool(school._id);
       const Payment = mongoose.model("Payment");
+      const AssessmentItem = mongoose.model("AssessmentItem");
+      const StudentReportCard = mongoose.model("StudentReportCard");
       const paymentsAfterFirst = await Payment.countDocuments({
         schoolId: school._id,
         idempotencyKey: { $regex: `^${PRESENTATION_SEED_MARKER}` },
       });
+      const itemsAfterFirst = await AssessmentItem.countDocuments({
+        schoolId: school._id,
+        sourceRefType: PRESENTATION_SEED_MARKER,
+      });
+      const cardAfterFirst = await StudentReportCard.findOne({
+        schoolId: school._id,
+        studentId: first.studentId,
+        status: "released",
+      }).lean();
       const second = await seedPresentationForSchool(school._id);
       assert.equal(second.studentId, first.studentId);
       assert.equal(second.outstandingMinor, PRESENTATION_OUTSTANDING_CEDIS * 100);
@@ -96,7 +107,7 @@ describe("presentation seed idempotency", () => {
           schoolId: school._id,
           tags: PRESENTATION_SEED_MARKER,
         }),
-        1
+        6
       );
       assert.equal(
         await Guardian.countDocuments({ studentId: first.studentId }),
@@ -108,6 +119,80 @@ describe("presentation seed idempotency", () => {
       });
       assert.equal(paymentCount, paymentsAfterFirst);
       assert.ok(paymentCount > 0);
+      assert.equal(
+        await AssessmentItem.countDocuments({
+          schoolId: school._id,
+          sourceRefType: PRESENTATION_SEED_MARKER,
+        }),
+        itemsAfterFirst
+      );
+      assert.equal(itemsAfterFirst, 30);
+
+      const cards = await StudentReportCard.find({
+        schoolId: school._id,
+        studentId: first.studentId,
+        status: "released",
+      }).lean();
+      assert.equal(cards.length, 1);
+      const card = cards[0]!;
+      const rows = card.subjectResultsSnapshot as Array<{
+        subjectId?: string;
+        subjectName?: string;
+        teacherId?: string;
+        roundedFinalScore?: number;
+        gradeLabel?: string;
+        components?: Array<{ componentKey?: string }>;
+      }>;
+      assert.equal(rows.length, 6);
+      const expectedScores: Record<string, number> = {
+        Computing: 88,
+        Mathematics: 84,
+        "Integrated Science": 81,
+        "Religious and Moral Education": 79,
+        "English Language": 76,
+        "Social Studies": 72,
+      };
+      for (const row of rows) {
+        assert.ok(row.subjectId);
+        assert.ok(row.subjectName);
+        assert.notEqual(row.subjectName, "Subject");
+        assert.ok((row.roundedFinalScore ?? 0) > 0);
+        assert.ok(row.gradeLabel);
+        assert.equal(row.roundedFinalScore, expectedScores[row.subjectName!]);
+        const keys = (row.components ?? []).map((component) => component.componentKey).sort();
+        assert.deepEqual(keys, ["classwork", "exam"]);
+      }
+      const firstRows = (cardAfterFirst?.subjectResultsSnapshot ?? []) as Array<{
+        subjectName?: string;
+        roundedFinalScore?: number;
+      }>;
+      assert.deepEqual(
+        rows.map((row) => [row.subjectName, row.roundedFinalScore]),
+        firstRows.map((row) => [row.subjectName, row.roundedFinalScore])
+      );
+
+      const policy = card.gradingPolicySnapshot as { scoreComponents?: Array<{ key?: string }> };
+      assert.deepEqual(
+        (policy.scoreComponents ?? []).map((component) => component.key),
+        ["classwork", "exam"]
+      );
+
+      const { buildStudentReportCardViewData } = await import(
+        "../src/lib/academics/reporting/build-student-report-card-view"
+      );
+      const view = buildStudentReportCardViewData(card as never, {
+        subjectNamesById: new Map(),
+        period: { yearLabel: "2026/2027", term: "Term 1" },
+        gradeName: "JHS 2",
+        classGroupName: "A",
+        classGroupLabel: "JHS 2A",
+        verificationId: null,
+      });
+      assert.equal(view.subjects.length, 6);
+      assert.ok(view.subjects.every((row) => row.subjectName !== "Subject" && row.roundedFinalScore > 0));
+      assert.equal(view.scoreComponents.length, 2);
+      const maths = rows.find((row) => row.subjectName === "Mathematics");
+      assert.equal(String(maths?.teacherId), String(second.teacherId));
     },
     { timeout: 180_000 }
   );

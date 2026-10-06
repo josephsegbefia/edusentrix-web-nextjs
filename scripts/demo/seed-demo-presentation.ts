@@ -18,6 +18,7 @@ import {
 } from "@/lib/demo/presentation-db-guard";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { calculateSubjectResult } from "@/lib/academics/assessment-engine/calculate-subject-result";
+import { serializeGradingPolicy } from "@/lib/academics/assessment-engine/grading-policy-service";
 
 const __filename =
   typeof __dirname !== "undefined"
@@ -184,6 +185,7 @@ type SeedCtx = {
   offerings: Map<string, Types.ObjectId>;
   mathsSubjectId: Types.ObjectId;
   mathsOfferingId: Types.ObjectId;
+  subjectTeacherIds: Map<string, Types.ObjectId>;
 };
 
 async function upsertUser(params: {
@@ -423,6 +425,70 @@ async function seedPeopleAndClass(schoolId: Types.ObjectId): Promise<SeedCtx> {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
+  const subjectTeacherIds = new Map<string, Types.ObjectId>([
+    ["Mathematics", teacher._id],
+  ]);
+  const extraSubjectTeachers = [
+    { subject: "English Language", firstName: "Efua", lastName: "Asante", emailLocal: "efua.asante.teacher" },
+    { subject: "Integrated Science", firstName: "Yaw", lastName: "Agyemang", emailLocal: "yaw.agyemang.teacher" },
+    { subject: "Social Studies", firstName: "Adwoa", lastName: "Appiah", emailLocal: "adwoa.appiah.teacher" },
+    { subject: "Computing", firstName: "Kojo", lastName: "Donkor", emailLocal: "kojo.donkor.teacher" },
+    { subject: "Religious and Moral Education", firstName: "Akua", lastName: "Osei", emailLocal: "akua.osei.teacher" },
+  ] as const;
+  for (const spec of extraSubjectTeachers) {
+    const subjectId = subjects.get(spec.subject);
+    const offeringId = offerings.get(spec.subject);
+    if (!subjectId || !offeringId) continue;
+    const user = await upsertUser({
+      schoolId,
+      email: presentationPersonaEmail(spec.emailLocal, schoolIdStr),
+      firstName: spec.firstName,
+      lastName: spec.lastName,
+      role: "teacher",
+    });
+    const row = await Teacher.findOneAndUpdate(
+      { schoolId, userId: user._id },
+      {
+        $set: {
+          schoolId,
+          userId: user._id,
+          status: "active",
+          department: spec.subject,
+          tags: [PRESENTATION_SEED_MARKER],
+          subjectIds: [subjectId],
+          subjectOfferingIds: [offeringId],
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    await TeacherAssignment.findOneAndUpdate(
+      {
+        schoolId,
+        teacherId: row._id,
+        classGroupId: classGroup._id,
+        subjectId,
+        academicPeriodId: period._id,
+      },
+      {
+        $set: {
+          schoolId,
+          teacherId: row._id,
+          classGroupId: classGroup._id,
+          subjectId,
+          subjectOfferingId: offeringId,
+          academicPeriodId: period._id,
+          contactHoursPerWeek: 4,
+          status: "active",
+          notes: PRESENTATION_SEED_MARKER,
+          assignedBy: admin._id,
+          assignedAt: new Date(),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    subjectTeacherIds.set(spec.subject, row._id);
+  }
+
   const studentUser = await upsertUser({
     schoolId,
     email: presentationPersonaEmail(PRESENTATION_STUDENT.emailLocal, schoolIdStr),
@@ -514,6 +580,7 @@ async function seedPeopleAndClass(schoolId: Types.ObjectId): Promise<SeedCtx> {
     offerings,
     mathsSubjectId,
     mathsOfferingId,
+    subjectTeacherIds,
   };
 }
 
@@ -870,16 +937,48 @@ async function seedAcademics(ctx: SeedCtx) {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
-  const itemDefs = [
-    { title: "Class Exercise — Algebraic Expressions", type: "classwork", componentKey: "classwork", max: 20, kwame: 18 },
-    { title: "Quiz — Simplifying Expressions", type: "quiz", componentKey: "classwork", max: 30, kwame: 26 },
-    { title: "Mid-Term Assessment", type: "midterm", componentKey: "classwork", max: 50, kwame: 42 },
-    { title: "Assignment — Word Problems", type: "assignment", componentKey: "classwork", max: 20, kwame: 17 },
-    { title: "End-of-Term Examination", type: "exam", componentKey: "exam", max: 100, kwame: 81 },
-  ];
+  const itemTemplates = [
+    { kind: "Class Exercise", type: "classwork", componentKey: "classwork", max: 20 },
+    { kind: "Quiz", type: "quiz", componentKey: "classwork", max: 30 },
+    { kind: "Mid-Term Assessment", type: "midterm", componentKey: "classwork", max: 50 },
+    { kind: "Assignment", type: "assignment", componentKey: "classwork", max: 20 },
+    { kind: "End-of-Term Examination", type: "exam", componentKey: "exam", max: 100 },
+  ] as const;
+
+  const scoreTargets: Record<string, { classworkPercent: number; examScore: number; remark: string }> = {
+    Computing: {
+      classworkPercent: 90,
+      examScore: 87,
+      remark: "Confident with practical computing tasks.",
+    },
+    Mathematics: {
+      classworkPercent: 90,
+      examScore: 81,
+      remark: "Kwame shows strong algebraic reasoning.",
+    },
+    "Integrated Science": {
+      classworkPercent: 84,
+      examScore: 80,
+      remark: "Sound scientific method; keep practising investigations.",
+    },
+    "Religious and Moral Education": {
+      classworkPercent: 82,
+      examScore: 78,
+      remark: "Thoughtful contributions in class discussion.",
+    },
+    "English Language": {
+      classworkPercent: 80,
+      examScore: 74,
+      remark: "Clear writing; continue building vocabulary.",
+    },
+    "Social Studies": {
+      classworkPercent: 76,
+      examScore: 70,
+      remark: "Understands the topics; needs more precise answers.",
+    },
+  };
 
   const studentIds = [ctx.studentId, ...ctx.classmateIds];
-  const assessmentItemIds: Types.ObjectId[] = [];
 
   await AssessmentItem.deleteMany({
     schoolId: ctx.schoolId,
@@ -892,114 +991,160 @@ async function seedAcademics(ctx: SeedCtx) {
     remarks: PRESENTATION_SEED_MARKER,
   });
 
-  for (const def of itemDefs) {
-    const item = await AssessmentItem.create({
-      schoolId: ctx.schoolId,
-      academicPeriodId: ctx.periodId,
-      assessmentPlanId: plan._id,
-      classGroupId: ctx.classGroupId,
-      gradeId: ctx.gradeId,
-      subjectId: ctx.mathsSubjectId,
-      subjectOfferingId: ctx.mathsOfferingId,
-      teacherId: ctx.teacherId,
-      title: def.title,
-      assessmentType: def.type,
-      sourceType: "manual",
-      sourceRefType: PRESENTATION_SEED_MARKER,
-      maxScore: def.max,
-      componentKey: def.componentKey,
-      contributesToReport: true,
-      contributionLockedByRule: false,
-      visibility: "visible_to_parent_after_release",
-      status: "completed",
-      createdBy: ctx.teacherUserId,
-      assessedAt: new Date("2026-09-30T00:00:00.000Z"),
-    });
-    assessmentItemIds.push(item._id);
+  const calculated: Array<{
+    subjectName: string;
+    subjectId: Types.ObjectId;
+    teacherId: Types.ObjectId;
+    remark: string;
+    calc: ReturnType<typeof calculateSubjectResult>;
+  }> = [];
 
-    const scores = studentIds.map((studentId, index) => {
-      const isKwame = String(studentId) === String(ctx.studentId);
-      const jitter = ((index * 3) % 5) - 2;
-      const raw = isKwame ? def.kwame : Math.max(8, Math.min(def.max, Math.round(def.max * 0.72) + jitter));
+  for (const subjectName of PRESENTATION_SUBJECTS) {
+    const subjectId = ctx.subjects.get(subjectName);
+    const offeringId = ctx.offerings.get(subjectName);
+    const teacherId = ctx.subjectTeacherIds.get(subjectName) ?? ctx.teacherId;
+    const target = scoreTargets[subjectName];
+    if (!subjectId || !offeringId || !target) {
+      throw new Error(`Missing presentation subject setup for ${subjectName}`);
+    }
+
+    const itemDefs = itemTemplates.map((template) => {
+      const percent =
+        template.componentKey === "exam" ? target.examScore : target.classworkPercent;
       return {
-        schoolId: ctx.schoolId,
-        academicPeriodId: ctx.periodId,
-        assessmentItemId: item._id,
-        assessmentPlanId: plan._id,
-        classGroupId: ctx.classGroupId,
-        subjectId: ctx.mathsSubjectId,
-        studentId,
-        teacherId: ctx.teacherId,
-        score: raw,
-        maxScoreSnapshot: def.max,
-        percentage: Number(((raw / def.max) * 100).toFixed(1)),
-        status: "recorded",
-        remarks: PRESENTATION_SEED_MARKER,
-        gradedAt: new Date("2026-10-01T00:00:00.000Z"),
-        recordedBy: ctx.teacherUserId,
+        ...template,
+        title: `${template.kind} — ${subjectName}`,
+        kwame: Math.round((template.max * percent) / 100),
       };
     });
-    await AssessmentScore.insertMany(scores);
-  }
+    const assessmentItemIds: Types.ObjectId[] = [];
 
-  const calc = calculateSubjectResult({
-    scoreComponents: policy.scoreComponents,
-    componentRules: plan.componentRules,
-    items: itemDefs.map((def, index) => ({
-      id: String(assessmentItemIds[index]),
-      componentKey: def.componentKey,
-      assessmentType: def.type,
-      title: def.title,
-      maxScore: def.max,
-      contributesToReport: true,
-    })),
-    scores: itemDefs.map((def, index) => ({
-      assessmentItemId: String(assessmentItemIds[index]),
-      score: def.kwame,
-      status: "recorded" as const,
-    })),
-    gradeBoundaries: policy.gradeBoundaries,
-    passMark: policy.passMark,
-    roundingRule: policy.roundingRule,
-  });
-
-  await SubjectResult.findOneAndUpdate(
-    {
-      schoolId: ctx.schoolId,
-      studentId: ctx.studentId,
-      subjectId: ctx.mathsSubjectId,
-      academicPeriodId: ctx.periodId,
-    },
-    {
-      $set: {
+    for (const def of itemDefs) {
+      const item = await AssessmentItem.create({
         schoolId: ctx.schoolId,
         academicPeriodId: ctx.periodId,
         assessmentPlanId: plan._id,
-        gradingPolicyId: policy._id,
         classGroupId: ctx.classGroupId,
         gradeId: ctx.gradeId,
-        subjectId: ctx.mathsSubjectId,
+        subjectId,
+        subjectOfferingId: offeringId,
+        teacherId,
+        title: def.title,
+        assessmentType: def.type,
+        sourceType: "manual",
+        sourceRefType: PRESENTATION_SEED_MARKER,
+        maxScore: def.max,
+        componentKey: def.componentKey,
+        contributesToReport: true,
+        contributionLockedByRule: false,
+        visibility: "visible_to_parent_after_release",
+        status: "completed",
+        createdBy: ctx.teacherUserId,
+        assessedAt: new Date("2026-09-30T00:00:00.000Z"),
+      });
+      assessmentItemIds.push(item._id);
+
+      const scores = studentIds.map((studentId, index) => {
+        const isKwame = String(studentId) === String(ctx.studentId);
+        const jitter = ((index * 3) % 5) - 2;
+        const raw = isKwame
+          ? def.kwame
+          : Math.max(8, Math.min(def.max, Math.round(def.max * 0.72) + jitter));
+        return {
+          schoolId: ctx.schoolId,
+          academicPeriodId: ctx.periodId,
+          assessmentItemId: item._id,
+          assessmentPlanId: plan._id,
+          classGroupId: ctx.classGroupId,
+          subjectId,
+          studentId,
+          teacherId,
+          score: raw,
+          maxScoreSnapshot: def.max,
+          percentage: Number(((raw / def.max) * 100).toFixed(1)),
+          status: "recorded",
+          remarks: PRESENTATION_SEED_MARKER,
+          gradedAt: new Date("2026-10-01T00:00:00.000Z"),
+          recordedBy: ctx.teacherUserId,
+        };
+      });
+      await AssessmentScore.insertMany(scores);
+    }
+
+    const calc = calculateSubjectResult({
+      scoreComponents: policy.scoreComponents,
+      componentRules: plan.componentRules,
+      items: itemDefs.map((def, index) => ({
+        id: String(assessmentItemIds[index]),
+        componentKey: def.componentKey,
+        assessmentType: def.type,
+        title: def.title,
+        maxScore: def.max,
+        contributesToReport: true,
+      })),
+      scores: itemDefs.map((def, index) => ({
+        assessmentItemId: String(assessmentItemIds[index]),
+        score: def.kwame,
+        status: "recorded" as const,
+      })),
+      gradeBoundaries: policy.gradeBoundaries,
+      passMark: policy.passMark,
+      roundingRule: policy.roundingRule,
+    });
+
+    await SubjectResult.findOneAndUpdate(
+      {
+        schoolId: ctx.schoolId,
         studentId: ctx.studentId,
-        teacherId: ctx.teacherId,
-        components: calc.components,
-        finalScore: calc.finalScore,
-        roundedFinalScore: calc.roundedFinalScore,
-        gradeLabel: calc.gradeLabel,
-        gradePoint: calc.gradePoint,
-        descriptor: calc.descriptor,
-        isPassed: calc.isPassed,
-        subjectRemark: "Kwame shows strong algebraic reasoning.",
-        missingRequiredItems: calc.missingRequiredItems,
-        sourceAssessmentItemIds: assessmentItemIds,
-        status: "approved",
-        submittedBy: ctx.teacherUserId,
-        submittedAt: new Date("2026-10-02T00:00:00.000Z"),
-        approvedBy: ctx.adminUserId,
-        approvedAt: new Date("2026-10-03T00:00:00.000Z"),
+        subjectId,
+        academicPeriodId: ctx.periodId,
       },
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
+      {
+        $set: {
+          schoolId: ctx.schoolId,
+          academicPeriodId: ctx.periodId,
+          assessmentPlanId: plan._id,
+          gradingPolicyId: policy._id,
+          classGroupId: ctx.classGroupId,
+          gradeId: ctx.gradeId,
+          subjectId,
+          studentId: ctx.studentId,
+          teacherId,
+          components: calc.components,
+          finalScore: calc.finalScore,
+          roundedFinalScore: calc.roundedFinalScore,
+          gradeLabel: calc.gradeLabel,
+          gradePoint: calc.gradePoint,
+          descriptor: calc.descriptor,
+          isPassed: calc.isPassed,
+          subjectRemark: target.remark,
+          missingRequiredItems: calc.missingRequiredItems,
+          sourceAssessmentItemIds: assessmentItemIds,
+          status: "approved",
+          submittedBy: ctx.teacherUserId,
+          submittedAt: new Date("2026-10-02T00:00:00.000Z"),
+          approvedBy: ctx.adminUserId,
+          approvedAt: new Date("2026-10-03T00:00:00.000Z"),
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    calculated.push({
+      subjectName,
+      subjectId,
+      teacherId,
+      remark: target.remark,
+      calc,
+    });
+  }
+
+  const averageFinalScore =
+    Math.round(
+      (calculated.reduce((sum, row) => sum + row.calc.roundedFinalScore, 0) /
+        calculated.length) *
+        10
+    ) / 10;
 
   const run = await ReportCardRun.findOneAndUpdate(
     { schoolId: ctx.schoolId, classGroupId: ctx.classGroupId, academicPeriodId: ctx.periodId },
@@ -1039,10 +1184,11 @@ async function seedAcademics(ctx: SeedCtx) {
         studentId: ctx.studentId,
         classGroupId: ctx.classGroupId,
         gradeId: ctx.gradeId,
-        gradingPolicySnapshot: { name: policy.name, passMark: 50 },
+        gradingPolicySnapshot: serializeGradingPolicy(policy),
         assessmentPlanSnapshot: { name: plan.name },
         reportTemplateSnapshot: { name: "JHS Term Report", marker: PRESENTATION_SEED_MARKER },
         studentSnapshot: {
+          name: `${PRESENTATION_STUDENT.firstName} ${PRESENTATION_STUDENT.lastName}`,
           firstName: PRESENTATION_STUDENT.firstName,
           lastName: PRESENTATION_STUDENT.lastName,
           admissionNo: PRESENTATION_STUDENT.admissionNo,
@@ -1050,18 +1196,25 @@ async function seedAcademics(ctx: SeedCtx) {
         },
         schoolSnapshot: { name: "Lighthouse Preparatory School" },
         attendanceSnapshot: { present: 18, absent: 1, late: 1, rate: 95 },
-        subjectResultsSnapshot: [
-          { subject: "Mathematics", score: calc.roundedFinalScore, grade: calc.gradeLabel },
-          { subject: "English Language", score: 78, grade: "B" },
-          { subject: "Integrated Science", score: 74, grade: "B" },
-          { subject: "Social Studies", score: 71, grade: "B" },
-          { subject: "Computing", score: 68, grade: "C" },
-          { subject: "Religious and Moral Education", score: 80, grade: "A" },
-        ],
+        subjectResultsSnapshot: calculated.map((row) => ({
+          subjectId: String(row.subjectId),
+          subjectName: row.subjectName,
+          teacherId: String(row.teacherId),
+          finalScore: row.calc.finalScore,
+          roundedFinalScore: row.calc.roundedFinalScore,
+          gradeLabel: row.calc.gradeLabel,
+          gradePoint: row.calc.gradePoint,
+          descriptor: row.calc.descriptor,
+          isPassed: row.calc.isPassed,
+          subjectRemark: row.remark,
+          components: row.calc.components,
+          status: "approved",
+        })),
         termSummarySnapshot: {
-          average: 75,
-          overallGrade: "B",
-          remark: "A consistent and motivated learner. Computing needs extra practice.",
+          subjectCount: calculated.length,
+          passedSubjectCount: calculated.filter((row) => row.calc.isPassed).length,
+          averageFinalScore,
+          remark: "A consistent learner with clear strengths in Computing and Mathematics.",
         },
         commentsSnapshot: {
           classTeacher: "Kwame is respectful, participates well, and leads in Mathematics.",

@@ -7,6 +7,8 @@ import mongoose from "mongoose";
 import { buildStudentReportCardViewData } from "@/lib/academics/reporting/build-student-report-card-view";
 import { loadStudentReportCardViewContext } from "@/lib/academics/reporting/load-student-report-card";
 import { StudentReportCard } from "@/models/StudentReportCard";
+import { Teacher } from "@/models/Teacher";
+import { User } from "@/models/User";
 import { derivePerformanceTier } from "@/lib/academics/compatibility/subject-result-adapters";
 import {
   asSnapshotRecord,
@@ -180,6 +182,7 @@ function mapSubjectResultsFromView(
     canViewBreakdown: boolean;
     viewerCanOpenReleasedBreakdown: boolean;
     visibleSubjectIds: string[] | null;
+    teacherNamesById: Map<string, string | null>;
   }
 ): AcademicProfileSubjectResultDTO[] {
   const snapshotRows = input.card.subjectResultsSnapshot as Array<Record<string, unknown>>;
@@ -194,13 +197,14 @@ function mapSubjectResultsFromView(
       const snapshotRow = snapshotRows[index] ?? {};
       const subjectId =
         row.subjectId ?? readSnapshotString(snapshotRow.subjectId) ?? `unknown-${index}`;
+      const teacherId = readSnapshotString(snapshotRow.teacherId);
 
       return {
         subjectId,
         subjectName: row.subjectName,
         subjectCode: null,
-        teacherId: readSnapshotString(snapshotRow.teacherId),
-        teacherName: null,
+        teacherId,
+        teacherName: teacherId ? input.teacherNamesById.get(teacherId) ?? null : null,
         status: "snapshot",
         components: mapComponentScoresToProfile(
           row,
@@ -233,6 +237,7 @@ export function applyReportCardViewToAcademicProfile(
   context: {
     subjectNamesById: Map<string, string>;
     permissions: AcademicProfilePermissionsDTO;
+    teacherNamesById?: Map<string, string | null>;
   }
 ): void {
   const recordStatus = mapStudentReportCardStatusToRecordStatus(card.status);
@@ -251,6 +256,7 @@ export function applyReportCardViewToAcademicProfile(
     canViewBreakdown: context.permissions.canViewBreakdown,
     viewerCanOpenReleasedBreakdown: isParentOrStudent && isReleased,
     visibleSubjectIds: context.permissions.visibleSubjectIds,
+    teacherNamesById: context.teacherNamesById ?? new Map(),
   });
 
   const averageFinalScore = readSnapshotNumber(
@@ -261,6 +267,8 @@ export function applyReportCardViewToAcademicProfile(
     termSummary.subjectCount,
     view.summary?.subjectCount ?? subjectResults.length
   );
+
+  const ranked = pickSnapshotStrongestWeakest(subjectResults);
 
   profile.recordStatus = recordStatus;
   profile.dataSource = "report_snapshot";
@@ -279,8 +287,8 @@ export function applyReportCardViewToAcademicProfile(
     trend: profile.summary.trend,
     trendDelta: profile.summary.trendDelta,
     riskLevel: profile.summary.riskLevel,
-    strongestSubject: profile.summary.strongestSubject,
-    weakestSubject: profile.summary.weakestSubject,
+    strongestSubject: ranked.strongest,
+    weakestSubject: ranked.weakest,
   };
 
   profile.reportStatus = {
@@ -370,6 +378,59 @@ export function applyReportCardViewToAcademicProfile(
  * Loads the best available report card snapshot for the period and merges it into the profile.
  * @returns true when snapshot data was applied.
  */
+function pickSnapshotStrongestWeakest(subjectResults: AcademicProfileSubjectResultDTO[]) {
+  const scored = subjectResults.filter((row) => row.roundedFinalScore != null);
+  if (scored.length === 0) {
+    return { strongest: null, weakest: null };
+  }
+  const sorted = [...scored].sort(
+    (a, b) => (b.roundedFinalScore ?? 0) - (a.roundedFinalScore ?? 0)
+  );
+  const strongest = sorted[0]!;
+  const weakest = sorted[sorted.length - 1]!;
+  return {
+    strongest: {
+      subjectId: strongest.subjectId,
+      subjectName: strongest.subjectName,
+      score: strongest.roundedFinalScore!,
+    },
+    weakest: {
+      subjectId: weakest.subjectId,
+      subjectName: weakest.subjectName,
+      score: weakest.roundedFinalScore!,
+    },
+  };
+}
+
+async function loadSnapshotTeacherNames(teacherIds: string[]) {
+  const uniqueIds = [
+    ...new Set(teacherIds.filter((id) => mongoose.Types.ObjectId.isValid(id))),
+  ];
+  const names = new Map<string, string | null>();
+  if (uniqueIds.length === 0) return names;
+
+  const teachers = await Teacher.find({
+    _id: { $in: uniqueIds.map((id) => new mongoose.Types.ObjectId(id)) },
+  })
+    .select("_id userId")
+    .lean();
+  const users = teachers.length
+    ? await User.find({
+        _id: { $in: teachers.map((teacher) => teacher.userId).filter(Boolean) },
+      })
+        .select("_id firstName lastName name")
+        .lean()
+    : [];
+  const userById = new Map(users.map((user) => [String(user._id), user]));
+
+  for (const teacher of teachers) {
+    const user = userById.get(String(teacher.userId));
+    const full = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+    names.set(String(teacher._id), full || user?.name || null);
+  }
+  return names;
+}
+
 export async function tryApplyProfileFromReportCard(
   profile: StudentAcademicProfileDTO,
   input: {
@@ -387,10 +448,15 @@ export async function tryApplyProfileFromReportCard(
 
   const [viewContext] = await Promise.all([loadStudentReportCardViewContext(card)]);
   const view = buildStudentReportCardViewData(card, viewContext);
+  const teacherIds = (card.subjectResultsSnapshot as Array<Record<string, unknown>>)
+    .map((row) => readSnapshotString(row.teacherId))
+    .filter((id): id is string => Boolean(id));
+  const teacherNamesById = await loadSnapshotTeacherNames(teacherIds);
 
   applyReportCardViewToAcademicProfile(profile, card, view, {
     subjectNamesById: viewContext.subjectNamesById,
     permissions: input.permissions,
+    teacherNamesById,
   });
 
   return true;

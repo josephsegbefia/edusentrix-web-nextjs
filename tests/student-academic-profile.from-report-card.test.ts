@@ -18,6 +18,7 @@ import { resolveAcademicProfilePermissions } from "../src/lib/academics/profile/
 import type { IStudentReportCard } from "../src/models/StudentReportCard";
 
 const subjectId = "507f1f77bcf86cd799439011";
+const teacherId = "507f1f77bcf86cd799439012";
 
 const card = {
   _id: new mongoose.Types.ObjectId(),
@@ -51,6 +52,7 @@ const card = {
   subjectResultsSnapshot: [
     {
       subjectId,
+      teacherId,
       finalScore: 88.1,
       roundedFinalScore: 88.1,
       gradeLabel: "HP",
@@ -154,6 +156,7 @@ describe("applyReportCardViewToAcademicProfile", () => {
     applyReportCardViewToAcademicProfile(profile, card, view, {
       subjectNamesById: new Map([[subjectId, "Mathematics"]]),
       permissions,
+      teacherNamesById: new Map([[teacherId, "Mr. Daniel Owusu"]]),
     });
 
     assert.equal(profile.dataSource, "report_snapshot");
@@ -162,6 +165,7 @@ describe("applyReportCardViewToAcademicProfile", () => {
     assert.equal(profile.summary.classPosition, 3);
     assert.equal(profile.subjectResults.length, 1);
     assert.equal(profile.subjectResults[0]?.gradeLabel, "HP");
+    assert.equal(profile.subjectResults[0]?.teacherName, "Mr. Daniel Owusu");
     assert.equal(profile.subjectResults[0]?.components.length, 2);
     assert.equal(profile.subjectResults[0]?.components[0]?.weight, 30);
     assert.equal(profile.attendance.source, "report_snapshot");

@@ -53,6 +53,68 @@ function ghs(amount: number) {
   return Math.round(amount * CEDIS);
 }
 
+function normalizeSubjectKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+async function resolvePresentationSubject(
+  schoolId: Types.ObjectId,
+  name: string
+) {
+  const Subject = mongoose.model("Subject");
+  const normalizedKey = normalizeSubjectKey(name);
+  const existing = await Subject.findOne({
+    schoolId,
+    $or: [{ normalizedKey }, { name }],
+  })
+    .collation({ locale: "en", strength: 2 })
+    .select("_id normalizedKey code")
+    .lean();
+
+  if (existing?._id) {
+    if (!existing.normalizedKey) {
+      await Subject.updateOne(
+        { _id: existing._id, schoolId },
+        { $set: { normalizedKey } }
+      );
+    }
+    return existing;
+  }
+
+  try {
+    return await Subject.create({
+      schoolId,
+      name,
+      normalizedKey,
+      code: name.slice(0, 3).toUpperCase(),
+      category: "core",
+      isActive: true,
+    });
+  } catch (error: unknown) {
+    const duplicateName =
+      error instanceof Error &&
+      (error.message.includes("E11000") || error.message.includes("duplicate key"));
+    if (!duplicateName) throw error;
+
+    const fallback = await Subject.findOne({ schoolId, name })
+      .collation({ locale: "en", strength: 2 })
+      .select("_id normalizedKey code")
+      .lean();
+    if (!fallback?._id) throw error;
+    if (!fallback.normalizedKey) {
+      await Subject.updateOne(
+        { _id: fallback._id, schoolId },
+        { $set: { normalizedKey } }
+      );
+    }
+    return fallback;
+  }
+}
+
 function weekdayDates(start: Date, count: number) {
   const dates: Date[] = [];
   const cursor = new Date(start);
@@ -171,7 +233,6 @@ async function seedPeopleAndClass(schoolId: Types.ObjectId): Promise<SeedCtx> {
   const Guardian = mongoose.model("Guardian");
   const Grade = mongoose.model("Grade");
   const ClassGroup = mongoose.model("ClassGroup");
-  const Subject = mongoose.model("Subject");
   const SubjectOffering = mongoose.model("SubjectOffering");
   const AcademicPeriod = mongoose.model("AcademicPeriod");
   const TeacherAssignment = mongoose.model("TeacherAssignment");
@@ -275,24 +336,11 @@ async function seedPeopleAndClass(schoolId: Types.ObjectId): Promise<SeedCtx> {
   const subjects = new Map<string, Types.ObjectId>();
   const offerings = new Map<string, Types.ObjectId>();
   for (const name of PRESENTATION_SUBJECTS) {
-    const normalizedKey = name.trim().toLowerCase();
-    const subject = await Subject.findOneAndUpdate(
-      { schoolId, normalizedKey },
-      {
-        $set: {
-          schoolId,
-          name,
-          normalizedKey,
-          code: name.slice(0, 3).toUpperCase(),
-          category: "core",
-          isActive: true,
-        },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const subject = await resolvePresentationSubject(schoolId, name);
     subjects.set(name, subject._id);
+    const offeringCode = `JHS2-${(subject.code || name.slice(0, 3)).toString().toUpperCase()}`;
     const offering = await SubjectOffering.findOneAndUpdate(
-      { schoolId, subjectId: subject._id, code: `JHS2-${subject.code}` },
+      { schoolId, subjectId: subject._id, code: offeringCode },
       {
         $set: {
           schoolId,
@@ -301,7 +349,7 @@ async function seedPeopleAndClass(schoolId: Types.ObjectId): Promise<SeedCtx> {
           subjectFamily: name,
           displayName: name,
           shortName: name,
-          code: `JHS2-${subject.code}`,
+          code: offeringCode,
           stage: "jhs",
           gradeBand: "jhs",
           gradeIds: [grade._id],

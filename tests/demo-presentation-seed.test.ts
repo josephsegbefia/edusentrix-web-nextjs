@@ -111,4 +111,85 @@ describe("presentation seed idempotency", () => {
     },
     { timeout: 180_000 }
   );
+
+  test(
+    "reuses existing Lighthouse subjects including missing normalizedKey and casing variants",
+    async () => {
+      const { School } = await import("../src/models/School");
+      const { Subject } = await import("../src/models/Subject");
+      await Subject.createIndexes();
+
+      const school = await School.create({
+        name: "Lighthouse Preparatory School",
+        type: "Basic",
+        curriculumCode: "ghana_nacca",
+        status: "active",
+        city: "Accra",
+        region: "Greater Accra",
+      });
+
+      const mathsId = new mongoose.Types.ObjectId();
+      await mongoose.connection.collection("subjects").insertOne({
+        _id: mathsId,
+        schoolId: school._id,
+        name: "Mathematics",
+        code: "MAT",
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const english = await Subject.create({
+        schoolId: school._id,
+        name: "english language",
+        normalizedKey: "english_language",
+        code: "ENG",
+        category: "core",
+        isActive: true,
+      });
+
+      const first = await seedPresentationForSchool(school._id);
+      const subjectsAfterFirst = await Subject.find({ schoolId: school._id })
+        .collation({ locale: "en", strength: 2 })
+        .lean();
+      const mathsAfterFirst = subjectsAfterFirst.find(
+        (row) => row.name.toLowerCase() === "mathematics"
+      );
+      const englishAfterFirst = subjectsAfterFirst.find(
+        (row) => String(row.normalizedKey) === "english_language"
+      );
+
+      assert.equal(String(mathsAfterFirst?._id), String(mathsId));
+      assert.equal(mathsAfterFirst?.normalizedKey, "mathematics");
+      assert.equal(String(englishAfterFirst?._id), String(english._id));
+      assert.equal(
+        subjectsAfterFirst.filter((row) =>
+          ["mathematics", "english language"].includes(row.name.trim().toLowerCase())
+        ).length,
+        2
+      );
+
+      const second = await seedPresentationForSchool(school._id);
+      assert.equal(second.studentId, first.studentId);
+
+      const mathsCount = await Subject.countDocuments({
+        schoolId: school._id,
+        name: "Mathematics",
+      }).collation({ locale: "en", strength: 2 });
+      const englishCount = await Subject.countDocuments({
+        schoolId: school._id,
+        name: "English Language",
+      }).collation({ locale: "en", strength: 2 });
+      assert.equal(mathsCount, 1);
+      assert.equal(englishCount, 1);
+      assert.equal(
+        await mongoose.model("Student").countDocuments({
+          schoolId: school._id,
+          admissionNo: { $regex: /^PRES-S/ },
+        }),
+        18
+      );
+    },
+    { timeout: 180_000 }
+  );
 });

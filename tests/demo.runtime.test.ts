@@ -9,6 +9,7 @@ function resetEnv() {
   delete process.env.DEMO_BASE_URL;
   delete process.env.DEMO_SESSION_SECRET;
   delete process.env.DEMO_DEFAULT_SESSION_MINUTES;
+  delete process.env.DEMO_IDLE_TIMEOUT_MINUTES;
   delete process.env.DEMO_MAX_ACTIVE_SESSIONS;
   delete process.env.DEMO_UPLOADS_ENABLED;
   delete process.env.DEMO_AI_ENABLED;
@@ -100,6 +101,16 @@ describe("isDemoHost", () => {
     process.env.DEMO_BASE_URL = "https://Demo.TryEduSentrix.App";
     const { isDemoHost } = await freshRuntime();
     assert.equal(isDemoHost({ headers: fakeHeaders("demo.tryedusentrix.app") }), true);
+  });
+});
+
+describe("DEMO_CONFIG idle timeout", () => {
+  beforeEach(resetEnv);
+  afterEach(() => Object.assign(process.env, ORIGINAL_ENV));
+
+  test("defaults to 90 minutes when DEMO_IDLE_TIMEOUT_MINUTES is unset", async () => {
+    const { DEMO_CONFIG } = await freshRuntime();
+    assert.equal(DEMO_CONFIG.idleTimeoutMinutes, 90);
   });
 });
 

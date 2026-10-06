@@ -137,8 +137,12 @@ export async function touchDemoSessionInteraction(
 export async function resolveDemoSessionFromCookie(options?: {
   touch?: boolean;
   enforceIdleTimeout?: boolean;
+  cookieValue?: string | null;
 }): Promise<IDemoSession | null> {
-  const raw = await readDemoSessionCookie();
+  const raw =
+    typeof options?.cookieValue === "string" && options.cookieValue
+      ? options.cookieValue
+      : await readDemoSessionCookie();
   if (!raw) return null;
 
   // Demo session resolution runs from server components, route handlers,

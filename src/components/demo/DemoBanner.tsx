@@ -142,7 +142,7 @@ export function DemoBanner() {
   useEffect(() => {
     if (!session) return;
 
-    const idleTimeoutMs = (session.idleTimeoutMinutes || 5) * 60_000;
+    const idleTimeoutMs = (session.idleTimeoutMinutes || 90) * 60_000;
     let lastInteractionAt = Date.now();
     let lastHeartbeatAt = 0;
     let ended = false;
@@ -235,9 +235,13 @@ export function DemoBanner() {
     return () => clearInterval(id);
   }, [session?.expiresAt]);
 
+  useEffect(() => {
+    setSwitching(false);
+  }, [pathname, session?.activePersonaRole]);
+
   const switchPersona = async (role: string) => {
+    if (switching) return;
     setSwitching(true);
-    let shouldKeepBusy = false;
     try {
       const res = await fetch("/api/demo/switch-persona", {
         method: "POST",
@@ -248,18 +252,12 @@ export function DemoBanner() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Could not switch demo persona.");
       }
-      if (json.success) {
-        await fetchSession();
-        router.refresh();
-        shouldKeepBusy = true;
-        router.push(json.data.redirectTo);
-      }
+      await fetchSession();
+      router.refresh();
+      router.push(json.data.redirectTo);
     } catch (error) {
+      setSwitching(false);
       toast.error(error instanceof Error ? error.message : "Could not switch demo persona.");
-    } finally {
-      if (!shouldKeepBusy) {
-        setSwitching(false);
-      }
     }
   };
 

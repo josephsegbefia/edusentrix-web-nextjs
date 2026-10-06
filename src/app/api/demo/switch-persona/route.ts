@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { isDemoMode } from "@/lib/demo/runtime";
+import { isDemoMode, DEMO_CONFIG } from "@/lib/demo/runtime";
 import {
   resolveDemoSessionFromCookie,
   touchDemoSessionInteraction,
 } from "@/lib/demo/session";
 import { DemoSession } from "@/models/DemoSession";
-import { User } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
+import { Teacher } from "@/models/Teacher";
 import { trackDemoEvent, DEMO_EVENT_CODES } from "@/lib/demo/telemetry";
+import {
+  findPresentationPersonaUser,
+  type PresentationPersonaRole,
+} from "@/lib/demo/presentation-cast";
 
 const ALLOWED_PERSONAS = [
   "school_admin",
@@ -20,30 +23,6 @@ const ALLOWED_PERSONAS = [
 const SwitchPersonaSchema = z.object({
   role: z.enum(ALLOWED_PERSONAS),
 });
-
-async function findPersonaUser(schoolId: unknown, role: string) {
-  const membership = await UserMembership.findOne({
-    schoolId,
-    status: "active",
-    roles: role,
-  })
-    .select("userId roles")
-    .lean();
-
-  if (membership?.userId) {
-    const user = await User.findById(membership.userId)
-      .select("_id role")
-      .lean();
-    if (user) return user;
-  }
-
-  return User.findOne({
-    schoolId,
-    role,
-  })
-    .select("_id role")
-    .lean();
-}
 
 export async function POST(req: NextRequest) {
   if (!isDemoMode()) {
@@ -67,7 +46,9 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  const session = await resolveDemoSessionFromCookie();
+  const session = await resolveDemoSessionFromCookie({
+    cookieValue: req.cookies.get(DEMO_CONFIG.sessionCookieName)?.value,
+  });
   if (!session) {
     return NextResponse.json(
       { success: false, error: "No active demo session." },
@@ -77,7 +58,10 @@ export async function POST(req: NextRequest) {
 
   const targetRole = parsed.data.role;
 
-  const personaUser = await findPersonaUser(session.sandboxSchoolId, targetRole);
+  const personaUser = await findPresentationPersonaUser(
+    session.sandboxSchoolId,
+    targetRole as PresentationPersonaRole
+  );
 
   if (!personaUser) {
     return NextResponse.json(
@@ -86,6 +70,20 @@ export async function POST(req: NextRequest) {
         error: `No ${targetRole} persona available in this sandbox.`,
       },
       { status: 404 }
+    );
+  }
+
+  if (targetRole === "teacher") {
+    await Teacher.findOneAndUpdate(
+      { schoolId: session.sandboxSchoolId, userId: personaUser._id },
+      {
+        $setOnInsert: {
+          schoolId: session.sandboxSchoolId,
+          userId: personaUser._id,
+          status: "active",
+        },
+      },
+      { upsert: true, setDefaultsOnInsert: true }
     );
   }
 

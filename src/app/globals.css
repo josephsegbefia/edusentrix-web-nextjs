@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ================================
    Tailwind v4 Theme Tokens (yours)
@@ -208,6 +209,22 @@ body::-webkit-scrollbar {
 
   /* radius token used by some components */
   --radius: 0.75rem;
+
+  /* Marketing surfaces. Light by default; .dark overrides below. */
+  --m-canvas: #ffffff;
+  --m-fg: #0f172a;
+  --m-muted: #64748b;
+  --m-faint: #94a3b8;
+  --m-border: rgba(148, 163, 184, 0.35);
+  --m-glass: rgba(255, 255, 255, 0.78);
+  --m-glass-strong: rgba(255, 255, 255, 0.94);
+  --m-header: rgba(255, 255, 255, 0.82);
+  --m-subtle: rgba(15, 23, 42, 0.04);
+  --m-shadow: 0 18px 50px -28px rgba(76, 29, 149, 0.35);
+  --m-logo-bg: #ffffff;
+  --m-logo-shadow: 0 10px 28px -16px rgba(79, 70, 229, 0.45);
+  --m-glow-violet: rgba(139, 92, 246, 0.18);
+  --m-glow-cyan: rgba(34, 211, 238, 0.14);
 }
 
 /* If you toggle a .dark class anywhere, mirror the same values */
@@ -228,6 +245,21 @@ body::-webkit-scrollbar {
   --input: 215 16% 20%;
   --ring: 188 86% 53%;
   --radius: 0.75rem;
+
+  --m-canvas: #0a0a0a;
+  --m-fg: #f8fafc;
+  --m-muted: rgba(255, 255, 255, 0.62);
+  --m-faint: rgba(255, 255, 255, 0.4);
+  --m-border: rgba(255, 255, 255, 0.1);
+  --m-glass: rgba(23, 23, 23, 0.72);
+  --m-glass-strong: rgba(23, 23, 23, 0.94);
+  --m-header: rgba(10, 10, 10, 0.82);
+  --m-subtle: rgba(255, 255, 255, 0.05);
+  --m-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.65);
+  --m-logo-bg: rgba(255, 255, 255, 0.04);
+  --m-logo-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.55);
+  --m-glow-violet: rgba(139, 92, 246, 0.28);
+  --m-glow-cyan: rgba(168, 85, 247, 0.16);
 }
 
 /* ===================
@@ -286,6 +318,46 @@ a[role="button"] {
    (shadcn components already respect --ring via bg/ring tokens) */
 
 @layer components {
+  .m-page {
+    background-color: var(--m-canvas);
+    color: var(--m-fg);
+    color-scheme: light;
+  }
+
+  .dark .m-page {
+    color-scheme: dark;
+  }
+
+  .m-muted {
+    color: var(--m-muted);
+  }
+
+  .m-faint {
+    color: var(--m-faint);
+  }
+
+  .m-header {
+    border-bottom: 1px solid var(--m-border);
+    background-color: var(--m-header);
+  }
+
+  .m-card {
+    border: 1px solid var(--m-border);
+    background-color: var(--m-glass);
+    box-shadow: var(--m-shadow);
+  }
+
+  .m-card-strong {
+    border: 1px solid var(--m-border);
+    background-color: var(--m-glass-strong);
+    box-shadow: var(--m-shadow);
+  }
+
+  .m-menu {
+    border-top: 1px solid var(--m-border);
+    background-color: var(--m-glass-strong);
+    box-shadow: var(--m-shadow);
+  }
   /* Opaque, glassy, premium dropdowns/selects/popovers */
 
   .premiumMenuContent {

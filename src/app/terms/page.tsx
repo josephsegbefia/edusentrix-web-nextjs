@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { authPageGlowStyle } from "@/components/auth/auth-surfaces";
 import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { LegalDocumentBody } from "@/components/legal/LegalDocumentBody";
 import { PublicMarketingFooter } from "@/components/marketing/PublicMarketingFooter";
@@ -19,34 +20,28 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-dvh bg-neutral-950 text-white antialiased">
+    <main className="m-page relative min-h-dvh antialiased">
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 bg-linear-to-br from-slate-950 via-neutral-950 to-black"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 70% 45% at 50% 0%, rgba(139,92,246,0.18) 0%, transparent 55%), radial-gradient(ellipse 50% 35% at 90% 70%, rgba(6,182,212,0.08) 0%, transparent 50%)",
-        }}
+        className="pointer-events-none absolute inset-0"
+        style={authPageGlowStyle}
       />
 
       <div className="relative">
         <PublicMarketingNav active="terms" />
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
           <div className="max-w-4xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-200/80">
               Legal / Terms of Use
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
-              <EduSentrixWordmark className="text-4xl sm:text-5xl" /> Terms
+              <EduSentrixWordmark tone="adaptive" className="text-4xl sm:text-5xl" /> Terms
             </h1>
           </div>
 
           <div className="mt-10">
             <LegalDocumentBody
+              surface="theme"
               intro={TERMS_OF_USE_INTRO}
               lastUpdated={TERMS_OF_USE_LAST_UPDATED}
               sections={TERMS_OF_USE_SECTIONS}
@@ -54,14 +49,14 @@ export default function TermsPage() {
                 <>
                   Need clarification or legal contact? Email{" "}
                   <a
-                    className="font-semibold underline decoration-cyan-300/50"
+                    className="font-semibold underline decoration-cyan-700/40 dark:decoration-cyan-300/50"
                     href={`mailto:${TERMS_OF_USE_SUPPORT_EMAIL}`}
                   >
                     {TERMS_OF_USE_SUPPORT_EMAIL}
                   </a>{" "}
                   or call{" "}
                   <a
-                    className="font-semibold underline decoration-cyan-300/50"
+                    className="font-semibold underline decoration-cyan-700/40 dark:decoration-cyan-300/50"
                     href={`tel:${TERMS_OF_USE_SUPPORT_PHONE}`}
                   >
                     {TERMS_OF_USE_SUPPORT_PHONE}

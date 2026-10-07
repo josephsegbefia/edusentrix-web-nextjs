@@ -20,9 +20,10 @@ export function SidebarFooterBranding({
       <Link
         href="/"
         className={cn(
-          "mx-auto inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/3 transition-colors hover:bg-white/6",
+          "mx-auto inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-(--m-border) transition-colors hover:bg-(--m-subtle)",
           className
         )}
+        style={{ backgroundColor: "var(--m-logo-bg)" }}
         title="EduSentrix by Appsentrix"
       >
         <Image
@@ -39,12 +40,15 @@ export function SidebarFooterBranding({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-white/3 p-3",
+        "rounded-2xl bg-(--m-subtle) p-3",
         className
       )}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500/10 to-cyan-500/10">
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--m-border)"
+          style={{ backgroundColor: "var(--m-logo-bg)" }}
+        >
           <Image
             src={EDUSENTRIX_LOGO_PATH}
             alt={EDUSENTRIX_LOGO_ALT}
@@ -54,10 +58,10 @@ export function SidebarFooterBranding({
           />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] tracking-wide text-white/50">
-            Powered by <EduSentrixWordmark className="text-[11px]" />
+          <p className="text-[11px] tracking-wide m-faint">
+            Powered by <EduSentrixWordmark tone="adaptive" className="text-[11px]" />
           </p>
-          <p className="text-[10px] leading-4 text-white/30">
+          <p className="text-[10px] leading-4 m-faint">
             Built by Appsentrix
           </p>
         </div>

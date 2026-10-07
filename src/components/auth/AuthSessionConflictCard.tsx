@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { AlertTriangle, ArrowRightLeft, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { authPageGlowStyle } from "@/components/auth/auth-surfaces";
 
 type Props = {
   title: string;
@@ -32,57 +33,48 @@ export function AuthSessionConflictCard({
   note,
 }: Props) {
   return (
-    <div className="min-h-screen bg-bg px-4 py-10">
+    <div className="m-page relative min-h-screen overflow-hidden px-4 py-10">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          background:
-            "radial-gradient(60% 40% at 70% 10%, #0ea5e9 0%, transparent 60%), radial-gradient(50% 50% at 20% 20%, #6d28d9 0%, transparent 60%)",
-          filter: "blur(60px)",
-        }}
+        className="pointer-events-none absolute inset-0"
+        style={authPageGlowStyle}
       />
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center">
-        <div className="w-full overflow-hidden rounded-3xl border border-white/10 bg-card/95 shadow-2xl backdrop-blur-xl">
-          <div className="border-b border-white/10 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-10 py-8">
-            <div className="mb-2 flex items-center gap-3">
-              <Image
-                src={EDUSENTRIX_LOGO_PATH}
-                alt={EDUSENTRIX_LOGO_ALT}
-                width={32}
-                height={32}
-                className="rounded-md"
-              />
-              <h1 className="text-3xl font-bold text-white">{title}</h1>
+        <div className="m-card-strong w-full overflow-hidden rounded-3xl backdrop-blur-xl">
+          <div className="flex items-start justify-between gap-4 border-b border-(--m-border) px-6 py-6 sm:px-10 sm:py-8">
+            <div className="min-w-0">
+              <BrandMark size="sm" />
+              <h1 className="mt-4 text-3xl font-bold text-(--m-fg)">{title}</h1>
+              <p className="mt-2 text-sm m-muted">{description}</p>
             </div>
-            <p className="text-sm text-white/60">{description}</p>
+            <ThemeToggle className="shrink-0" />
           </div>
 
-          <div className="space-y-6 px-10 py-8">
-            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <div className="space-y-6 px-6 py-6 sm:px-10 sm:py-8">
+            <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                   <p className="font-medium">A session is already active in this browser.</p>
-                  <p className="mt-1 text-amber-100/80">
+                  <p className="mt-1 text-amber-800 dark:text-amber-100/80">
                     EduSentrix is currently using a single active Clerk session in this browser profile.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+            <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
                 Active Account
               </p>
-              <p className="mt-2 text-base font-semibold text-white">{activeName}</p>
+              <p className="mt-2 text-base font-semibold text-(--m-fg)">{activeName}</p>
               {activeEmail ? (
-                <p className="mt-1 text-sm text-white/55">{activeEmail}</p>
+                <p className="mt-1 text-sm m-muted">{activeEmail}</p>
               ) : null}
             </div>
 
             {note ? (
-              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100/85">
+              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-900 dark:text-cyan-100">
                 {note}
               </div>
             ) : null}
@@ -90,7 +82,7 @@ export function AuthSessionConflictCard({
             <div className="grid gap-3 sm:grid-cols-2">
               <Button
                 asChild
-                className="h-auto min-h-12 whitespace-normal rounded-2xl bg-white px-5 py-3 text-left text-black hover:bg-white/90"
+                className="h-auto min-h-12 whitespace-normal rounded-2xl bg-brand px-5 py-3 text-left text-black hover:bg-sky-300"
               >
                 <Link href={primaryHref}>
                   <span className="flex w-full min-w-0 items-center justify-start gap-2 text-left">
@@ -106,7 +98,7 @@ export function AuthSessionConflictCard({
                 variant="outline"
                 onClick={() => void onSecondary()}
                 disabled={secondaryBusy}
-                className="h-auto min-h-12 whitespace-normal rounded-2xl border-white/10 bg-white/5 px-5 py-3 text-left text-white hover:bg-white/10"
+                className="h-auto min-h-12 whitespace-normal rounded-2xl border-(--m-border) bg-(--m-subtle) px-5 py-3 text-left text-(--m-fg) hover:bg-(--m-glass)"
               >
                 <span className="flex w-full min-w-0 items-center justify-start gap-2 text-left">
                   {secondaryBusy ? (
@@ -121,7 +113,7 @@ export function AuthSessionConflictCard({
               </Button>
             </div>
 
-            <p className="text-xs text-white/40">
+            <p className="text-xs m-faint">
               If you need both accounts open at the same time, use a private window or a separate browser profile.
             </p>
           </div>

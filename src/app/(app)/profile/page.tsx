@@ -204,7 +204,7 @@ export default function ProfilePage() {
     Boolean(form?.email.trim()) && isDirty && !updateMutation.isPending;
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <div className="dark min-h-screen bg-background p-6 text-foreground md:p-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-6 shadow-2xl shadow-black/30">
           <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-cyan-500/10 blur-3xl" />

@@ -48,14 +48,15 @@ export function LegalAcceptanceModal({
           sections={sections}
           contactNote={contactNote}
           compact
+          surface="theme"
         />
 
-        <div className="sticky bottom-0 -mx-1 flex shrink-0 flex-col-reverse gap-2 border-t border-white/10 bg-card/95 pt-4 sm:flex-row sm:justify-end">
+        <div className="sticky bottom-0 -mx-1 flex shrink-0 flex-col-reverse gap-2 border-t border-(--m-border) bg-(--m-glass-strong) pt-4 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="h-11 rounded-xl text-white/70 hover:bg-white/5 hover:text-white"
+            className="h-11 rounded-xl text-(--m-muted) hover:bg-(--m-subtle) hover:text-(--m-fg)"
           >
             Close
           </Button>

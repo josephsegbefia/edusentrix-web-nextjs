@@ -229,7 +229,7 @@ const navSections: NavSection[] = [
 ];
 
 const sidebarTooltipClasses =
-  "bg-white/10 text-white ring-1 ring-white/10 rounded-xl backdrop-blur-md border-0 px-3 py-2.5 text-sm font-medium shadow-lg";
+  "rounded-xl border-0 bg-(--m-glass-strong) px-3 py-2.5 text-sm font-medium text-(--m-fg) shadow-lg ring-1 ring-(--m-border) backdrop-blur-md";
 
 function NavContent({
   onItemClick,
@@ -266,7 +266,7 @@ function NavContent({
         <div key={section.title}>
           {!collapsed ? (
             <div className="mb-2 px-3.5">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] m-faint">
                 {section.title}
               </h3>
             </div>
@@ -289,9 +289,9 @@ function NavContent({
                         className={cn(
                           "mx-auto flex h-10 w-10 items-center justify-center rounded-xl",
                           href === PLATFORM_APPLICATIONS_HREF && "relative",
-                          "text-white/50 transition-all duration-200 hover:bg-white/7 hover:text-white",
+                          "m-muted transition-all duration-200 hover:bg-(--m-subtle) hover:text-(--m-fg)",
                           active &&
-                            "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            "bg-(--m-subtle) text-(--m-fg) shadow-[inset_0_0_0_1px_var(--m-border)]"
                         )}
                         activeClassName="nav-active"
                       >
@@ -334,7 +334,7 @@ function NavContent({
           </div>
 
           {sectionIdx < visibleSections.length - 1 ? (
-            <Separator className={cn("mt-5 bg-white/4", collapsed && "mt-3")} />
+            <Separator className={cn("mt-5 bg-(--m-border)", collapsed && "mt-3")} />
           ) : null}
         </div>
       ))}
@@ -367,13 +367,13 @@ function DesktopSidebar({ permissions, isLegacyPlatformAdmin }: PlatformSidebarP
     <TooltipProvider>
       <aside
         className={cn(
-          "platform-sidebar-scroll hidden md:flex fixed left-0 top-14 z-30 h-[calc(100vh-3.5rem)] shrink-0 flex-col border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl transition-[width] duration-200 ease-in-out",
+          "platform-sidebar-scroll hidden md:flex fixed left-0 top-14 z-30 h-[calc(100vh-3.5rem)] shrink-0 flex-col border-r border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-2xl transition-[width] duration-200 ease-in-out",
           collapsed ? "w-16" : "w-72"
         )}
       >
         <div
           className={cn(
-            "shrink-0 border-b border-white/5",
+            "shrink-0 border-b border-(--m-border)",
             collapsed ? "px-2 py-4" : "px-5 py-4"
           )}
         >
@@ -382,7 +382,7 @@ function DesktopSidebar({ permissions, isLegacyPlatformAdmin }: PlatformSidebarP
               type="button"
               onClick={toggle}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 transition-all duration-150 hover:border-white/15 hover:bg-white/10 hover:text-white"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-(--m-border) bg-(--m-subtle) m-faint transition-all duration-150 hover:bg-(--m-glass) hover:text-(--m-fg)"
             >
               {collapsed ? (
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -412,7 +412,7 @@ function DesktopSidebar({ permissions, isLegacyPlatformAdmin }: PlatformSidebarP
 
         <div
           className={cn(
-            "shrink-0 border-t border-white/5",
+            "shrink-0 border-t border-(--m-border)",
             collapsed ? "px-2 pb-3 pt-2" : "px-4 pb-4 pt-3"
           )}
         >
@@ -436,9 +436,9 @@ function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[300px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.98)_0%,rgba(10,14,26,1)_100%)] p-0 sm:w-[320px]"
+        className="w-[300px] border-r border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)! p-0 sm:w-[320px]"
       >
-        <SheetHeader className="border-b border-white/5 px-5 py-4">
+        <SheetHeader className="border-b border-(--m-border) px-5 py-4">
           <SheetTitle className="sr-only">Platform Admin Navigation Menu</SheetTitle>
           <div className="flex items-center justify-between gap-3">
             <SidebarPlatformIdentity className="min-w-0 flex-1" />
@@ -446,7 +446,7 @@ function MobileSidebar({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 rounded-lg m-muted hover:bg-(--m-subtle) hover:text-(--m-fg)"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close menu</span>
@@ -461,7 +461,7 @@ function MobileSidebar({
             permissions={permissions}
             isLegacyPlatformAdmin={isLegacyPlatformAdmin}
           />
-          <div className="mt-4 border-t border-white/5 pt-4">
+          <div className="mt-4 border-t border-(--m-border) pt-4">
             <SidebarFooterBranding />
           </div>
         </div>
@@ -476,7 +476,7 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="h-9 w-9 border border-white/10 bg-card/95 text-white backdrop-blur-sm hover:border-white/20 hover:bg-white/10 md:hidden"
+      className="h-9 w-9 border border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-sm hover:bg-(--m-subtle) md:hidden"
     >
       <Menu className="h-4 w-4" />
       <span className="sr-only">Open menu</span>

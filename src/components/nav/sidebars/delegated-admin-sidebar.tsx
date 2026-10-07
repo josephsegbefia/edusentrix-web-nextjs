@@ -87,7 +87,7 @@ function SidebarNav({
     <nav className="space-y-6">
       <div>
         <div className="mb-2.5 px-1">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] m-faint">
             Your workspace
           </h3>
         </div>
@@ -98,13 +98,13 @@ function SidebarNav({
             className={cn(premiumSideItem)}
             activeClassName="nav-active"
           >
-            <ArrowLeft className="h-4 w-4 shrink-0 text-white/50" />
+            <ArrowLeft className="h-4 w-4 shrink-0 m-faint" />
             <span className="truncate">Teacher app</span>
           </ActiveLink>
         </div>
-        <Separator className="my-5 bg-white/4" />
+        <Separator className="my-5 bg-(--m-border)" />
         <div className="mb-2.5 px-1">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] m-faint">
             Delegated modules
           </h3>
         </div>
@@ -123,7 +123,7 @@ function SidebarNav({
               >
                 <Icon
                   className={cn(
-                    "h-4 w-4 shrink-0 text-white/50",
+                    "h-4 w-4 shrink-0 m-faint",
                     active && "text-violet-400"
                   )}
                 />
@@ -133,12 +133,12 @@ function SidebarNav({
           })}
         </div>
       </div>
-      <div className="rounded-xl border border-white/8 bg-white/3 p-4 text-sm text-white/65 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
-        <div className="mb-2 flex items-center gap-2 text-white">
+      <div className="rounded-xl border border-(--m-border) bg-(--m-subtle) p-4 text-sm m-muted shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <div className="mb-2 flex items-center gap-2 text-(--m-fg)">
           <ShieldCheck className="h-4 w-4 text-violet-400" />
           <span className="font-medium">Delegated access</span>
         </div>
-        <p className="leading-relaxed text-white/60">
+        <p className="leading-relaxed m-muted">
           You only see modules your school admin assigned. Actions may be limited
           by your access level.
         </p>
@@ -155,14 +155,14 @@ function DesktopSidebar({
   homeHref: string;
 }) {
   return (
-    <aside className="sidebar-scroll z-30 hidden h-[calc(100vh-3.5rem)] w-72 shrink-0 flex-col border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl md:fixed md:left-0 md:top-14 md:flex">
-      <div className="shrink-0 border-b border-white/5 px-5 py-4">
+    <aside className="sidebar-scroll z-30 hidden h-[calc(100vh-3.5rem)] w-72 shrink-0 flex-col border-r border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-2xl md:fixed md:left-0 md:top-14 md:flex">
+      <div className="shrink-0 border-b border-(--m-border) px-5 py-4">
         <SidebarSchoolIdentity href={homeHref} role="teacher" className="min-w-0" />
       </div>
       <div className="sidebar-scroll flex-1 overflow-y-auto px-3 py-4">
         <SidebarNav navItems={navItems} />
       </div>
-      <div className="shrink-0 border-t border-white/5 px-4 pb-4 pt-3">
+      <div className="shrink-0 border-t border-(--m-border) px-4 pb-4 pt-3">
         <SidebarFooterBranding />
       </div>
     </aside>
@@ -184,9 +184,9 @@ function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[300px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.98)_0%,rgba(10,14,26,1)_100%)] p-0 sm:w-[320px]"
+        className="w-[300px] border-r border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)! p-0 sm:w-[320px]"
       >
-        <SheetHeader className="border-b border-white/5 px-4 py-4">
+        <SheetHeader className="border-b border-(--m-border) px-4 py-4">
           <SheetTitle className="sr-only">Delegated admin navigation</SheetTitle>
           <div className="flex items-center justify-between">
             <SidebarSchoolIdentity
@@ -198,7 +198,7 @@ function MobileSidebar({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 rounded-lg m-muted hover:bg-(--m-subtle) hover:text-(--m-fg)"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close menu</span>
@@ -211,7 +211,7 @@ function MobileSidebar({
             navItems={navItems}
             onItemClick={() => onOpenChange(false)}
           />
-          <div className="mt-4 border-t border-white/5 pt-4">
+          <div className="mt-4 border-t border-(--m-border) pt-4">
             <SidebarFooterBranding />
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function DelegatedAdminSidebar({
           variant="ghost"
           size="icon"
           onClick={() => setMobileMenuOpen(true)}
-          className="md:hidden h-9 w-9 border border-white/10 bg-card/95 backdrop-blur-sm text-white hover:bg-white/10 hover:border-white/20"
+          className="h-9 w-9 border border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-sm hover:bg-(--m-subtle) md:hidden"
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Open menu</span>

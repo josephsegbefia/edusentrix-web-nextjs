@@ -15,7 +15,7 @@ export default async function AppLayout({
   const isDemo = isDemoMode();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground">
       {isDemo && <DemoBanner />}
       {isDemo && <DemoBlockedInterceptor />}
       <AppTopbar user={user} />

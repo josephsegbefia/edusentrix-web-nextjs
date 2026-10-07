@@ -25,6 +25,8 @@ interface CustomDatePickerProps {
   /** When `label` is omitted, set this for the trigger (accessibility). */
   triggerAriaLabel?: string;
   error?: string;
+  /** Theme-aware calendar. Defaults to the existing dark picker used across the app. */
+  surface?: "dark" | "theme";
 }
 
 const MONTH_NAMES = [
@@ -55,11 +57,13 @@ export function CustomDatePicker({
   label,
   triggerAriaLabel,
   error,
+  surface = "dark",
 }: CustomDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => value || new Date());
   const [animationDirection, setAnimationDirection] = useState<"left" | "right">("right");
   const [mounted, setMounted] = useState(false);
+  const themed = surface === "theme";
 
   // Handle client-side mounting for portal
   useEffect(() => {
@@ -223,17 +227,23 @@ export function CustomDatePicker({
           "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm transition-all",
           isOpen
             ? "border-brand ring-1 ring-brand"
-            : "border-white/10 hover:border-white/20",
+            : themed
+              ? "border-(--m-border)"
+              : "border-white/10 hover:border-white/20",
           disabled
-            ? "cursor-not-allowed bg-white/5 text-white/30"
-            : "bg-white/5 text-white cursor-pointer",
+            ? themed
+              ? "cursor-not-allowed bg-(--m-subtle) m-faint"
+              : "cursor-not-allowed bg-white/5 text-white/30"
+            : themed
+              ? "cursor-pointer bg-(--m-subtle) text-(--m-fg)"
+              : "bg-white/5 text-white cursor-pointer",
           error && "border-rose-500/50"
         )}
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-2">
-          <CalendarIcon className="h-4 w-4 text-white/40" />
-          <span className={cn(!value && "text-white/40")}>
+          <CalendarIcon className={cn("h-4 w-4", themed ? "m-faint" : "text-white/40")} />
+          <span className={cn(!value && (themed ? "m-faint" : "text-white/40"))}>
             {value ? formatDate(value) : placeholder}
           </span>
         </div>
@@ -241,7 +251,12 @@ export function CustomDatePicker({
           <button
             type="button"
             onClick={handleClear}
-            className="rounded-md p-1 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+            className={cn(
+              "rounded-md p-1 transition-colors",
+              themed
+                ? "m-faint hover:bg-(--m-subtle) hover:text-(--m-fg)"
+                : "text-white/40 hover:bg-white/10 hover:text-white"
+            )}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -273,7 +288,12 @@ export function CustomDatePicker({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="pointer-events-auto fixed left-1/2 top-1/2 z-[9999] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-card p-5 shadow-2xl"
+                className={cn(
+                  "pointer-events-auto fixed left-1/2 top-1/2 z-[9999] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-5 shadow-2xl",
+                  themed
+                    ? "border-(--m-border) bg-(--m-glass-strong) text-(--m-fg)"
+                    : "border-white/10 bg-card"
+                )}
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
@@ -285,7 +305,12 @@ export function CustomDatePicker({
                     variant="ghost"
                     size="icon"
                     onClick={handlePrevYear}
-                    className="h-7 w-7 text-white/40 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "h-7 w-7",
+                      themed
+                        ? "m-faint hover:bg-(--m-subtle) hover:text-(--m-fg)"
+                        : "text-white/40 hover:bg-white/10 hover:text-white"
+                    )}
                   >
                     <ChevronLeft className="h-4 w-4" />
                     <ChevronLeft className="h-4 w-4 -ml-2.5" />
@@ -295,14 +320,19 @@ export function CustomDatePicker({
                     variant="ghost"
                     size="icon"
                     onClick={handlePrevMonth}
-                    className="h-7 w-7 text-white/40 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "h-7 w-7",
+                      themed
+                        ? "m-faint hover:bg-(--m-subtle) hover:text-(--m-fg)"
+                        : "text-white/40 hover:bg-white/10 hover:text-white"
+                    )}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                 </div>
 
                 <div className="text-center">
-                  <span className="text-sm font-semibold text-white">
+                  <span className={cn("text-sm font-semibold", themed ? "text-(--m-fg)" : "text-white")}>
                     {MONTH_NAMES[month]} {year}
                   </span>
                 </div>
@@ -313,7 +343,12 @@ export function CustomDatePicker({
                     variant="ghost"
                     size="icon"
                     onClick={handleNextMonth}
-                    className="h-7 w-7 text-white/40 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "h-7 w-7",
+                      themed
+                        ? "m-faint hover:bg-(--m-subtle) hover:text-(--m-fg)"
+                        : "text-white/40 hover:bg-white/10 hover:text-white"
+                    )}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -322,7 +357,12 @@ export function CustomDatePicker({
                     variant="ghost"
                     size="icon"
                     onClick={handleNextYear}
-                    className="h-7 w-7 text-white/40 hover:bg-white/10 hover:text-white"
+                    className={cn(
+                      "h-7 w-7",
+                      themed
+                        ? "m-faint hover:bg-(--m-subtle) hover:text-(--m-fg)"
+                        : "text-white/40 hover:bg-white/10 hover:text-white"
+                    )}
                   >
                     <ChevronRight className="h-4 w-4 -mr-2.5" />
                     <ChevronRight className="h-4 w-4" />
@@ -335,7 +375,10 @@ export function CustomDatePicker({
                 {DAY_NAMES.map((day) => (
                   <div
                     key={day}
-                    className="flex h-8 items-center justify-center text-xs font-medium text-white/40"
+                    className={cn(
+                      "flex h-8 items-center justify-center text-xs font-medium",
+                      themed ? "m-faint" : "text-white/40"
+                    )}
                   >
                     {day}
                   </div>
@@ -356,7 +399,10 @@ export function CustomDatePicker({
                   {prevMonthDays.map((day, i) => (
                     <div
                       key={`prev-${i}`}
-                      className="flex h-9 items-center justify-center text-sm text-white/20"
+                      className={cn(
+                        "flex h-9 items-center justify-center text-sm",
+                        themed ? "text-(--m-faint)" : "text-white/20"
+                      )}
                     >
                       {day}
                     </div>
@@ -380,13 +426,19 @@ export function CustomDatePicker({
                         className={cn(
                           "relative flex h-9 items-center justify-center rounded-lg text-sm font-medium transition-all",
                           dayDisabled
-                            ? "cursor-not-allowed text-white/20"
-                            : "hover:bg-white/10",
+                            ? themed
+                              ? "cursor-not-allowed text-(--m-faint)"
+                              : "cursor-not-allowed text-white/20"
+                            : themed
+                              ? "hover:bg-(--m-subtle)"
+                              : "hover:bg-white/10",
                           selected
                             ? "bg-brand text-black shadow-lg shadow-brand/30"
                             : today
                             ? "border border-brand/50 text-brand"
-                            : "text-white"
+                            : themed
+                              ? "text-(--m-fg)"
+                              : "text-white"
                         )}
                       >
                         {day}
@@ -401,7 +453,10 @@ export function CustomDatePicker({
                   {nextMonthDays.map((day, i) => (
                     <div
                       key={`next-${i}`}
-                      className="flex h-9 items-center justify-center text-sm text-white/20"
+                      className={cn(
+                        "flex h-9 items-center justify-center text-sm",
+                        themed ? "text-(--m-faint)" : "text-white/20"
+                      )}
                     >
                       {day}
                     </div>
@@ -410,7 +465,7 @@ export function CustomDatePicker({
               </AnimatePresence>
 
               {/* Footer */}
-              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+              <div className={cn("mt-4 flex items-center justify-between border-t pt-3", themed ? "border-(--m-border)" : "border-white/10")}>
                 <Button
                   type="button"
                   variant="ghost"
@@ -434,7 +489,12 @@ export function CustomDatePicker({
                     e.stopPropagation();
                     setIsOpen(false);
                   }}
-                  className="text-xs text-white/60 hover:bg-white/10 hover:text-white"
+                  className={cn(
+                    "text-xs",
+                    themed
+                      ? "m-muted hover:bg-(--m-subtle) hover:text-(--m-fg)"
+                      : "text-white/60 hover:bg-white/10 hover:text-white"
+                  )}
                 >
                   Cancel
                 </Button>

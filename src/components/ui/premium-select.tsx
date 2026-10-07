@@ -39,10 +39,10 @@ const PremiumSelectTrigger = React.forwardRef<
     className={cn(premiumSelectTrigger, className)}
     {...props}
   >
-    {icon && <span className="text-white/40">{icon}</span>}
+    {icon && <span className="text-(--m-faint)">{icon}</span>}
     <span className="flex-1 text-left truncate">{children}</span>
     <SelectPrimitive.Icon asChild>
-      <ChevronDownIcon className="h-4 w-4 text-white/40 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+      <ChevronDownIcon className="h-4 w-4 text-(--m-faint) transition-transform duration-200 group-data-[state=open]:rotate-180" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -113,7 +113,7 @@ const PremiumSelectItem = React.forwardRef<
     <div className="flex-1">
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
       {description && (
-        <p className="text-xs text-white/40 mt-0.5">{description}</p>
+        <p className="mt-0.5 text-xs text-(--m-faint)">{description}</p>
       )}
     </div>
     <span className={premiumSelectItemIndicator}>

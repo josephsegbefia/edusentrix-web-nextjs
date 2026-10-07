@@ -28,6 +28,17 @@ import {
 import type { AppRole, MembershipRole } from "@/lib/roles";
 import { User } from "@/models/User";
 
+type MeAuthCode =
+  | "ME_AUTH_NO_BEARER_OR_SESSION"
+  | "ME_AUTH_BEARER_VERIFY_FAILED"
+  | "ME_AUTH_BEARER_NO_SUBJECT"
+  | "ME_AUTH_PROFILE_NOT_FOUND"
+  | "ME_AUTH_OK";
+
+function logMeAuth(code: MeAuthCode) {
+  console.info(`[api/me] ${code}`);
+}
+
 function primaryRoleForMembership(roles: MembershipRole[]): AppRole {
   if (roles.includes("school_admin")) return "school_admin";
   if (roles.includes("billing_owner")) return "billing_owner";
@@ -166,6 +177,7 @@ export async function GET(req: NextRequest) {
       });
       userId = verified.sub ?? null;
     } catch {
+      logMeAuth("ME_AUTH_BEARER_VERIFY_FAILED");
       return NextResponse.json(
         { success: false, error: { message: "Unauthorized" } },
         { status: 401 }
@@ -173,6 +185,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!userId) {
+      logMeAuth("ME_AUTH_BEARER_NO_SUBJECT");
       return NextResponse.json(
         { success: false, error: { message: "Unauthorized" } },
         { status: 401 }
@@ -181,12 +194,14 @@ export async function GET(req: NextRequest) {
 
     const payload = await loadMeForClerkUser(userId);
     if (!payload) {
+      logMeAuth("ME_AUTH_PROFILE_NOT_FOUND");
       return NextResponse.json(
         { success: false, error: { message: "No profile" } },
         { status: 404 }
       );
     }
 
+    logMeAuth("ME_AUTH_OK");
     return NextResponse.json(
       "data" in payload ? payload : { success: true, data: payload }
     );
@@ -197,14 +212,17 @@ export async function GET(req: NextRequest) {
   userId = a.userId ?? null;
 
   if (!userId) {
+    logMeAuth("ME_AUTH_NO_BEARER_OR_SESSION");
     // Keep existing behavior your web code expects
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const payload = await loadMeForClerkUser(userId);
   if (!payload) {
+    logMeAuth("ME_AUTH_PROFILE_NOT_FOUND");
     return NextResponse.json({ error: "No profile" }, { status: 404 });
   }
 
+  logMeAuth("ME_AUTH_OK");
   return NextResponse.json(payload);
 }

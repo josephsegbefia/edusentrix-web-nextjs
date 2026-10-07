@@ -14,6 +14,14 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  authCompactInputClass,
+  authFieldLabelClass,
+  authSelectContentClass,
+  authSelectItemClass,
+  authSelectTriggerClass,
+  authTextareaClass,
+} from "@/components/auth/auth-surfaces";
 
 type ContactFormState = {
   fullName: string;
@@ -72,12 +80,12 @@ export function PublicContactForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       {error ? (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-800 dark:text-rose-100">
           {error}
         </div>
       ) : null}
       {success ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-100">
           {success}
         </div>
       ) : null}
@@ -89,7 +97,7 @@ export function PublicContactForm() {
             value={form.fullName}
             onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
             placeholder="Ama Owusu"
-            className="h-11 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className={authCompactInputClass}
           />
         </Field>
         <Field label="Email *">
@@ -99,7 +107,7 @@ export function PublicContactForm() {
             value={form.email}
             onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
             placeholder="you@school.edu"
-            className="h-11 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className={authCompactInputClass}
           />
         </Field>
       </div>
@@ -110,7 +118,8 @@ export function PublicContactForm() {
             required
             value={form.phone}
             onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-            className="h-11 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className={authCompactInputClass}
+            prefixClassName="m-muted"
           />
         </Field>
         <Field label="School (optional)">
@@ -118,7 +127,7 @@ export function PublicContactForm() {
             value={form.schoolName}
             onChange={(event) => setForm((prev) => ({ ...prev, schoolName: event.target.value }))}
             placeholder="School name"
-            className="h-11 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className={authCompactInputClass}
           />
         </Field>
       </div>
@@ -133,15 +142,15 @@ export function PublicContactForm() {
             }))
           }
         >
-          <PremiumSelectTrigger className="h-11 rounded-xl border-white/10 bg-white/5 text-sm text-white">
+          <PremiumSelectTrigger className={`${authSelectTriggerClass} bg-(--m-subtle)! text-(--m-fg)!`}>
             <PremiumSelectValue placeholder="Select inquiry type" />
           </PremiumSelectTrigger>
-          <PremiumSelectContent>
-            <PremiumSelectItem value="general">General inquiry</PremiumSelectItem>
-            <PremiumSelectItem value="enrollment">Enrol my school</PremiumSelectItem>
-            <PremiumSelectItem value="existing-school">Existing school support</PremiumSelectItem>
-            <PremiumSelectItem value="learn">EduSentrix Learn</PremiumSelectItem>
-            <PremiumSelectItem value="partnership">Partnerships</PremiumSelectItem>
+          <PremiumSelectContent className={`${authSelectContentClass} border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)!`}>
+            <PremiumSelectItem className={authSelectItemClass} value="general">General inquiry</PremiumSelectItem>
+            <PremiumSelectItem className={authSelectItemClass} value="enrollment">Enrol my school</PremiumSelectItem>
+            <PremiumSelectItem className={authSelectItemClass} value="existing-school">Existing school support</PremiumSelectItem>
+            <PremiumSelectItem className={authSelectItemClass} value="learn">EduSentrix Learn</PremiumSelectItem>
+            <PremiumSelectItem className={authSelectItemClass} value="partnership">Partnerships</PremiumSelectItem>
           </PremiumSelectContent>
         </PremiumSelect>
       </Field>
@@ -153,7 +162,7 @@ export function PublicContactForm() {
           value={form.message}
           onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
           placeholder="Tell us what you need, your timeline, and any context that helps."
-          className="rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/30"
+          className={authTextareaClass}
         />
       </Field>
 
@@ -194,7 +203,7 @@ export function PublicContactForm() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="space-y-2">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45">
+      <span className={authFieldLabelClass}>
         {label}
       </span>
       {children}

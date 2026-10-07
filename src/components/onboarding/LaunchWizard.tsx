@@ -10,7 +10,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns/format";
 import { parse as parseDateFns } from "date-fns/parse";
-import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -48,7 +47,17 @@ import {
   getCurriculumProfile,
   type CurriculumCode,
 } from "@/constants/curriculum-profiles";
-import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import {
+  authCompactInputClass,
+  authFieldLabelClass,
+  authPageGlowStyle,
+  authSelectContentClass,
+  authSelectItemClass,
+  authSelectTriggerClass,
+  authTextareaClass,
+} from "@/components/auth/auth-surfaces";
 import {
   createManualLaunchPeriod,
   normalizeAcademicPeriodsInOrder,
@@ -107,14 +116,9 @@ const STEPS = [
   },
 ] as const;
 
-const launchInputClass =
-  "h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
-
-const launchTextAreaClass =
-  "min-h-[112px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
-
-const launchLabelClass =
-  "text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42";
+const launchInputClass = `${authCompactInputClass} h-12 rounded-2xl px-4`;
+const launchTextAreaClass = `${authTextareaClass} min-h-[112px] rounded-2xl px-4 py-3`;
+const launchLabelClass = authFieldLabelClass;
 
 type Step = (typeof STEPS)[number]["id"];
 
@@ -150,22 +154,22 @@ function SurfaceSection({
   return (
     <div
       className={cn(
-        "rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5 shadow-lg shadow-black/20 backdrop-blur-sm sm:p-6",
+        "rounded-[1.75rem] border border-(--m-border) bg-(--m-subtle) p-5 shadow-lg shadow-black/20 backdrop-blur-sm sm:p-6",
         className
       )}
     >
       <div className="mb-5 flex items-start gap-4">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-(--m-border) bg-(--m-subtle) text-brand">
           <Icon className="h-5 w-5" />
         </div>
         <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/38">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
             {eyebrow}
           </p>
-          <h3 className="text-lg font-semibold tracking-tight text-white">
+          <h3 className="text-lg font-semibold tracking-tight text-(--m-fg)">
             {title}
           </h3>
-          <p className="max-w-2xl text-sm leading-6 text-white/52">
+          <p className="max-w-2xl text-sm leading-6 m-muted">
             {description}
           </p>
         </div>
@@ -573,20 +577,17 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (loading) {
     return (
-      <div className="relative min-h-dvh overflow-hidden bg-bg text-white">
+      <div className="m-page relative min-h-dvh overflow-hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 68% 44% at 16% 14%, rgba(14,165,233,0.16) 0%, transparent 60%), radial-gradient(ellipse 48% 34% at 82% 18%, rgba(109,40,217,0.14) 0%, transparent 58%)",
-          }}
+          style={authPageGlowStyle}
         />
         <div className="relative flex min-h-dvh items-center justify-center px-4">
-          <div className="rounded-[2rem] border border-white/10 bg-card/70 px-10 py-12 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+          <div className="m-card-strong relative z-10 rounded-[2rem] px-10 py-12 backdrop-blur-2xl">
             <div className="flex flex-col items-center gap-4">
               <div className="h-12 w-12 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-              <p className="text-sm text-white/55">Loading launch wizard…</p>
+              <p className="text-sm m-muted">Loading launch wizard…</p>
             </div>
           </div>
         </div>
@@ -596,11 +597,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (bootstrapError) {
     return (
-      <div className="min-h-screen bg-bg text-white">
-        <div className="flex min-h-screen items-center justify-center px-6">
-          <div className="max-w-lg rounded-[2rem] border border-white/10 bg-card/75 p-8 text-center shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <h2 className="text-xl font-semibold">Could not load launch wizard</h2>
-            <p className="mt-3 text-sm leading-6 text-white/55">{bootstrapError}</p>
+      <div className="m-page relative min-h-screen">
+        <div aria-hidden className="pointer-events-none absolute inset-0" style={authPageGlowStyle} />
+        <div className="relative flex min-h-screen items-center justify-center px-6">
+          <div className="m-card-strong relative z-10 max-w-lg rounded-[2rem] p-8 text-center backdrop-blur-xl">
+            <h2 className="text-xl font-semibold text-(--m-fg)">Could not load launch wizard</h2>
+            <p className="mt-3 text-sm leading-6 m-muted">{bootstrapError}</p>
           </div>
         </div>
       </div>
@@ -609,19 +611,20 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (!data?.school) {
     return (
-      <div className="min-h-screen bg-bg text-white">
-        <div className="flex min-h-screen items-center justify-center px-6">
-          <div className="max-w-lg rounded-[2rem] border border-white/10 bg-card/75 p-8 text-center shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <h2 className="text-2xl font-semibold">
+      <div className="m-page relative min-h-screen">
+        <div aria-hidden className="pointer-events-none absolute inset-0" style={authPageGlowStyle} />
+        <div className="relative flex min-h-screen items-center justify-center px-6">
+          <div className="m-card-strong relative z-10 max-w-lg rounded-[2rem] p-8 text-center backdrop-blur-xl">
+            <h2 className="text-2xl font-semibold text-(--m-fg)">
               {variant === "platform" ? "School not available" : "No school invite found"}
             </h2>
-            <p className="mt-3 text-sm leading-6 text-white/55">
+            <p className="mt-3 text-sm leading-6 m-muted">
               {variant === "platform"
                 ? "This school could not be loaded for assisted onboarding."
                 : "We could not find a school workspace linked to your account. Sign in with the email address used on your enrolment application, or contact support if you already received an invite."}
             </p>
             {data?.user?.email ? (
-              <p className="mt-4 text-xs uppercase tracking-[0.18em] text-white/35">
+              <p className="mt-4 text-xs uppercase tracking-[0.18em] m-faint">
                 Signed in as {data.user.email}
               </p>
             ) : null}
@@ -640,11 +643,20 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     data.user.email;
   const profileInitial = profileDisplayName.charAt(0).toUpperCase();
   const activePeriod = periods[activePeriodIndex] ?? periods[0];
+  const themedControls = variant !== "platform";
+  const launchSelectTriggerClass = themedControls
+    ? `${authSelectTriggerClass} bg-(--m-subtle)! text-(--m-fg)!`
+    : "border-white/10 bg-white/5";
+  const launchSelectItemClass = themedControls ? authSelectItemClass : undefined;
+  const launchSelectContentClass = themedControls
+    ? `${authSelectContentClass} z-[300] border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)!`
+    : "z-[300]";
 
   return (
-    <div className="min-h-dvh bg-bg px-4 py-8 text-white antialiased sm:px-6">
-      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-3xl items-center justify-center">
-        <Card className="w-full border border-white/10 bg-linear-to-br from-card/92 via-card/88 to-card/84 shadow-2xl shadow-black/35 backdrop-blur-2xl">
+    <div className="m-page relative min-h-dvh px-4 py-8 antialiased sm:px-6">
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={authPageGlowStyle} />
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-3xl items-center justify-center">
+        <Card className="m-card-strong relative z-10 w-full border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)! shadow-none backdrop-blur-2xl">
           <CardContent className="p-6 sm:p-8">
             <motion.div
               initial={{ opacity: 0, y: 12 }}
@@ -652,40 +664,31 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
               className="space-y-8"
             >
               <div className="space-y-5">
-                <div className="flex items-center gap-3">
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/20 ring-1 ring-white/5">
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
-                    />
-                    <Image
-                      src={EDUSENTRIX_LOGO_PATH}
-                      alt={EDUSENTRIX_LOGO_ALT}
-                      fill
-                      sizes="48px"
-                      className="object-contain px-1.5 py-1"
-                    />
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                  <BrandMark size="sm" />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold tracking-tight text-white">
+                    <p className="text-sm font-semibold tracking-tight text-(--m-fg)">
                       {variant === "platform"
                         ? "Assisted School Launch"
                         : "School Launch Wizard"}
                     </p>
-                    <p className="text-xs text-white/42">{data.school.name}</p>
+                    <p className="text-xs m-faint">{data.school.name}</p>
                   </div>
+                  </div>
+                  {themedControls ? <ThemeToggle className="shrink-0" /> : null}
                 </div>
 
                 <div className="space-y-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-(--m-border) bg-(--m-subtle) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
                     <Sparkles className="h-3.5 w-3.5 text-brand" />
                     Step {currentStep} of {STEPS.length}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
+                    <h1 className="text-2xl font-semibold tracking-tight text-(--m-fg) sm:text-[2rem]">
                       Finish your workspace setup
                     </h1>
-                    <p className="mt-2 text-sm leading-6 text-white/55">
+                    <p className="mt-2 text-sm leading-6 m-muted">
                       Keep this simple. Confirm the admin profile, set the
                       school basics, then review the academic periods.
                       Payment setup happens later in Settings.
@@ -693,32 +696,32 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                   </div>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.6rem] border border-(--m-border) bg-(--m-subtle) p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-(--m-border) bg-(--m-subtle) text-brand">
                       <StepIcon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 space-y-2">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/38">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
                           Current step
                         </p>
-                        <h2 className="mt-1 text-lg font-semibold text-white">
+                        <h2 className="mt-1 text-lg font-semibold text-(--m-fg)">
                           {stepMeta?.title}
                         </h2>
                       </div>
-                      <p className="text-sm leading-6 text-white/55">
+                      <p className="text-sm leading-6 m-muted">
                         {stepMeta?.description}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] m-faint">
                       <span>Progress</span>
                       <span>{progressPercent}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-white/8">
+                    <div className="h-2 rounded-full bg-(--m-subtle)">
                       <div
                         className="h-2 rounded-full bg-linear-to-r from-brand to-sky-300 transition-all"
                         style={{ width: `${progressPercent}%` }}
@@ -727,25 +730,25 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                   </div>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/58">
+                <div className="rounded-[1.6rem] border border-(--m-border) bg-(--m-subtle) p-4 text-sm leading-6 m-muted">
                   <div className="flex items-start gap-3">
-                    <Avatar className="h-11 w-11 border border-white/10">
+                    <Avatar className="h-11 w-11 border border-(--m-border)">
                       {avatarUrl ? (
                         <AvatarImage
                           src={avatarUrl}
                           alt={profileDisplayName}
                         />
                       ) : null}
-                      <AvatarFallback className="bg-white/10 text-sm font-semibold text-white/80">
+                      <AvatarFallback className="bg-(--m-subtle) text-sm font-semibold text-(--m-fg)">
                         {profileInitial}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-medium text-white/82">{profileDisplayName}</p>
-                      <p className="mt-1 text-white/55">{data.user.email}</p>
+                      <p className="font-medium text-(--m-fg)">{profileDisplayName}</p>
+                      <p className="mt-1 m-muted">{data.user.email}</p>
                       <p className="mt-2">
                         School status{" "}
-                        <span className="font-medium text-white/82">
+                        <span className="font-medium text-(--m-fg)">
                           {data.school.status}
                         </span>
                       </p>
@@ -780,7 +783,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               }}
                             />
                           ) : (
-                            <div className="grid h-36 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm text-white/35">
+                            <div className="grid h-36 place-items-center rounded-2xl border border-(--m-border) bg-(--m-subtle) text-sm m-faint">
                               Photo upload unavailable
                             </div>
                           )}
@@ -826,6 +829,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                 value={phone}
                                 onChange={(event) => setPhone(event.target.value)}
                                 className={launchInputClass}
+                                prefixClassName="m-muted"
                               />
                             </div>
                             <div className="space-y-2">
@@ -837,6 +841,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                 }
                                 placeholder="Select date"
                                 className="w-full"
+                                surface={themedControls ? "theme" : "dark"}
                               />
                             </div>
                             <div className="space-y-2">
@@ -854,7 +859,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           </div>
                         </SurfaceSection>
 
-                        <div className="space-y-3 border-t border-white/8 pt-6">
+                        <div className="space-y-3 border-t border-(--m-border) pt-6">
                           <Button
                             onClick={saveStep1}
                             disabled={!canContinueStep1 || saving}
@@ -906,15 +911,15 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               >
                                 <PremiumSelectTrigger
                                   icon={<Building2 className="h-4 w-4" />}
-                                  className="border-white/10 bg-white/5"
+                                  className={launchSelectTriggerClass}
                                 >
                                   <PremiumSelectValue placeholder="Select school type" />
                                 </PremiumSelectTrigger>
-                                <PremiumSelectContent className="z-[300]">
-                                  <PremiumSelectItem value="Basic">
+                                <PremiumSelectContent className={launchSelectContentClass}>
+                                  <PremiumSelectItem value="Basic" className={launchSelectItemClass}>
                                     Basic School
                                   </PremiumSelectItem>
-                                  <PremiumSelectItem value="Secondary">
+                                  <PremiumSelectItem value="Secondary" className={launchSelectItemClass}>
                                     Secondary School
                                   </PremiumSelectItem>
                                 </PremiumSelectContent>
@@ -931,16 +936,17 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               >
                                 <PremiumSelectTrigger
                                   icon={<BookOpen className="h-4 w-4" />}
-                                  className="border-white/10 bg-white/5"
+                                  className={launchSelectTriggerClass}
                                 >
                                   <PremiumSelectValue placeholder="Select curriculum" />
                                 </PremiumSelectTrigger>
-                                <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                                <PremiumSelectContent className={`${launchSelectContentClass} max-h-72 overflow-y-auto`}>
                                   {CURRICULUM_OPTIONS.map((option) => (
                                     <PremiumSelectItem
                                       key={option.code}
                                       value={option.code}
                                       description={option.description}
+                                      className={launchSelectItemClass}
                                     >
                                       {option.label}
                                     </PremiumSelectItem>
@@ -949,8 +955,8 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               </PremiumSelect>
                             </div>
 
-                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/62">
-                              <p className="font-semibold text-white">
+                            <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-4 text-sm leading-6 m-muted">
+                              <p className="font-semibold text-(--m-fg)">
                                 {curriculumProfile.label}
                               </p>
                               <p className="mt-1">{curriculumProfile.description}</p>
@@ -1003,15 +1009,16 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               >
                                 <PremiumSelectTrigger
                                   icon={<MapPin className="h-4 w-4" />}
-                                  className="border-white/10 bg-white/5"
+                                  className={launchSelectTriggerClass}
                                 >
                                   <PremiumSelectValue placeholder="Select region" />
                                 </PremiumSelectTrigger>
-                                <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                                <PremiumSelectContent className={`${launchSelectContentClass} max-h-72 overflow-y-auto`}>
                                   {GHANA_REGIONS.map((regionOption) => (
                                     <PremiumSelectItem
                                       key={regionOption}
                                       value={regionOption}
+                                      className={launchSelectItemClass}
                                     >
                                       {regionOption}
                                     </PremiumSelectItem>
@@ -1022,12 +1029,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           </div>
                         </SurfaceSection>
 
-                        <div className="space-y-3 border-t border-white/8 pt-6">
+                        <div className="space-y-3 border-t border-(--m-border) pt-6">
                           <Button
                             variant="outline"
                             onClick={() => setCurrentStep(1)}
                             size="lg"
-                            className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                            className="w-full rounded-2xl border-(--m-border) bg-(--m-subtle) text-(--m-fg) hover:bg-(--m-subtle)"
                           >
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back
@@ -1060,7 +1067,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           description="Add each period you want to start with, set its dates, and choose which one is current. Only the periods you define here are saved when you finish."
                         >
                           <div className="space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white/58">
+                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--m-border) bg-(--m-subtle) px-4 py-3 text-sm leading-6 m-muted">
                               <p>
                                 Define each period yourself. Nothing is pre-filled from
                                 the curriculum — only what you add here is saved.
@@ -1070,7 +1077,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                 variant="outline"
                                 size="sm"
                                 onClick={addPeriod}
-                                className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                                className="rounded-xl border-(--m-border) bg-(--m-subtle) text-(--m-fg) hover:bg-(--m-subtle)"
                               >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add period
@@ -1088,16 +1095,16 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       "min-w-[140px] rounded-[1.25rem] border px-4 py-3 text-left transition-all",
                                       isActive
                                         ? "border-brand/35 bg-brand/10 shadow-lg shadow-brand/10"
-                                        : "border-white/10 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.06]"
+                                        : "border-(--m-border) bg-(--m-subtle) hover:border-(--m-border) hover:bg-(--m-subtle)"
                                     )}
                                   >
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/38">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] m-faint">
                                       Period {index + 1}
                                     </p>
-                                    <p className="mt-1 text-sm font-semibold text-white">
+                                    <p className="mt-1 text-sm font-semibold text-(--m-fg)">
                                       {period.term.trim() || "Untitled period"}
                                     </p>
-                                    <p className="mt-1 text-xs text-white/48">
+                                    <p className="mt-1 text-xs m-faint">
                                       {period.isCurrent
                                         ? "Current period"
                                         : period.isYearEndTerminal
@@ -1110,16 +1117,16 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                             </div>
 
                             {activePeriod ? (
-                              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-5 shadow-lg shadow-black/20">
-                                <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-white/8 pb-4">
-                                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">
+                              <div className="rounded-[1.6rem] border border-(--m-border) bg-(--m-subtle) p-5 shadow-lg shadow-black/20">
+                                <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-(--m-border) pb-4">
+                                  <span className="rounded-full border border-(--m-border) bg-(--m-subtle) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] m-faint">
                                     Period {activePeriodIndex + 1} of {periods.length}
                                   </span>
-                                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/78">
+                                  <span className="rounded-full border border-(--m-border) bg-(--m-subtle) px-3 py-1 text-sm text-(--m-fg)">
                                     {activePeriod.term.trim() || "Untitled period"}
                                   </span>
                                   {activePeriod.isCurrent ? (
-                                    <span className="rounded-full border border-brand/20 bg-brand/12 px-3 py-1 text-sm font-medium text-white">
+                                    <span className="rounded-full border border-brand/20 bg-brand/12 px-3 py-1 text-sm font-medium text-(--m-fg)">
                                       Current
                                     </span>
                                   ) : null}
@@ -1172,6 +1179,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       }
                                       placeholder="Select start date"
                                       className="w-full"
+                                surface={themedControls ? "theme" : "dark"}
                                     />
                                   </div>
 
@@ -1188,16 +1196,17 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       }
                                       placeholder="Select end date"
                                       className="w-full"
+                                surface={themedControls ? "theme" : "dark"}
                                     />
                                   </div>
 
-                                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                  <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-4">
                                     <div className="flex items-start justify-between gap-4">
                                       <div className="space-y-1">
                                         <Label className={launchLabelClass}>
                                           Year-end period
                                         </Label>
-                                        <p className="text-sm leading-6 text-white/55">
+                                        <p className="text-sm leading-6 m-muted">
                                           Mark this when the period closes the academic year.
                                           Promotions and billing use this flag.
                                         </p>
@@ -1221,7 +1230,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       className={
                                         activePeriod.isCurrent
                                           ? "flex-1 rounded-2xl bg-brand text-black hover:bg-sky-300"
-                                          : "flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                                          : "flex-1 rounded-2xl border-(--m-border) bg-(--m-subtle) text-(--m-fg) hover:bg-(--m-subtle)"
                                       }
                                     >
                                       {activePeriod.isCurrent
@@ -1233,7 +1242,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                         type="button"
                                         variant="outline"
                                         onClick={() => removePeriod(activePeriodIndex)}
-                                        className="rounded-2xl border-rose-500/20 bg-rose-500/5 text-rose-200 hover:bg-rose-500/10 hover:text-rose-100"
+                                        className="rounded-2xl border-rose-500/20 bg-rose-500/5 text-rose-700 hover:bg-rose-500/10 hover:text-rose-800 dark:text-rose-200 dark:hover:text-rose-100"
                                       >
                                         <Trash2 className="mr-2 h-4 w-4" />
                                         Remove
@@ -1246,12 +1255,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           </div>
                         </SurfaceSection>
 
-                        <div className="space-y-3 border-t border-white/8 pt-6">
+                        <div className="space-y-3 border-t border-(--m-border) pt-6">
                           <Button
                             variant="outline"
                             onClick={() => setCurrentStep(2)}
                             size="lg"
-                            className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                            className="w-full rounded-2xl border-(--m-border) bg-(--m-subtle) text-(--m-fg) hover:bg-(--m-subtle)"
                           >
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back
@@ -1269,7 +1278,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                 : "Complete school launch"}
                             <CheckCircle2 className="ml-2 h-4 w-4" />
                           </Button>
-                          <p className="text-center text-sm text-white/40">
+                          <p className="text-center text-sm m-faint">
                             Need to stop now? Your progress on each step is saved
                             when you continue.
                           </p>

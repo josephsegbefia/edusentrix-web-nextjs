@@ -18,7 +18,7 @@ export function CurrentSchemeWeekBadge({ className, compact = false }: Props) {
     return (
       <span
         className={cn(
-          "inline-block h-6 w-28 animate-pulse rounded-full border border-white/10 bg-white/5",
+          "inline-block h-6 w-28 animate-pulse rounded-full border border-(--m-border) bg-(--m-subtle)",
           className
         )}
       />
@@ -37,7 +37,7 @@ export function CurrentSchemeWeekBadge({ className, compact = false }: Props) {
       <Badge
         title={title}
         className={cn(
-          "rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-100",
+          "rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-100",
           compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs",
           className
         )}
@@ -51,7 +51,7 @@ export function CurrentSchemeWeekBadge({ className, compact = false }: Props) {
     <Badge
       title={title}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
+        "inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-800 dark:text-cyan-100",
         compact ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs",
         className
       )}
@@ -59,7 +59,7 @@ export function CurrentSchemeWeekBadge({ className, compact = false }: Props) {
       <CalendarRange className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
       <span className="font-medium">{week.label}</span>
       {!compact && week.totalWeeks ? (
-        <span className="text-cyan-100/70">of {week.totalWeeks}</span>
+        <span className="text-cyan-700/70 dark:text-cyan-100/70">of {week.totalWeeks}</span>
       ) : null}
     </Badge>
   );

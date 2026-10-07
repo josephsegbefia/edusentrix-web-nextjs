@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { z } from "zod";
 import Link from "next/link";
-import Image from "next/image";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import {
+  authCheckboxClass,
+  authCompactInputClass,
+  authPageGlowStyle,
+  authSelectContentClass,
+  authSelectItemClass,
+  authSelectTriggerClass,
+  authTextareaClass,
+} from "@/components/auth/auth-surfaces";
 import { Button } from "@/components/ui/button";
 import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
@@ -23,7 +33,6 @@ import {
   type GhanaRegion,
 } from "@/constants/ghanaRegions";
 import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
-import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal/versions";
 import { LegalAcceptanceModal } from "@/components/legal/LegalAcceptanceModal";
 import {
@@ -42,7 +51,6 @@ import {
 } from "@/lib/legal/privacy-policy";
 import {
   ArrowRight,
-  Award,
   BookOpen,
   CheckCircle2,
   Clock,
@@ -94,17 +102,16 @@ async function parseApiError(res: Response) {
    Shared atoms
    ────────────────────────────────────────────────────────────────── */
 
-const inputClasses =
-  "h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
+const inputClasses = authCompactInputClass;
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="h-px flex-1 bg-white/6" />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+      <span className="h-px flex-1 bg-(--m-subtle)" />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
         {children}
       </span>
-      <span className="h-px flex-1 bg-white/6" />
+      <span className="h-px flex-1 bg-(--m-subtle)" />
     </div>
   );
 }
@@ -117,7 +124,7 @@ function FeaturePill({
   label: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/3 px-3 py-1.5 text-xs font-medium text-white/55 backdrop-blur-sm">
+    <div className="flex items-center gap-2 rounded-full border border-(--m-border) bg-(--m-subtle) px-3 py-1.5 text-xs font-medium m-muted backdrop-blur-sm">
       <Icon className="h-3.5 w-3.5 text-brand" />
       {label}
     </div>
@@ -158,7 +165,7 @@ function StepIndicator({ step, total }: { step: number; total: number }) {
               ? "w-6 bg-brand"
               : i === step
                 ? "w-6 bg-brand/50"
-                : "w-3 bg-white/10"
+                : "w-3 bg-(--m-subtle)"
           }`}
         />
       ))}
@@ -185,8 +192,8 @@ function HowStep({
         {num}
       </span>
       <div>
-        <p className="text-sm font-semibold text-white">{title}</p>
-        <p className="mt-0.5 text-xs leading-5 text-white/40">{desc}</p>
+        <p className="text-sm font-semibold text-(--m-fg)">{title}</p>
+        <p className="mt-0.5 text-xs leading-5 m-faint">{desc}</p>
       </div>
     </div>
   );
@@ -200,14 +207,11 @@ function MarketingPanel() {
   return (
     <div className="relative flex flex-col justify-between gap-10 lg:gap-10">
       {/* Logo */}
-      <div className="flex items-center gap-3">
-        <Image src={EDUSENTRIX_LOGO_PATH} alt={EDUSENTRIX_LOGO_ALT} width={40} height={40} className="rounded-xl" />
-        <EduSentrixWordmark className="text-lg" />
-      </div>
+      <BrandMark />
 
       {/* Headline */}
       <div className="space-y-5">
-        <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-medium text-emerald-300 backdrop-blur-sm">
+        <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 backdrop-blur-sm">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -216,13 +220,13 @@ function MarketingPanel() {
         </div>
 
         <h1 className="max-w-md text-[2.5rem] font-bold leading-[1.1] tracking-tight sm:text-5xl">
-          <span className="bg-linear-to-br from-white via-white to-white/60 bg-clip-text text-transparent">
+          <span className="text-(--m-fg)">
             Get your school on{" "}
           </span>
           <EduSentrixWordmark className="text-[2.5rem] sm:text-5xl" />
         </h1>
 
-        <p className="max-w-md text-base leading-7 text-white/50">
+        <p className="max-w-md text-base leading-7 m-muted">
           Join schools across Ghana already using the modern platform for fee
           collection, academic management, and parent communication.
         </p>
@@ -230,41 +234,41 @@ function MarketingPanel() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-3.5 backdrop-blur-sm">
+        <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-3.5 backdrop-blur-sm">
           <Users className="h-4 w-4 text-brand" />
-          <p className="mt-2 text-xl font-bold text-white">10k+</p>
-          <p className="text-[11px] text-white/35">students managed</p>
+          <p className="mt-2 text-xl font-bold text-(--m-fg)">10k+</p>
+          <p className="text-[11px] m-faint">students managed</p>
         </div>
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-3.5 backdrop-blur-sm">
+        <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-3.5 backdrop-blur-sm">
           <Clock className="h-4 w-4 text-brand" />
-          <p className="mt-2 text-xl font-bold text-white">&lt;1 day</p>
-          <p className="text-[11px] text-white/35">setup time</p>
+          <p className="mt-2 text-xl font-bold text-(--m-fg)">&lt;1 day</p>
+          <p className="text-[11px] m-faint">setup time</p>
         </div>
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-3.5 backdrop-blur-sm">
+        <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-3.5 backdrop-blur-sm">
           <CreditCard className="h-4 w-4 text-brand" />
-          <p className="mt-2 text-xl font-bold text-white">MoMo</p>
-          <p className="text-[11px] text-white/35">+ bank transfers</p>
+          <p className="mt-2 text-xl font-bold text-(--m-fg)">MoMo</p>
+          <p className="text-[11px] m-faint">+ bank transfers</p>
         </div>
       </div>
 
       {/* How it works */}
       <div className="space-y-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
           How it works
         </p>
-        <div className="space-y-4 rounded-2xl border border-white/8 bg-white/3 p-5 backdrop-blur-sm">
+        <div className="space-y-4 rounded-2xl border border-(--m-border) bg-(--m-subtle) p-5 backdrop-blur-sm">
           <HowStep
             num="1"
             title="Submit this form"
             desc="Tell us about your school and administrator."
           />
-          <div className="ml-4 h-4 border-l border-dashed border-white/10" />
+          <div className="ml-4 h-4 border-l border-dashed border-(--m-border)" />
           <HowStep
             num="2"
             title="We review & onboard"
             desc="Our team sets up your workspace within 24 hours."
           />
-          <div className="ml-4 h-4 border-l border-dashed border-white/10" />
+          <div className="ml-4 h-4 border-l border-dashed border-(--m-border)" />
           <HowStep
             num="3"
             title="Go live"
@@ -282,13 +286,13 @@ function MarketingPanel() {
       </div>
 
       {/* Testimonial */}
-      <div className="rounded-2xl border border-white/8 bg-white/3 p-5 backdrop-blur-sm">
+      <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-5 backdrop-blur-sm">
         <div className="flex gap-1">
           {[...Array(5)].map((_, i) => (
             <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
           ))}
         </div>
-        <p className="mt-3 text-sm leading-6 text-white/55 italic">
+        <p className="mt-3 text-sm leading-6 m-muted italic">
           &ldquo;We enrolled on Monday, collected our first fees on Wednesday. The
           speed of onboarding is unmatched.&rdquo;
         </p>
@@ -297,10 +301,10 @@ function MarketingPanel() {
             KA
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-(--m-fg)">
               Kwame Asante
             </p>
-            <p className="text-[11px] text-white/35">
+            <p className="text-[11px] m-faint">
               Headmaster, Bright Future Academy
             </p>
           </div>
@@ -311,13 +315,13 @@ function MarketingPanel() {
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link
           href="/sign-in"
-          className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 font-medium text-white/70 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center gap-2 rounded-2xl border border-(--m-border) bg-(--m-subtle) px-4 py-2.5 font-medium m-muted transition-all duration-200 hover:border-(--m-border) hover:bg-(--m-glass) hover:text-(--m-fg)"
         >
           Already enrolled? Sign in
         </Link>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-1 py-2.5 font-medium text-white/40 transition-all duration-200 hover:text-white"
+          className="inline-flex items-center gap-2 px-1 py-2.5 font-medium m-faint transition-all duration-200 hover:text-(--m-fg)"
         >
           Back to website
         </Link>
@@ -332,15 +336,11 @@ function MarketingPanel() {
 
 function SuccessView({ onReset }: { onReset: () => void }) {
   return (
-    <div className="relative min-h-dvh bg-bg text-white antialiased">
-      {/* Background */}
+    <div className="m-page relative min-h-dvh antialiased">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.15) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14,165,233,0.1) 0%, transparent 50%)",
-        }}
+        style={authPageGlowStyle}
       />
       <FloatingOrb className="left-[20%] top-[20%] h-64 w-64 bg-emerald-500/10" delay="0s" />
       <FloatingOrb className="right-[10%] bottom-[20%] h-56 w-56 bg-brand/10" delay="2s" />
@@ -358,7 +358,7 @@ function SuccessView({ onReset }: { onReset: () => void }) {
             className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl"
           />
 
-          <div className="relative overflow-hidden rounded-4xl border border-white/8 bg-card/80 p-10 shadow-2xl shadow-black/50 backdrop-blur-2xl sm:p-14">
+          <div className="relative overflow-hidden rounded-4xl border border-(--m-border) m-card-strong p-10 shadow-2xl shadow-black/50 backdrop-blur-2xl sm:p-14">
             {/* Decorative gradient */}
             <div
               aria-hidden
@@ -371,33 +371,33 @@ function SuccessView({ onReset }: { onReset: () => void }) {
               </div>
 
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-300">
                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                   Application Submitted
                 </div>
 
-                <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                <h1 className="text-3xl font-bold tracking-tight text-(--m-fg) sm:text-4xl">
                   You&apos;re in the queue
                 </h1>
 
-                <p className="mx-auto max-w-sm text-sm leading-6 text-white/50">
+                <p className="mx-auto max-w-sm text-sm leading-6 m-muted">
                   Our team will review your application and send onboarding
                   instructions to your email within 24 hours.
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
-                  <p className="text-lg font-bold text-white">1</p>
-                  <p className="text-[10px] text-white/35">Review</p>
+                <div className="rounded-xl border border-(--m-border) bg-(--m-subtle) p-3 text-center">
+                  <p className="text-lg font-bold text-(--m-fg)">1</p>
+                  <p className="text-[10px] m-faint">Review</p>
                 </div>
-                <div className="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
-                  <p className="text-lg font-bold text-white/30">2</p>
-                  <p className="text-[10px] text-white/25">Setup</p>
+                <div className="rounded-xl border border-(--m-border) bg-(--m-subtle) p-3 text-center">
+                  <p className="text-lg font-bold m-faint">2</p>
+                  <p className="text-[10px] m-faint">Setup</p>
                 </div>
-                <div className="rounded-xl border border-white/8 bg-white/3 p-3 text-center">
-                  <p className="text-lg font-bold text-white/30">3</p>
-                  <p className="text-[10px] text-white/25">Go Live</p>
+                <div className="rounded-xl border border-(--m-border) bg-(--m-subtle) p-3 text-center">
+                  <p className="text-lg font-bold m-faint">3</p>
+                  <p className="text-[10px] m-faint">Go Live</p>
                 </div>
               </div>
             </div>
@@ -412,7 +412,7 @@ function SuccessView({ onReset }: { onReset: () => void }) {
             </Button>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white/40 transition-all duration-200 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium m-faint transition-all duration-200 hover:text-(--m-fg)"
             >
               Back to website
             </Link>
@@ -529,26 +529,11 @@ export default function EnrollPage() {
   }
 
   return (
-    <div className="relative min-h-dvh bg-bg text-white antialiased">
-      {/* Background layers */}
+    <div className="m-page relative min-h-dvh antialiased">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.2) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14,165,233,0.12) 0%, transparent 50%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(109,40,217,0.12) 0%, transparent 50%)",
-        }}
-      />
-
-      {/* Grid overlay */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-        }}
+        style={authPageGlowStyle}
       />
 
       {/* Floating orbs */}
@@ -580,50 +565,40 @@ export default function EnrollPage() {
             className="pointer-events-none absolute -inset-px rounded-4xl bg-linear-to-br from-brand/10 via-transparent to-primary/10"
           />
 
-          <div className="relative overflow-hidden rounded-4xl border border-white/8 bg-card/80 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          <div className="relative overflow-hidden rounded-4xl border border-(--m-border) m-card-strong shadow-2xl shadow-black/50 backdrop-blur-2xl">
             {/* Card header */}
-            <div className="border-b border-white/6 bg-white/3 px-6 py-5 sm:px-8">
+            <div className="border-b border-(--m-border) bg-(--m-subtle) px-6 py-5 sm:px-8">
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-2.5">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-(--m-border) bg-(--m-subtle) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
                     <GraduationCap className="h-3.5 w-3.5 text-brand" />
                     School Enrolment
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                    <h1 className="text-2xl font-bold tracking-tight text-(--m-fg) sm:text-3xl">
                       Enrol your school
                     </h1>
-                    <p className="mt-1 text-sm text-white/45">
+                    <p className="mt-1 text-sm m-faint">
                       Tell us about your institution and we&apos;ll have you set up
                       within 24 hours.
                     </p>
                   </div>
                 </div>
-                <div className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand sm:flex">
-                  <Award className="h-5 w-5" />
-                </div>
+                <ThemeToggle className="shrink-0" />
               </div>
 
               {/* Step indicator */}
               <div className="mt-4">
                 <StepIndicator step={1} total={3} />
-                <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-white/30">
+                <p className="mt-2 text-[11px] uppercase tracking-[0.2em] m-faint">
                   Step 1 of 3 — Submit application
                 </p>
               </div>
             </div>
 
             {/* Mobile-only marketing summary */}
-            <div className="border-b border-white/6 bg-white/2 px-6 py-4 sm:px-8 lg:hidden">
-              <div className="flex items-center gap-3">
-                <Image src={EDUSENTRIX_LOGO_PATH} alt={EDUSENTRIX_LOGO_ALT} width={36} height={36} className="rounded-xl" />
-                <div>
-                  <EduSentrixWordmark className="text-sm" />
-                  <p className="text-xs text-white/35">
-                    The modern school OS for Africa
-                  </p>
-                </div>
-              </div>
+            <div className="border-b border-(--m-border) bg-(--m-subtle) px-6 py-4 sm:px-8 lg:hidden">
+              <BrandMark size="sm" showTagline />
               <div className="mt-3 flex flex-wrap gap-2">
                 <FeaturePill icon={TrendingUp} label="Fee collection" />
                 <FeaturePill icon={GraduationCap} label="Academics" />
@@ -642,7 +617,7 @@ export default function EnrollPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="adminFirstName"
-                        className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                        className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                       >
                         First name *
                       </Label>
@@ -658,7 +633,7 @@ export default function EnrollPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="adminLastName"
-                        className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                        className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                       >
                         Last name *
                       </Label>
@@ -677,7 +652,7 @@ export default function EnrollPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="adminEmail"
-                        className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                        className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                       >
                         Email *
                       </Label>
@@ -694,7 +669,7 @@ export default function EnrollPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="adminPhone"
-                        className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                        className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                       >
                         Phone
                       </Label>
@@ -703,6 +678,7 @@ export default function EnrollPage() {
                         name="adminPhone"
                         autoComplete="tel"
                         className={inputClasses}
+                        prefixClassName="m-muted"
                       />
                     </div>
                   </div>
@@ -715,7 +691,7 @@ export default function EnrollPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="schoolName"
-                      className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                      className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                     >
                       School name *
                     </Label>
@@ -730,7 +706,7 @@ export default function EnrollPage() {
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                      <Label className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
                         School type *
                       </Label>
                       <input type="hidden" name="schoolType" value={schoolType} />
@@ -740,21 +716,21 @@ export default function EnrollPage() {
                           setSchoolType(v as "Basic" | "Secondary")
                         }
                       >
-                        <SelectTrigger className="h-11 rounded-xl border border-white/10 bg-white/5 text-left text-sm text-white transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/20">
+                        <SelectTrigger className={authSelectTriggerClass}>
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border border-white/10 bg-card text-white">
-                          <SelectItem value="Basic" className="cursor-pointer">
+                        <SelectContent className={authSelectContentClass}>
+                          <SelectItem value="Basic" className={authSelectItemClass}>
                             Basic School
                           </SelectItem>
-                          <SelectItem value="Secondary" className="cursor-pointer">
+                          <SelectItem value="Secondary" className={authSelectItemClass}>
                             Secondary School
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                      <Label className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint">
                         Region *
                       </Label>
                       <input type="hidden" name="region" value={region} />
@@ -762,15 +738,15 @@ export default function EnrollPage() {
                         value={region}
                         onValueChange={(v) => setRegion(v as GhanaRegion)}
                       >
-                        <SelectTrigger className="h-11 rounded-xl border border-white/10 bg-white/5 text-left text-sm text-white transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/20">
+                        <SelectTrigger className={authSelectTriggerClass}>
                           <SelectValue placeholder="Select region" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-64 rounded-xl border border-white/10 bg-card text-white">
+                        <SelectContent className={`max-h-64 ${authSelectContentClass}`}>
                           {GHANA_REGIONS.map((r) => (
                             <SelectItem
                               key={r}
                               value={r}
-                              className="cursor-pointer"
+                              className={authSelectItemClass}
                             >
                               {r}
                             </SelectItem>
@@ -784,7 +760,7 @@ export default function EnrollPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="city"
-                        className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                        className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                       >
                         City / Town
                       </Label>
@@ -806,7 +782,7 @@ export default function EnrollPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="message"
-                      className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40"
+                      className="text-[11px] font-semibold uppercase tracking-[0.22em] m-faint"
                     >
                       Message (optional)
                     </Label>
@@ -815,50 +791,50 @@ export default function EnrollPage() {
                       name="message"
                       rows={3}
                       placeholder="Tell us about your school size, specific requirements, or questions..."
-                      className="rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20"
+                      className={authTextareaClass}
                     />
                   </div>
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="space-y-3 rounded-xl border border-(--m-border) bg-(--m-subtle) p-4">
                   <input type="hidden" name="termsVersion" value={TERMS_VERSION} />
                   <input type="hidden" name="privacyVersion" value={PRIVACY_VERSION} />
-                  <label className="flex items-start gap-3 text-sm text-white/70">
+                  <label className="flex items-start gap-3 text-sm m-muted">
                     <input
                       type="checkbox"
                       checked={termsAccepted}
                       readOnly
                       tabIndex={-1}
                       aria-checked={termsAccepted}
-                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40 pointer-events-none"
+                      className={authCheckboxClass}
                     />
                     <span>
                       I have read and accept the{" "}
                       <button
                         type="button"
                         onClick={() => setLegalModal("terms")}
-                        className="text-cyan-300 underline-offset-2 hover:text-cyan-200 hover:underline"
+                        className="text-cyan-700 dark:text-cyan-300 underline-offset-2 hover:text-cyan-800 dark:hover:text-cyan-200 hover:underline"
                       >
                         Terms of Use
                       </button>
                       .
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 text-sm text-white/70">
+                  <label className="flex items-start gap-3 text-sm m-muted">
                     <input
                       type="checkbox"
                       checked={privacyAccepted}
                       readOnly
                       tabIndex={-1}
                       aria-checked={privacyAccepted}
-                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40 pointer-events-none"
+                      className={authCheckboxClass}
                     />
                     <span>
                       I have read and accept the{" "}
                       <button
                         type="button"
                         onClick={() => setLegalModal("privacy")}
-                        className="text-cyan-300 underline-offset-2 hover:text-cyan-200 hover:underline"
+                        className="text-cyan-700 dark:text-cyan-300 underline-offset-2 hover:text-cyan-800 dark:hover:text-cyan-200 hover:underline"
                       >
                         Privacy Policy
                       </button>
@@ -866,7 +842,7 @@ export default function EnrollPage() {
                     </span>
                   </label>
                   {!canSubmitApplication ? (
-                    <p className="text-xs leading-5 text-white/40">
+                    <p className="text-xs leading-5 m-faint">
                       Open and accept both documents above to enable submission.
                     </p>
                   ) : null}
@@ -892,7 +868,7 @@ export default function EnrollPage() {
                       </>
                     )}
                   </Button>
-                  <p className="text-center text-[11px] uppercase tracking-[0.2em] text-white/25">
+                  <p className="text-center text-[11px] uppercase tracking-[0.2em] m-faint">
                     Fields marked * are required
                   </p>
                 </div>
@@ -900,8 +876,8 @@ export default function EnrollPage() {
             </div>
 
             {/* Card footer */}
-            <div className="border-t border-white/6 bg-white/2 px-6 py-4 sm:px-8">
-              <div className="flex items-center justify-between text-xs text-white/25">
+            <div className="border-t border-(--m-border) bg-(--m-subtle) px-6 py-4 sm:px-8">
+              <div className="flex items-center justify-between text-xs m-faint">
                 <div className="flex items-center gap-1.5">
                   <Shield className="h-3.5 w-3.5" />
                   <span>Your data is encrypted and secure</span>
@@ -924,14 +900,14 @@ export default function EnrollPage() {
           <>
             Need clarification or legal contact? Email{" "}
             <a
-              className="font-semibold underline decoration-cyan-300/50"
+              className="font-semibold underline decoration-cyan-700/40 dark:decoration-cyan-300/50"
               href={`mailto:${TERMS_OF_USE_SUPPORT_EMAIL}`}
             >
               {TERMS_OF_USE_SUPPORT_EMAIL}
             </a>{" "}
             or call{" "}
             <a
-              className="font-semibold underline decoration-cyan-300/50"
+              className="font-semibold underline decoration-cyan-700/40 dark:decoration-cyan-300/50"
               href={`tel:${TERMS_OF_USE_SUPPORT_PHONE}`}
             >
               {TERMS_OF_USE_SUPPORT_PHONE}
@@ -954,14 +930,14 @@ export default function EnrollPage() {
           <>
             Need privacy support? Email{" "}
             <a
-              className="font-semibold underline decoration-cyan-300/50"
+              className="font-semibold underline decoration-cyan-700/40 dark:decoration-cyan-300/50"
               href={`mailto:${PRIVACY_POLICY_CONTACT_EMAIL}`}
             >
               {PRIVACY_POLICY_CONTACT_EMAIL}
             </a>{" "}
             or call{" "}
             <a
-              className="font-semibold underline decoration-cyan-300/50"
+              className="font-semibold underline decoration-cyan-700/40 dark:decoration-cyan-300/50"
               href={`tel:${PRIVACY_POLICY_CONTACT_PHONE}`}
             >
               {PRIVACY_POLICY_CONTACT_PHONE}

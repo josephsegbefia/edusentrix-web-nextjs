@@ -15,7 +15,7 @@ export function AdminMainContent({
   return (
     <main
       className={cn(
-        "min-w-0 flex-1 max-w-full p-4 pt-16 md:pt-4 transition-[margin-left] duration-200 ease-in-out",
+        "dark min-w-0 max-w-full flex-1 bg-background p-4 pt-16 text-foreground transition-[margin-left] duration-200 ease-in-out md:pt-4",
         isBursar ? "md:ml-72" : collapsed ? "md:ml-16" : "md:ml-72"
       )}
     >

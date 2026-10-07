@@ -80,6 +80,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/platform/bootstrap(.*)",
   "/api/account/legal-acceptance",
   "/api/storage/assets(.*)", // public/private decision is enforced by the asset gateway
+  // Exact path only. The route handler still authenticates Bearer and cookie sessions.
+  "/api/me",
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -142,6 +144,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     "/api/banks/search",
     "/api/public/contact",
     "/api/account/legal-acceptance",
+    // Middleware-public, route-authenticated. Do not prefix-match other /api/me/* paths.
+    "/api/me",
   ]);
   const publicPrefixes = [
     "/sign-in",

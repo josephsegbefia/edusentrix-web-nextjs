@@ -29,7 +29,7 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
     <nav className="space-y-6">
       <div>
         <div className="mb-2.5 px-3">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] m-faint">
             Billing Control
           </h3>
         </div>
@@ -44,11 +44,11 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
             <span className="truncate">Payment Setup</span>
           </ActiveLink>
         </div>
-        <Separator className="mt-6 bg-white/5" />
+        <Separator className="mt-6 bg-(--m-subtle)" />
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/65">
-        <div className="mb-2 flex items-center gap-2 text-white">
-          <ShieldCheck className="h-4 w-4 text-emerald-300" />
+      <div className="rounded-2xl border border-(--m-border) bg-(--m-subtle) p-4 text-sm m-muted">
+        <div className="mb-2 flex items-center gap-2 text-(--m-fg)">
+          <ShieldCheck className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
           <span className="font-medium">Restricted access</span>
         </div>
         This account can manage payout setup, but it does not have full school administration access.
@@ -59,8 +59,8 @@ function SidebarNav({ onItemClick }: { onItemClick?: () => void }) {
 
 function DesktopSidebar() {
   return (
-    <aside className="hidden md:flex fixed left-0 top-14 w-72 h-[calc(100vh-3.5rem)] shrink-0 flex-col border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl">
-      <div className="border-b border-white/5 p-3">
+    <aside className="hidden md:flex fixed left-0 top-14 w-72 h-[calc(100vh-3.5rem)] shrink-0 flex-col border-r border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-2xl">
+      <div className="border-b border-(--m-border) p-3">
         <SidebarSchoolIdentity
           href="/admin/settings/payment-setup"
           role="billing_owner"
@@ -69,7 +69,7 @@ function DesktopSidebar() {
       <div className="flex-1 overflow-y-auto p-4">
         <SidebarNav />
       </div>
-      <div className="shrink-0 border-t border-white/5 px-4 pb-4 pt-3">
+      <div className="shrink-0 border-t border-(--m-border) px-4 pb-4 pt-3">
         <SidebarFooterBranding />
       </div>
     </aside>
@@ -87,9 +87,9 @@ function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[300px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.98)_0%,rgba(10,14,26,1)_100%)] p-0 sm:w-[320px]"
+        className="w-[300px] border-r border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)! p-0 sm:w-[320px]"
       >
-        <SheetHeader className="border-b border-white/5 px-4 py-4">
+        <SheetHeader className="border-b border-(--m-border) px-4 py-4">
           <SheetTitle className="sr-only">Billing owner navigation</SheetTitle>
           <div className="flex items-center justify-between">
             <SidebarSchoolIdentity
@@ -101,7 +101,7 @@ function MobileSidebar({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 rounded-lg m-muted hover:bg-(--m-subtle) hover:text-(--m-fg)"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close menu</span>
@@ -111,7 +111,7 @@ function MobileSidebar({
 
         <div className="overflow-y-auto p-4">
           <SidebarNav onItemClick={() => onOpenChange(false)} />
-          <div className="mt-4 border-t border-white/5 pt-4">
+          <div className="mt-4 border-t border-(--m-border) pt-4">
             <SidebarFooterBranding />
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function BillingOwnerSidebar() {
           variant="ghost"
           size="icon"
           onClick={() => setMobileMenuOpen(true)}
-          className="md:hidden h-9 w-9 border border-white/10 bg-card/95 backdrop-blur-sm text-white hover:bg-white/10 hover:border-white/20"
+          className="h-9 w-9 border border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-sm hover:bg-(--m-subtle) md:hidden"
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Open menu</span>

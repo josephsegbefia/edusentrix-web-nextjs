@@ -41,15 +41,16 @@ export function ResponsiveModal({
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
               className={[
-                "w-full max-w-[65vw] max-h-[90vh] rounded-2xl border border-white/10 bg-card/95 shadow-2xl flex flex-col",
+                "m-card-strong flex w-full max-h-[90vh] max-w-[65vw] flex-col rounded-2xl text-(--m-fg)",
                 widthClass ?? "max-w-4xl",
               ].join(" ")}
             >
-              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
-                <div className="text-base font-semibold">{title}</div>
+              <div className="flex shrink-0 items-center justify-between border-b border-(--m-border) px-5 py-4">
+                <div className="text-base font-semibold text-(--m-fg)">{title}</div>
                 <button
                   onClick={onClose}
-                  className="text-white/60 hover:text-white"
+                  className="m-muted hover:text-(--m-fg)"
+                  aria-label="Close"
                 >
                   ✕
                 </button>
@@ -70,14 +71,14 @@ export function ResponsiveModal({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 250, damping: 28 }}
-              className="rounded-t-2xl border border-white/10 bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
+              className="m-card-strong flex max-h-[90vh] flex-col rounded-t-2xl text-(--m-fg)"
             >
-              <div className="py-2 shrink-0">
-                <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+              <div className="shrink-0 py-2">
+                <div className="mx-auto h-1.5 w-12 rounded-full bg-(--m-border)" />
               </div>
-              <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
                 {title && (
-                  <div className="text-base font-semibold mb-2">{title}</div>
+                  <div className="mb-2 text-base font-semibold text-(--m-fg)">{title}</div>
                 )}
                 {children}
               </div>

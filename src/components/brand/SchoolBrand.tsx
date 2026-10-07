@@ -71,21 +71,26 @@ export function SchoolBrand({
       {isLoading ? (
         <div className="flex items-center gap-3">
           <div
-            className="flex shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5"
+            className="flex shrink-0 items-center justify-center rounded-lg border border-(--m-border) bg-(--m-logo-bg)"
             style={{ width: sizeConfig.icon, height: sizeConfig.icon }}
           >
-            <Loader2 className="h-4 w-4 animate-spin text-white/40" />
+            <Loader2 className="h-4 w-4 animate-spin m-faint" />
           </div>
           {showName && (
-            <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+            <div className="h-4 w-24 animate-pulse rounded bg-(--m-subtle)" />
           )}
         </div>
       ) : hasSchool ? (
         <>
           {/* Logo or Initials */}
           <div
-            className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-sm"
-            style={{ width: sizeConfig.icon, height: sizeConfig.icon }}
+            className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-(--m-border) shadow-sm"
+            style={{
+              width: sizeConfig.icon,
+              height: sizeConfig.icon,
+              backgroundColor: "var(--m-logo-bg)",
+              boxShadow: "var(--m-logo-shadow)",
+            }}
           >
             {school.logo ? (
               <Image
@@ -96,7 +101,7 @@ export function SchoolBrand({
                 className="object-cover"
               />
             ) : (
-              <span className="font-bold text-white" style={{ fontSize: sizeConfig.icon * 0.4 }}>
+              <span className="font-bold text-(--m-fg)" style={{ fontSize: sizeConfig.icon * 0.4 }}>
                 {getInitials(school.name)}
               </span>
             )}
@@ -106,7 +111,7 @@ export function SchoolBrand({
           {showName && (
             <span
               className={cn(
-                "font-semibold text-white tracking-tight truncate",
+                "truncate font-semibold tracking-tight text-(--m-fg)",
                 sizeConfig.text
               )}
             >
@@ -117,13 +122,13 @@ export function SchoolBrand({
       ) : (
         <div className="flex items-center gap-3">
           <div
-            className="flex shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5"
+            className="flex shrink-0 items-center justify-center rounded-lg border border-(--m-border) bg-(--m-logo-bg)"
             style={{ width: sizeConfig.icon, height: sizeConfig.icon }}
           >
-            <School className="h-4 w-4 text-white/40" />
+            <School className="h-4 w-4 m-faint" />
           </div>
           {showName && (
-            <span className={cn("text-white/60", sizeConfig.text)}>
+            <span className={cn("m-muted", sizeConfig.text)}>
               {hasNoSchool ? "No School" : isError ? "School unavailable" : "Loading..."}
             </span>
           )}

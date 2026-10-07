@@ -10,7 +10,9 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { CurrentAppUser } from "@/lib/auth/get-current-user";
-import { premiumMenuItem } from "../ui/premium";
+
+const menuItemClass =
+  "cursor-pointer rounded-lg text-(--m-fg)! focus:bg-(--m-subtle)! focus:text-(--m-fg)!";
 
 export function AppTopbarUserMenu({
   user,
@@ -24,43 +26,46 @@ export function AppTopbarUserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="rounded-full px-3 py-1.5 bg-card hover:opacity-90 transition"
+        className="rounded-full bg-transparent px-3 py-1.5 transition hover:opacity-90"
         asChild
       >
-        <Button variant="ghost" className="h-9 px-2 hover:bg-neutral-900/70">
+        <Button
+          variant="ghost"
+          className="h-9 border border-(--m-border) bg-(--m-subtle) px-2 text-(--m-fg) hover:bg-(--m-glass)"
+        >
           <Avatar className="h-7 w-7">
             {user.avatarUrl ? (
               <AvatarImage src={user.avatarUrl} alt={user.name || user.email} />
             ) : (
-              <AvatarFallback className="bg-neutral-800 text-neutral-200">
+              <AvatarFallback className="bg-(--m-glass) text-(--m-fg)">
                 {initial}
               </AvatarFallback>
             )}
           </Avatar>
-          <span className="ml-2 text-sm hidden md:block text-neutral-200">
+          <span className="ml-2 hidden text-sm text-(--m-fg) md:block">
             {user.name || user.email}
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="premiumMenuContent min-w-56 p-2"
+        className="min-w-56 border-(--m-border)! bg-(--m-glass-strong)! p-2 text-(--m-fg)! shadow-lg backdrop-blur-xl"
       >
-        <DropdownMenuLabel className="text-xs text-muted-foreground px-2 pb-1">
+        <DropdownMenuLabel className="px-2 pb-1 text-xs m-muted">
           Signed in as
         </DropdownMenuLabel>
-        <div className="px-2 pb-2 text-foreground/90 text-sm">{user.email}</div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="rounded-lg premium-hover">
+        <div className="px-2 pb-2 text-sm text-(--m-fg)">{user.email}</div>
+        <DropdownMenuSeparator className="bg-(--m-border)!" />
+        <DropdownMenuItem asChild className={menuItemClass}>
           <Link href="/profile">Profile</Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="rounded-lg premium-hover">
+        <DropdownMenuItem className={menuItemClass}>
           Preferences
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-(--m-border)!" />
         <DropdownMenuItem
           onClick={onSignOut}
-          className={`${premiumMenuItem} text-red-400 premium-hover`}
+          className={`${menuItemClass} text-rose-700! focus:text-rose-800! dark:text-rose-300! dark:focus:text-rose-200!`}
         >
           Sign out
         </DropdownMenuItem>

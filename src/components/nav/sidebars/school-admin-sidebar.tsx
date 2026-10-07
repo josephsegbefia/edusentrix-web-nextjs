@@ -455,7 +455,7 @@ const navSections: NavSection[] = [
 ];
 
 const sidebarTooltipClasses =
-  "bg-white/10 text-white ring-1 ring-white/10 rounded-xl backdrop-blur-md border-0 px-3 py-2.5 text-sm font-medium shadow-lg";
+  "rounded-xl border-0 bg-(--m-glass-strong) px-3 py-2.5 text-sm font-medium text-(--m-fg) shadow-lg ring-1 ring-(--m-border) backdrop-blur-md";
 
 function CurriculumBadge({ collapsed }: { collapsed: boolean }) {
   const { data } = useSchool();
@@ -514,7 +514,7 @@ function CurriculumBadge({ collapsed }: { collapsed: boolean }) {
             <span className="text-[11px] font-semibold text-brand tracking-wide">
               {label}
             </span>
-            <Lock className="ml-auto h-3 w-3 text-white/35" />
+            <Lock className="ml-auto h-3 w-3 m-faint" />
           </span>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
@@ -606,7 +606,7 @@ function NavContent({
         <div key={section.title}>
           {!collapsed && (
             <div className="mb-2 px-3.5">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] m-faint">
                 {section.title}
               </h3>
             </div>
@@ -657,7 +657,7 @@ function NavContent({
                           <span
                             className={cn(
                               "flex h-10 w-10 mx-auto cursor-not-allowed items-center justify-center rounded-xl",
-                              "text-white/30 opacity-60"
+                              "m-faint opacity-60"
                             )}
                             aria-disabled="true"
                           >
@@ -683,9 +683,9 @@ function NavContent({
                           onClick={onItemClick}
                           className={cn(
                             "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
-                            "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
+                            "m-muted transition-all duration-200 hover:bg-(--m-subtle) hover:text-(--m-fg)",
                             parentActiveCollapsed &&
-                              "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                              "bg-(--m-subtle) text-(--m-fg) shadow-[inset_0_0_0_1px_var(--m-border)]"
                           )}
                           activeClassName="nav-active"
                         >
@@ -711,9 +711,9 @@ function NavContent({
                           aria-disabled="true"
                           tabIndex={0}
                         >
-                          <Icon className="h-4 w-4 shrink-0 text-white/40" />
+                          <Icon className="h-4 w-4 shrink-0 m-faint" />
                           <span className="truncate">{label}</span>
-                          <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-white/25" />
+                          <Lock className="ml-auto h-3.5 w-3.5 shrink-0 m-faint" />
                         </span>
                       </TooltipTrigger>
                       <TooltipContent
@@ -757,7 +757,7 @@ function NavContent({
                         }}
                         className={cn(
                           premiumSideItem,
-                          "w-9 shrink-0 justify-center px-0 text-white/50 hover:text-white",
+                          "w-9 shrink-0 justify-center px-0 m-muted hover:text-(--m-fg)",
                           !alwaysToggle && inTree && "cursor-default opacity-60"
                         )}
                         aria-expanded={groupExpanded}
@@ -772,7 +772,7 @@ function NavContent({
                       </button>
                     </div>
                     {groupExpanded ? (
-                      <div className="relative ml-3.5 space-y-0.5 border-l border-white/10 pl-3">
+                      <div className="relative ml-3.5 space-y-0.5 border-l border-(--m-border) pl-3">
                         {childList.map((child) => {
                           const ChildIcon = child.icon;
                           const childActive = routeActive(child.href, child.exact);
@@ -835,7 +835,7 @@ function NavContent({
                         <span
                           className={cn(
                             "flex h-10 w-10 mx-auto cursor-not-allowed items-center justify-center rounded-xl",
-                            "text-white/30 opacity-60"
+                            "m-faint opacity-60"
                           )}
                           aria-disabled="true"
                         >
@@ -861,9 +861,9 @@ function NavContent({
                         onClick={onItemClick}
                         className={cn(
                           "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
-                          "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
+                          "m-muted transition-all duration-200 hover:bg-(--m-subtle) hover:text-(--m-fg)",
                           active &&
-                            "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
+                            "bg-(--m-subtle) text-(--m-fg) shadow-[inset_0_0_0_1px_var(--m-border)]",
                           showNavBadge && "relative"
                         )}
                         activeClassName="nav-active"
@@ -895,9 +895,9 @@ function NavContent({
                         aria-disabled="true"
                         tabIndex={0}
                       >
-                        <Icon className="h-4 w-4 shrink-0 text-white/40" />
+                        <Icon className="h-4 w-4 shrink-0 m-faint" />
                         <span className="truncate">{label}</span>
-                        <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-white/25" />
+                        <Lock className="ml-auto h-3.5 w-3.5 shrink-0 m-faint" />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent
@@ -941,7 +941,7 @@ function NavContent({
 
           {sectionIdx < navSections.length - 1 && (
             <Separator
-              className={cn("mt-5 bg-white/4", collapsed && "mt-3")}
+              className={cn("mt-5 bg-(--m-border)", collapsed && "mt-3")}
             />
           )}
         </div>
@@ -975,14 +975,14 @@ function DesktopSidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "sidebar-scroll hidden md:flex flex-col fixed left-0 top-14 h-[calc(100vh-3.5rem)] shrink-0 border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl transition-[width] duration-200 ease-in-out z-30",
+          "sidebar-scroll hidden md:flex flex-col fixed left-0 top-14 h-[calc(100vh-3.5rem)] shrink-0 border-r border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-2xl transition-[width] duration-200 ease-in-out z-30",
           collapsed ? "w-16" : "w-72"
         )}
       >
         {/* Brand header */}
         <div
           className={cn(
-            "border-b border-white/5 shrink-0",
+            "border-b border-(--m-border) shrink-0",
             collapsed ? "px-2 py-4" : "px-5 py-4"
           )}
         >
@@ -991,7 +991,7 @@ function DesktopSidebar() {
               type="button"
               onClick={toggle}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 hover:border-white/15 transition-all duration-150"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-(--m-border) bg-(--m-subtle) m-faint transition-all duration-150 hover:bg-(--m-glass) hover:text-(--m-fg)"
             >
               {collapsed ? (
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -1030,7 +1030,7 @@ function DesktopSidebar() {
 
         <div
           className={cn(
-            "shrink-0 border-t border-white/5",
+            "shrink-0 border-t border-(--m-border)",
             collapsed ? "px-2 pb-3 pt-2" : "px-4 pb-4 pt-3"
           )}
         >
@@ -1053,9 +1053,9 @@ function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[300px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.98)_0%,rgba(10,14,26,1)_100%)] p-0 sm:w-[320px]"
+        className="w-[300px] border-r border-(--m-border)! bg-(--m-glass-strong)! text-(--m-fg)! p-0 sm:w-[320px]"
       >
-        <SheetHeader className="border-b border-white/5 px-5 py-4">
+        <SheetHeader className="border-b border-(--m-border) px-5 py-4">
           <SheetTitle className="sr-only">
             School Admin Navigation Menu
           </SheetTitle>
@@ -1069,7 +1069,7 @@ function MobileSidebar({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 rounded-lg m-muted hover:bg-(--m-subtle) hover:text-(--m-fg)"
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close menu</span>
@@ -1086,7 +1086,7 @@ function MobileSidebar({
             onItemClick={() => onOpenChange(false)}
             collapsed={false}
           />
-          <div className="mt-4 border-t border-white/5 pt-4">
+          <div className="mt-4 border-t border-(--m-border) pt-4">
             <SidebarFooterBranding />
           </div>
         </div>
@@ -1101,7 +1101,7 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className="md:hidden h-9 w-9 border border-white/10 bg-card/95 backdrop-blur-sm text-white hover:bg-white/10 hover:border-white/20"
+      className="h-9 w-9 border border-(--m-border) bg-(--m-glass-strong) text-(--m-fg) backdrop-blur-sm hover:bg-(--m-subtle) md:hidden"
     >
       <Menu className="h-5 w-5" />
       <span className="sr-only">Open menu</span>

@@ -16,7 +16,7 @@ export default async function StudentLayout({
       <AuthRefreshHandler />
       <div className="flex min-h-[calc(100vh-3.5rem)]">
         <StudentSidebar />
-        <main className="flex-1 p-4 pt-16 md:pt-4 md:ml-72">
+        <main className="dark flex-1 bg-background p-4 pt-16 text-foreground md:ml-72 md:pt-4">
           {children}
         </main>
       </div>

@@ -5,7 +5,7 @@ import { BookOpen, Sparkles, Search, FileText } from "lucide-react";
 
 export default function DocsPage() {
   return (
-    <div className="flex h-screen flex-col">
+    <div className="dark flex h-screen flex-col bg-background text-foreground">
       {/* Hero Header */}
       <div className="relative overflow-hidden border-b border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black px-6 py-6 backdrop-blur-xl">
         <div className="pointer-events-none absolute -left-20 -top-20 h-60 w-60 rounded-full bg-sky-500/8 blur-3xl" />

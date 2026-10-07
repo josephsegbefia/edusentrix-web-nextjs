@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { authPageGlowStyle } from "@/components/auth/auth-surfaces";
 
 type MembershipOption = {
   schoolId: string;
@@ -77,17 +80,26 @@ export default function AuthSwitchPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-linear-to-br from-slate-950 via-slate-900 to-black px-4 text-white">
+    <div className="m-page relative grid min-h-screen place-items-center px-4">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={authPageGlowStyle}
+      />
       {memberships.length > 0 ? (
-        <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-white/8 p-6 shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200/80">
-              Choose school
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold">Where do you want to work?</h1>
-            <p className="mt-2 text-sm text-white/65">
-              This account has access to more than one school. Select the school for this session.
-            </p>
+        <div className="m-card-strong relative w-full max-w-xl rounded-2xl p-6 backdrop-blur-xl">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <BrandMark size="sm" />
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-200">
+                Choose school
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-(--m-fg)">Where do you want to work?</h1>
+              <p className="mt-2 text-sm m-muted">
+                This account has access to more than one school. Select the school for this session.
+              </p>
+            </div>
+            <ThemeToggle className="shrink-0" />
           </div>
 
           <div className="space-y-3">
@@ -97,16 +109,16 @@ export default function AuthSwitchPage() {
                 type="button"
                 onClick={() => selectSchool(membership.schoolId)}
                 disabled={loadingSchoolId !== null}
-                className="w-full rounded-xl border border-white/10 bg-white/6 px-4 py-3 text-left transition hover:border-cyan-300/40 hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl border border-(--m-border) bg-(--m-subtle) px-4 py-3 text-left transition hover:border-cyan-600/40 hover:bg-cyan-500/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-medium text-white">{membership.schoolName}</p>
-                    <p className="mt-1 text-xs capitalize text-white/55">
+                    <p className="font-medium text-(--m-fg)">{membership.schoolName}</p>
+                    <p className="mt-1 text-xs capitalize m-muted">
                       {membership.roles.join(", ").replaceAll("_", " ")}
                     </p>
                   </div>
-                  <span className="text-sm text-cyan-100">
+                  <span className="text-sm text-cyan-700 dark:text-cyan-200">
                     {loadingSchoolId === membership.schoolId ? "Opening..." : "Open"}
                   </span>
                 </div>
@@ -114,11 +126,17 @@ export default function AuthSwitchPage() {
             ))}
           </div>
 
-          {error ? <p className="mt-4 text-sm text-rose-200">{error}</p> : null}
+          {error ? <p className="mt-4 text-sm text-rose-700 dark:text-rose-200">{error}</p> : null}
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-white/8 px-6 py-4 text-white/80 shadow-2xl shadow-black/40 backdrop-blur-xl">
-          {error || "Signing you in..."}
+        <div className="m-card-strong relative rounded-2xl px-6 py-4 backdrop-blur-xl">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <BrandMark size="sm" />
+            <ThemeToggle />
+          </div>
+          <p className={error ? "text-sm text-rose-700 dark:text-rose-200" : "m-muted"}>
+            {error || "Signing you in..."}
+          </p>
         </div>
       )}
     </div>

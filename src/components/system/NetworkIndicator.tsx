@@ -101,7 +101,7 @@ function getEventIcon(type: string) {
     case "probe_failed":
       return <AlertCircle className="h-3 w-3 text-red-400" />;
     default:
-      return <Activity className="h-3 w-3 text-white/40" />;
+      return <Activity className="h-3 w-3 m-faint" />;
   }
 }
 
@@ -152,16 +152,16 @@ export function NetworkIndicator() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 transition-colors"
+          className="flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-(--m-subtle)"
           aria-label={config.label}
           aria-haspopup="dialog"
           aria-expanded={open}
         >
           <div className="relative">
-            <Icon className="h-4 w-4 text-white/60" />
+            <Icon className="h-4 w-4 m-muted" />
             <span
               className={cn(
-                "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-card",
+                "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-(--m-header)",
                 config.color
               )}
             />
@@ -186,10 +186,10 @@ export function NetworkIndicator() {
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-80 p-0 border border-white/10 bg-slate-950/95 backdrop-blur-md"
+        className="w-80 border border-(--m-border)! bg-(--m-glass-strong)! p-0 text-(--m-fg)! backdrop-blur-md"
       >
         {/* Current Status Header */}
-        <div className="p-4 border-b border-white/10">
+        <div className="border-b border-(--m-border) p-4">
           <div className="flex items-center gap-3">
             <div
               className={cn(
@@ -213,10 +213,10 @@ export function NetworkIndicator() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-sm text-white">
+              <h4 className="text-sm font-semibold text-(--m-fg)">
                 {config.label}
               </h4>
-              <p className="text-xs text-white/60 truncate">
+              <p className="truncate text-xs m-muted">
                 {config.description}
               </p>
             </div>
@@ -226,18 +226,18 @@ export function NetworkIndicator() {
           {mounted && online && (
             <div className="mt-3 flex flex-wrap gap-2">
               {effectiveType && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-white/70">
+                <span className="inline-flex items-center gap-1 rounded-md bg-(--m-subtle) px-2 py-1 text-xs text-(--m-fg)">
                   <Activity className="h-3 w-3" />
                   {effectiveType.toUpperCase()}
                 </span>
               )}
               {typeof downlink === "number" && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-white/70">
+                <span className="inline-flex items-center gap-1 rounded-md bg-(--m-subtle) px-2 py-1 text-xs text-(--m-fg)">
                   ↓ {downlink.toFixed(1)} Mbps
                 </span>
               )}
               {typeof probeRtt === "number" && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-xs text-white/70">
+                <span className="inline-flex items-center gap-1 rounded-md bg-(--m-subtle) px-2 py-1 text-xs text-(--m-fg)">
                   <Clock className="h-3 w-3" />
                   {Math.round(probeRtt)}ms
                 </span>
@@ -253,18 +253,18 @@ export function NetworkIndicator() {
                 isSSEConnected
                   ? "text-green-400"
                   : sseNotActiveOnPage
-                  ? "text-white/40"
+                  ? "m-faint"
                   : "text-amber-400"
               )}
             />
-            <span className="text-xs text-white/60">{sseStatusLabel}</span>
+            <span className="text-xs m-muted">{sseStatusLabel}</span>
           </div>
 
           {/* Pending queue */}
           {pendingCount > 0 && (
             <div className="mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-amber-200">
+                <span className="text-xs text-amber-800 dark:text-amber-200">
                   {pendingCount} pending change
                   {pendingCount !== 1 ? "s" : ""}
                 </span>
@@ -275,7 +275,7 @@ export function NetworkIndicator() {
                     variant="ghost"
                     onClick={() => processQueue()}
                     disabled={isProcessing}
-                    className="h-6 px-2 text-xs text-amber-200 hover:text-amber-100 hover:bg-amber-500/20"
+                    className="h-6 px-2 text-xs text-amber-800 hover:bg-amber-500/20 hover:text-amber-900 dark:text-amber-200 dark:hover:text-amber-100"
                   >
                     {isProcessing ? (
                       <RefreshCw className="h-3 w-3 animate-spin mr-1" />
@@ -293,7 +293,7 @@ export function NetworkIndicator() {
         {/* Connection History */}
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
-            <h5 className="text-xs font-medium text-white/60 uppercase tracking-wider">
+            <h5 className="text-xs font-medium uppercase tracking-wider m-muted">
               Recent Activity
             </h5>
             {events.length > 0 && (
@@ -302,7 +302,7 @@ export function NetworkIndicator() {
                 variant="ghost"
                 size="sm"
                 onClick={clearHistory}
-                className="h-6 px-2 text-xs text-white/40 hover:text-white/60"
+                className="h-6 px-2 text-xs m-faint hover:text-(--m-fg)"
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -310,7 +310,7 @@ export function NetworkIndicator() {
           </div>
 
           {events.length === 0 ? (
-            <p className="text-xs text-white/40 py-2 text-center">
+            <p className="py-2 text-center text-xs m-faint">
               No recent connection events
             </p>
           ) : (
@@ -323,10 +323,10 @@ export function NetworkIndicator() {
                   >
                     <div className="mt-0.5">{getEventIcon(event.type)}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white/80 truncate">
+                      <p className="truncate text-(--m-fg)">
                         {event.details || event.type.replace("_", " ")}
                       </p>
-                      <p className="text-white/40">
+                      <p className="m-faint">
                         {formatTime(event.timestamp)}
                       </p>
                     </div>
@@ -339,8 +339,8 @@ export function NetworkIndicator() {
 
         {/* Summary Footer */}
         <div className="px-3 pb-3">
-          <Separator className="mb-3 bg-white/10" />
-          <div className="flex items-center justify-between text-xs text-white/40">
+          <Separator className="mb-3 bg-(--m-border)!" />
+          <div className="flex items-center justify-between text-xs m-faint">
             <span>
               {summary.offlineCount} offline event
               {summary.offlineCount !== 1 ? "s" : ""} today

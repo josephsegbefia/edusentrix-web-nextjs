@@ -17,6 +17,7 @@ type GhanaPhoneInputProps = Omit<
   defaultValue?: string | null | undefined;
   onValueChange?: (value: string) => void;
   unstyled?: boolean;
+  prefixClassName?: string;
 };
 
 function assignRef<T>(ref: React.Ref<T> | undefined, value: T) {
@@ -46,6 +47,7 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
       autoComplete = "tel",
       inputMode = "tel",
       unstyled = false,
+      prefixClassName,
       className,
       ...props
     },
@@ -114,7 +116,12 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
     if (unstyled) {
       return (
         <div className="relative">
-          <span className="pointer-events-none absolute left-4 top-1/2 flex -translate-y-1/2 items-center text-sm leading-none text-white/55">
+          <span
+            className={cn(
+              "pointer-events-none absolute left-4 top-1/2 flex -translate-y-1/2 items-center text-sm leading-none",
+              prefixClassName ?? "text-white/55"
+            )}
+          >
             +233
           </span>
           <input
@@ -128,7 +135,12 @@ export const GhanaPhoneInput = React.forwardRef<HTMLInputElement, GhanaPhoneInpu
 
     return (
       <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 z-10 flex -translate-y-1/2 items-center text-sm leading-none text-muted-foreground">
+        <span
+          className={cn(
+            "pointer-events-none absolute left-3 top-1/2 z-10 flex -translate-y-1/2 items-center text-sm leading-none",
+            prefixClassName ?? "text-muted-foreground"
+          )}
+        >
           +233
         </span>
         <Input

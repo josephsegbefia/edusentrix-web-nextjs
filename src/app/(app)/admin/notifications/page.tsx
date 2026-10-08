@@ -259,7 +259,7 @@ export default function AdminNotificationsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-indigo-500/20 text-indigo-100">{totalCount} total</Badge>
+              <Badge className="bg-indigo-500/20 text-(--ws-violet)">{totalCount} total</Badge>
               <Badge className="bg-cyan-500/20 text-(--ws-cyan)">{unreadCount} unread</Badge>
               <Badge className="bg-rose-500/20 text-(--ws-rose)">{highPriorityCount} high priority</Badge>
               <Badge className="bg-emerald-500/20 text-(--ws-emerald)">{actionableCount} actionable</Badge>

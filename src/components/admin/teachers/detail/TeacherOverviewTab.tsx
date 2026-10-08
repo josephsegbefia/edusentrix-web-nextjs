@@ -232,11 +232,11 @@ function QuickAction({
     default:
       "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-(--ws-fg)",
     success:
-      "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-emerald-200",
+      "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-(--ws-emerald)",
     warning:
-      "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-(--ws-amber)",
+      "border-amber-500/30 bg-amber-500/10 text-(--ws-amber) hover:bg-amber-500/20 hover:text-(--ws-amber)",
     danger:
-      "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200",
+      "border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20 hover:text-(--ws-rose)",
   };
 
   return (

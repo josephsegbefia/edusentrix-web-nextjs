@@ -31,7 +31,7 @@ function LeoCallout({ children }: { children: React.ReactNode }) {
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-500/15">
         <LeoIcon className="h-5 w-5 text-(--ws-violet)" />
       </div>
-      <div className="min-w-0 flex-1 text-sm text-white/85">{children}</div>
+      <div className="min-w-0 flex-1 text-sm text-(--ws-fg-80)">{children}</div>
     </div>
   );
 }
@@ -327,13 +327,13 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
   return (
     <div className="space-y-3">
       <LeoCallout>
-        <p className="mb-2 font-medium text-violet-100">
+        <p className="mb-2 font-medium text-(--ws-fg-80)">
           Hi, I&apos;m <span className="font-semibold text-(--ws-violet)">Leo</span>.
         </p>
-        <p className="mb-3 text-sm text-white/80">
+        <p className="mb-3 text-sm text-(--ws-fg-80)">
           Describe what {teacherName} teaches in plain language (e.g. &quot;Math in JHS 2A and B,
           Science in JHS 1&quot;). I&apos;ll match it to your subject offerings and class groups for the{" "}
-          <span className="font-medium text-white/90">current term</span>—confirm before anything is
+          <span className="font-medium text-(--ws-fg)">current term</span>—confirm before anything is
           saved.
         </p>
         {!currentPeriodId && (
@@ -346,14 +346,14 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
           value={leoHint}
           onChange={(e) => setLeoHint(e.target.value)}
           placeholder='Example: "Mathematics in JHS 2A and B; Science in JHS 1"'
-          className="mb-3 min-h-[88px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+          className="mb-3 min-h-[88px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
         />
         <Button
           type="button"
           variant="outline"
           disabled={leoLoading}
           onClick={() => void runLeoSuggest()}
-          className="gap-2 border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+          className="gap-2 border-violet-400/30 bg-violet-500/10 text-(--ws-violet) hover:bg-violet-500/20"
         >
           <LeoIcon className="h-4 w-4" />
           {leoLoading ? "Leo is thinking…" : "Ask Leo"}
@@ -365,13 +365,13 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-violet)">
             Confirm with Leo
           </div>
-          <p className="text-sm leading-relaxed text-white/90">{leoPreview.confirmationText}</p>
+          <p className="text-sm leading-relaxed text-(--ws-fg-80)">{leoPreview.confirmationText}</p>
           {leoPreview.leoSummary &&
             leoPreview.leoSummary !== leoPreview.confirmationText && (
-              <p className="text-xs text-white/55">{leoPreview.leoSummary}</p>
+              <p className="text-xs text-(--ws-fg-60)">{leoPreview.leoSummary}</p>
             )}
           {leoPreview.suggestions.length > 0 && (
-            <ul className="space-y-1 border-t border-white/10 pt-3 text-xs text-white/75">
+            <ul className="space-y-1 border-t border-(--ws-line) pt-3 text-xs text-(--ws-fg-70)">
               {leoPreview.suggestions.map((s, i) => (
                 <li key={`${s.subjectId}-${s.classGroupId}-${i}`}>
                   {s.label || `${s.subjectId} · ${s.classGroupId}`}
@@ -391,16 +391,16 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
               <div className="flex gap-2">
                 <Info className="h-4 w-4 shrink-0 text-(--ws-violet) mt-0.5" />
                 <div className="min-w-0 space-y-2">
-                  <p className="font-medium text-white">Another teacher is already on these slots</p>
-                  <p className="text-xs text-white/70 leading-relaxed">{leoClash.summary}</p>
-                  <ul className="text-xs text-white/60 list-disc pl-4 space-y-0.5 border-t border-white/10 pt-2">
+                  <p className="font-medium text-(--ws-fg)">Another teacher is already on these slots</p>
+                  <p className="text-xs text-(--ws-fg-70) leading-relaxed">{leoClash.summary}</p>
+                  <ul className="text-xs text-(--ws-fg-60) list-disc pl-4 space-y-0.5 border-t border-(--ws-line) pt-2">
                     {leoClash.rows.map((r, i) => (
                       <li key={`${r.subjectId}-${r.classGroupId}-${i}`}>
                         {r.label || "Subject · class"}
                       </li>
                     ))}
                   </ul>
-                  <p className="text-xs text-white/55 pt-1">
+                  <p className="text-xs text-(--ws-fg-60) pt-1">
                     Add {teacherName} as a co-teacher, or replace the current teacher on these slots for this term.
                   </p>
                   <div className="flex w-full min-w-0 flex-col gap-2 pt-1">
@@ -418,7 +418,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-auto min-h-8 w-full max-w-full shrink whitespace-normal border-white/15 bg-white/5 px-3 py-2.5 text-center leading-snug text-white hover:bg-white/10"
+                      className="h-auto min-h-8 w-full max-w-full shrink whitespace-normal border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-center leading-snug text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                       disabled={applyLoading}
                       onClick={() => void resolveLeoClash("replace")}
                     >
@@ -448,7 +448,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
                 setLeoPreview(null);
                 setLeoClash(null);
               }}
-              className="text-white/70 hover:bg-white/10 hover:text-white"
+              className="text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               Dismiss
             </Button>

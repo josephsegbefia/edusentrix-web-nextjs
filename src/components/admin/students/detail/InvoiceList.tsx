@@ -49,7 +49,7 @@ function statusBadge(status: string) {
   const statusMap: Record<string, { label: string; className: string; icon: any }> = {
     draft: {
       label: "Draft",
-      className: "border-white/20 bg-white/5 text-white/70",
+      className: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-70)",
       icon: FileText,
     },
     issued: {
@@ -59,7 +59,7 @@ function statusBadge(status: string) {
     },
     paid: {
       label: "Paid",
-      className: "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
+      className: "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)",
       icon: CheckCircle2,
     },
     overdue: {
@@ -74,7 +74,7 @@ function statusBadge(status: string) {
     },
     partially_paid: {
       label: "Partially Paid",
-      className: "border-amber-400/25 bg-amber-500/10 text-amber-200",
+      className: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
       icon: Clock,
     },
   };
@@ -158,14 +158,14 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
 
   return (
     <>
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-(--ws-fg-80)">
               Bills
             </CardTitle>
             {pagination && (
@@ -184,7 +184,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                 placeholder="Search bills..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-white/5 border-white/10"
+                className="pl-9 bg-(--ws-fill) border-(--ws-line)"
               />
             </div>
             <PremiumDropdownMenu>
@@ -192,7 +192,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex w-full items-center justify-between gap-2 rounded-lg border-white/15 bg-white/5 px-3 py-2 text-xs text-white/80 sm:w-[180px]"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg border-(--ws-line-strong) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-80) sm:w-[180px]"
                 >
                   <span className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
@@ -200,7 +200,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                       ? "All Status"
                       : statusFilter.replace("_", " ")}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+                  <ChevronDown className="h-3.5 w-3.5 text-(--ws-fg-50)" />
                 </Button>
               </PremiumDropdownMenuTrigger>
               <PremiumDropdownMenuContent align="start" className="min-w-[180px]">
@@ -240,8 +240,8 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
               className={cn(
                 "h-7 px-2 text-xs",
                 sortBy === "date"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                  : "text-(--ws-fg-60) hover:text-(--ws-fg)"
               )}
             >
               Date
@@ -260,8 +260,8 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
               className={cn(
                 "h-7 px-2 text-xs",
                 sortBy === "amount"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                  : "text-(--ws-fg-60) hover:text-(--ws-fg)"
               )}
             >
               Amount
@@ -280,8 +280,8 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
               className={cn(
                 "h-7 px-2 text-xs",
                 sortBy === "status"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                  : "text-(--ws-fg-60) hover:text-(--ws-fg)"
               )}
             >
               Status
@@ -305,9 +305,9 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
               Failed to load bills. Please try again.
             </div>
           ) : filteredAndSorted.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center">
-              <FileText className="mx-auto h-12 w-12 text-white/20" />
-              <p className="mt-3 text-sm font-medium text-white/80">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-8 text-center">
+              <FileText className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+              <p className="mt-3 text-sm font-medium text-(--ws-fg-80)">
                 No bills found
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -323,12 +323,12 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                   key={invoice._id}
                   type="button"
                   onClick={() => handleInvoiceClick(invoice._id)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-all hover:border-white/20 hover:bg-white/10"
+                  className="w-full rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-left transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
-                        <div className="font-semibold text-white/90">
+                        <div className="font-semibold text-(--ws-fg-90)">
                           {invoice.invoiceNumber || "N/A"}
                         </div>
                         {statusBadge(invoice.status)}
@@ -354,16 +354,16 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-white/90">
+                      <div className="text-sm font-semibold text-(--ws-fg-90)">
                         {formatMoney(invoice.totalAmountMinor || 0)}
                       </div>
                       {invoice.totalOutstandingMinor > 0 && (
-                        <div className="mt-1 text-xs text-amber-300">
+                        <div className="mt-1 text-xs text-(--ws-amber)">
                           Outstanding: {formatMoney(invoice.totalOutstandingMinor)}
                         </div>
                       )}
                       {invoice.totalPaidMinor > 0 && (
-                        <div className="mt-1 text-xs text-emerald-300">
+                        <div className="mt-1 text-xs text-(--ws-emerald)">
                           Paid: {formatMoney(invoice.totalPaidMinor)}
                         </div>
                       )}
@@ -376,7 +376,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
 
           {/* Pagination */}
           {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between border-t border-(--ws-line) pt-4">
               <div className="text-xs text-muted-foreground">
                 Page {pagination.page} of {pagination.pages}
               </div>
@@ -387,7 +387,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/10 bg-white/5 text-xs"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs"
                 >
                   Previous
                 </Button>
@@ -397,7 +397,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
                   disabled={page === pagination.pages}
-                  className="border-white/10 bg-white/5 text-xs"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs"
                 >
                   Next
                 </Button>

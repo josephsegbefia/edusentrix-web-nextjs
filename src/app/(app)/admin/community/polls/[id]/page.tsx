@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { format } from "date-fns/format";
@@ -78,10 +79,10 @@ function ChoiceResultBar({ label, count, percentage }: { label: string; count: n
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className="truncate text-white/80">{label}</span>
-        <span className="shrink-0 text-white/50">{count} ({percentage}%)</span>
+        <span className="truncate text-(--ws-fg-80)">{label}</span>
+        <span className="shrink-0 text-(--ws-fg-50)">{count} ({percentage}%)</span>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+      <div className="h-2.5 overflow-hidden rounded-full bg-(--ws-fill-strong)">
         <div
           className="h-full rounded-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
           style={{ width: `${percentage}%` }}
@@ -102,21 +103,21 @@ function LikertResult({ distribution, average }: { distribution: Record<number, 
           const pct = total > 0 ? Math.round((count / total) * 100) : 0;
           return (
             <div key={value} className="flex-1">
-              <div className="mb-1 text-center text-xs text-white/50">{value}</div>
-              <div className="h-16 rounded-t bg-white/10 relative overflow-hidden">
+              <div className="mb-1 text-center text-xs text-(--ws-fg-50)">{value}</div>
+              <div className="h-16 rounded-t bg-(--ws-fill-strong) relative overflow-hidden">
                 <div
                   className="absolute bottom-0 left-0 right-0 rounded-t bg-gradient-to-t from-violet-500 to-purple-400"
                   style={{ height: `${pct}%` }}
                 />
               </div>
-              <div className="mt-1 text-center text-xs text-white/40">{count}</div>
+              <div className="mt-1 text-center text-xs text-(--ws-fg-40)">{count}</div>
             </div>
           );
         })}
       </div>
       {average !== null && (
-        <p className="text-center text-sm text-white/60">
-          Average: <span className="font-medium text-white">{average}</span>
+        <p className="text-center text-sm text-(--ws-fg-60)">
+          Average: <span className="font-medium text-(--ws-fg)">{average}</span>
         </p>
       )}
     </div>
@@ -129,9 +130,9 @@ function YesNoResult({ yes, no, yesPercentage, noPercentage }: { yes: number; no
       <div className="flex-1">
         <div className="flex items-center justify-between text-sm">
           <span className="text-emerald-400">Yes</span>
-          <span className="text-white/50">{yes} ({yesPercentage}%)</span>
+          <span className="text-(--ws-fg-50)">{yes} ({yesPercentage}%)</span>
         </div>
-        <div className="mt-1 h-3 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-1 h-3 overflow-hidden rounded-full bg-(--ws-fill-strong)">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
             style={{ width: `${yesPercentage}%` }}
@@ -141,9 +142,9 @@ function YesNoResult({ yes, no, yesPercentage, noPercentage }: { yes: number; no
       <div className="flex-1">
         <div className="flex items-center justify-between text-sm">
           <span className="text-rose-400">No</span>
-          <span className="text-white/50">{no} ({noPercentage}%)</span>
+          <span className="text-(--ws-fg-50)">{no} ({noPercentage}%)</span>
         </div>
-        <div className="mt-1 h-3 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-1 h-3 overflow-hidden rounded-full bg-(--ws-fill-strong)">
           <div
             className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-400"
             style={{ width: `${noPercentage}%` }}
@@ -193,53 +194,58 @@ export default function PollDetailPage() {
 
   if (pollLoading) {
     return (
+      <WorkspaceScope>
       <div className="space-y-8">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl">
-          <Skeleton className="h-10 w-64 bg-white/10" />
-          <Skeleton className="mt-2 h-4 w-48 bg-white/5" />
+        <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-8 shadow-2xl">
+          <Skeleton className="h-10 w-64 bg-(--ws-fill-strong)" />
+          <Skeleton className="mt-2 h-4 w-48 bg-(--ws-fill)" />
           <div className="mt-8 grid grid-cols-3 gap-4">
-            <Skeleton className="h-24 rounded-2xl bg-white/5" />
-            <Skeleton className="h-24 rounded-2xl bg-white/5" />
-            <Skeleton className="h-24 rounded-2xl bg-white/5" />
+            <Skeleton className="h-24 rounded-2xl bg-(--ws-fill)" />
+            <Skeleton className="h-24 rounded-2xl bg-(--ws-fill)" />
+            <Skeleton className="h-24 rounded-2xl bg-(--ws-fill)" />
           </div>
         </div>
-        <Skeleton className="h-64 rounded-2xl bg-white/5" />
+        <Skeleton className="h-64 rounded-2xl bg-(--ws-fill)" />
       </div>
+      </WorkspaceScope>
     );
   }
 
   if (pollError || !poll) {
     return (
+      <WorkspaceScope>
       <div className="flex flex-col items-center justify-center gap-4 py-24">
         <div className="flex h-20 w-20 items-center justify-center rounded-full border border-rose-500/20 bg-rose-500/10">
           <XCircle className="h-10 w-10 text-rose-400" />
         </div>
         <div className="text-center">
-          <p className="text-lg font-medium text-white/80">Poll not found</p>
-          <p className="mt-1 text-sm text-white/50">This poll may have been deleted or doesn&apos;t exist</p>
+          <p className="text-lg font-medium text-(--ws-fg-80)">Poll not found</p>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">This poll may have been deleted or doesn&apos;t exist</p>
         </div>
         <Link href="/admin/community/polls">
-          <Button variant="outline" className="mt-2 gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10">
+          <Button variant="outline" className="mt-2 gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
             <ArrowLeft className="h-4 w-4" />
             Back to Polls
           </Button>
         </Link>
       </div>
+      </WorkspaceScope>
     );
   }
 
   const canShowResults = poll.status === "live" || poll.status === "closed" || poll.revealResults === "live";
 
   return (
+    <WorkspaceScope>
     <div className="space-y-8">
       {/* ══════════════════════════════════════════════════════════════════════
           Premium Hero Header
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-8 shadow-[var(--ws-shadow)]">
         {/* Background decorations */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-transparent blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-purple-500/10 via-purple-500/5 to-transparent blur-3xl" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine-strong) to-transparent" />
 
         <div className="relative z-10">
           {/* Top row */}
@@ -249,25 +255,25 @@ export default function PollDetailPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="mt-1 h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  className="mt-1 h-10 w-10 rounded-xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
               <div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/20 to-purple-500/20 shadow-lg shadow-violet-500/10">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-gradient-to-br from-violet-500/20 to-purple-500/20 shadow-lg shadow-violet-500/10">
                     <Vote className="h-6 w-6 text-violet-300" />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
-                      <h1 className="text-3xl font-bold tracking-tight text-white">{poll.title}</h1>
+                      <h1 className="text-3xl font-bold tracking-tight text-(--ws-fg)">{poll.title}</h1>
                       <Badge className={cn("rounded-full text-xs font-medium", STATUS_STYLES[poll.status])}>
                         {poll.status.replaceAll("_", " ")}
                       </Badge>
                     </div>
                     {poll.description && (
-                      <p className="mt-1 text-sm text-white/60">{poll.description}</p>
+                      <p className="mt-1 text-sm text-(--ws-fg-60)">{poll.description}</p>
                     )}
                   </div>
                 </div>
@@ -279,7 +285,7 @@ export default function PollDetailPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-10 w-10 rounded-xl border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  className="h-10 w-10 rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 >
                   <MoreHorizontal className="h-5 w-5" />
                 </Button>
@@ -355,43 +361,43 @@ export default function PollDetailPage() {
 
           {/* Stats Grid */}
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-violet-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-violet-500/20">
                   <Users className="h-6 w-6 text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{poll.totalVotes}</p>
-                  <p className="text-xs font-medium uppercase tracking-wider text-white/50">Total Votes</p>
+                  <p className="text-2xl font-bold text-(--ws-fg)">{poll.totalVotes}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">Total Votes</p>
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/10 via-sky-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-sky-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-sky-500/20">
                   <MessageSquare className="h-6 w-6 text-sky-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{poll.questions.length}</p>
-                  <p className="text-xs font-medium uppercase tracking-wider text-white/50">Questions</p>
+                  <p className="text-2xl font-bold text-(--ws-fg)">{poll.questions.length}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">Questions</p>
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-amber-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-amber-500/20">
                   <Calendar className="h-6 w-6 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">
+                  <p className="text-sm font-semibold text-(--ws-fg)">
                     {poll.schedule.endDate
                       ? format(new Date(poll.schedule.endDate), "MMM d, yyyy")
                       : "No end date"}
                   </p>
-                  <p className="text-xs font-medium uppercase tracking-wider text-white/50">End Date</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">End Date</p>
                 </div>
               </div>
             </div>
@@ -404,10 +410,10 @@ export default function PollDetailPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-violet-500/20 to-purple-500/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-gradient-to-br from-violet-500/20 to-purple-500/20">
             <BarChart3 className="h-5 w-5 text-violet-400" />
           </div>
-          <h2 className="text-xl font-semibold text-white">Questions & Results</h2>
+          <h2 className="text-xl font-semibold text-(--ws-fg)">Questions & Results</h2>
         </div>
         
         {resultsLoading ? (
@@ -418,17 +424,17 @@ export default function PollDetailPage() {
                 <BarChart3 className="h-4 w-4 text-violet-400/60" />
               </div>
             </div>
-            <p className="text-sm text-white/60">Loading results...</p>
+            <p className="text-sm text-(--ws-fg-60)">Loading results...</p>
           </div>
         ) : !canShowResults ? (
-          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
+          <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-xl">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
             <CardContent className="relative z-10 flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <Eye className="h-8 w-8 text-white/30" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-fill)">
+                <Eye className="h-8 w-8 text-(--ws-fg-40)" />
               </div>
-              <p className="mt-4 font-medium text-white/80">Results are hidden</p>
-              <p className="mt-1 text-sm text-white/50">
+              <p className="mt-4 font-medium text-(--ws-fg-80)">Results are hidden</p>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Results will be visible when the poll closes
               </p>
             </CardContent>
@@ -436,21 +442,21 @@ export default function PollDetailPage() {
         ) : (
           <div className="space-y-4">
             {results?.questions.map((q, index) => (
-              <Card key={q.questionId} className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
+              <Card key={q.questionId} className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-xl">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine) to-transparent" />
                 
-                <CardHeader className="relative z-10 border-b border-white/5 pb-4">
+                <CardHeader className="relative z-10 border-b border-(--ws-line) pb-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wider text-white/40">Question {index + 1}</p>
-                      <CardTitle className="mt-1 text-lg text-white">{q.prompt}</CardTitle>
+                      <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-40)">Question {index + 1}</p>
+                      <CardTitle className="mt-1 text-lg text-(--ws-fg)">{q.prompt}</CardTitle>
                     </div>
-                    <Badge className="rounded-full border-white/10 bg-white/5 text-xs text-white/60">
+                    <Badge className="rounded-full border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-60)">
                       {QUESTION_TYPE_LABELS[q.type] || q.type}
                     </Badge>
                   </div>
-                  <p className="mt-2 text-sm text-white/50">{q.totalResponses} responses</p>
+                  <p className="mt-2 text-sm text-(--ws-fg-50)">{q.totalResponses} responses</p>
                 </CardHeader>
                 <CardContent className="relative z-10 space-y-3 p-6">
                   {(q.type === "single_choice" || q.type === "multi_choice") && q.options && (
@@ -479,10 +485,10 @@ export default function PollDetailPage() {
                   {q.type === "comment" && q.responses && (
                     <div className="max-h-48 space-y-2 overflow-y-auto">
                       {q.responses.length === 0 ? (
-                        <p className="text-sm text-white/40">No responses yet</p>
+                        <p className="text-sm text-(--ws-fg-40)">No responses yet</p>
                       ) : (
                         q.responses.map((response, i) => (
-                          <div key={i} className="rounded-xl border border-white/5 bg-white/5 p-3 text-sm text-white/80">
+                          <div key={i} className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-80)">
                             {response}
                           </div>
                         ))
@@ -536,5 +542,6 @@ export default function PollDetailPage() {
         </>
       )}
     </div>
+    </WorkspaceScope>
   );
 }

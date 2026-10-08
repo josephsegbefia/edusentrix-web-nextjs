@@ -4,6 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkspacePortalClass } from "@/components/theme/workspace-scope";
 
 // ========================
 // Types
@@ -42,6 +43,7 @@ export function ResponsiveModal({
   contentZIndexClass = "z-[101]",
   showCloseButton = true,
 }: ResponsiveModalProps) {
+  const portalClass = useWorkspacePortalClass();
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -85,9 +87,10 @@ export function ResponsiveModal({
             "sm:inset-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]",
             "sm:bottom-auto sm:w-full sm:max-w-lg",
             // Styling
-            "overflow-hidden rounded-2xl border border-white/10",
-            "bg-linear-to-br from-slate-900/95 via-slate-950/95 to-black/95",
-            "shadow-xl shadow-black/20",
+            portalClass,
+            "overflow-hidden rounded-2xl border border-(--ws-line)",
+            "bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)",
+            "text-(--ws-fg) shadow-[var(--ws-shadow)]",
             // Animation
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -99,13 +102,13 @@ export function ResponsiveModal({
           )}
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm px-6 py-4">
+          <div className="sticky top-0 z-10 border-b border-(--ws-line) bg-(--ws-popover) backdrop-blur-sm px-6 py-4">
             <div className="pr-8">
-              <DialogPrimitive.Title className="text-lg font-semibold text-white">
+              <DialogPrimitive.Title className="text-lg font-semibold text-(--ws-fg)">
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/50">
+                <DialogPrimitive.Description className="mt-1 whitespace-pre-line text-sm leading-relaxed text-(--ws-fg-50)">
                   {description}
                 </DialogPrimitive.Description>
               )}
@@ -116,8 +119,8 @@ export function ResponsiveModal({
               <DialogPrimitive.Close
                 className={cn(
                   "absolute right-4 top-4 p-2 rounded-xl",
-                  "text-white/40 hover:text-white hover:bg-white/10",
-                  "transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
+                  "text-(--ws-fg-40) hover:text-(--ws-fg) hover:bg-(--ws-fill-strong)",
+                  "transition-colors focus:outline-none focus:ring-2 focus:ring-(--ws-line-strong)"
                 )}
               >
                 <XIcon className="h-4 w-4" />

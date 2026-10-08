@@ -68,21 +68,21 @@ const toneConfig: Record<
     bg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
     glow: "bg-emerald-500/20",
     accent: "bg-emerald-500",
-    badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    badge: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   },
   rose: {
     border: "border-rose-500/30",
     bg: "from-rose-500/10 via-rose-500/5 to-transparent",
     glow: "bg-rose-500/20",
     accent: "bg-rose-500",
-    badge: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+    badge: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
   },
   amber: {
     border: "border-amber-500/30",
     bg: "from-amber-500/10 via-amber-500/5 to-transparent",
     glow: "bg-amber-500/20",
     accent: "bg-amber-500",
-    badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    badge: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
   },
   slate: {
     border: "border-slate-500/30",
@@ -167,7 +167,7 @@ export function TeacherCard({
         config.bg,
         config.border,
         "shadow-xl shadow-black/30 transition-all duration-300",
-        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--ws-shadow)] cursor-pointer"
       )}
     >
       {/* Glow effect on hover */}
@@ -182,7 +182,7 @@ export function TeacherCard({
 
       {/* Top shine */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine-strong) to-transparent"
         aria-hidden="true"
       />
 
@@ -208,7 +208,7 @@ export function TeacherCard({
               size="md"
             />
             {teacher.isNew && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-900 bg-indigo-500 text-[8px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-(--ws-dot-ring) bg-indigo-500 text-[8px] font-bold text-(--ws-fg)">
                 N
               </span>
             )}
@@ -217,10 +217,10 @@ export function TeacherCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 space-y-0.5">
-                <h3 className="truncate text-sm font-semibold text-white">
+                <h3 className="truncate text-sm font-semibold text-(--ws-fg)">
                   {teacher.fullName}
                 </h3>
-                <p className="truncate text-xs text-white/50">
+                <p className="truncate text-xs text-(--ws-fg-50)">
                   {teacher.email ?? "No email"}
                 </p>
               </div>
@@ -231,7 +231,7 @@ export function TeacherCard({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 cursor-pointer rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    className="h-7 w-7 shrink-0 cursor-pointer rounded-lg bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function TeacherCard({
               </span>
               {invitePending && <PendingInviteBadge />}
               {teacher.employeeId && (
-                <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60">
+                <span className="inline-flex items-center rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] text-(--ws-fg-60)">
                   {teacher.employeeId}
                 </span>
               )}
@@ -333,25 +333,25 @@ export function TeacherCard({
         {leaveInfo && (
           <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-amber-500/5 px-3 py-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
-              <span className="text-sm font-bold text-amber-200">{leaveInfo.daysLeft}</span>
+              <span className="text-sm font-bold text-(--ws-amber)">{leaveInfo.daysLeft}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium text-amber-200">
+              <p className="text-[11px] font-medium text-(--ws-amber)">
                 {leaveInfo.daysLeft === 0
                   ? "Leave ends today"
                   : `${leaveInfo.daysLeft} day${leaveInfo.daysLeft !== 1 ? "s" : ""} left`}
               </p>
-              <p className="text-[10px] text-amber-200/60 truncate">
+              <p className="text-[10px] text-(--ws-amber)/60 truncate">
                 {leaveInfo.startLabel && `${leaveInfo.startLabel} → `}{leaveInfo.endLabel}
               </p>
             </div>
-            <Clock className="h-3.5 w-3.5 shrink-0 text-amber-200/40" />
+            <Clock className="h-3.5 w-3.5 shrink-0 text-(--ws-amber)/40" />
           </div>
         )}
 
         {/* Subjects */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-(--ws-fg-40)">
             <BookOpen className="h-3 w-3" />
             <span>Subjects</span>
           </div>
@@ -360,19 +360,19 @@ export function TeacherCard({
               {teacher.subjects.slice(0, 4).map((s) => (
                 <span
                   key={s.id}
-                  className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-white/70"
+                  className="inline-flex items-center rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1 text-[10px] text-(--ws-fg-70)"
                 >
                   {s.name}
                 </span>
               ))}
               {teacher.subjects.length > 4 && (
-                <span className="inline-flex items-center rounded-md border border-white/10 bg-white/10 px-2 py-1 text-[10px] font-medium text-white/80">
+                <span className="inline-flex items-center rounded-md border border-(--ws-line) bg-(--ws-fill-strong) px-2 py-1 text-[10px] font-medium text-(--ws-fg-80)">
                   +{teacher.subjects.length - 4} more
                 </span>
               )}
             </div>
           ) : (
-            <p className="text-[11px] italic text-white/40">
+            <p className="text-[11px] italic text-(--ws-fg-40)">
               No subjects assigned
             </p>
           )}
@@ -380,16 +380,16 @@ export function TeacherCard({
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-5 py-3">
-        <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+      <div className="relative z-10 flex items-center justify-between border-t border-(--ws-line) bg-(--ws-fill) px-5 py-3">
+        <div className="flex items-center gap-1.5 text-[10px] text-(--ws-fg-40)">
           <Calendar className="h-3 w-3" />
           <span>{hireDateLabel ? `Hired ${hireDateLabel}` : "Hire date unknown"}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[9px] font-bold text-white/70">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-(--ws-fill-strong) text-[9px] font-bold text-(--ws-fg-70)">
             {teacher.subjects.length}
           </span>
-          <span className="text-[10px] text-white/40">subjects</span>
+          <span className="text-[10px] text-(--ws-fg-40)">subjects</span>
         </div>
       </div>
     </div>

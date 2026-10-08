@@ -49,7 +49,7 @@ export function StudentRowActions({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+          className="h-7 w-7 rounded-full bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="h-4 w-4" />

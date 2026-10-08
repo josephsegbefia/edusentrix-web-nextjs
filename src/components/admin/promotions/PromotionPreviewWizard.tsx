@@ -313,13 +313,13 @@ export function PromotionPreviewWizard({
       className="sm:max-w-5xl"
     >
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950 to-black p-5">
+        <div className="flex flex-col gap-4 rounded-[1.5rem] border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--ws-fg-50)">
+              <Sparkles className="h-3.5 w-3.5 text-(--ws-cyan)" />
               Step {currentStep} of {STEPS.length}
             </div>
-            <div className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-40)">
               {progressPercent}% complete
             </div>
           </div>
@@ -327,8 +327,8 @@ export function PromotionPreviewWizard({
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-semibold text-white">{currentStepMeta.title}</h2>
-                <p className="mt-1 text-sm text-white/55">{currentStepMeta.description}</p>
+                <h2 className="text-xl font-semibold text-(--ws-fg)">{currentStepMeta.title}</h2>
+                <p className="mt-1 text-sm text-(--ws-fg-50)">{currentStepMeta.description}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-4">
@@ -345,7 +345,7 @@ export function PromotionPreviewWizard({
                           ? "border-cyan-400/30 bg-cyan-500/10"
                           : isComplete
                             ? "border-emerald-500/20 bg-emerald-500/10"
-                            : "border-white/10 bg-white/[0.03]"
+                            : "border-(--ws-line) bg-(--ws-fill)"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -353,19 +353,19 @@ export function PromotionPreviewWizard({
                           className={cn(
                             "flex h-9 w-9 items-center justify-center rounded-xl border",
                             isCurrent
-                              ? "border-cyan-400/30 bg-cyan-500/20 text-cyan-100"
+                              ? "border-cyan-400/30 bg-cyan-500/20 text-(--ws-cyan)"
                               : isComplete
-                                ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-100"
-                                : "border-white/10 bg-white/5 text-white/50"
+                                ? "border-emerald-500/30 bg-emerald-500/20 text-(--ws-emerald)"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
                           )}
                         >
                           <StepIcon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                             Step {index + 1}
                           </p>
-                          <p className="truncate text-sm font-medium text-white">{step.title}</p>
+                          <p className="truncate text-sm font-medium text-(--ws-fg)">{step.title}</p>
                         </div>
                       </div>
                     </div>
@@ -377,7 +377,7 @@ export function PromotionPreviewWizard({
                 <div className="space-y-5">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-white/72">Source academic period</Label>
+                      <Label className="text-(--ws-fg)/72">Source academic period</Label>
                       <PremiumSelect value={sourcePeriodId} onValueChange={setSourcePeriodId}>
                         <PremiumSelectTrigger className="h-11 rounded-xl">
                           <PremiumSelectValue placeholder="Select the completed period" />
@@ -392,7 +392,7 @@ export function PromotionPreviewWizard({
                       </PremiumSelect>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-white/72">Target academic period</Label>
+                      <Label className="text-(--ws-fg)/72">Target academic period</Label>
                       <PremiumSelect
                         value={targetPeriodId || "__none__"}
                         onValueChange={(value) => setTargetPeriodId(value === "__none__" ? "" : value)}
@@ -415,27 +415,27 @@ export function PromotionPreviewWizard({
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Source period
                       </p>
-                      <p className="mt-2 text-base font-semibold text-white">
+                      <p className="mt-2 text-base font-semibold text-(--ws-fg)">
                         {sourcePeriod ? `${sourcePeriod.yearLabel} • ${sourcePeriod.term}` : "Not selected"}
                       </p>
-                      <p className="mt-1 text-sm text-white/55">
+                      <p className="mt-1 text-sm text-(--ws-fg-50)">
                         {sourcePeriod
                           ? formatDateRange(sourcePeriod.startDate, sourcePeriod.endDate)
                           : "Choose the period students are finishing."}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Target period
                       </p>
-                      <p className="mt-2 text-base font-semibold text-white">
+                      <p className="mt-2 text-base font-semibold text-(--ws-fg)">
                         {targetPeriod ? `${targetPeriod.yearLabel} • ${targetPeriod.term}` : "Not set"}
                       </p>
-                      <p className="mt-1 text-sm text-white/55">
+                      <p className="mt-1 text-sm text-(--ws-fg-50)">
                         {targetPeriod
                           ? formatDateRange(targetPeriod.startDate, targetPeriod.endDate)
                           : "Optional when the next year or term has not been created yet."}
@@ -448,7 +448,7 @@ export function PromotionPreviewWizard({
               {currentStep === 2 && (
                 <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label className="text-white/72">Active promotion policy</Label>
+                    <Label className="text-(--ws-fg)/72">Active promotion policy</Label>
                     <PremiumSelect
                       value={policySelectValue}
                       onValueChange={(value) => {
@@ -490,7 +490,7 @@ export function PromotionPreviewWizard({
                       </PremiumSelectContent>
                     </PremiumSelect>
                     {needsExplicitPolicy ? (
-                      <p className="text-sm text-amber-200">
+                      <p className="text-sm text-(--ws-amber)">
                         Multiple active policies exist. Pick the exact policy Leo should use for this preview.
                       </p>
                     ) : null}
@@ -498,8 +498,8 @@ export function PromotionPreviewWizard({
 
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-white/72">Limit preview to grades</Label>
-                      <p className="mt-1 text-sm text-white/45">
+                      <Label className="text-(--ws-fg)/72">Limit preview to grades</Label>
+                      <p className="mt-1 text-sm text-(--ws-fg-40)">
                         Leave all grades unselected to cover the full policy scope.
                       </p>
                     </div>
@@ -520,8 +520,8 @@ export function PromotionPreviewWizard({
                             className={cn(
                               "rounded-full border px-4 py-2 text-sm transition-colors",
                               checked
-                                ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
-                                : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                                ? "border-cyan-400/40 bg-cyan-500/15 text-(--ws-cyan)"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                             )}
                           >
                             {grade.name}
@@ -531,11 +531,11 @@ export function PromotionPreviewWizard({
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                  <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                       Effective scope
                     </p>
-                    <p className="mt-2 text-sm text-white/70">{gradeScopeLabel}</p>
+                    <p className="mt-2 text-sm text-(--ws-fg-70)">{gradeScopeLabel}</p>
                   </div>
                 </div>
               )}
@@ -543,38 +543,38 @@ export function PromotionPreviewWizard({
               {currentStep === 3 && (
                 <div className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Promotion period
                       </p>
-                      <p className="mt-2 text-base font-semibold text-white">
+                      <p className="mt-2 text-base font-semibold text-(--ws-fg)">
                         {sourcePeriod ? `${sourcePeriod.yearLabel} • ${sourcePeriod.term}` : "Not selected"}
                       </p>
-                      <p className="mt-1 text-sm text-white/55">
+                      <p className="mt-1 text-sm text-(--ws-fg-50)">
                         Leo will use this academic period as the evidence window.
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Promotion policy
                       </p>
-                      <p className="mt-2 text-base font-semibold text-white">
+                      <p className="mt-2 text-base font-semibold text-(--ws-fg)">
                         {selectedPolicy?.name ?? "Fallback school settings"}
                       </p>
-                      <p className="mt-1 text-sm text-white/55">{gradeScopeLabel}</p>
+                      <p className="mt-1 text-sm text-(--ws-fg-50)">{gradeScopeLabel}</p>
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                        <MapPin className="h-4 w-4 text-emerald-100" />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill-strong)">
+                        <MapPin className="h-4 w-4 text-(--ws-emerald)" />
                       </div>
                       <div>
-                        <p className="font-medium text-white">Smart placement is already built in</p>
-                        <p className="mt-1 text-sm text-white/70">
+                        <p className="font-medium text-(--ws-fg)">Smart placement is already built in</p>
+                        <p className="mt-1 text-sm text-(--ws-fg-70)">
                           Leo prefers the next grade with the same class section, for example
-                          <span className="font-medium text-white"> JHS 1 A → JHS 2 A</span>.
+                          <span className="font-medium text-(--ws-fg)"> JHS 1 A → JHS 2 A</span>.
                           If that exact section is full or missing, the preview falls back to the
                           least-loaded target class and flags the placement for human review.
                         </p>
@@ -587,27 +587,27 @@ export function PromotionPreviewWizard({
               {currentStep === 4 && lastResult && (
                 <div className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Evaluated
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-white">
+                      <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                         {lastResult.totals.studentsEvaluated}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100/70">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-emerald)/70">
                         Promote
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-emerald-100">
+                      <p className="mt-2 text-2xl font-semibold text-(--ws-emerald)">
                         {lastResult.totals.promote}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/70">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-amber)/70">
                         Repeat
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-amber-100">
+                      <p className="mt-2 text-2xl font-semibold text-(--ws-amber)">
                         {lastResult.totals.repeat}
                       </p>
                     </div>
@@ -615,7 +615,7 @@ export function PromotionPreviewWizard({
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-100/70">
                         Hold
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-white">
+                      <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                         {lastResult.totals.hold}
                       </p>
                     </div>
@@ -644,7 +644,7 @@ export function PromotionPreviewWizard({
                     <Button
                       type="button"
                       variant="outline"
-                      className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                      className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                       onClick={() => {
                         handleOpenChange(false);
                         onJumpToWorkspace?.("placement");
@@ -656,7 +656,7 @@ export function PromotionPreviewWizard({
                     <Button
                       type="button"
                       variant="outline"
-                      className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                      className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                       onClick={() => {
                         handleOpenChange(false);
                         onJumpToWorkspace?.("history");
@@ -672,27 +672,27 @@ export function PromotionPreviewWizard({
 
             <aside className="rounded-[1.5rem] border border-cyan-500/20 bg-cyan-500/10 p-5">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                  <LeoIcon className="h-5 w-5 text-cyan-100" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill-strong)">
+                  <LeoIcon className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <Wand2 className="h-4 w-4 text-cyan-100" />
-                    <p className="text-sm font-semibold text-white">Leo promotion guide</p>
+                    <Wand2 className="h-4 w-4 text-(--ws-cyan)" />
+                    <p className="text-sm font-semibold text-(--ws-fg)">Leo promotion guide</p>
                   </div>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{leoGuidance.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/70">{leoGuidance.body}</p>
+                  <h3 className="mt-2 text-lg font-semibold text-(--ws-fg)">{leoGuidance.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-(--ws-fg-70)">{leoGuidance.body}</p>
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+              <div className="mt-5 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                   What Leo is checking
                 </p>
-                <ul className="mt-3 space-y-2 text-sm text-white/72">
+                <ul className="mt-3 space-y-2 text-sm text-(--ws-fg)/72">
                   {leoGuidance.actions.map((action) => (
                     <li key={action} className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                       <span>{action}</span>
                     </li>
                   ))}
@@ -701,7 +701,7 @@ export function PromotionPreviewWizard({
             </aside>
           </div>
 
-          <div className="h-2 rounded-full bg-white/8">
+          <div className="h-2 rounded-full bg-(--ws-fill)">
             <div
               className="h-2 rounded-full bg-linear-to-r from-cyan-400 to-emerald-300 transition-all"
               style={{ width: `${progressPercent}%` }}
@@ -709,11 +709,11 @@ export function PromotionPreviewWizard({
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col-reverse gap-3 border-t border-(--ws-line) pt-4 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="outline"
-            className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+            className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             onClick={() => {
               if (currentStep === 1) handleOpenChange(false);
               else if (currentStep === 4) setCurrentStep(3);

@@ -19,15 +19,15 @@ export function SubjectPerformanceTable({
 }: Props) {
   if (!subjects.length) {
     return (
-      <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-sm text-muted-foreground">
         No subject grades recorded for this term yet.
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-950/80">
-      <div className="grid grid-cols-12 border-b border-white/10 bg-white/5 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-300">
+    <div className="overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-popover)">
+      <div className="grid grid-cols-12 border-b border-(--ws-line) bg-(--ws-fill) px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-300">
         <div className="col-span-3">Subject</div>
         <div className="col-span-2 text-right">CA</div>
         <div className="col-span-2 text-right">Exam</div>
@@ -36,11 +36,11 @@ export function SubjectPerformanceTable({
         <div className="col-span-1 text-right">Teacher</div>
         <div className="col-span-1 text-center">Actions</div>
       </div>
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-(--ws-line)">
         {subjects.map((s) => (
           <div
             key={s.subjectId}
-            className="grid grid-cols-12 items-center px-4 py-2 text-xs text-slate-100/90 hover:bg-white/5"
+            className="grid grid-cols-12 items-center px-4 py-2 text-xs text-slate-100/90 hover:bg-(--ws-fill)"
           >
             <div className="col-span-3 flex flex-col">
               <span className="font-medium">{s.subjectName}</span>

@@ -90,13 +90,13 @@ export function TeachersAdvancedFiltersDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-xl shadow-black/30 backdrop-blur">
+      <DialogContent className="border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <DialogHeader>
           <DialogTitle>Filters</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
             <p className="text-xs font-medium text-muted-foreground">
               Department
             </p>
@@ -111,12 +111,12 @@ export function TeachersAdvancedFiltersDialog({
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <p className="text-xs font-medium text-muted-foreground">
                 Subject
               </p>
               <select
-                className="mt-2 h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm"
+                className="mt-2 h-10 w-full rounded-md border border-(--ws-line) bg-(--ws-fill) px-3 text-sm"
                 value={value.subjectId}
                 onChange={(e) =>
                   onChange({ ...value, subjectId: e.target.value })
@@ -135,12 +135,12 @@ export function TeachersAdvancedFiltersDialog({
               </p>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <p className="text-xs font-medium text-muted-foreground">
                 Homeroom Class
               </p>
               <select
-                className="mt-2 h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm"
+                className="mt-2 h-10 w-full rounded-md border border-(--ws-line) bg-(--ws-fill) px-3 text-sm"
                 value={value.classGroupId}
                 onChange={(e) =>
                   onChange({ ...value, classGroupId: e.target.value })

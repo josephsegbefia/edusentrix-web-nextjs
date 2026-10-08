@@ -104,22 +104,22 @@ export function PreviewTab() {
   return (
     <div className="space-y-8">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-white">Run preview</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Run preview</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">
           Evaluate students for promotion. No changes are made — this is read-only.
         </p>
       </div>
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-white">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6">
+        <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
           <Eye className="h-4 w-4" />
           Configure & run
         </h3>
-        <p className="mb-4 text-sm text-white/60">
+        <p className="mb-4 text-sm text-(--ws-fg-60)">
           Evaluate students for promotion. This is read-only — no placement changes are made.
         </p>
 
         {noPolicy && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-(--ws-amber)">
             <AlertCircle className="h-4 w-4 shrink-0" />
             No active policy. Preview will use fallback (attendance % from Settings, pass threshold
             from Grading Scale) if configured.
@@ -128,7 +128,7 @@ export function PreviewTab() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-white/70">Source period</Label>
+            <Label className="text-(--ws-fg-70)">Source period</Label>
             <PremiumSelect value={sourcePeriodId} onValueChange={setSourcePeriodId}>
               <PremiumSelectTrigger className="h-9 w-full rounded-xl">
                 <PremiumSelectValue placeholder="Select period" />
@@ -143,7 +143,7 @@ export function PreviewTab() {
             </PremiumSelect>
           </div>
           <div className="space-y-2">
-            <Label className="text-white/70">Target period (optional)</Label>
+            <Label className="text-(--ws-fg-70)">Target period (optional)</Label>
             <PremiumSelect
               value={targetPeriodId || "__none__"}
               onValueChange={(v) => setTargetPeriodId(v === "__none__" ? "" : v)}
@@ -162,7 +162,7 @@ export function PreviewTab() {
             </PremiumSelect>
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <Label className="text-white/70">Policy to use</Label>
+            <Label className="text-(--ws-fg-70)">Policy to use</Label>
             <PremiumSelect
               value={policyId || "__fallback__"}
               onValueChange={(v) => setPolicyId(v === "__fallback__" ? "" : v)}
@@ -182,7 +182,7 @@ export function PreviewTab() {
               </PremiumSelectContent>
             </PremiumSelect>
             {activePolicies.length > 1 ? (
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-(--ws-fg-40)">
                 Multiple active policies exist. Select the JHS, primary, preschool, or whole-school
                 policy you want this preview cycle to use.
               </p>
@@ -192,7 +192,7 @@ export function PreviewTab() {
 
         {grades.length > 0 && (
           <div className="mt-4 space-y-2">
-            <Label className="text-white/70">Scope: grades (optional; empty = all)</Label>
+            <Label className="text-(--ws-fg-70)">Scope: grades (optional; empty = all)</Label>
             <div className="flex flex-wrap gap-2">
               {grades.map((g) => {
                 const id = (g as { id?: string; _id?: string }).id ?? (g as { _id: string })._id;
@@ -200,7 +200,7 @@ export function PreviewTab() {
                 return (
                   <label
                     key={id}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-sm hover:bg-(--ws-fill-strong)"
                   >
                     <input
                       type="checkbox"
@@ -235,31 +235,31 @@ export function PreviewTab() {
 
       {lastResult && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-6">
-          <h4 className="mb-4 font-semibold text-emerald-200">Preview results</h4>
+          <h4 className="mb-4 font-semibold text-(--ws-emerald)">Preview results</h4>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
-              <p className="text-xs text-white/50">Evaluated</p>
-              <p className="text-xl font-semibold text-white">{lastResult.totals.studentsEvaluated}</p>
+              <p className="text-xs text-(--ws-fg-50)">Evaluated</p>
+              <p className="text-xl font-semibold text-(--ws-fg)">{lastResult.totals.studentsEvaluated}</p>
             </div>
             <div>
-              <p className="text-xs text-white/50">Promote</p>
-              <p className="text-xl font-semibold text-emerald-300">{lastResult.totals.promote}</p>
+              <p className="text-xs text-(--ws-fg-50)">Promote</p>
+              <p className="text-xl font-semibold text-(--ws-emerald)">{lastResult.totals.promote}</p>
             </div>
             <div>
-              <p className="text-xs text-white/50">Repeat</p>
-              <p className="text-xl font-semibold text-amber-300">{lastResult.totals.repeat}</p>
+              <p className="text-xs text-(--ws-fg-50)">Repeat</p>
+              <p className="text-xl font-semibold text-(--ws-amber)">{lastResult.totals.repeat}</p>
             </div>
             <div>
-              <p className="text-xs text-white/50">Graduate</p>
+              <p className="text-xs text-(--ws-fg-50)">Graduate</p>
               <p className="text-xl font-semibold text-purple-300">{lastResult.totals.graduate}</p>
             </div>
             <div>
-              <p className="text-xs text-white/50">Hold</p>
-              <p className="text-xl font-semibold text-white/70">{lastResult.totals.hold}</p>
+              <p className="text-xs text-(--ws-fg-50)">Hold</p>
+              <p className="text-xl font-semibold text-(--ws-fg-70)">{lastResult.totals.hold}</p>
             </div>
           </div>
-          <p className="mt-4 text-sm text-white/60">
-            Cycle ID: <code className="rounded bg-white/10 px-1">{lastResult.cycleId}</code>
+          <p className="mt-4 text-sm text-(--ws-fg-60)">
+            Cycle ID: <code className="rounded bg-(--ws-fill-strong) px-1">{lastResult.cycleId}</code>
           </p>
         </div>
       )}

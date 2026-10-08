@@ -5,12 +5,12 @@ import { PERIOD_STATUS_LABELS } from "@/lib/academics/profile/academic-period-se
 import type { AcademicPeriodProfileStatus } from "@/types/academics/student-academic-profile";
 
 const STATUS_STYLES: Record<AcademicPeriodProfileStatus, string> = {
-  no_data: "border-white/10 bg-white/5 text-white/50",
-  in_progress: "border-amber-400/25 bg-amber-500/10 text-amber-100",
+  no_data: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
+  in_progress: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
   compiled: "border-violet-400/25 bg-violet-500/10 text-violet-100",
-  approved: "border-cyan-400/25 bg-cyan-500/10 text-cyan-100",
-  released: "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
-  legacy: "border-white/15 bg-white/8 text-white/65",
+  approved: "border-cyan-400/25 bg-cyan-500/10 text-(--ws-cyan)",
+  released: "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)",
+  legacy: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)",
 };
 
 type Props = {
@@ -37,7 +37,7 @@ export function OfficialStatusBadge({
     >
       {PERIOD_STATUS_LABELS[status]}
       {isOfficial ? (
-        <span className="text-[9px] uppercase tracking-wide text-emerald-200/90">
+        <span className="text-[9px] uppercase tracking-wide text-(--ws-emerald)/90">
           Official
         </span>
       ) : null}

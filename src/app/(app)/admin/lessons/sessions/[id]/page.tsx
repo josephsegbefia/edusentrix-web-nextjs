@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { AdminLessonSessionDetail } from "@/components/admin/lesson-sessions/AdminLessonSessionDetail";
@@ -14,7 +15,8 @@ export default async function AdminLessonSessionDetailPage({
   if (!id) notFound();
 
   return (
-    <WorkspacePageShell>
+    <WorkspaceScope>
+      <WorkspacePageShell>
       <WorkspacePageHeader
         iconName="presentation"
         title="Lesson Session"
@@ -24,5 +26,6 @@ export default async function AdminLessonSessionDetailPage({
       />
       <AdminLessonSessionDetail sessionId={id} />
     </WorkspacePageShell>
+    </WorkspaceScope>
   );
 }

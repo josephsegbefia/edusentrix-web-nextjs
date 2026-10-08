@@ -90,15 +90,15 @@ export function PlacementTab() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white">Placement</h2>
-          <p className="mt-1 text-sm text-white/50">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Placement</h2>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             Assign target grades and classes for students set to promote.
           </p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
-          <MapPin className="mx-auto h-12 w-12 text-white/20" />
-          <p className="mt-4 text-white/60">No cycles ready for placement</p>
-          <p className="mt-1 text-sm text-white/40">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) py-12 text-center">
+          <MapPin className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+          <p className="mt-4 text-(--ws-fg-60)">No cycles ready for placement</p>
+          <p className="mt-1 text-sm text-(--ws-fg-40)">
             Run a preview and review decisions first
           </p>
         </div>
@@ -109,14 +109,14 @@ export function PlacementTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Placement</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Placement</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">
           Assign target grades and classes for students set to promote.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-white/50">Cycle</label>
+          <label className="text-xs text-(--ws-fg-50)">Cycle</label>
           <PremiumSelect
             value={cycleId ?? ""}
             onValueChange={(v) => setCycleId(v || null)}
@@ -135,9 +135,9 @@ export function PlacementTab() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-        <h4 className="mb-2 font-semibold text-white">Auto-assign placements</h4>
-        <p className="mb-4 text-sm text-white/60">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6">
+        <h4 className="mb-2 font-semibold text-(--ws-fg)">Auto-assign placements</h4>
+        <p className="mb-4 text-sm text-(--ws-fg-60)">
           Let EduSentrix assign promote decisions to the next grade and least-loaded matching class.
           Any unresolved placements can be set manually below.
         </p>
@@ -156,23 +156,23 @@ export function PlacementTab() {
       </div>
 
       {promoteWithoutTarget.length > 0 && (
-        <div className="rounded-xl border border-white/10">
-          <h4 className="border-b border-white/10 px-4 py-3 font-medium text-white">
+        <div className="rounded-xl border border-(--ws-line)">
+          <h4 className="border-b border-(--ws-line) px-4 py-3 font-medium text-(--ws-fg)">
             Promote decisions that still need placement
           </h4>
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-(--ws-line)">
             {promoteWithoutTarget.slice(0, 20).map((d) => (
               <li
                 key={d.id}
                 className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <span className="font-medium text-white/90">{d.studentName}</span>
-                  <span className="ml-2 text-sm text-white/50">
+                  <span className="font-medium text-(--ws-fg-90)">{d.studentName}</span>
+                  <span className="ml-2 text-sm text-(--ws-fg-50)">
                     {d.fromGradeName} {d.fromClassGroupName} → ?
                   </span>
                   {d.conflicts.length > 0 ? (
-                    <p className="mt-1 text-xs text-amber-200">
+                    <p className="mt-1 text-xs text-(--ws-amber)">
                       Needs attention: {d.conflicts.join(", ")}
                     </p>
                   ) : null}
@@ -181,7 +181,7 @@ export function PlacementTab() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="gap-2 border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                  className="gap-2 border-amber-500/30 text-(--ws-amber) hover:bg-amber-500/10"
                   onClick={() => setManualDecision(d)}
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -191,7 +191,7 @@ export function PlacementTab() {
             ))}
           </ul>
           {promoteWithoutTarget.length > 20 && (
-            <p className="px-4 py-2 text-sm text-white/50">
+            <p className="px-4 py-2 text-sm text-(--ws-fg-50)">
               +{promoteWithoutTarget.length - 20} more
             </p>
           )}
@@ -200,7 +200,7 @@ export function PlacementTab() {
 
       {promoteWithoutTarget.length === 0 && data && data.data.length > 0 && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-          <p className="text-sm text-emerald-200">All promote decisions have target placements.</p>
+          <p className="text-sm text-(--ws-emerald)">All promote decisions have target placements.</p>
         </div>
       )}
 

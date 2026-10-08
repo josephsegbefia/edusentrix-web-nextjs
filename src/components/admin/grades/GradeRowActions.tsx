@@ -28,7 +28,7 @@ export function GradeRowActions({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+          className="h-7 w-7 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="h-4 w-4" />

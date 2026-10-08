@@ -37,17 +37,17 @@ export function SubjectResultsTable({
 
   if (!subjects.length) {
     return (
-      <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-sm text-muted-foreground">
         No subject results recorded for this period yet.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/80">
+    <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-(--ws-popover)">
       <table className="min-w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-white/10 bg-white/5">
+          <tr className="border-b border-(--ws-line) bg-(--ws-fill)">
             <th className={thClass}>Subject</th>
             {layout.mode === "columns"
               ? layout.columns.map((column) => (
@@ -65,7 +65,7 @@ export function SubjectResultsTable({
             <th className={cn(thClass, "text-center")}>Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/5">
+        <tbody className="divide-y divide-(--ws-line)">
           {subjects.map((row) => {
             const componentByKey = new Map(
               row.components.map((component) => [component.componentKey, component])
@@ -73,10 +73,10 @@ export function SubjectResultsTable({
             const totalScore = row.roundedFinalScore ?? row.finalScore;
 
             return (
-              <tr key={row.subjectId} className="hover:bg-white/5">
+              <tr key={row.subjectId} className="hover:bg-(--ws-fill)">
                 <td className={tdClass}>
                   <div className="flex flex-col">
-                    <span className="font-medium text-white">{row.subjectName}</span>
+                    <span className="font-medium text-(--ws-fg)">{row.subjectName}</span>
                     {row.subjectCode ? (
                       <span className="text-[11px] text-slate-400">{row.subjectCode}</span>
                     ) : null}

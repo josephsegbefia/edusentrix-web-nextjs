@@ -218,8 +218,8 @@ export default function EditTeacherModal({
 
   if (!me?.schoolId) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-        <div className="text-sm text-white/60">School ID not available.</div>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+        <div className="text-sm text-(--ws-fg-60)">School ID not available.</div>
       </div>
     );
   }
@@ -238,7 +238,7 @@ export default function EditTeacherModal({
       className="space-y-8"
     >
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {TOTAL_STEPS}
         </div>
@@ -247,7 +247,7 @@ export default function EditTeacherModal({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i <= currentStep ? "bg-brand" : "bg-white/20"
+                i <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -280,10 +280,10 @@ export default function EditTeacherModal({
                     id="firstName"
                     {...register("firstName")}
                     placeholder="John"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.firstName && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.firstName.message}
                     </div>
                   )}
@@ -299,10 +299,10 @@ export default function EditTeacherModal({
                     id="lastName"
                     {...register("lastName")}
                     placeholder="Doe"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.lastName && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.lastName.message}
                     </div>
                   )}
@@ -322,10 +322,10 @@ export default function EditTeacherModal({
                     type="email"
                     {...register("email")}
                     placeholder="john.doe@example.com"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.email && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.email.message}
                     </div>
                   )}
@@ -340,7 +340,7 @@ export default function EditTeacherModal({
                     <GhanaPhoneInput
                       id="phone"
                       {...register("phone")}
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                 </div>
               </div>
@@ -360,7 +360,7 @@ export default function EditTeacherModal({
                     transition={{ duration: 0.3 }}
                     className="relative"
                   >
-                    <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-white/10 bg-white/5 shadow-lg">
+                    <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-(--ws-line) bg-(--ws-fill) shadow-lg">
                       <AnimatePresence mode="wait">
                         {photoUrl ? (
                           <motion.div
@@ -401,7 +401,7 @@ export default function EditTeacherModal({
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         onClick={handleRemovePhoto}
-                        className="absolute -top-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white/10 bg-rose-500 text-white shadow-lg transition-colors hover:bg-rose-600"
+                        className="absolute -top-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full border-2 border-(--ws-line) bg-rose-500 text-(--ws-fg) shadow-lg transition-colors hover:bg-rose-600"
                       >
                         <X className="h-4 w-4" />
                       </motion.button>
@@ -425,7 +425,7 @@ export default function EditTeacherModal({
                   </div>
                 </div>
                 {errors.photoUrl && (
-                  <div className="text-center text-xs text-rose-300">
+                  <div className="text-center text-xs text-(--ws-rose)">
                     {errors.photoUrl.message}
                   </div>
                 )}
@@ -455,7 +455,7 @@ export default function EditTeacherModal({
                           className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all ${
                             field.value === s
                               ? "border-brand bg-brand/20 text-brand"
-                              : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                           }`}
                         >
                           <input
@@ -474,7 +474,7 @@ export default function EditTeacherModal({
                   )}
                 />
                 {errors.status && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.status.message}
                   </div>
                 )}
@@ -482,7 +482,7 @@ export default function EditTeacherModal({
 
               {currentStatus === "on_leave" && (
                 <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-200/80">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)/80">
                     Leave period
                   </p>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -497,10 +497,10 @@ export default function EditTeacherModal({
                         id="leaveStartDate"
                         type="date"
                         {...register("leaveStartDate")}
-                        className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                       {errors.leaveStartDate && (
-                        <div className="text-xs text-rose-300">
+                        <div className="text-xs text-(--ws-rose)">
                           {errors.leaveStartDate.message}
                         </div>
                       )}
@@ -516,10 +516,10 @@ export default function EditTeacherModal({
                         id="leaveEndDate"
                         type="date"
                         {...register("leaveEndDate")}
-                        className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                       {errors.leaveEndDate && (
-                        <div className="text-xs text-rose-300">
+                        <div className="text-xs text-(--ws-rose)">
                           {errors.leaveEndDate.message}
                         </div>
                       )}
@@ -536,7 +536,7 @@ export default function EditTeacherModal({
                       id="leaveReason"
                       {...register("leaveReason")}
                       placeholder="Brief reason for leave"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
@@ -550,7 +550,7 @@ export default function EditTeacherModal({
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Employment
                 </h2>
-                <p className="mt-1 text-sm text-white/55">
+                <p className="mt-1 text-sm text-(--ws-fg)/55">
                   Subject classes and homeroom are managed from the teacher
                   profile, not here.
                 </p>
@@ -567,7 +567,7 @@ export default function EditTeacherModal({
                     id="employeeId"
                     {...register("employeeId")}
                     placeholder="EMP-001"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
                 <div className="space-y-2">
@@ -581,7 +581,7 @@ export default function EditTeacherModal({
                     id="hireDate"
                     type="date"
                     {...register("hireDate")}
-                    className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -598,7 +598,7 @@ export default function EditTeacherModal({
                     id="terminationDate"
                     type="date"
                     {...register("terminationDate")}
-                    className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
               )}
@@ -611,14 +611,14 @@ export default function EditTeacherModal({
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Internal Notes
                 </h2>
-                <p className="mt-1 text-sm text-white/60">
+                <p className="mt-1 text-sm text-(--ws-fg-60)">
                   Visible to admins only.
                 </p>
               </div>
               <textarea
                 {...register("notes")}
                 placeholder="Add internal notes about this teacher..."
-                className="h-40 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                className="h-40 w-full resize-none rounded-lg border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </section>
           )}
@@ -628,33 +628,33 @@ export default function EditTeacherModal({
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                 Review &amp; save
               </h2>
-              <p className="text-sm text-white/70">
+              <p className="text-sm text-(--ws-fg-70)">
                 Teaching assignments and homeroom are unchanged here—update them
                 from the teacher&apos;s profile tabs.
               </p>
 
-              <div className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
+              <div className="space-y-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm">
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                  <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                     Name
                   </div>
-                  <div className="font-medium text-white">
+                  <div className="font-medium text-(--ws-fg)">
                     {firstName} {lastName}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                       Email
                     </div>
-                    <div className="text-white/90">{watchedEmail || "—"}</div>
+                    <div className="text-(--ws-fg-90)">{watchedEmail || "—"}</div>
                   </div>
                   <div>
-                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                       Phone
                     </div>
-                    <div className="text-white/90">
+                    <div className="text-(--ws-fg-90)">
                       {watchedPhone?.trim() ? watchedPhone : "—"}
                     </div>
                   </div>
@@ -662,18 +662,18 @@ export default function EditTeacherModal({
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                       Status
                     </div>
-                    <div className="capitalize text-white/90">
+                    <div className="capitalize text-(--ws-fg-90)">
                       {currentStatus?.replace("_", " ") || "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                       Employee ID
                     </div>
-                    <div className="text-white/90">
+                    <div className="text-(--ws-fg-90)">
                       {watchedEmployeeId?.trim() ? watchedEmployeeId : "—"}
                     </div>
                   </div>
@@ -682,18 +682,18 @@ export default function EditTeacherModal({
                 {currentStatus === "on_leave" ? (
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                      <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                         Leave start
                       </div>
-                      <div className="text-white/90">
+                      <div className="text-(--ws-fg-90)">
                         {watchedLeaveStart || "—"}
                       </div>
                     </div>
                     <div>
-                      <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                      <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                         Leave end
                       </div>
-                      <div className="text-white/90">
+                      <div className="text-(--ws-fg-90)">
                         {watchedLeaveEnd || "—"}
                       </div>
                     </div>
@@ -702,17 +702,17 @@ export default function EditTeacherModal({
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                    <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                       Hire date
                     </div>
-                    <div className="text-white/90">{watchedHireDate || "—"}</div>
+                    <div className="text-(--ws-fg-90)">{watchedHireDate || "—"}</div>
                   </div>
                   {currentStatus === "terminated" ? (
                     <div>
-                      <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                      <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                         Termination date
                       </div>
-                      <div className="text-white/90">
+                      <div className="text-(--ws-fg-90)">
                         {watchedTerminationDate || "—"}
                       </div>
                     </div>
@@ -720,10 +720,10 @@ export default function EditTeacherModal({
                 </div>
 
                 <div>
-                  <div className="mb-1 text-xs uppercase tracking-[0.15em] text-white/45">
+                  <div className="mb-1 text-xs uppercase tracking-[0.15em] text-(--ws-fg)/45">
                     Internal notes
                   </div>
-                  <div className="whitespace-pre-wrap text-white/90">
+                  <div className="whitespace-pre-wrap text-(--ws-fg-90)">
                     {watchedNotes?.trim() ? watchedNotes : "—"}
                   </div>
                 </div>
@@ -733,13 +733,13 @@ export default function EditTeacherModal({
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex items-center justify-between border-t border-white/10 pt-6">
+      <div className="flex items-center justify-between border-t border-(--ws-line) pt-6">
         <Button
           type="button"
           variant="outline"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isPending}
-          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           <ChevronLeft className="h-4 w-4" />
           {isFirstStep ? "Cancel" : "Previous"}

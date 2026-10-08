@@ -31,20 +31,20 @@ const tabColors: Record<TeachersTabId, { active: string; icon: string }> = {
     icon: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
   },
   active: {
-    active: "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
-    icon: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    active: "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald) shadow-emerald-500/20",
+    icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   },
   inactive: {
     active: "border-slate-400/40 bg-slate-500/15 text-slate-200 shadow-slate-500/20",
     icon: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   },
   on_leave: {
-    active: "border-amber-500/40 bg-amber-500/15 text-amber-200 shadow-amber-500/20",
-    icon: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    active: "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
+    icon: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
   },
   terminated: {
-    active: "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-rose-500/20",
-    icon: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+    active: "border-rose-500/40 bg-rose-500/15 text-(--ws-rose) shadow-rose-500/20",
+    icon: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
   },
   homeroom: {
     active: "border-purple-500/40 bg-purple-500/15 text-purple-200 shadow-purple-500/20",
@@ -75,7 +75,7 @@ export function TeachersTabsNav({
               "group relative inline-flex items-center gap-2.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-xs font-medium transition-all duration-200",
               active
                 ? cn("shadow-lg", colors.active)
-                : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white/80"
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
             )}
             aria-pressed={active}
           >
@@ -89,7 +89,7 @@ export function TeachersTabsNav({
                 "flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-200",
                 active
                   ? colors.icon
-                  : "border-white/10 bg-white/5 text-white/50 group-hover:border-white/15 group-hover:bg-white/8 group-hover:text-white/70"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) group-hover:border-(--ws-line-strong) group-hover:bg-(--ws-fill-strong) group-hover:text-(--ws-fg-70)"
               )}
             >
               <Icon className="h-3.5 w-3.5" />

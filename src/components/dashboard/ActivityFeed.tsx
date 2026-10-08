@@ -40,11 +40,11 @@ function getActivityIcon(type: string) {
 
 function getActivityColor(type: string) {
   if (type.includes("student")) return "text-blue-300";
-  if (type.includes("teacher")) return "text-purple-300";
-  if (type.includes("class_group")) return "text-emerald-300";
-  if (type.includes("invitation")) return "text-amber-300";
+  if (type.includes("teacher")) return "text-(--ws-violet)";
+  if (type.includes("class_group")) return "text-(--ws-emerald)";
+  if (type.includes("invitation")) return "text-(--ws-amber)";
   if (type.includes("academic_period")) return "text-fuchsia-300";
-  return "text-white/60";
+  return "text-(--ws-fg-60)";
 }
 
 export function ActivityFeed({ limit = 5 }: { limit?: number }) {
@@ -55,7 +55,7 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
 
   if (isLoading) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
           aria-hidden="true"
@@ -69,14 +69,14 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="text-center py-8 text-white/60">Loading...</div>
+          <div className="text-center py-8 text-(--ws-fg-60)">Loading...</div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
         aria-hidden="true"
@@ -103,8 +103,8 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
       </CardHeader>
       <CardContent className="relative z-10">
         {activities.length === 0 ? (
-          <div className="text-center py-8 text-white/60">
-            <Clock className="h-12 w-12 mx-auto mb-4 text-white/20" />
+          <div className="text-center py-8 text-(--ws-fg-60)">
+            <Clock className="h-12 w-12 mx-auto mb-4 text-(--ws-fg)/20" />
             <p>No recent activity</p>
           </div>
         ) : (
@@ -124,18 +124,18 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3 hover:bg-white/10 transition-colors"
+                  className="flex items-start gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 hover:bg-(--ws-fill-strong) transition-colors"
                 >
                   <div
-                    className={`p-2 rounded-lg bg-white/5 border border-white/10 ${colorClass}`}
+                    className={`p-2 rounded-lg bg-(--ws-fill) border border-(--ws-line) ${colorClass}`}
                   >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white/90 font-medium">
+                    <div className="text-sm text-(--ws-fg-90) font-medium">
                       {activity.description}
                     </div>
-                    <div className="mt-1 space-y-0.5 text-xs text-white/50">
+                    <div className="mt-1 space-y-0.5 text-xs text-(--ws-fg-50)">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <span>{performerName}</span>
                         <span>•</span>
@@ -146,7 +146,7 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
                         </span>
                       </div>
                       {delegateStaff ? (
-                        <div className="text-[11px] text-white/40">Staff: {delegateStaff}</div>
+                        <div className="text-[11px] text-(--ws-fg-40)">Staff: {delegateStaff}</div>
                       ) : null}
                     </div>
                   </div>

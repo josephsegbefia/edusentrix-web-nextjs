@@ -12,6 +12,7 @@ import {
   premiumSelectLabel,
   premiumSelectScrollButton,
 } from "./premium";
+import { useWorkspacePortalClass } from "@/components/theme/workspace-scope";
 
 // ============================================================================
 // Root Components
@@ -55,11 +56,14 @@ PremiumSelectTrigger.displayName = "PremiumSelectTrigger";
 const PremiumSelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+>(({ className, children, position = "popper", ...props }, ref) => {
+  const portalClass = useWorkspacePortalClass();
+  return (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
+        portalClass,
         premiumSelectContent,
         "z-[110] max-h-(--radix-select-content-available-height) min-w-32",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -87,7 +91,8 @@ const PremiumSelectContent = React.forwardRef<
       <PremiumSelectScrollDownButton />
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
-));
+  );
+});
 PremiumSelectContent.displayName = "PremiumSelectContent";
 
 // ============================================================================
@@ -109,7 +114,7 @@ const PremiumSelectItem = React.forwardRef<
     className={cn(premiumSelectItem, className)}
     {...props}
   >
-    {icon && <span className="mr-2 text-white/50">{icon}</span>}
+    {icon && <span className="mr-2 text-(--ws-fg-50)">{icon}</span>}
     <div className="flex-1">
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
       {description && (
@@ -151,7 +156,7 @@ const PremiumSelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
-    className={cn("bg-white/10 -mx-1 my-1.5 h-px", className)}
+    className={cn("bg-(--ws-line) -mx-1 my-1.5 h-px", className)}
     {...props}
   />
 ));

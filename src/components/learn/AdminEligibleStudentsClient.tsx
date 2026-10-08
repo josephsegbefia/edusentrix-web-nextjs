@@ -279,7 +279,7 @@ export function AdminEligibleStudentsClient() {
     selectableStudents.every((student) => selectedIds.has(student.id));
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Eligible Learn Students"
@@ -313,7 +313,7 @@ export function AdminEligibleStudentsClient() {
                 disabled={!selectedCount || bulkCreating || bulkCreatingAll}
                 onClick={() => void createBulk()}
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 {bulkCreating ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -337,8 +337,8 @@ export function AdminEligibleStudentsClient() {
 
         {data && !data.eligibility.eligible ? (
           <GlassPanel className="p-6" glow="cyan">
-            <h2 className="text-lg font-semibold text-white">Learn unavailable</h2>
-            <p className="mt-2 text-sm text-white/60">
+            <h2 className="text-lg font-semibold text-(--ws-fg)">Learn unavailable</h2>
+            <p className="mt-2 text-sm text-(--ws-fg-60)">
               {data.eligibility.reason || "This school is not eligible for Learn."}
             </p>
           </GlassPanel>
@@ -346,8 +346,8 @@ export function AdminEligibleStudentsClient() {
 
         {data && data.eligibility.eligible && data.summary.eligibleGradeCount === 0 ? (
           <GlassPanel className="p-6" glow="amber">
-            <h2 className="text-lg font-semibold text-white">No matching grades found</h2>
-            <p className="mt-2 text-sm text-white/60">
+            <h2 className="text-lg font-semibold text-(--ws-fg)">No matching grades found</h2>
+            <p className="mt-2 text-sm text-(--ws-fg-60)">
               Learn eligibility requires active grades named or coded as Primary 4 / Grade 4
               through JHS 3. Add or rename grades in your school setup, then return here.
             </p>
@@ -359,7 +359,7 @@ export function AdminEligibleStudentsClient() {
         {credentials.length > 0 ? (
           <GlassPanel className="space-y-4 p-6" glow="both">
             <div>
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-lg font-semibold text-(--ws-fg)">
                 One-time temporary passwords
               </h2>
               <p className="mt-1 text-sm text-amber-100/80">
@@ -370,21 +370,21 @@ export function AdminEligibleStudentsClient() {
             <div className="grid gap-3 md:grid-cols-2">
               {credentials.map((row) => (
                 <div key={credentialKey(row)} className={cn(glassInsetClass, "p-4")}>
-                  <p className="font-medium text-white">{row.studentName}</p>
+                  <p className="font-medium text-(--ws-fg)">{row.studentName}</p>
                   <dl className="mt-3 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
-                      <dt className="text-white/45">Username</dt>
+                      <dt className="text-(--ws-fg-40)">Username</dt>
                       <dd className="font-mono text-teal-100">{row.username}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <dt className="text-white/45">Temporary password</dt>
+                      <dt className="text-(--ws-fg-40)">Temporary password</dt>
                       <dd className="font-mono text-amber-100">
                         {row.temporaryPassword}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-3">
-                      <dt className="text-white/45">Guardians notified</dt>
-                      <dd className="text-white/75">{row.guardiansNotified}</dd>
+                      <dt className="text-(--ws-fg-40)">Guardians notified</dt>
+                      <dd className="text-(--ws-fg)/75">{row.guardiansNotified}</dd>
                     </div>
                   </dl>
                 </div>
@@ -396,7 +396,7 @@ export function AdminEligibleStudentsClient() {
         <GlassPanel className="space-y-4 p-6" glow="teal">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -404,7 +404,7 @@ export function AdminEligibleStudentsClient() {
                   if (event.key === "Enter") void load();
                 }}
                 placeholder="Search by name or admission number"
-                className="rounded-xl border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                className="rounded-xl border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               />
             </div>
             <Button
@@ -412,7 +412,7 @@ export function AdminEligibleStudentsClient() {
               variant="outline"
               onClick={() => void load()}
               disabled={loading}
-              className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Search
@@ -420,13 +420,13 @@ export function AdminEligibleStudentsClient() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-sm text-white/50">
+            <div className="py-12 text-center text-sm text-(--ws-fg-50)">
               Loading eligible students...
             </div>
           ) : students.length ? (
-            <div className="overflow-hidden rounded-2xl border border-white/10">
+            <div className="overflow-hidden rounded-2xl border border-(--ws-line)">
               <table className="w-full min-w-[760px] text-sm">
-                <thead className="bg-white/5 text-left text-xs uppercase tracking-[0.16em] text-white/40">
+                <thead className="bg-(--ws-fill) text-left text-xs uppercase tracking-[0.16em] text-(--ws-fg-40)">
                   <tr>
                     <th className="w-12 px-4 py-3">
                       <Checkbox
@@ -452,7 +452,7 @@ export function AdminEligibleStudentsClient() {
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/10">
+                <tbody className="divide-y divide-(--ws-line)">
                   {students.map((student) => {
                     const checked = selectedIds.has(student.id);
                     const creatingThis = creating === student.id;
@@ -473,17 +473,17 @@ export function AdminEligibleStudentsClient() {
                           />
                         </td>
                         <td className="px-4 py-4">
-                          <p className="font-medium text-white">{student.fullName}</p>
-                          <p className="text-xs text-white/45">
+                          <p className="font-medium text-(--ws-fg)">{student.fullName}</p>
+                          <p className="text-xs text-(--ws-fg-40)">
                             {student.admissionNo || "No admission number"}
                           </p>
                         </td>
-                        <td className="px-4 py-4 text-white/70">
+                        <td className="px-4 py-4 text-(--ws-fg-70)">
                           {[student.gradeName, student.classGroupName]
                             .filter(Boolean)
                             .join(" ") || "Unassigned"}
                         </td>
-                        <td className="px-4 py-4 text-white/70">
+                        <td className="px-4 py-4 text-(--ws-fg-70)">
                           {student.guardianCount}
                         </td>
                         <td className="px-4 py-4">
@@ -520,9 +520,9 @@ export function AdminEligibleStudentsClient() {
               </table>
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/5 py-12 text-center">
-              <p className="font-medium text-white">No eligible students found.</p>
-              <p className="mt-1 text-sm text-white/50">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) py-12 text-center">
+              <p className="font-medium text-(--ws-fg)">No eligible students found.</p>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Students must be active, assigned to a class group, and in{" "}
                 {data?.gradeRange || "Primary 4 / Grade 4 through JHS 3"}.
               </p>
@@ -537,10 +537,10 @@ export function AdminEligibleStudentsClient() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <GlassPanel className="p-4" glow="cyan">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-40)">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{value}</p>
     </GlassPanel>
   );
 }

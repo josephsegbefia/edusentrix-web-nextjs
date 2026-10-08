@@ -174,10 +174,10 @@ export function SubmitForApprovalButton({
       </Button>
 
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="sm:max-w-md bg-[#1a1d24] border-white/10">
+        <DialogContent className="sm:max-w-md bg-(--ws-panel-to) border-(--ws-line)">
           <DialogHeader>
-            <DialogTitle className="text-white">Submit for Approval</DialogTitle>
-            <DialogDescription className="text-white/60">
+            <DialogTitle className="text-(--ws-fg)">Submit for Approval</DialogTitle>
+            <DialogDescription className="text-(--ws-fg-60)">
               Submit this lesson note to your school for review. You can still edit it
               while it is waiting, and you will get an in-app notification when it is
               approved or sent back for changes.
@@ -187,7 +187,7 @@ export function SubmitForApprovalButton({
             <Button
               variant="outline"
               onClick={() => setIsConfirmOpen(false)}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               Cancel
             </Button>
@@ -258,7 +258,7 @@ export function ReturnToDraftButton({
       onClick={handleReturn}
       disabled={disabled || returnMutation.isPending}
       className={cn(
-        "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+        "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)",
         className
       )}
     >
@@ -425,16 +425,16 @@ export function ApprovalActionsPanel({
 
       {/* Approve Dialog */}
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <DialogContent className="sm:max-w-md bg-[#1a1d24] border-white/10">
+        <DialogContent className="sm:max-w-md bg-(--ws-panel-to) border-(--ws-line)">
           <DialogHeader>
-            <DialogTitle className="text-white">Approve Lesson Note</DialogTitle>
-            <DialogDescription className="text-white/60">
+            <DialogTitle className="text-(--ws-fg)">Approve Lesson Note</DialogTitle>
+            <DialogDescription className="text-(--ws-fg-60)">
               Confirm that this lesson note meets the required standards.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="feedback" className="text-white/80">
+              <Label htmlFor="feedback" className="text-(--ws-fg-80)">
                 Feedback (optional)
               </Label>
               <Textarea
@@ -442,7 +442,7 @@ export function ApprovalActionsPanel({
                 placeholder="Add any feedback or commendations..."
                 value={approvalFeedback}
                 onChange={(e) => setApprovalFeedback(e.target.value)}
-                className="mt-1 border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 rows={3}
               />
             </div>
@@ -451,7 +451,7 @@ export function ApprovalActionsPanel({
             <Button
               variant="outline"
               onClick={() => setShowApproveDialog(false)}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               Cancel
             </Button>
@@ -471,16 +471,16 @@ export function ApprovalActionsPanel({
 
       {/* Reject Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent className="sm:max-w-md bg-[#1a1d24] border-white/10">
+        <DialogContent className="sm:max-w-md bg-(--ws-panel-to) border-(--ws-line)">
           <DialogHeader>
-            <DialogTitle className="text-white">Reject Lesson Note</DialogTitle>
-            <DialogDescription className="text-white/60">
+            <DialogTitle className="text-(--ws-fg)">Reject Lesson Note</DialogTitle>
+            <DialogDescription className="text-(--ws-fg-60)">
               Provide feedback to help the teacher improve their lesson note.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="reason" className="text-white/80">
+              <Label htmlFor="reason" className="text-(--ws-fg-80)">
                 Reason for Rejection *
               </Label>
               <Textarea
@@ -488,7 +488,7 @@ export function ApprovalActionsPanel({
                 placeholder="Explain what needs to be improved..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                className="mt-1 border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 rows={4}
                 required
               />
@@ -498,7 +498,7 @@ export function ApprovalActionsPanel({
             <Button
               variant="outline"
               onClick={() => setShowRejectDialog(false)}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               Cancel
             </Button>
@@ -533,7 +533,7 @@ export function ApprovalTimeline({ noteId, className }: ApprovalTimelineProps) {
 
   if (isLoading) {
     return (
-      <div className={cn("flex items-center gap-2 text-white/50", className)}>
+      <div className={cn("flex items-center gap-2 text-(--ws-fg-50)", className)}>
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm">Loading approval history...</span>
       </div>
@@ -584,7 +584,7 @@ export function ApprovalTimeline({ noteId, className }: ApprovalTimelineProps) {
 
   return (
     <div className={cn("space-y-3", className)}>
-      <h4 className="text-sm font-medium text-white/80">Approval History</h4>
+      <h4 className="text-sm font-medium text-(--ws-fg-80)">Approval History</h4>
       <div className="space-y-2">
         <AnimatePresence>
           {events.map((event, index) => (
@@ -597,9 +597,9 @@ export function ApprovalTimeline({ noteId, className }: ApprovalTimelineProps) {
             >
               <event.icon className={cn("h-4 w-4 mt-0.5", event.color)} />
               <div className="flex-grow">
-                <p className="text-sm text-white/80">{event.label}</p>
+                <p className="text-sm text-(--ws-fg-80)">{event.label}</p>
                 {event.date && (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-(--ws-fg-50)">
                     {new Date(event.date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",

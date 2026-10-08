@@ -192,7 +192,7 @@ export function SupplyProgramWizard({
       case "basics":
         return (
           <div className="space-y-6">
-            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-white/80 leading-relaxed">
+            <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-(--ws-fg-80) leading-relaxed">
               <div className="flex items-center gap-2 font-medium text-indigo-200/95 mb-2">
                 <Sparkles className="h-4 w-4 text-indigo-300" />
                 What is a supply program?
@@ -206,29 +206,29 @@ export function SupplyProgramWizard({
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-white/80">Program name</Label>
+                <Label className="text-(--ws-fg-80)">Program name</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-white/35"
+                  className="bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                   placeholder="e.g. Term 2 · Required supplies"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Period label (optional)</Label>
+                <Label className="text-(--ws-fg-80)">Period label (optional)</Label>
                 <Input
                   value={periodLabel}
                   onChange={(e) => setPeriodLabel(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white placeholder:text-white/35"
+                  className="bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                   placeholder="e.g. Term 2 · 2025/26"
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-white/80">Notes for staff (optional)</Label>
+                <Label className="text-(--ws-fg-80)">Notes for staff (optional)</Label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-[100px] bg-white/5 border-white/10 text-white placeholder:text-white/35"
+                  className="min-h-[100px] bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                   placeholder="Internal context — not shown to parents until you link lines and publish."
                 />
               </div>
@@ -239,37 +239,37 @@ export function SupplyProgramWizard({
       case "schedule":
         return (
           <div className="space-y-6">
-            <p className="text-sm text-white/65 leading-relaxed">
+            <p className="text-sm text-(--ws-fg-60) leading-relaxed">
               Optional dates help parents understand when this list is in effect and if
               there is a suggested purchase-by date. You can leave everything blank and
               set dates later.
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/80">Valid from</Label>
+                <Label className="text-(--ws-fg-80)">Valid from</Label>
                 <Input
                   type="datetime-local"
                   value={validFromLocal}
                   onChange={(e) => setValidFromLocal(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white scheme-dark"
+                  className="bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) scheme-dark"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Valid to</Label>
+                <Label className="text-(--ws-fg-80)">Valid to</Label>
                 <Input
                   type="datetime-local"
                   value={validToLocal}
                   onChange={(e) => setValidToLocal(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white scheme-dark"
+                  className="bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) scheme-dark"
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-white/80">Purchase by (reminder)</Label>
+                <Label className="text-(--ws-fg-80)">Purchase by (reminder)</Label>
                 <Input
                   type="datetime-local"
                   value={purchaseByLocal}
                   onChange={(e) => setPurchaseByLocal(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white scheme-dark max-w-md"
+                  className="bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) scheme-dark max-w-md"
                 />
               </div>
             </div>
@@ -279,17 +279,17 @@ export function SupplyProgramWizard({
       case "audience":
         return (
           <div className="space-y-6">
-            <p className="text-sm text-white/65 leading-relaxed">
+            <p className="text-sm text-(--ws-fg-60) leading-relaxed">
               Choose who should see this list when it is published. You can narrow to
               grades, classes, or specific students.
             </p>
             <div className="space-y-2 max-w-xl">
-              <Label className="text-white/80">Audience type</Label>
+              <Label className="text-(--ws-fg-80)">Audience type</Label>
               <PremiumSelect
                 value={audienceMode}
                 onValueChange={(v) => setAudienceMode(v as AudienceMode)}
               >
-                <PremiumSelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                <PremiumSelectTrigger className="w-full bg-(--ws-fill) border-(--ws-line) text-(--ws-fg)">
                   <PremiumSelectValue placeholder="Select audience" />
                 </PremiumSelectTrigger>
                 <PremiumSelectContent>
@@ -317,17 +317,17 @@ export function SupplyProgramWizard({
 
             {audienceMode === "grades" ? (
               <div className="space-y-3">
-                <Label className="text-white/80">Grades</Label>
+                <Label className="text-(--ws-fg-80)">Grades</Label>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {options.grades.map((g) => (
                     <label
                       key={g.id}
-                      className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/90 cursor-pointer hover:bg-white/10"
+                      className="flex items-center gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-sm text-(--ws-fg-90) cursor-pointer hover:bg-(--ws-fill-strong)"
                     >
                       <Checkbox
                         checked={gradeIds.has(g.id)}
                         onCheckedChange={() => toggleSet(gradeIds, g.id, setGradeIds)}
-                        className="border-white/25 data-[state=checked]:bg-brand data-[state=checked]:border-brand data-[state=checked]:text-black"
+                        className="border-(--ws-line-strong) data-[state=checked]:bg-brand data-[state=checked]:border-brand data-[state=checked]:text-black"
                       />
                       {g.name}
                     </label>
@@ -341,19 +341,19 @@ export function SupplyProgramWizard({
 
             {audienceMode === "class_groups" ? (
               <div className="space-y-3">
-                <Label className="text-white/80">Classes</Label>
+                <Label className="text-(--ws-fg-80)">Classes</Label>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-h-[280px] overflow-y-auto pr-1">
                   {options.classGroups.map((cg) => (
                     <label
                       key={cg.id}
-                      className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/90 cursor-pointer hover:bg-white/10"
+                      className="flex items-center gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-sm text-(--ws-fg-90) cursor-pointer hover:bg-(--ws-fill-strong)"
                     >
                       <Checkbox
                         checked={classGroupIds.has(cg.id)}
                         onCheckedChange={() =>
                           toggleSet(classGroupIds, cg.id, setClassGroupIds)
                         }
-                        className="border-white/25 data-[state=checked]:bg-brand data-[state=checked]:border-brand data-[state=checked]:text-black"
+                        className="border-(--ws-line-strong) data-[state=checked]:bg-brand data-[state=checked]:border-brand data-[state=checked]:text-black"
                       />
                       <span className="truncate">
                         {classGroupLabel(cg, options.grades)}
@@ -371,14 +371,14 @@ export function SupplyProgramWizard({
 
             {audienceMode === "students" ? (
               <div className="space-y-2">
-                <Label className="text-white/80">Student IDs</Label>
+                <Label className="text-(--ws-fg-80)">Student IDs</Label>
                 <Textarea
                   value={studentIdsRaw}
                   onChange={(e) => setStudentIdsRaw(e.target.value)}
-                  className="min-h-[120px] font-mono text-sm bg-white/5 border-white/10 text-white placeholder:text-white/35"
+                  className="min-h-[120px] font-mono text-sm bg-(--ws-fill) border-(--ws-line) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                   placeholder="Paste one MongoDB ObjectId per line or comma-separated…"
                 />
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-40)">
                   Use student IDs from your Students directory. IDs are validated when you
                   create the draft.
                 </p>
@@ -390,24 +390,24 @@ export function SupplyProgramWizard({
       case "review":
         return (
           <div className="space-y-6">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4 text-sm">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5 space-y-4 text-sm">
               <div className="flex items-start gap-3">
                 <ClipboardList className="h-5 w-5 text-brand shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-white">{name.trim() || "—"}</p>
+                  <p className="font-medium text-(--ws-fg)">{name.trim() || "—"}</p>
                   {periodLabel.trim() ? (
-                    <p className="text-white/55 mt-1">{periodLabel.trim()}</p>
+                    <p className="text-(--ws-fg-50) mt-1">{periodLabel.trim()}</p>
                   ) : null}
                 </div>
               </div>
               {description.trim() ? (
-                <p className="text-white/60 border-t border-white/10 pt-3 whitespace-pre-wrap">
+                <p className="text-(--ws-fg-60) border-t border-(--ws-line) pt-3 whitespace-pre-wrap">
                   {description.trim()}
                 </p>
               ) : null}
-              <dl className="grid gap-2 border-t border-white/10 pt-3 text-white/75">
+              <dl className="grid gap-2 border-t border-(--ws-line) pt-3 text-(--ws-fg)/75">
                 <div className="flex justify-between gap-4">
-                  <dt className="text-white/45">Schedule</dt>
+                  <dt className="text-(--ws-fg-40)">Schedule</dt>
                   <dd className="text-right">
                     {[validFromLocal, validToLocal, purchaseByLocal].some(Boolean)
                       ? [
@@ -421,7 +421,7 @@ export function SupplyProgramWizard({
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-white/45">Audience</dt>
+                  <dt className="text-(--ws-fg-40)">Audience</dt>
                   <dd className="text-right capitalize">
                     {audienceMode.replace("_", " ")}
                     {audienceMode !== "whole_school"
@@ -431,7 +431,7 @@ export function SupplyProgramWizard({
                 </div>
               </dl>
             </div>
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-(--ws-fg-40)">
               Next, add lines that map to store products. Publish when you are ready for
               parents to see the list.
             </p>
@@ -447,8 +447,8 @@ export function SupplyProgramWizard({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Create supply program</h2>
-          <p className="text-sm text-white/55 mt-0.5">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Create supply program</h2>
+          <p className="text-sm text-(--ws-fg-50) mt-0.5">
             Step-by-step — same flow as lesson planning, tuned for lists and targeting.
           </p>
         </div>
@@ -466,7 +466,7 @@ export function SupplyProgramWizard({
                 <div
                   className={cn(
                     "h-px w-4 sm:w-8 transition-colors shrink-0",
-                    isPast ? "bg-emerald-500/70" : "bg-white/10"
+                    isPast ? "bg-emerald-500/70" : "bg-(--ws-fill-strong)"
                   )}
                 />
               ) : null}
@@ -481,13 +481,13 @@ export function SupplyProgramWizard({
                     ? "bg-indigo-500/30 text-indigo-200 ring-1 ring-indigo-400/50"
                     : isPast
                       ? "bg-emerald-500/20 text-emerald-200"
-                      : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                      : "bg-(--ws-fill) text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)/60"
                 )}
               >
                 {isPast ? (
                   <Check className="h-3 w-3" />
                 ) : (
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/10 text-[10px]">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-(--ws-fill-strong) text-[10px]">
                     {index + 1}
                   </span>
                 )}
@@ -498,11 +498,11 @@ export function SupplyProgramWizard({
         })}
       </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardContent className="p-6">
           <div className="mb-4">
-            <h3 className="text-base font-medium text-white">{currentStep.label}</h3>
-            <p className="text-xs text-white/45 mt-1">
+            <h3 className="text-base font-medium text-(--ws-fg)">{currentStep.label}</h3>
+            <p className="text-xs text-(--ws-fg-40) mt-1">
               Step {currentStepIndex + 1} of {STEPS.length}
             </p>
           </div>
@@ -527,7 +527,7 @@ export function SupplyProgramWizard({
               type="button"
               variant="outline"
               onClick={goBack}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               <ChevronLeft className="mr-1 h-4 w-4" />
               Back
@@ -537,7 +537,7 @@ export function SupplyProgramWizard({
               type="button"
               variant="outline"
               onClick={onCancel}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               Cancel
             </Button>

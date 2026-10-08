@@ -35,7 +35,7 @@ type Props = {
 
 function TrendSourceLegend() {
   return (
-    <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-white/55">
+    <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-(--ws-fg-50)">
       <span className="inline-flex items-center gap-1">
         <span className="h-2 w-2 rounded-full bg-emerald-400" />
         Official
@@ -115,19 +115,19 @@ export function OverallPerformanceTrend({ history, showSourceLegend = false }: P
 
   if (chartData.length === 0) {
     return (
-      <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
               <TrendingUp className="h-4 w-4 text-primary-200" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Overall Performance Trend
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
+          <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) px-4 py-8 text-center">
             <p className="text-[11px] text-muted-foreground/90">
               No trend data available
             </p>
@@ -138,14 +138,14 @@ export function OverallPerformanceTrend({ history, showSourceLegend = false }: P
   }
 
   return (
-    <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
               <TrendingUp className="h-4 w-4 text-primary-200" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Overall Performance Trend
             </CardTitle>
           </div>
@@ -204,12 +204,12 @@ export function OverallPerformanceTrend({ history, showSourceLegend = false }: P
                   sourceLabel?: string;
                 };
                 return (
-                  <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
-                    <p className="text-xs font-medium text-white mb-2">
+                  <div className="rounded-lg border border-(--ws-line-strong) bg-(--ws-popover) px-3 py-2 shadow-lg">
+                    <p className="text-xs font-medium text-(--ws-fg) mb-2">
                       {data.fullLabel}
                     </p>
                     {data.sourceLabel ? (
-                      <p className="mb-2 text-[10px] uppercase tracking-wide text-white/45">
+                      <p className="mb-2 text-[10px] uppercase tracking-wide text-(--ws-fg-40)">
                         {data.sourceLabel}
                       </p>
                     ) : null}

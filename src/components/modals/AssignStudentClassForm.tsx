@@ -130,7 +130,7 @@ export default function AssignStudentClassForm({
 
   if (!bulk && loadingStudent) {
     return (
-      <div className="flex items-center justify-center py-12 text-white/60">
+      <div className="flex items-center justify-center py-12 text-(--ws-fg-60)">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -138,7 +138,7 @@ export default function AssignStudentClassForm({
 
   if (!bulk && !student) {
     return (
-      <p className="text-sm text-white/60">Could not load student.</p>
+      <p className="text-sm text-(--ws-fg-60)">Could not load student.</p>
     );
   }
 
@@ -150,14 +150,14 @@ export default function AssignStudentClassForm({
       className="space-y-5"
     >
       {bulk ? (
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-(--ws-fg-70)">
           Choose a grade and class for{" "}
-          <span className="font-medium text-white">{studentIds.length}</span>{" "}
+          <span className="font-medium text-(--ws-fg)">{studentIds.length}</span>{" "}
           selected student{studentIds.length === 1 ? "" : "s"}.
         </p>
       ) : (
-        <p className="text-sm text-white/70">
-          <span className="font-medium text-white">{student!.fullName}</span>
+        <p className="text-sm text-(--ws-fg-70)">
+          <span className="font-medium text-(--ws-fg)">{student!.fullName}</span>
           {student!.grade?.label || student!.classGroup?.label ? (
             <>
               {" "}
@@ -172,7 +172,7 @@ export default function AssignStudentClassForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label className="text-white/70">Grade</Label>
+          <Label className="text-(--ws-fg-70)">Grade</Label>
           <Controller
             name="gradeId"
             control={control}
@@ -188,7 +188,7 @@ export default function AssignStudentClassForm({
                 }}
                 disabled={loadingGrades}
               >
-                <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                <SelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -210,7 +210,7 @@ export default function AssignStudentClassForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Class group</Label>
+          <Label className="text-(--ws-fg-70)">Class group</Label>
           <Controller
             name="classGroupId"
             control={control}
@@ -220,7 +220,7 @@ export default function AssignStudentClassForm({
                 onValueChange={field.onChange}
                 disabled={!gradeId || loadingClasses}
               >
-                <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                <SelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -245,11 +245,11 @@ export default function AssignStudentClassForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
+      <div className="flex justify-end gap-2 border-t border-(--ws-line) pt-4">
         <Button
           type="button"
           variant="outline"
-          className="border-white/15 bg-transparent text-white"
+          className="border-(--ws-line) bg-transparent text-(--ws-fg)"
           onClick={onClose}
           disabled={isSubmitting}
         >
@@ -258,7 +258,7 @@ export default function AssignStudentClassForm({
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-teal-600 text-white hover:bg-teal-500"
+          className="bg-teal-600 text-(--ws-fg) hover:bg-teal-500"
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

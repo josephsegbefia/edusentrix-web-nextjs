@@ -24,6 +24,7 @@ import type { AddAdjustmentInput } from "@/schemas/adjustment";
 import type { CreateInvoiceInput } from "@/schemas/invoice";
 import { cn } from "@/lib/utils";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 function parseDateOnly(value?: string | Date | null): Date | null {
   if (!value) return null;
@@ -69,24 +70,24 @@ function MetricCard({
   accent: string;
 }) {
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className={`pointer-events-none absolute inset-0 bg-linear-to-br ${accent}`}
         aria-hidden="true"
       />
       <CardHeader className="relative z-10">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+          <CardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">
             {label}
           </CardTitle>
           {Icon && (
-            <Icon className="h-4 w-4 text-white/40" aria-hidden="true" />
+            <Icon className="h-4 w-4 text-(--ws-fg-40)" aria-hidden="true" />
           )}
         </div>
       </CardHeader>
       <CardContent className="relative z-10">
-        <p className="text-3xl font-semibold text-white drop-shadow-sm">{value}</p>
-        <div className="h-[3px] w-12 rounded-full bg-white/30 mt-3" />
+        <p className="text-3xl font-semibold text-(--ws-fg) drop-shadow-sm">{value}</p>
+        <div className="h-[3px] w-12 rounded-full bg-(--ws-fill-strong) mt-3" />
       </CardContent>
     </Card>
   );
@@ -194,23 +195,25 @@ export default function InvoiceDetailPage() {
 
   if (error) {
     return (
+      <WorkspaceScope>
       <div className="space-y-6 p-6">
         <Link href="/admin/fees/invoices">
           <Button
             variant="ghost"
             size="sm"
-            className="border border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Bills
           </Button>
         </Link>
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <CardContent className="pt-6">
             <p className="text-destructive">Failed to load bill</p>
           </CardContent>
         </Card>
       </div>
+      </WorkspaceScope>
     );
   }
 
@@ -218,11 +221,13 @@ export default function InvoiceDetailPage() {
 
   if (isLoading || !invoice) {
     return (
+      <WorkspaceScope>
       <div className="space-y-6 p-6">
         <Skeleton className="h-10 w-32" />
         <Skeleton className="h-64" />
         <Skeleton className="h-64" />
       </div>
+      </WorkspaceScope>
     );
   }
 
@@ -269,6 +274,7 @@ export default function InvoiceDetailPage() {
     invoice.status === "cancelled" && (invoice.payments?.length || 0) === 0;
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -277,7 +283,7 @@ export default function InvoiceDetailPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 cursor-pointer border border-white/10 bg-white/5 transition-all duration-200 hover:scale-105 hover:border-white/20 hover:bg-white/10 hover:shadow-md hover:shadow-black/20 active:scale-95"
+              className="h-9 w-9 cursor-pointer border border-(--ws-line) bg-(--ws-fill) transition-all duration-200 hover:scale-105 hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:shadow-md hover:shadow-black/20 active:scale-95"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -286,13 +292,13 @@ export default function InvoiceDetailPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Bill Details
             </p>
-            <h1 className="text-3xl font-bold text-white">{invoice.invoiceNumber}</h1>
-            <p className="text-white/60 mt-1">
+            <h1 className="text-3xl font-bold text-(--ws-fg)">{invoice.invoiceNumber}</h1>
+            <p className="text-(--ws-fg-60) mt-1">
               {invoice.studentId?.firstName} {invoice.studentId?.lastName}
               {invoice.studentId?.admissionNo && ` • ${invoice.studentId.admissionNo}`}
             </p>
             {invoice.academicPeriodId && (
-              <p className="text-sm text-white/50 mt-1">
+              <p className="text-sm text-(--ws-fg-50) mt-1">
                 {invoice.academicPeriodId.yearLabel} • {invoice.academicPeriodId.term}
               </p>
             )}
@@ -306,7 +312,7 @@ export default function InvoiceDetailPage() {
                 variant="outline"
                 onClick={() => setShowEditDraftModal(true)}
                 disabled={updateInvoice.isPending}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Draft
@@ -326,7 +332,7 @@ export default function InvoiceDetailPage() {
               <Button
                 variant="outline"
                 onClick={() => setShowAdjustmentModal(true)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:border-white/20"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add Adjustment
@@ -379,17 +385,17 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* Line Items */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-purple-500/5 via-purple-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10">
-          <CardTitle className="text-white">Line Items</CardTitle>
+          <CardTitle className="text-(--ws-fg)">Line Items</CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
           {invoice.lineItems && invoice.lineItems.length === 0 ? (
-            <p className="text-center text-white/60 py-4">No line items</p>
+            <p className="text-center text-(--ws-fg-60) py-4">No line items</p>
           ) : (
             <div className="space-y-4">
               {invoice.lineItems?.map((item: any) => (
@@ -400,27 +406,27 @@ export default function InvoiceDetailPage() {
                       ? item.amountMinor < 0
                         ? "border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15"
                         : "border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/15"
-                      : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+                      : "border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                   )}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="font-semibold text-white">{item.name}</p>
+                        <p className="font-semibold text-(--ws-fg)">{item.name}</p>
                         {item.isAdjustment && (
-                          <Badge className="text-xs bg-white/10 text-white/80">
+                          <Badge className="text-xs bg-(--ws-fill-strong) text-(--ws-fg-80)">
                             {item.adjustmentType?.toUpperCase() || "ADJUSTMENT"}
                           </Badge>
                         )}
                       </div>
                       {item.description && (
-                        <p className="text-sm text-white/60">{item.description}</p>
+                        <p className="text-sm text-(--ws-fg-60)">{item.description}</p>
                       )}
                       {item.isAdjustment && item.adjustmentReason && (
-                        <p className="text-xs text-white/50 mt-1">
+                        <p className="text-xs text-(--ws-fg-50) mt-1">
                           Reason: {item.adjustmentReason}
                         </p>
                       )}
                       {item.allowsInstallments && item.numberOfInstallments && (
-                        <p className="text-xs text-white/50 mt-1">
+                        <p className="text-xs text-(--ws-fg-50) mt-1">
                           {item.numberOfInstallments} installments
                         </p>
                       )}
@@ -432,13 +438,13 @@ export default function InvoiceDetailPage() {
                           ? "text-emerald-300"
                           : item.isAdjustment && item.amountMinor > 0
                           ? "text-orange-300"
-                          : "text-white"
+                          : "text-(--ws-fg)"
                       )}>
                         {item.isAdjustment && item.amountMinor < 0 ? "-" : ""}
                         {formatMoney(Math.abs(item.amountMinor))}
                       </p>
                       {!item.isAdjustment && (
-                        <p className="text-sm text-white/60 mt-1">
+                        <p className="text-sm text-(--ws-fg-60) mt-1">
                           Paid: {formatMoney(item.amountPaidMinor)}
                         </p>
                       )}
@@ -464,14 +470,14 @@ export default function InvoiceDetailPage() {
       </Card>
 
       {/* Payments */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-green-500/5 via-green-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white">Payments</CardTitle>
+            <CardTitle className="text-(--ws-fg)">Payments</CardTitle>
             {invoice.status !== "draft" && invoice.status !== "cancelled" && (
               <Link href={`/admin/fees/payments/record?invoiceId=${invoiceId}`}>
                 <Button
@@ -487,29 +493,29 @@ export default function InvoiceDetailPage() {
         </CardHeader>
         <CardContent className="relative z-10">
           {invoice.payments && invoice.payments.length === 0 ? (
-            <p className="text-center text-white/60 py-4">No payments recorded</p>
+            <p className="text-center text-(--ws-fg-60) py-4">No payments recorded</p>
           ) : (
             <div className="space-y-3">
               {invoice.payments?.map((payment: any) => (
                 <div
                   key={payment._id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+                  className="flex items-center justify-between p-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong) transition-all duration-200"
                 >
                   <div className="flex-1">
-                    <p className="font-semibold text-white">
+                    <p className="font-semibold text-(--ws-fg)">
                       {payment.receiptNumber || `Payment #${payment._id.slice(-6)}`}
                     </p>
-                    <p className="text-sm text-white/60 mt-1">
+                    <p className="text-sm text-(--ws-fg-60) mt-1">
                       {new Date(payment.paymentDate).toLocaleDateString()} • {payment.paymentMethod}
                     </p>
                     {payment.allocations && payment.allocations.length > 0 && (
-                      <div className="mt-2 text-xs text-white/50">
+                      <div className="mt-2 text-xs text-(--ws-fg-50)">
                         Allocated to: {payment.allocations.map((a: any) => a.invoiceLineItemId?.name).join(", ")}
                       </div>
                     )}
                   </div>
                   <div className="text-right ml-4">
-                    <p className="font-semibold text-lg text-white">{formatMoney(payment.amountMinor)}</p>
+                    <p className="font-semibold text-lg text-(--ws-fg)">{formatMoney(payment.amountMinor)}</p>
                   </div>
                 </div>
               ))}
@@ -562,5 +568,6 @@ export default function InvoiceDetailPage() {
       </ResponsiveModal>
       {confirmationDialog}
     </div>
+    </WorkspaceScope>
   );
 }

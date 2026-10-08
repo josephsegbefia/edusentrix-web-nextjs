@@ -582,21 +582,21 @@ export function GenerateSimpleReportModal({
 
   return (
     <div className="space-y-5">
-      <div className="text-sm text-white/70">
+      <div className="text-sm text-(--ws-fg-70)">
         Quick school snapshot for leadership updates. Download this summary now
         or open full reports for advanced exports.
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-white">Current Summary</h3>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Current Summary</h3>
           <Button
             type="button"
             size="sm"
             variant="outline"
             onClick={() => void summaryQuery.refetch()}
             disabled={summaryQuery.isFetching}
-            className="h-8 border-white/10 bg-white/5 px-2.5 text-white hover:bg-white/10"
+            className="h-8 border-(--ws-line) bg-(--ws-fill) px-2.5 text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             <RefreshCw
               className={`mr-1 h-3.5 w-3.5 ${summaryQuery.isFetching ? "animate-spin" : ""}`}
@@ -606,15 +606,15 @@ export function GenerateSimpleReportModal({
         </div>
 
         {summaryQuery.isLoading ? (
-          <p className="text-sm text-white/60">Loading simple report summary...</p>
+          <p className="text-sm text-(--ws-fg-60)">Loading simple report summary...</p>
         ) : summaryQuery.isError ? (
           <p className="text-sm text-rose-300">
             Failed to load report summary. Try refresh.
           </p>
         ) : summary && range ? (
           <div className="space-y-3">
-            <div className="rounded-lg border border-white/10 bg-black/10 p-3">
-              <p className="text-xs text-white/55">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+              <p className="text-xs text-(--ws-fg)/55">
                 Range: {formatDateLabel(range.startDate)} to{" "}
                 {formatDateLabel(range.endDate)}
                 {range.period?.label ? ` • ${range.period.label}` : ""}
@@ -622,46 +622,46 @@ export function GenerateSimpleReportModal({
             </div>
 
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Students</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-xs text-(--ws-fg-50)">Students</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {formatNumber(summary.students.total)}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Teachers</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-xs text-(--ws-fg-50)">Teachers</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {formatNumber(summary.teachers.total)}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Revenue</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-xs text-(--ws-fg-50)">Revenue</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {formatCurrencyMinor(summary.fees.revenueInRangeMinor)}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Outstanding</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-xs text-(--ws-fg-50)">Outstanding</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {formatCurrencyMinor(summary.fees.outstandingMinor)}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Collection Rate</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-xs text-(--ws-fg-50)">Collection Rate</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {summary.fees.collectionRate.toFixed(1)}%
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Attendance</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-xs text-(--ws-fg-50)">Attendance</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {summary.attendance.presentRate.toFixed(1)}%
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-white/60">No summary data available.</p>
+          <p className="text-sm text-(--ws-fg-60)">No summary data available.</p>
         )}
       </div>
 
@@ -670,7 +670,7 @@ export function GenerateSimpleReportModal({
           type="button"
           variant="outline"
           onClick={onClose}
-          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           Close
         </Button>
@@ -678,7 +678,7 @@ export function GenerateSimpleReportModal({
           type="button"
           variant="outline"
           onClick={openFullReports}
-          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           <FileText className="h-4 w-4" />
           Open Full Reports

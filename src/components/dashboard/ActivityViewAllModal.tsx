@@ -52,11 +52,11 @@ function getActivityIcon(type: string) {
 
 function getActivityColor(type: string) {
   if (type.includes("student")) return "text-blue-300";
-  if (type.includes("teacher")) return "text-purple-300";
-  if (type.includes("class_group")) return "text-emerald-300";
-  if (type.includes("invitation")) return "text-amber-300";
+  if (type.includes("teacher")) return "text-(--ws-violet)";
+  if (type.includes("class_group")) return "text-(--ws-emerald)";
+  if (type.includes("invitation")) return "text-(--ws-amber)";
   if (type.includes("academic_period")) return "text-fuchsia-300";
-  return "text-white/60";
+  return "text-(--ws-fg-60)";
 }
 
 function isActivityDeletable(activity: Activity): boolean {
@@ -170,8 +170,8 @@ export function ActivityViewAllModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/10 bg-slate-950/95 text-slate-50 shadow-2xl shadow-black/50">
-        <DialogHeader className="border-b border-white/10 pb-4">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]">
+        <DialogHeader className="border-b border-(--ws-line) pb-4">
           <DialogTitle className="text-lg font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
               <Clock className="h-4 w-4 text-indigo-300" />
@@ -190,7 +190,7 @@ export function ActivityViewAllModal({
               setPage(1);
             }}
             placeholder="Search activities by description, type, or user..."
-            className="pl-9 border-white/15 bg-black/60 text-foreground placeholder:text-muted-foreground/70"
+            className="pl-9 border-(--ws-line) bg-(--ws-fill) text-foreground placeholder:text-muted-foreground/70"
           />
         </div>
 
@@ -202,7 +202,7 @@ export function ActivityViewAllModal({
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <p className="text-sm text-red-300/80">
+              <p className="text-sm text-(--ws-rose)/80">
                 Failed to load activities
               </p>
             </div>
@@ -230,18 +230,18 @@ export function ActivityViewAllModal({
               return (
                 <div
                   key={activity._id}
-                  className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors"
+                  className="flex items-start gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 hover:bg-(--ws-fill-strong) transition-colors"
                 >
                   <div
-                    className={`p-2 rounded-lg bg-white/5 border border-white/10 ${colorClass} shrink-0`}
+                    className={`p-2 rounded-lg bg-(--ws-fill) border border-(--ws-line) ${colorClass} shrink-0`}
                   >
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white/90 font-medium">
+                    <div className="text-sm text-(--ws-fg-90) font-medium">
                       {activity.description}
                     </div>
-                    <div className="mt-1 space-y-0.5 text-xs text-white/50">
+                    <div className="mt-1 space-y-0.5 text-xs text-(--ws-fg-50)">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         <span>{performerName}</span>
                         <span>•</span>
@@ -256,7 +256,7 @@ export function ActivityViewAllModal({
                         </span>
                       </div>
                       {delegateStaff ? (
-                        <div className="text-[11px] text-white/40">Staff: {delegateStaff}</div>
+                        <div className="text-[11px] text-(--ws-fg-40)">Staff: {delegateStaff}</div>
                       ) : null}
                     </div>
                   </div>
@@ -266,7 +266,7 @@ export function ActivityViewAllModal({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(activity)}
-                      className="h-8 w-8 shrink-0 text-red-300/70 hover:text-red-300 hover:bg-red-500/20"
+                      className="h-8 w-8 shrink-0 text-(--ws-rose)/70 hover:text-(--ws-rose) hover:bg-red-500/20"
                       disabled={deleteActivity.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -283,7 +283,7 @@ export function ActivityViewAllModal({
           !isError &&
           filteredActivities.length > 0 &&
           pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between border-t border-(--ws-line) pt-4">
               <div className="text-xs text-muted-foreground">
                 Showing {filteredActivities.length} of {pagination.total}{" "}
                 activities
@@ -295,7 +295,7 @@ export function ActivityViewAllModal({
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/15 bg-black/60 text-xs"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs"
                 >
                   Previous
                 </Button>
@@ -310,7 +310,7 @@ export function ActivityViewAllModal({
                     setPage((p) => Math.min(pagination.totalPages, p + 1))
                   }
                   disabled={page >= pagination.totalPages}
-                  className="border-white/15 bg-black/60 text-xs"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs"
                 >
                   Next
                 </Button>

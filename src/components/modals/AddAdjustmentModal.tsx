@@ -115,7 +115,7 @@ export default function AddAdjustmentModal({
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {STEPS.length}
         </div>
@@ -124,7 +124,7 @@ export default function AddAdjustmentModal({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -153,7 +153,7 @@ export default function AddAdjustmentModal({
                   variant="outline"
                   size="sm"
                   onClick={handleAddLineItem}
-                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
@@ -166,10 +166,10 @@ export default function AddAdjustmentModal({
                     key={field.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-white/80">
+                      <span className="text-sm font-medium text-(--ws-fg-80)">
                         Adjustment {index + 1}
                       </span>
                       {fields.length > 1 && (
@@ -202,7 +202,7 @@ export default function AddAdjustmentModal({
                                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all cursor-pointer ${
                                   field.value === type
                                     ? "border-brand bg-brand/20 text-brand"
-                                    : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                                 }`}
                               >
                                 <input
@@ -233,7 +233,7 @@ export default function AddAdjustmentModal({
                         <Input
                           {...register(`lineItems.${index}.name` as const)}
                           placeholder="e.g., Scholarship Discount"
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.lineItems?.[index]?.name && (
                           <div className="text-xs text-rose-300">
@@ -252,14 +252,14 @@ export default function AddAdjustmentModal({
                             valueAsNumber: true,
                           })}
                           placeholder="Negative for credit, positive for charge"
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.lineItems?.[index]?.amount && (
                           <div className="text-xs text-rose-300">
                             {errors.lineItems[index]?.amount?.message}
                           </div>
                         )}
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-(--ws-fg-50)">
                           Use negative values for credits/waivers, positive for additional charges
                         </p>
                       </div>
@@ -272,7 +272,7 @@ export default function AddAdjustmentModal({
                       <Input
                         {...register(`lineItems.${index}.adjustmentReason` as const)}
                         placeholder="Explain the reason for this adjustment..."
-                        className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                       {errors.lineItems?.[index]?.adjustmentReason && (
                         <div className="text-xs text-rose-300">
@@ -288,7 +288,7 @@ export default function AddAdjustmentModal({
                       <Input
                         {...register(`lineItems.${index}.description` as const)}
                         placeholder="Additional details..."
-                        className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </motion.div>
@@ -301,13 +301,13 @@ export default function AddAdjustmentModal({
                 </div>
               )}
 
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-(--ws-line)">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white/80">
+                  <span className="text-sm font-semibold text-(--ws-fg-80)">
                     Net Adjustment:
                   </span>
                   <span className={`text-lg font-bold ${
-                    totalAdjustment < 0 ? "text-emerald-300" : totalAdjustment > 0 ? "text-orange-300" : "text-white"
+                    totalAdjustment < 0 ? "text-emerald-300" : totalAdjustment > 0 ? "text-orange-300" : "text-(--ws-fg)"
                   }`}>
                     {totalAdjustment < 0 ? "-" : "+"} GHS {Math.abs(totalAdjustment).toFixed(2)}
                   </span>
@@ -327,10 +327,10 @@ export default function AddAdjustmentModal({
                 {lineItems.map((item, index) => (
                   <div
                     key={index}
-                    className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-white/80">
+                      <span className="text-sm font-medium text-(--ws-fg-80)">
                         {item.name}
                       </span>
                       <span className={`text-sm font-semibold ${
@@ -339,24 +339,24 @@ export default function AddAdjustmentModal({
                         {item.amount < 0 ? "-" : "+"} GHS {Math.abs(item.amount).toFixed(2)}
                       </span>
                     </div>
-                    <div className="text-xs text-white/60">
+                    <div className="text-xs text-(--ws-fg-60)">
                       <span className="capitalize">{item.adjustmentType}</span>
                       {item.description && ` • ${item.description}`}
                     </div>
-                    <div className="text-xs text-white/50">
+                    <div className="text-xs text-(--ws-fg-50)">
                       Reason: {item.adjustmentReason}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white/80">
+                  <span className="text-sm font-semibold text-(--ws-fg-80)">
                     Net Adjustment:
                   </span>
                   <span className={`text-2xl font-bold ${
-                    totalAdjustment < 0 ? "text-emerald-300" : totalAdjustment > 0 ? "text-orange-300" : "text-white"
+                    totalAdjustment < 0 ? "text-emerald-300" : totalAdjustment > 0 ? "text-orange-300" : "text-(--ws-fg)"
                   }`}>
                     {totalAdjustment < 0 ? "-" : "+"} GHS {Math.abs(totalAdjustment).toFixed(2)}
                   </span>
@@ -368,13 +368,13 @@ export default function AddAdjustmentModal({
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+      <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
         <Button
           type="button"
           variant="ghost"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isSubmitting}
-          className="text-white/80 hover:text-white"
+          className="text-(--ws-fg-80) hover:text-(--ws-fg)"
         >
           {isFirstStep ? (
             <>

@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { format } from "date-fns/format";
@@ -88,7 +89,7 @@ function DonationRow({ donation, currency }: { donation: DonationDTO; currency: 
     : donation.donorUser?.name || donation.donorName || "Unknown Donor";
 
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-4 transition-colors hover:bg-white/5">
+    <div className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill)">
       {/* Avatar */}
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-emerald-500/20 to-teal-500/20">
         {donation.isAnonymous ? (
@@ -100,8 +101,8 @@ function DonationRow({ donation, currency }: { donation: DonationDTO; currency: 
 
       {/* Donor Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-white">{donorName}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-white/50">
+        <p className="truncate font-medium text-(--ws-fg)">{donorName}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-(--ws-fg-50)">
           {!donation.isAnonymous && donation.donorEmail && (
             <span className="truncate">{donation.donorEmail}</span>
           )}
@@ -113,24 +114,24 @@ function DonationRow({ donation, currency }: { donation: DonationDTO; currency: 
           )}
         </div>
         {donation.message && (
-          <p className="mt-1 line-clamp-1 text-sm text-white/40 italic">
+          <p className="mt-1 line-clamp-1 text-sm text-(--ws-fg-40) italic">
             &ldquo;{donation.message}&rdquo;
           </p>
         )}
       </div>
 
       {/* Payment Method */}
-      <div className="hidden items-center gap-2 text-sm text-white/50 sm:flex">
+      <div className="hidden items-center gap-2 text-sm text-(--ws-fg-50) sm:flex">
         <PaymentIcon className="h-4 w-4" />
         <span>{PAYMENT_LABELS[donation.paymentMethod]}</span>
       </div>
 
       {/* Date */}
       <div className="hidden text-right md:block">
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-(--ws-fg-60)">
           {formatDistanceToNow(new Date(donation.createdAt), { addSuffix: true })}
         </p>
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-(--ws-fg-40)">
           {format(new Date(donation.createdAt), "MMM d, yyyy")}
         </p>
       </div>
@@ -196,39 +197,44 @@ export default function CampaignDonationsPage() {
 
   if (campaignLoading) {
     return (
+      <WorkspaceScope>
       <div className="space-y-8">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-xl bg-white/10" />
-          <Skeleton className="h-8 w-64 bg-white/10" />
+          <Skeleton className="h-10 w-10 rounded-xl bg-(--ws-fill-strong)" />
+          <Skeleton className="h-8 w-64 bg-(--ws-fill-strong)" />
         </div>
-        <Skeleton className="h-96 rounded-2xl bg-white/5" />
+        <Skeleton className="h-96 rounded-2xl bg-(--ws-fill)" />
       </div>
+      </WorkspaceScope>
     );
   }
 
   if (campaignError || !campaign) {
     return (
+      <WorkspaceScope>
       <div className="flex flex-col items-center justify-center gap-4 py-24">
         <div className="flex h-20 w-20 items-center justify-center rounded-full border border-rose-500/20 bg-rose-500/10">
           <XCircle className="h-10 w-10 text-rose-400" />
         </div>
         <div className="text-center">
-          <p className="text-lg font-medium text-white/80">Campaign not found</p>
-          <p className="mt-1 text-sm text-white/50">This campaign may have been deleted</p>
+          <p className="text-lg font-medium text-(--ws-fg-80)">Campaign not found</p>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">This campaign may have been deleted</p>
         </div>
         <Link href="/admin/community/fundraising">
-          <Button variant="outline" className="mt-2 gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10">
+          <Button variant="outline" className="mt-2 gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
             <ArrowLeft className="h-4 w-4" />
             Back to Campaigns
           </Button>
         </Link>
       </div>
+      </WorkspaceScope>
     );
   }
 
   const totals = donationsData?.totals;
 
   return (
+    <WorkspaceScope>
     <div className="space-y-8">
       {/* ══════════════════════════════════════════════════════════════════════
           Header
@@ -239,14 +245,14 @@ export default function CampaignDonationsPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-10 w-10 rounded-xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">Donations</h1>
-            <p className="text-sm text-white/50">{campaign.title}</p>
+            <h1 className="text-2xl font-bold text-(--ws-fg)">Donations</h1>
+            <p className="text-sm text-(--ws-fg-50)">{campaign.title}</p>
           </div>
         </div>
 
@@ -264,27 +270,27 @@ export default function CampaignDonationsPage() {
           Stats Cards
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
           <div className="relative z-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Total Raised</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">Total Raised</p>
             <p className="mt-1 text-3xl font-bold text-emerald-400">
               {formatMoney(totals?.raisedAmountMinor || 0, totals?.currency || campaign.currency)}
             </p>
           </div>
         </div>
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
           <div className="relative z-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Total Donors</p>
-            <p className="mt-1 text-3xl font-bold text-white">{totals?.donorCount || 0}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">Total Donors</p>
+            <p className="mt-1 text-3xl font-bold text-(--ws-fg)">{totals?.donorCount || 0}</p>
           </div>
         </div>
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
           <div className="relative z-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Avg. Donation</p>
-            <p className="mt-1 text-3xl font-bold text-white">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">Avg. Donation</p>
+            <p className="mt-1 text-3xl font-bold text-(--ws-fg)">
               {totals && totals.donorCount > 0
                 ? formatMoney(Math.round(totals.raisedAmountMinor / totals.donorCount), totals.currency)
                 : formatMoney(0, campaign.currency)}
@@ -298,12 +304,12 @@ export default function CampaignDonationsPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, email, or phone..."
-            className="border-white/10 bg-white/5 pl-10 text-white placeholder:text-white/40"
+            className="border-(--ws-line) bg-(--ws-fill) pl-10 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
           />
         </div>
         <PremiumSelect value={statusFilter} onValueChange={(v) => setStatusFilter(v as DonationStatus | "all")}>
@@ -323,16 +329,16 @@ export default function CampaignDonationsPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Donations List
       ══════════════════════════════════════════════════════════════════════ */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-xl">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-4">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-emerald-500/20 to-teal-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-emerald-500/20 to-teal-500/20">
               <Heart className="h-5 w-5 text-emerald-400" />
             </div>
-            <CardTitle className="text-lg text-white">
+            <CardTitle className="text-lg text-(--ws-fg)">
               {filteredDonations.length} Donation{filteredDonations.length !== 1 ? "s" : ""}
             </CardTitle>
           </div>
@@ -342,18 +348,18 @@ export default function CampaignDonationsPage() {
           {donationsLoading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
               <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-              <p className="text-sm text-white/60">Loading donations...</p>
+              <p className="text-sm text-(--ws-fg-60)">Loading donations...</p>
             </div>
           ) : filteredDonations.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <Heart className="h-8 w-8 text-white/30" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-fill)">
+                <Heart className="h-8 w-8 text-(--ws-fg-40)" />
               </div>
               <div className="text-center">
-                <p className="font-medium text-white/80">
+                <p className="font-medium text-(--ws-fg-80)">
                   {searchQuery ? "No donations match your search" : "No donations yet"}
                 </p>
-                <p className="mt-1 text-sm text-white/50">
+                <p className="mt-1 text-sm text-(--ws-fg-50)">
                   {searchQuery ? "Try adjusting your search terms" : "Donations will appear here once received"}
                 </p>
               </div>
@@ -368,5 +374,6 @@ export default function CampaignDonationsPage() {
         </CardContent>
       </Card>
     </div>
+    </WorkspaceScope>
   );
 }

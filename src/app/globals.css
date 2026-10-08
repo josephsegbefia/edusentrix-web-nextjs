@@ -225,6 +225,39 @@ body::-webkit-scrollbar {
   --m-logo-shadow: 0 10px 28px -16px rgba(79, 70, 229, 0.45);
   --m-glow-violet: rgba(139, 92, 246, 0.18);
   --m-glow-cyan: rgba(34, 211, 238, 0.14);
+
+  /* Workspace glass. Dark everywhere; `.workspace` lightens it in light mode. */
+  --ws-fg: #ffffff;
+  --ws-fg-90: rgb(255 255 255 / 0.9);
+  --ws-fg-80: rgb(255 255 255 / 0.8);
+  --ws-fg-70: rgb(255 255 255 / 0.7);
+  --ws-fg-60: rgb(255 255 255 / 0.6);
+  --ws-fg-50: rgb(255 255 255 / 0.5);
+  --ws-fg-40: rgb(255 255 255 / 0.4);
+  --ws-line: rgb(255 255 255 / 0.1);
+  --ws-line-strong: rgb(255 255 255 / 0.2);
+  --ws-fill: rgb(255 255 255 / 0.05);
+  --ws-fill-strong: rgb(255 255 255 / 0.1);
+  --ws-panel-from: rgb(15 23 42 / 0.9);
+  --ws-panel-via: rgb(2 6 23 / 0.95);
+  --ws-panel-to: #000000;
+  --ws-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
+  --ws-shine: rgb(255 255 255 / 0.15);
+  --ws-shine-strong: rgb(255 255 255 / 0.2);
+  --ws-popover: rgb(10 10 10 / 0.95);
+  --ws-popover-shadow: 0 20px 60px -15px rgb(0 0 0 / 0.9);
+  --ws-teal: #5eead4;
+  --ws-cyan: #67e8f9;
+  --ws-amber: #fcd34d;
+  --ws-emerald: #6ee7b7;
+  --ws-rose: #fca5a5;
+  --ws-violet: #d8b4fe;
+  --ws-dot-ring: #0f172a;
+  --ws-glow-teal: rgb(20 184 166 / 0.1);
+  --ws-glow-cyan: rgb(6 182 212 / 0.1);
+  --ws-title-from: #99f6e4;
+  --ws-title-via: #a5f3fc;
+  --ws-title-to: #7dd3fc;
 }
 
 /* If you toggle a .dark class anywhere, mirror the same values */
@@ -260,6 +293,80 @@ body::-webkit-scrollbar {
   --m-logo-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.55);
   --m-glow-violet: rgba(139, 92, 246, 0.28);
   --m-glow-cyan: rgba(168, 85, 247, 0.16);
+}
+
+/* Light workspace. Only when the user theme is light, so the page-column
+   `.dark` lock does not keep students pages dark. Portals add this class too. */
+.workspace {
+  color: var(--ws-fg);
+}
+
+html:not(.dark) .workspace {
+  color-scheme: light;
+
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 188 86% 43%;
+
+  --m-canvas: #ffffff;
+  --m-fg: #0f172a;
+  --m-muted: #64748b;
+  --m-faint: #94a3b8;
+  --m-border: rgba(148, 163, 184, 0.35);
+  --m-glass: rgba(255, 255, 255, 0.78);
+  --m-glass-strong: rgba(255, 255, 255, 0.94);
+  --m-header: rgba(255, 255, 255, 0.82);
+  --m-subtle: rgba(15, 23, 42, 0.04);
+  --m-shadow: 0 18px 50px -28px rgba(76, 29, 149, 0.35);
+  --m-logo-bg: #ffffff;
+  --m-logo-shadow: 0 10px 28px -16px rgba(79, 70, 229, 0.45);
+  --m-glow-violet: rgba(139, 92, 246, 0.18);
+  --m-glow-cyan: rgba(34, 211, 238, 0.14);
+
+  --ws-fg: #0f172a;
+  --ws-fg-90: rgb(15 23 42 / 0.9);
+  --ws-fg-80: rgb(15 23 42 / 0.8);
+  --ws-fg-70: rgb(15 23 42 / 0.7);
+  --ws-fg-60: rgb(71 85 105);
+  --ws-fg-50: rgb(100 116 139);
+  --ws-fg-40: rgb(148 163 184);
+  --ws-line: rgb(148 163 184 / 0.35);
+  --ws-line-strong: rgb(148 163 184 / 0.55);
+  --ws-fill: rgb(15 23 42 / 0.04);
+  --ws-fill-strong: rgb(15 23 42 / 0.08);
+  --ws-panel-from: rgb(255 255 255 / 0.94);
+  --ws-panel-via: rgb(248 250 252 / 0.98);
+  --ws-panel-to: #ffffff;
+  --ws-shadow: 0 18px 50px -28px rgb(76 29 149 / 0.35);
+  --ws-shine: rgb(15 23 42 / 0.1);
+  --ws-shine-strong: rgb(15 23 42 / 0.16);
+  --ws-popover: rgb(255 255 255 / 0.96);
+  --ws-popover-shadow: 0 18px 50px -28px rgb(76 29 149 / 0.35);
+  --ws-teal: #0f766e;
+  --ws-cyan: #0e7490;
+  --ws-amber: #b45309;
+  --ws-emerald: #047857;
+  --ws-rose: #be123c;
+  --ws-violet: #6d28d9;
+  --ws-dot-ring: #ffffff;
+  --ws-glow-teal: rgb(20 184 166 / 0.16);
+  --ws-glow-cyan: rgb(6 182 212 / 0.14);
+  --ws-title-from: #0f766e;
+  --ws-title-via: #0e7490;
+  --ws-title-to: #0369a1;
+}
+
+/* Students column, including the delegate bar above the page. */
+html:not(.dark) .students-workspace-main {
+  background-color: #f8fafc;
 }
 
 /* ===================

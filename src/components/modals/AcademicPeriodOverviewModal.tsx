@@ -61,13 +61,13 @@ function getStatusBadge(status?: PeriodStatusData["status"]) {
       return {
         label: "Active",
         className:
-          "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+          "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
       };
     case "expiring_soon":
     case "expiring_very_soon":
       return {
         label: "Expiring Soon",
-        className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+        className: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
       };
     case "expiring_critical":
     case "grace_period":
@@ -88,7 +88,7 @@ function getStatusBadge(status?: PeriodStatusData["status"]) {
     default:
       return {
         label: "Status Unknown",
-        className: "border-white/20 bg-white/5 text-white/70",
+        className: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-70)",
       };
   }
 }
@@ -102,7 +102,7 @@ export function AcademicPeriodOverviewModal({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-70)">
           Loading period overview...
         </div>
       </div>
@@ -126,39 +126,39 @@ export function AcademicPeriodOverviewModal({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs ${badge.className}`}
           >
             {badge.label}
           </span>
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-(--ws-fg-50)">
             {status?.message || "Academic period status overview"}
           </span>
         </div>
         <div className="mt-3 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs text-white/50">Current Period</p>
-            <p className="text-base font-semibold text-white">
+            <p className="text-xs text-(--ws-fg-50)">Current Period</p>
+            <p className="text-base font-semibold text-(--ws-fg)">
               {current ? `${current.term} ${current.yearLabel}` : "Not configured"}
             </p>
-            <p className="mt-1 text-xs text-white/60">
+            <p className="mt-1 text-xs text-(--ws-fg-60)">
               {formatDateLong(current?.startDate)} to {formatDateLong(current?.endDate)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-white/50">Progress</p>
-            <p className="text-sm font-semibold text-white">{progress.label}</p>
+            <p className="text-xs text-(--ws-fg-50)">Progress</p>
+            <p className="text-sm font-semibold text-(--ws-fg)">{progress.label}</p>
             {status?.daysUntilExpiry !== null && status?.daysUntilExpiry !== undefined ? (
-              <p className="text-xs text-amber-300">
+              <p className="text-xs text-(--ws-amber)">
                 {status.daysUntilExpiry} day{status.daysUntilExpiry === 1 ? "" : "s"} left
               </p>
             ) : null}
           </div>
         </div>
         {current ? (
-          <div className="mt-3 h-2 overflow-hidden rounded-full border border-white/10 bg-white/5">
+          <div className="mt-3 h-2 overflow-hidden rounded-full border border-(--ws-line) bg-(--ws-fill)">
             <div
               className="h-full rounded-full bg-linear-to-r from-amber-500 via-amber-400 to-amber-300 transition-all"
               style={{ width: `${progress.pct}%` }}
@@ -168,35 +168,35 @@ export function AcademicPeriodOverviewModal({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/50">Upcoming ({overview.upcoming.days}d)</div>
-          <div className="mt-1 text-lg font-semibold text-white">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+          <div className="text-xs text-(--ws-fg-50)">Upcoming ({overview.upcoming.days}d)</div>
+          <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
             {overview.upcoming.totalCount}
           </div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/50">Next 7 Days</div>
-          <div className="mt-1 text-lg font-semibold text-white">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+          <div className="text-xs text-(--ws-fg-50)">Next 7 Days</div>
+          <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
             {overview.upcoming.next7DaysCount}
           </div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/50">Calendars</div>
-          <div className="mt-1 text-lg font-semibold text-white">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+          <div className="text-xs text-(--ws-fg-50)">Calendars</div>
+          <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
             {overview.meta.calendarsCount}
           </div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/50">Events Configured</div>
-          <div className="mt-1 text-lg font-semibold text-white">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+          <div className="text-xs text-(--ws-fg-50)">Events Configured</div>
+          <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
             {overview.meta.eventsConfigured}
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-white">Upcoming Events</h4>
+          <h4 className="text-sm font-semibold text-(--ws-fg)">Upcoming Events</h4>
           <Link
             href="/admin/academic-calendar"
             className="inline-flex items-center gap-1 text-xs text-brand hover:opacity-90"
@@ -206,7 +206,7 @@ export function AcademicPeriodOverviewModal({
           </Link>
         </div>
         {overview.upcoming.preview.length === 0 ? (
-          <div className="rounded-lg border border-white/10 bg-black/10 p-3 text-xs text-white/60">
+          <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-xs text-(--ws-fg-60)">
             No upcoming events in the next {overview.upcoming.days} days.
           </div>
         ) : (
@@ -214,24 +214,24 @@ export function AcademicPeriodOverviewModal({
             {overview.upcoming.preview.map((event) => (
               <div
                 key={event.id}
-                className="flex items-start gap-3 rounded-lg border border-white/10 bg-black/10 p-3"
+                className="flex items-start gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
               >
                 <div className="rounded-md border border-fuchsia-500/30 bg-fuchsia-500/15 p-2">
                   <Calendar className="h-3.5 w-3.5 text-fuchsia-300" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-medium text-white">{event.title}</p>
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-white/60">
+                    <p className="truncate text-sm font-medium text-(--ws-fg)">{event.title}</p>
+                    <span className="rounded-full border border-(--ws-line) px-2 py-0.5 text-[10px] text-(--ws-fg-60)">
                       {EVENT_TYPE_LABELS[event.eventType] || event.eventType}
                     </span>
                     {event.isRecurring ? (
-                      <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-cyan-200">
+                      <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-(--ws-cyan)">
                         Recurring
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-xs text-white/55">
+                  <p className="mt-0.5 text-xs text-(--ws-fg)/55">
                     {formatDateTime(event.startDate)}
                   </p>
                 </div>
@@ -241,22 +241,22 @@ export function AcademicPeriodOverviewModal({
         )}
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
         <div className="flex items-center gap-2">
-          <History className="h-4 w-4 text-white/60" />
-          <h4 className="text-sm font-semibold text-white">Immediate Past Period</h4>
+          <History className="h-4 w-4 text-(--ws-fg-60)" />
+          <h4 className="text-sm font-semibold text-(--ws-fg)">Immediate Past Period</h4>
         </div>
         {previous ? (
-          <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
-            <p className="text-sm font-medium text-white">
+          <div className="mt-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+            <p className="text-sm font-medium text-(--ws-fg)">
               {previous.term} {previous.yearLabel}
             </p>
-            <p className="mt-1 text-xs text-white/60">
+            <p className="mt-1 text-xs text-(--ws-fg-60)">
               {formatDateLong(previous.startDate)} to {formatDateLong(previous.endDate)}
             </p>
           </div>
         ) : (
-          <p className="mt-3 text-xs text-white/60">No previous period found.</p>
+          <p className="mt-3 text-xs text-(--ws-fg-60)">No previous period found.</p>
         )}
       </div>
 
@@ -265,7 +265,7 @@ export function AcademicPeriodOverviewModal({
           type="button"
           variant="outline"
           onClick={onClose}
-          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           Close
         </Button>

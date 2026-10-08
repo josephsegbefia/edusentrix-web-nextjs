@@ -25,7 +25,7 @@ export function SubscriptionBillingGuideButton({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/65 transition hover:bg-white/10 hover:text-white",
+          "inline-flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs font-medium text-(--ws-fg-60) transition hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)",
           className
         )}
       >
@@ -42,8 +42,8 @@ export function SubscriptionBillingGuideButton({
       >
         <div className="space-y-4">
           <div className={cn(glassInsetClass, "px-4 py-3")}>
-            <p className="text-sm font-semibold text-white">EduSentrix billing is term-based.</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/45">
+            <p className="text-sm font-semibold text-(--ws-fg)">EduSentrix billing is term-based.</p>
+            <p className="mt-1 text-xs leading-relaxed text-(--ws-fg-40)">
               Academic periods improve labels and dates, but billing does not fail when a school has not
               configured every term. EduSentrix stores a coverage snapshot for each subscription and invoice.
             </p>
@@ -55,8 +55,8 @@ export function SubscriptionBillingGuideButton({
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-cyan-200/70">
                   {String(index + 1).padStart(2, "0")}
                 </p>
-                <h3 className="mt-1 text-sm font-semibold text-white">{section.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-white/45">{section.body}</p>
+                <h3 className="mt-1 text-sm font-semibold text-(--ws-fg)">{section.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed text-(--ws-fg-40)">{section.body}</p>
               </div>
             ))}
           </div>

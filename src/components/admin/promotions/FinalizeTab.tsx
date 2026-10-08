@@ -107,15 +107,15 @@ export function FinalizeTab() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white">Approve & finalize</h2>
-          <p className="mt-1 text-sm text-white/50">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Approve & finalize</h2>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             Apply grade transitions after reviewing and approving decisions.
           </p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
-        <CheckCircle className="mx-auto h-12 w-12 text-white/20" />
-          <p className="mt-4 text-white/60">No cycles ready for finalize</p>
-          <p className="mt-1 text-sm text-white/40">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) py-12 text-center">
+        <CheckCircle className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+          <p className="mt-4 text-(--ws-fg-60)">No cycles ready for finalize</p>
+          <p className="mt-1 text-sm text-(--ws-fg-40)">
             Approve a cycle from the Review tab first
           </p>
         </div>
@@ -138,13 +138,13 @@ export function FinalizeTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Approve & finalize</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Approve & finalize</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">
           Apply grade transitions after reviewing and approving decisions.
         </p>
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-white/50">Cycle</label>
+        <label className="text-xs text-(--ws-fg-50)">Cycle</label>
         <PremiumSelect
           value={cycleId ?? ""}
           onValueChange={(v) => setCycleId(v || null)}
@@ -162,9 +162,9 @@ export function FinalizeTab() {
         </PremiumSelect>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-        <h4 className="mb-2 font-semibold text-white">Approve</h4>
-        <p className="mb-4 text-sm text-white/60">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6">
+        <h4 className="mb-2 font-semibold text-(--ws-fg)">Approve</h4>
+        <p className="mb-4 text-sm text-(--ws-fg-60)">
           Approve the cycle to unlock the finalize action. No changes are made until you finalize.
         </p>
         <Button
@@ -182,9 +182,9 @@ export function FinalizeTab() {
         </Button>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-        <h4 className="mb-2 font-semibold text-white">Finalize</h4>
-        <p className="mb-4 text-sm text-white/60">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6">
+        <h4 className="mb-2 font-semibold text-(--ws-fg)">Finalize</h4>
+        <p className="mb-4 text-sm text-(--ws-fg-60)">
           Apply all decisions to students. Updates grade/class placement and TermResult.isPromoted.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -203,14 +203,14 @@ export function FinalizeTab() {
             {isFinalized ? "Finalized" : isFinalizing ? "Finalizing..." : canRetryFinalize ? "Retry finalize" : "Finalize"}
           </Button>
           {isFinalizeFailed && (
-            <span className="flex items-center text-sm text-amber-200">Previous run failed</span>
+            <span className="flex items-center text-sm text-(--ws-amber)">Previous run failed</span>
           )}
         </div>
         {(isFinalizing || isRollingBack) &&
           cycle?.progress != null &&
           typeof cycle.progress === "object" && (
           <div className="mt-4 space-y-1">
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="h-2 overflow-hidden rounded-full bg-(--ws-fill-strong)">
               <div
                 className="h-full bg-indigo-500 transition-all"
                 style={{
@@ -218,7 +218,7 @@ export function FinalizeTab() {
                 }}
               />
             </div>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-(--ws-fg-50)">
               {(cycle.progress as { processed?: number; total?: number }).processed ?? 0} / {(cycle.progress as { total?: number }).total ?? 0} processed
             </p>
           </div>
@@ -227,8 +227,8 @@ export function FinalizeTab() {
 
       {(isFinalized || isRollbackFailed) && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-6">
-          <h4 className="mb-2 font-semibold text-white">Rollback</h4>
-          <p className="mb-4 text-sm text-white/60">
+          <h4 className="mb-2 font-semibold text-(--ws-fg)">Rollback</h4>
+          <p className="mb-4 text-sm text-(--ws-fg-60)">
             Restore all students to their pre-finalize grade and class placement.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -236,7 +236,7 @@ export function FinalizeTab() {
               onClick={handleRollback}
               disabled={!promotionFeatureFlags.rollbackEnabled || (!canRollback && !canRetryRollback) || isRollingBack || isRolledBack || rollbackMutation.isPending}
               variant="outline"
-              className="gap-2 border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+              className="gap-2 border-amber-500/30 text-(--ws-amber) hover:bg-amber-500/10"
             >
               {rollbackMutation.isPending || isRollingBack ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +248,7 @@ export function FinalizeTab() {
               {isRolledBack ? "Rolled back" : isRollingBack ? "Rolling back..." : canRetryRollback ? "Retry rollback" : "Rollback"}
             </Button>
             {isRollbackFailed && (
-              <span className="flex items-center text-sm text-amber-200">Previous rollback failed</span>
+              <span className="flex items-center text-sm text-(--ws-amber)">Previous rollback failed</span>
             )}
           </div>
         </div>

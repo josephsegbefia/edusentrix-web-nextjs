@@ -12,6 +12,7 @@ import {
   premiumMenuItemWarning,
   premiumSeparator,
 } from "./premium";
+import { useWorkspacePortalClass } from "@/components/theme/workspace-scope";
 
 // ============================================================================
 // Root Components
@@ -31,12 +32,15 @@ const PremiumDropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 const PremiumDropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 8, ...props }, ref) => (
+>(({ className, sideOffset = 8, ...props }, ref) => {
+  const portalClass = useWorkspacePortalClass();
+  return (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
+        portalClass,
         premiumMenuContent,
         "z-100 min-w-45",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
@@ -49,7 +53,8 @@ const PremiumDropdownMenuContent = React.forwardRef<
       {...props}
     />
   </DropdownMenuPrimitive.Portal>
-));
+  );
+});
 PremiumDropdownMenuContent.displayName = "PremiumDropdownMenuContent";
 
 // ============================================================================
@@ -182,7 +187,7 @@ const PremiumDropdownMenuLabel = React.forwardRef<
   <DropdownMenuPrimitive.Label
     ref={ref}
     className={cn(
-      "px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/40",
+      "px-3 py-2 text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)",
       inset && "pl-8",
       className
     )}
@@ -216,7 +221,7 @@ const PremiumDropdownMenuShortcut = ({
   ...props
 }: React.HTMLAttributes<HTMLSpanElement>) => (
   <span
-    className={cn("ml-auto text-xs tracking-widest text-white/30", className)}
+    className={cn("ml-auto text-xs tracking-widest text-(--ws-fg-40)", className)}
     {...props}
   />
 );
@@ -238,14 +243,14 @@ const PremiumDropdownMenuSubTrigger = React.forwardRef<
     className={cn(
       premiumMenuItem,
       inset && "pl-8",
-      "data-[state=open]:bg-white/10",
+      "data-[state=open]:bg-(--ws-fill-strong)",
       className
     )}
     {...props}
   >
     {icon && <span className="shrink-0">{icon}</span>}
     {children}
-    <ChevronRightIcon className="ml-auto h-4 w-4 text-white/40" />
+    <ChevronRightIcon className="ml-auto h-4 w-4 text-(--ws-fg-40)" />
   </DropdownMenuPrimitive.SubTrigger>
 ));
 PremiumDropdownMenuSubTrigger.displayName = "PremiumDropdownMenuSubTrigger";

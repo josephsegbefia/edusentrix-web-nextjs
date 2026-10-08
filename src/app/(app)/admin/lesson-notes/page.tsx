@@ -1,7 +1,12 @@
 "use client";
 
 import { AdminLessonNotesInbox } from "@/components/admin/lesson-notes/AdminLessonNotesInbox";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default function AdminLessonNotesPage() {
-  return <AdminLessonNotesInbox />;
+  return (
+    <WorkspaceScope>
+      <AdminLessonNotesInbox />
+    </WorkspaceScope>
+  );
 }

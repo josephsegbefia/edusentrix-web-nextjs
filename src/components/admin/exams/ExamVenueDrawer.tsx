@@ -192,10 +192,10 @@ export function ExamVenueDrawer({
               rows={3}
             />
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
             <div>
-              <p className="text-sm font-medium text-white">Active</p>
-              <p className="text-xs text-white/50">Inactive venues stay hidden from new scheduling.</p>
+              <p className="text-sm font-medium text-(--ws-fg)">Active</p>
+              <p className="text-xs text-(--ws-fg-50)">Inactive venues stay hidden from new scheduling.</p>
             </div>
             <Switch
               checked={form.isActive ?? true}

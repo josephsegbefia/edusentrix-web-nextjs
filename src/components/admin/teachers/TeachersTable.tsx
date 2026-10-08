@@ -121,16 +121,16 @@ export function TeachersTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/10">
+    <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
       <table className="min-w-full border-collapse text-xs md:text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-white/5 text-xs text-muted-foreground">
+          <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-xs text-muted-foreground">
             <th className="w-8 px-3 py-2 text-left align-middle">
               <Checkbox
                 checked={allVisibleSelected}
                 onCheckedChange={handleHeaderCheckboxChange}
                 className={cn(
-                  "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                  "h-4 w-4 border-(--ws-line-strong) bg-slate-900/80 data-[state=checked]:bg-primary"
                 )}
                 aria-label="Select all visible teachers"
                 indeterminate={someVisibleSelected}
@@ -202,8 +202,8 @@ export function TeachersTable({
                 key={teacher.id}
                 onClick={() => onView?.(teacher.id)}
                 className={cn(
-                  "border-b border-white/5 transition-colors",
-                  "hover:bg-white/5",
+                  "border-b border-(--ws-line) transition-colors",
+                  "hover:bg-(--ws-fill)",
                   isSelected && "bg-primary/10"
                 )}
               >
@@ -214,7 +214,7 @@ export function TeachersTable({
                       // do not let row click fire
                       onToggleRow(teacher.id);
                     }}
-                    className="h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                    className="h-4 w-4 border-(--ws-line-strong) bg-slate-900/80 data-[state=checked]:bg-primary"
                     aria-label={`Select ${teacher.fullName}`}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -230,19 +230,19 @@ export function TeachersTable({
                       size="sm"
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-white">
+                      <p className="truncate text-xs font-medium text-(--ws-fg)">
                         {teacher.fullName}
                       </p>
-                      <p className="truncate text-[11px] text-white/60">
+                      <p className="truncate text-[11px] text-(--ws-fg-60)">
                         {teacher.email ?? "—"}
                       </p>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/70">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-70)">
                   {teacher.employeeId ?? "—"}
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {teacher.department ?? "—"}
                 </td>
                 <td className="px-3 py-2 align-middle">
@@ -252,7 +252,7 @@ export function TeachersTable({
                         <Badge
                           key={s.id}
                           variant="outline"
-                          className="border-white/10 bg-white/5 text-[10px]"
+                          className="border-(--ws-line) bg-(--ws-fill) text-[10px]"
                         >
                           {s.name}
                         </Badge>
@@ -260,7 +260,7 @@ export function TeachersTable({
                       {teacher.subjects.length > 2 && (
                         <Badge
                           variant="outline"
-                          className="border-white/10 bg-white/5 text-[10px]"
+                          className="border-(--ws-line) bg-(--ws-fill) text-[10px]"
                         >
                           +{teacher.subjects.length - 2}
                         </Badge>
@@ -289,13 +289,13 @@ export function TeachersTable({
                       className={cn(
                         "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
                         teacher.status === "active" &&
-                          "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40",
+                          "bg-emerald-500/15 text-(--ws-emerald) border border-emerald-400/40",
                         teacher.status === "inactive" &&
                           "bg-slate-500/20 text-slate-100 border border-slate-400/40",
                         teacher.status === "on_leave" &&
-                          "bg-amber-500/15 text-amber-100 border border-amber-400/40",
+                          "bg-amber-500/15 text-(--ws-amber) border border-amber-400/40",
                         teacher.status === "terminated" &&
-                          "bg-red-500/15 text-red-100 border border-red-400/40"
+                          "bg-red-500/15 text-(--ws-rose) border border-red-400/40"
                       )}
                     >
                       {statusLabel(teacher.status)}
@@ -307,7 +307,7 @@ export function TeachersTable({
                       end.setHours(0, 0, 0, 0);
                       const d = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
                       return (
-                        <span className="text-[10px] text-amber-300/70">
+                        <span className="text-[10px] text-(--ws-amber)/70">
                           {d === 0 ? "ends today" : `${d}d left`}
                         </span>
                       );
@@ -317,7 +317,7 @@ export function TeachersTable({
                     )}
                   </div>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {hireDateLabel}
                 </td>
                 <td className="px-3 py-2 align-middle text-right">

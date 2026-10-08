@@ -128,7 +128,7 @@ export function SchemeImportDocumentUploader({
         showProgress={busy && uploadProgress !== null}
       />
       {validatePhase ? (
-        <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
           <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
           <p>{validatePhase}</p>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import type { LucideIcon } from "lucide-react";
 import { Bell, BookOpenCheck, Loader2, RotateCcw, Settings2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -76,7 +77,8 @@ export default function AdminLibrarySettingsPage() {
   }
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library" label="Library home" />
       <LibraryPageHeader
         icon={Settings2}
@@ -85,14 +87,14 @@ export default function AdminLibrarySettingsPage() {
       />
 
       {readOnlySettings ? (
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <p className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
           View-only: your delegation does not include library settings changes.
         </p>
       ) : null}
 
       {isLoading || !form ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-white/40" />
+          <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
         </div>
       ) : (
         <SettingsFormReadOnlyContext.Provider value={readOnlySettings}>
@@ -142,8 +144,8 @@ export default function AdminLibrarySettingsPage() {
 
           <section className={`${libraryGlassPanel} space-y-4 p-5`}>
             <SectionTitle icon={RotateCcw} title="Renewals" description="Control whether borrowers can extend a loan." />
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 px-4 py-3">
-              <span className="text-sm text-white/80">Allow renewals</span>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-(--ws-line) px-4 py-3">
+              <span className="text-sm text-(--ws-fg-80)">Allow renewals</span>
               <Switch
                 checked={form.allowRenewals}
                 onCheckedChange={(v) => set("allowRenewals", v)}
@@ -160,8 +162,8 @@ export default function AdminLibrarySettingsPage() {
           <aside className="space-y-6">
           <section className={`${libraryGlassPanel} space-y-4 p-5`}>
             <SectionTitle icon={ShieldCheck} title="Fines" description="Daily fine and replacement fee defaults." />
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 px-4 py-3">
-              <span className="text-sm text-white/80">Enable daily fines</span>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-(--ws-line) px-4 py-3">
+              <span className="text-sm text-(--ws-fg-80)">Enable daily fines</span>
               <Switch
                 checked={form.enableFines}
                 onCheckedChange={(v) => set("enableFines", v)}
@@ -180,8 +182,8 @@ export default function AdminLibrarySettingsPage() {
                 onChange={(n) => set("graceDaysAfterDueDate", n)}
               />
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 px-4 py-3">
-              <span className="text-sm text-white/80">Replacement fees</span>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-(--ws-line) px-4 py-3">
+              <span className="text-sm text-(--ws-fg-80)">Replacement fees</span>
               <Switch
                 checked={form.enableReplacementFees}
                 onCheckedChange={(v) => set("enableReplacementFees", v)}
@@ -231,11 +233,11 @@ export default function AdminLibrarySettingsPage() {
             </div>
           </section>
 
-          <div className="rounded-2xl border border-white/10 bg-linear-to-r from-white/5 to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
+          <div className="rounded-2xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
             <Button
               onClick={() => void save()}
               disabled={readOnlySettings || patchSettings.isPending}
-              className="w-full bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+              className="w-full bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
             >
               {patchSettings.isPending ? (
                 <>
@@ -252,6 +254,7 @@ export default function AdminLibrarySettingsPage() {
         </SettingsFormReadOnlyContext.Provider>
       )}
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }
 
@@ -267,11 +270,11 @@ function SectionTitle({
   return (
     <div className="flex gap-3">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-400/10">
-        <Icon className="h-4 w-4 text-cyan-200" />
+        <Icon className="h-4 w-4 text-(--ws-cyan)" />
       </div>
       <div>
-        <h2 className="text-base font-semibold text-white">{title}</h2>
-        <p className="mt-1 text-sm text-white/50">{description}</p>
+        <h2 className="text-base font-semibold text-(--ws-fg)">{title}</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">{description}</p>
       </div>
     </div>
   );
@@ -289,12 +292,12 @@ function Field({
   const readOnly = React.useContext(SettingsFormReadOnlyContext);
   return (
     <div className="space-y-2">
-      <Label className="text-white/80">{label}</Label>
+      <Label className="text-(--ws-fg-80)">{label}</Label>
       <Input
         type="number"
         value={Number.isFinite(value) ? value : 0}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="border-white/15 bg-white/[0.05] text-white"
+        className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
         disabled={readOnly}
       />
     </div>
@@ -312,8 +315,8 @@ function ToggleRow({
 }) {
   const readOnly = React.useContext(SettingsFormReadOnlyContext);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-white/10 px-4 py-3">
-      <span className="text-sm text-white/80">{label}</span>
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-(--ws-line) px-4 py-3">
+      <span className="text-sm text-(--ws-fg-80)">{label}</span>
       <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={readOnly} />
     </div>
   );

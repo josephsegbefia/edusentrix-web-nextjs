@@ -59,9 +59,9 @@ export function GuardianList({
 }: Props) {
   if (guardians.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) px-4 py-8 text-center">
         <UserCheck className="mb-3 h-8 w-8 text-muted-foreground/70" />
-        <p className="text-sm font-medium text-white/80">
+        <p className="text-sm font-medium text-(--ws-fg-80)">
           No guardians added yet
         </p>
         <p className="mt-1 text-xs text-muted-foreground/70">
@@ -78,11 +78,11 @@ export function GuardianList({
           key={guardian.id}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="group relative rounded-lg border border-white/10 bg-black/30 p-4 transition-all hover:border-white/20 hover:bg-black/40"
+          className="group relative rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
         >
           <div className="flex items-start gap-4">
             {/* Avatar */}
-            <Avatar className="h-12 w-12 border-2 border-white/20 ring-2 ring-primary/20 shadow-lg shadow-black/50">
+            <Avatar className="h-12 w-12 border-2 border-(--ws-line-strong) ring-2 ring-primary/20 shadow-lg shadow-black/50">
               {guardian.photoUrl ? (
                 <AvatarImage src={guardian.photoUrl} alt={guardian.fullName} />
               ) : (
@@ -95,7 +95,7 @@ export function GuardianList({
             {/* Content */}
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-white/90 truncate">
+                <span className="text-sm font-semibold text-(--ws-fg-90) truncate">
                   {guardian.fullName}
                 </span>
                 {guardian.isPrimary && (
@@ -106,7 +106,7 @@ export function GuardianList({
                 )}
                 <Badge
                   variant="outline"
-                  className="border-white/20 bg-white/5 text-[10px]"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-[10px]"
                 >
                   {getRelationshipLabel(guardian.relationship)}
                 </Badge>
@@ -146,7 +146,7 @@ export function GuardianList({
                   size="icon"
                   onClick={() => onSetPrimary(guardian.id)}
                   disabled={isLoading}
-                  className="h-8 w-8 cursor-pointer border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:scale-105 hover:border-amber-400/50 hover:bg-amber-500/20 hover:text-amber-200 hover:shadow-md hover:shadow-amber-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-amber-400/50 hover:bg-amber-500/20 hover:text-(--ws-amber) hover:shadow-md hover:shadow-amber-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Set as primary"
                 >
                   <StarOff className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function GuardianList({
                 size="icon"
                 onClick={() => onEdit(guardian)}
                 disabled={isLoading}
-                className="h-8 w-8 cursor-pointer border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:scale-105 hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-blue-200 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-blue-200 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Edit guardian"
               >
                 <Edit className="h-4 w-4" />
@@ -169,7 +169,7 @@ export function GuardianList({
                 size="icon"
                 onClick={() => onDelete(guardian.id)}
                 disabled={isLoading}
-                className="h-8 w-8 cursor-pointer border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:scale-105 hover:border-red-400/50 hover:bg-red-500/20 hover:text-red-200 hover:shadow-md hover:shadow-red-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-red-400/50 hover:bg-red-500/20 hover:text-red-200 hover:shadow-md hover:shadow-red-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Remove guardian"
               >
                 <Trash2 className="h-4 w-4" />

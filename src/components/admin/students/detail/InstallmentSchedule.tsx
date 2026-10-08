@@ -34,7 +34,7 @@ function statusBadge(status: string) {
   const statusMap: Record<string, { label: string; className: string; icon: any }> = {
     pending: {
       label: "Pending",
-      className: "border-amber-400/25 bg-amber-500/10 text-amber-200",
+      className: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
       icon: Clock,
     },
     partially_paid: {
@@ -44,7 +44,7 @@ function statusBadge(status: string) {
     },
     paid: {
       label: "Paid",
-      className: "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
+      className: "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)",
       icon: CheckCircle2,
     },
     overdue: {
@@ -114,14 +114,14 @@ export function InstallmentSchedule({ studentId }: Props) {
   }, [installments]);
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
         aria-hidden="true"
       />
       <CardHeader className="relative z-10 pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-(--ws-fg-80)">
             Installment Schedule
           </CardTitle>
           {summary && (
@@ -136,21 +136,21 @@ export function InstallmentSchedule({ studentId }: Props) {
         {/* Summary Cards */}
         {summary && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
               <div className="text-xs text-muted-foreground">Total</div>
-              <div className="mt-1 text-sm font-semibold text-white/90">
+              <div className="mt-1 text-sm font-semibold text-(--ws-fg-90)">
                 {summary.totalInstallments}
               </div>
             </div>
             <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
               <div className="text-xs text-muted-foreground">Paid</div>
-              <div className="mt-1 text-sm font-semibold text-emerald-200">
+              <div className="mt-1 text-sm font-semibold text-(--ws-emerald)">
                 {summary.paidInstallments}
               </div>
             </div>
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
               <div className="text-xs text-muted-foreground">Pending</div>
-              <div className="mt-1 text-sm font-semibold text-amber-200">
+              <div className="mt-1 text-sm font-semibold text-(--ws-amber)">
                 {summary.pendingInstallments}
               </div>
             </div>
@@ -173,9 +173,9 @@ export function InstallmentSchedule({ studentId }: Props) {
             Failed to load installments. Please try again.
           </div>
         ) : installments.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center">
-            <Calendar className="mx-auto h-12 w-12 text-white/20" />
-            <p className="mt-3 text-sm font-medium text-white/80">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-8 text-center">
+            <Calendar className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+            <p className="mt-3 text-sm font-medium text-(--ws-fg-80)">
               No installments found
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -202,7 +202,7 @@ export function InstallmentSchedule({ studentId }: Props) {
             {/* Due Soon */}
             {grouped.due_soon.length > 0 && (
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-200">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--ws-amber)">
                   <Clock className="h-4 w-4" />
                   Due Soon ({grouped.due_soon.length})
                 </h3>
@@ -217,7 +217,7 @@ export function InstallmentSchedule({ studentId }: Props) {
             {/* Upcoming */}
             {grouped.upcoming.length > 0 && (
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white/80">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--ws-fg-80)">
                   <Calendar className="h-4 w-4" />
                   Upcoming ({grouped.upcoming.length})
                 </h3>
@@ -232,7 +232,7 @@ export function InstallmentSchedule({ studentId }: Props) {
             {/* Paid */}
             {grouped.paid.length > 0 && (
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-200">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--ws-emerald)">
                   <CheckCircle2 className="h-4 w-4" />
                   Paid ({grouped.paid.length})
                 </h3>
@@ -248,17 +248,17 @@ export function InstallmentSchedule({ studentId }: Props) {
 
         {/* Next Due Date */}
         {summary?.nextDueDate && (
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+          <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground">Next Due Date</div>
-                <div className="mt-1 text-sm font-semibold text-white/90">
+                <div className="mt-1 text-sm font-semibold text-(--ws-fg-90)">
                   {fmtDate(summary.nextDueDate)}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-muted-foreground">Total Due</div>
-                <div className="mt-1 text-sm font-semibold text-amber-200">
+                <div className="mt-1 text-sm font-semibold text-(--ws-amber)">
                   {formatMoney(summary.totalDue)}
                 </div>
               </div>
@@ -283,13 +283,13 @@ function InstallmentCard({ installment }: { installment: any }) {
         "rounded-lg border p-4 transition-all",
         isOverdue
           ? "border-red-500/30 bg-red-500/5"
-          : "border-white/10 bg-white/5"
+          : "border-(--ws-line) bg-(--ws-fill)"
       )}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-3">
-            <div className="font-medium text-white/90">
+            <div className="font-medium text-(--ws-fg-90)">
               {installment.lineItemName || "Installment"}
             </div>
             {statusBadge(installment.status)}
@@ -313,12 +313,12 @@ function InstallmentCard({ installment }: { installment: any }) {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Progress</span>
-                <span className="font-medium text-white/80">
+                <span className="font-medium text-(--ws-fg-80)">
                   {formatMoney(installment.amountPaidMinor)} /{" "}
                   {formatMoney(installment.amountMinor)}
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="h-1.5 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                 <div
                   className="h-full bg-emerald-500 transition-all"
                   style={{ width: `${Math.min(100, progress)}%` }}
@@ -334,16 +334,16 @@ function InstallmentCard({ installment }: { installment: any }) {
           )}
         </div>
         <div className="text-right">
-          <div className="text-sm font-semibold text-white/90">
+          <div className="text-sm font-semibold text-(--ws-fg-90)">
             {formatMoney(installment.amountMinor)}
           </div>
           {installment.amountOutstandingMinor > 0 && (
-            <div className="mt-1 text-xs text-amber-300">
+            <div className="mt-1 text-xs text-(--ws-amber)">
               Outstanding: {formatMoney(installment.amountOutstandingMinor)}
             </div>
           )}
           {installment.amountPaidMinor > 0 && (
-            <div className="mt-1 text-xs text-emerald-300">
+            <div className="mt-1 text-xs text-(--ws-emerald)">
               Paid: {formatMoney(installment.amountPaidMinor)}
             </div>
           )}

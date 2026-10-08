@@ -67,7 +67,7 @@ const toneConfig: Record<
     bg: "from-teal-500/10 via-teal-500/5 to-transparent",
     glow: "bg-teal-500/20",
     accent: "bg-teal-500",
-    badge: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+    badge: "bg-teal-500/20 text-(--ws-teal) border-teal-500/30",
   },
   rose: {
     border: "border-rose-500/30",
@@ -81,14 +81,14 @@ const toneConfig: Record<
     bg: "from-amber-500/10 via-amber-500/5 to-transparent",
     glow: "bg-amber-500/20",
     accent: "bg-amber-500",
-    badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    badge: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
   },
   slate: {
     border: "border-slate-500/30",
     bg: "from-slate-600/20 via-slate-700/15 to-transparent",
     glow: "bg-slate-500/20",
     accent: "bg-slate-500",
-    badge: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    badge: "bg-slate-500/20 text-(--ws-fg-60) border-slate-500/30",
   },
   violet: {
     border: "border-violet-500/30",
@@ -162,7 +162,7 @@ export function StudentCard({
         "group relative flex flex-col overflow-hidden rounded-2xl border bg-linear-to-br backdrop-blur-xl",
         config.bg,
         config.border,
-        "shadow-xl shadow-black/30 transition-all duration-300",
+        "shadow-[var(--ws-shadow)] transition-all duration-300",
         "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
       )}
     >
@@ -178,7 +178,7 @@ export function StudentCard({
 
       {/* Top shine */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
         aria-hidden="true"
       />
 
@@ -202,7 +202,7 @@ export function StudentCard({
               size="md"
             />
             {student.isNew && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-900 bg-teal-500 text-[8px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-(--ws-dot-ring) bg-teal-500 text-[8px] font-bold text-(--ws-fg)">
                 N
               </span>
             )}
@@ -211,10 +211,10 @@ export function StudentCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 space-y-0.5">
-                <h3 className="truncate text-sm font-semibold text-white">
+                <h3 className="truncate text-sm font-semibold text-(--ws-fg)">
                   {student.fullName}
                 </h3>
-                <p className="truncate text-xs text-white/50">{classLabel}</p>
+                <p className="truncate text-xs text-(--ws-fg-50)">{classLabel}</p>
               </div>
 
               <PremiumDropdownMenu>
@@ -223,7 +223,7 @@ export function StudentCard({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    className="h-7 w-7 shrink-0 rounded-lg bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
@@ -279,7 +279,7 @@ export function StudentCard({
                 {statusLabel}
               </span>
               {student.admissionNumber && (
-                <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60">
+                <span className="inline-flex items-center rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] text-(--ws-fg-60)">
                   {student.admissionNumber}
                 </span>
               )}
@@ -301,8 +301,8 @@ export function StudentCard({
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 flex items-center justify-between border-t border-white/5 bg-white/2 px-4 py-2.5 sm:px-5 sm:py-3">
-        <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+      <div className="relative z-10 flex items-center justify-between border-t border-(--ws-line) bg-(--ws-fill) px-4 py-2.5 sm:px-5 sm:py-3">
+        <div className="flex items-center gap-1.5 text-[10px] text-(--ws-fg-40)">
           <Calendar className="h-3 w-3" />
           <span>
             {enrolmentLabel ? `Enrolled ${enrolmentLabel}` : "Enrollment date unknown"}
@@ -310,8 +310,8 @@ export function StudentCard({
         </div>
         {student.latestAverage !== null && (
           <div className="flex items-center gap-1.5">
-            <GraduationCap className="h-3 w-3 text-white/40" />
-            <span className="text-[10px] font-medium text-white/60">
+            <GraduationCap className="h-3 w-3 text-(--ws-fg-40)" />
+            <span className="text-[10px] font-medium text-(--ws-fg-60)">
               {student.latestAverage.toFixed(0)}%
             </span>
           </div>

@@ -46,7 +46,7 @@ export function InvoiceEventTimeline({ events }: Props) {
       case "overdue_marked":
         return <AlertCircle className="h-4 w-4 text-red-300" />;
       default:
-        return <Clock className="h-4 w-4 text-white/40" />;
+        return <Clock className="h-4 w-4 text-(--ws-fg-40)" />;
     }
   };
 
@@ -69,16 +69,16 @@ export function InvoiceEventTimeline({ events }: Props) {
 
   if (!events || events.length === 0) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-slate-500/5 via-slate-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10">
-          <CardTitle className="text-white">Event Timeline</CardTitle>
+          <CardTitle className="text-(--ws-fg)">Event Timeline</CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
-          <p className="text-sm text-white/60 text-center py-4">
+          <p className="text-sm text-(--ws-fg-60) text-center py-4">
             No events recorded yet
           </p>
         </CardContent>
@@ -87,27 +87,27 @@ export function InvoiceEventTimeline({ events }: Props) {
   }
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-slate-500/5 via-slate-500/2 to-transparent"
         aria-hidden="true"
       />
       <CardHeader className="relative z-10">
-        <CardTitle className="text-white">Event Timeline</CardTitle>
-        <p className="text-sm text-white/60">
+        <CardTitle className="text-(--ws-fg)">Event Timeline</CardTitle>
+        <p className="text-sm text-(--ws-fg-60)">
           Complete audit trail of bill activities
         </p>
       </CardHeader>
       <CardContent className="relative z-10">
         <div className="relative">
           {/* Timeline line */}
-          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-white/10" />
+          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-(--ws-fill-strong)" />
 
           <div className="space-y-4">
             {events.map((event, index) => (
               <div key={event._id} className="relative flex items-start gap-4">
                 {/* Icon */}
-                <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white/20 bg-card">
+                <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-(--ws-line-strong) bg-card">
                   {getEventIcon(event.eventType)}
                 </div>
 
@@ -116,12 +116,12 @@ export function InvoiceEventTimeline({ events }: Props) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {getEventBadge(event.eventType)}
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-(--ws-fg)">
                         {event.description}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-white/50">
+                  <div className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
                     <Clock className="h-3 w-3" />
                     <span>
                       {new Date(event.createdAt).toLocaleString()}

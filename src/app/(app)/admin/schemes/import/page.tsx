@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, FileUp, Loader2, Sparkles } from "lucide-react";
 import { SchemeImportDocumentUploader } from "@/components/schemes/SchemeImportDocumentUploader";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { useClasses } from "@/hooks/admin/useClasses";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useSchool } from "@/hooks/admin/useSchool";
@@ -244,17 +245,17 @@ function AdminSchemeImportInner() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
-      <section className="rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+      <section className="rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wide text-white/40">Scheme of Learning</p>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Import official scheme document</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Scheme of Learning</p>
+            <h1 className="mt-2 text-2xl font-semibold text-(--ws-fg)">Import official scheme document</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-(--ws-fg-60)">
               Upload a GES/NaCCA PDF or spreadsheet, choose the exact grade and subject, review
               the extracted rows, then create an approved Scheme of Learning for all class groups in that grade.
             </p>
           </div>
-          <Button asChild variant="outline" className="w-fit border-white/10 bg-white/5 text-white">
+          <Button asChild variant="outline" className="w-fit border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
             <Link href="/admin/schemes">Back to Schemes</Link>
           </Button>
         </div>
@@ -262,19 +263,19 @@ function AdminSchemeImportInner() {
 
       <div className="grid gap-4 lg:grid-cols-4">
         {["Upload", "Context", "Review", "Create"].map((label, index) => (
-          <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <div key={label} className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+              <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                 {index + 1}
               </Badge>
-              <p className="text-sm font-medium text-white">{label}</p>
+              <p className="text-sm font-medium text-(--ws-fg)">{label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-        <div className="flex items-center gap-2 text-white">
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-5">
+        <div className="flex items-center gap-2 text-(--ws-fg)">
           <FileUp className="h-5 w-5 text-blue-200" />
           <h2 className="text-lg font-semibold">1. Upload</h2>
         </div>
@@ -297,7 +298,7 @@ function AdminSchemeImportInner() {
                 onError={setUploadError}
               />
             ) : (
-              <p className="text-sm text-white/55">Loading school context...</p>
+              <p className="text-sm text-(--ws-fg-50)">Loading school context...</p>
             )}
             {uploadWarning ? (
               <p className="mt-2 text-sm text-amber-200">{uploadWarning}</p>
@@ -318,7 +319,7 @@ function AdminSchemeImportInner() {
         )}
       </section>
 
-      {jobLoading && jobId ? <p className="text-sm text-white/65">Loading import...</p> : null}
+      {jobLoading && jobId ? <p className="text-sm text-(--ws-fg-60)">Loading import...</p> : null}
       {job?.status === "queued" || job?.status === "parsing" ? (
         <div className="flex items-start gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100">
           <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
@@ -419,17 +420,17 @@ function AdminSchemeImportInner() {
 
       {localRows ? (
         <>
-          <section className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:grid-cols-2">
+          <section className="grid gap-4 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-5 md:grid-cols-2">
             <div className="md:col-span-2">
-              <h2 className="text-lg font-semibold text-white">2. Tie to grade and subject</h2>
-              <p className="mt-1 text-sm text-white/50">
+              <h2 className="text-lg font-semibold text-(--ws-fg)">2. Tie to grade and subject</h2>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 This is the step that prevents confusion: every imported scheme must have one
                 period, grade, and subject before it can be created. It will apply to all class
                 groups within the selected grade.
               </p>
             </div>
             <PremiumSelect value={periodId} onValueChange={setPeriodId}>
-              <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+              <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <PremiumSelectValue placeholder="Academic period" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
@@ -447,7 +448,7 @@ function AdminSchemeImportInner() {
                 setSubjectId("");
               }}
             >
-              <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+              <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <PremiumSelectValue placeholder="Grade" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
@@ -459,7 +460,7 @@ function AdminSchemeImportInner() {
               </PremiumSelectContent>
             </PremiumSelect>
             <PremiumSelect value={subjectId} onValueChange={setSubjectId} disabled={!selectedGrade}>
-              <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+              <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <PremiumSelectValue placeholder="Subject" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
@@ -477,20 +478,20 @@ function AdminSchemeImportInner() {
                 setSchemeTitle(event.target.value);
               }}
               placeholder="Scheme title"
-              className="border-white/10 bg-white/5 text-white placeholder:text-white/35"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
             />
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.04]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
+          <section className="rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-(--ws-line) p-5">
               <div>
-                <h2 className="text-lg font-semibold text-white">3. Review extracted rows</h2>
-                <p className="mt-1 text-sm text-white/50">
+                <h2 className="text-lg font-semibold text-(--ws-fg)">3. Review extracted rows</h2>
+                <p className="mt-1 text-sm text-(--ws-fg-50)">
                   Skip rows that should not become lesson-planning rows.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+                <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                   {stats?.total ?? 0} rows
                 </Badge>
                 <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
@@ -506,27 +507,27 @@ function AdminSchemeImportInner() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-white/10 bg-white/5 hover:bg-white/5">
-                    <TableHead className="sticky left-0 z-10 min-w-[52px] bg-slate-950/90 text-white/55">
+                  <TableRow className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill)">
+                    <TableHead className="sticky left-0 z-10 min-w-[52px] bg-(--ws-panel-to)/90 text-(--ws-fg-50)">
                       Use
                     </TableHead>
-                    <TableHead className="min-w-[100px] text-white/55">Week ending</TableHead>
-                    <TableHead className="min-w-[180px] text-white/55">Topic</TableHead>
-                    <TableHead className="min-w-[120px] text-white/55">Strand</TableHead>
-                    <TableHead className="min-w-[120px] text-white/55">Sub-strand</TableHead>
-                    <TableHead className="min-w-[160px] text-white/55">Content standard</TableHead>
-                    <TableHead className="min-w-[160px] text-white/55">Indicators</TableHead>
-                    <TableHead className="min-w-[160px] text-white/55">Learning outcomes</TableHead>
-                    <TableHead className="min-w-[200px] text-white/55">
+                    <TableHead className="min-w-[100px] text-(--ws-fg-50)">Week ending</TableHead>
+                    <TableHead className="min-w-[180px] text-(--ws-fg-50)">Topic</TableHead>
+                    <TableHead className="min-w-[120px] text-(--ws-fg-50)">Strand</TableHead>
+                    <TableHead className="min-w-[120px] text-(--ws-fg-50)">Sub-strand</TableHead>
+                    <TableHead className="min-w-[160px] text-(--ws-fg-50)">Content standard</TableHead>
+                    <TableHead className="min-w-[160px] text-(--ws-fg-50)">Indicators</TableHead>
+                    <TableHead className="min-w-[160px] text-(--ws-fg-50)">Learning outcomes</TableHead>
+                    <TableHead className="min-w-[200px] text-(--ws-fg-50)">
                       Teaching &amp; learning activities
                     </TableHead>
-                    <TableHead className="min-w-[140px] text-white/55">Resources</TableHead>
-                    <TableHead className="min-w-[140px] text-white/55">Assessment</TableHead>
+                    <TableHead className="min-w-[140px] text-(--ws-fg-50)">Resources</TableHead>
+                    <TableHead className="min-w-[140px] text-(--ws-fg-50)">Assessment</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {localRows.map((row, index) => (
-                    <TableRow key={`${row.rowIndex}-${index}`} className="border-white/5 align-top">
+                    <TableRow key={`${row.rowIndex}-${index}`} className="border-(--ws-line) align-top">
                       <TableCell>
                         <input
                           type="checkbox"
@@ -541,10 +542,10 @@ function AdminSchemeImportInner() {
                           }
                         />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm text-white/70">
+                      <TableCell className="whitespace-nowrap text-sm text-(--ws-fg-70)">
                         {row.weekEnding || "-"}
                         {row.weekNumber != null ? (
-                          <div className="text-xs text-white/40">Week {row.weekNumber}</div>
+                          <div className="text-xs text-(--ws-fg-40)">Week {row.weekNumber}</div>
                         ) : null}
                       </TableCell>
                       <TableCell className="min-w-[180px]">
@@ -558,31 +559,31 @@ function AdminSchemeImportInner() {
                               return next;
                             })
                           }
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </TableCell>
-                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/60">
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-(--ws-fg-60)">
                         {formatImportCell(row.strand)}
                       </TableCell>
-                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/60">
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-(--ws-fg-60)">
                         {formatImportCell(row.subStrand)}
                       </TableCell>
-                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-white/60">
+                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-(--ws-fg-60)">
                         {formatImportCell(row.contentStandard)}
                       </TableCell>
-                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-white/60">
+                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-(--ws-fg-60)">
                         {formatImportCell(row.indicators)}
                       </TableCell>
-                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-white/60">
+                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-(--ws-fg-60)">
                         {formatImportCell(row.learningOutcomes)}
                       </TableCell>
-                      <TableCell className="max-w-[280px] whitespace-pre-wrap text-xs text-white/55">
+                      <TableCell className="max-w-[280px] whitespace-pre-wrap text-xs text-(--ws-fg-50)">
                         {formatImportCell(row.teachingLearningActivities, 400)}
                       </TableCell>
-                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/55">
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-(--ws-fg-50)">
                         {formatImportCell(row.resources)}
                       </TableCell>
-                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/55">
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-(--ws-fg-50)">
                         {formatImportCell(row.assessment)}
                       </TableCell>
                     </TableRow>
@@ -592,13 +593,13 @@ function AdminSchemeImportInner() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <section className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-5 w-5 text-blue-200" />
                 <div>
-                  <h2 className="text-lg font-semibold text-white">4. Create approved scheme</h2>
-                  <p className="mt-1 text-sm text-white/50">
+                  <h2 className="text-lg font-semibold text-(--ws-fg)">4. Create approved scheme</h2>
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     After creation, open the review detail page to activate it for Lesson Notes.
                   </p>
                   {actionError ? <p className="mt-2 text-sm text-rose-300">{actionError}</p> : null}
@@ -607,7 +608,7 @@ function AdminSchemeImportInner() {
               <Button
                 onClick={() => void confirmImport()}
                 disabled={!canConfirm || saveRowsMutation.isPending || confirmMutation.isPending || isRedirecting}
-                className="bg-blue-500 text-white hover:bg-blue-400"
+                className="bg-blue-500 text-(--ws-fg) hover:bg-blue-400"
               >
                 {saveRowsMutation.isPending || confirmMutation.isPending || isRedirecting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -624,8 +625,10 @@ function AdminSchemeImportInner() {
 
 export default function AdminSchemeImportPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-white/60">Loading import wizard...</div>}>
-      <AdminSchemeImportInner />
-    </Suspense>
+    <WorkspaceScope>
+      <Suspense fallback={<div className="p-6 text-(--ws-fg-60)">Loading import wizard...</div>}>
+        <AdminSchemeImportInner />
+      </Suspense>
+    </WorkspaceScope>
   );
 }

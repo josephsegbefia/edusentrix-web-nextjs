@@ -68,7 +68,7 @@ export function TeacherRowActions({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-7 w-7 cursor-pointer rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed"
+          className="h-7 w-7 cursor-pointer rounded-full bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) disabled:cursor-not-allowed"
           disabled={isChangingStatus}
           onClick={(e) => e.stopPropagation()}
         >

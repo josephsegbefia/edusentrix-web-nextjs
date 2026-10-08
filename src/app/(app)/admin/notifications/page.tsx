@@ -31,6 +31,7 @@ import {
   type NotificationType,
 } from "@/hooks/admin/useAdminNotifications";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 const TYPE_FILTERS: Array<NotificationType | "all"> = [
   "all",
@@ -54,19 +55,19 @@ const typeConfig: Record<
 > = {
   grade: {
     icon: GraduationCap,
-    color: "text-violet-200",
+    color: "text-(--ws-violet)",
     bgColor: "bg-violet-500/20",
     label: "Grade",
   },
   fee: {
     icon: DollarSign,
-    color: "text-emerald-200",
+    color: "text-(--ws-emerald)",
     bgColor: "bg-emerald-500/20",
     label: "Payment",
   },
   attendance: {
     icon: ClipboardCheck,
-    color: "text-amber-200",
+    color: "text-(--ws-amber)",
     bgColor: "bg-amber-500/20",
     label: "Attendance",
   },
@@ -78,20 +79,20 @@ const typeConfig: Record<
   },
   message: {
     icon: MessageSquare,
-    color: "text-cyan-200",
+    color: "text-(--ws-cyan)",
     bgColor: "bg-cyan-500/20",
     label: "Message",
   },
   reminder: {
     icon: Clock,
-    color: "text-rose-200",
+    color: "text-(--ws-rose)",
     bgColor: "bg-rose-500/20",
     label: "Reminder",
   },
   system: {
     icon: Bell,
-    color: "text-white/70",
-    bgColor: "bg-white/10",
+    color: "text-(--ws-fg-70)",
+    bgColor: "bg-(--ws-fill-strong)",
     label: "System",
   },
 };
@@ -138,14 +139,14 @@ function NotificationItem({
       className={cn(
         "group w-full rounded-2xl border p-4 text-left transition-all",
         notification.isRead
-          ? "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+          ? "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
           : "border-indigo-400/20 bg-indigo-500/10 hover:border-indigo-300/35 hover:bg-indigo-500/15"
       )}
     >
       <div className="flex items-start gap-4">
         <div
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-(--ws-line)",
             config.bgColor
           )}
         >
@@ -156,16 +157,16 @@ function NotificationItem({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className={cn("truncate text-sm font-semibold", notification.isRead ? "text-white/75" : "text-white")}>
+                <h3 className={cn("truncate text-sm font-semibold", notification.isRead ? "text-(--ws-fg-70)" : "text-(--ws-fg)")}>
                   {notification.title}
                 </h3>
                 {!notification.isRead && <span className="h-2 w-2 rounded-full bg-indigo-300" />}
               </div>
-              <p className={cn("mt-1 line-clamp-2 text-sm", notification.isRead ? "text-white/50" : "text-white/70")}>
+              <p className={cn("mt-1 line-clamp-2 text-sm", notification.isRead ? "text-(--ws-fg-50)" : "text-(--ws-fg-70)")}>
                 {notification.body}
               </p>
             </div>
-            <span className="shrink-0 text-xs text-white/45">{formatDateTime(notification.createdAt)}</span>
+            <span className="shrink-0 text-xs text-(--ws-fg-40)">{formatDateTime(notification.createdAt)}</span>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -173,7 +174,7 @@ function NotificationItem({
               {config.label}
             </Badge>
             {notification.priority === "high" && (
-              <Badge variant="outline" className="border-rose-500/30 bg-rose-500/20 text-rose-200 text-xs">
+              <Badge variant="outline" className="border-rose-500/30 bg-rose-500/20 text-(--ws-rose) text-xs">
                 Important
               </Badge>
             )}
@@ -192,7 +193,7 @@ function NotificationItem({
 
 function NotificationSkeleton() {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-white/10 p-4">
+    <div className="flex items-start gap-4 rounded-2xl border border-(--ws-line) p-4">
       <Skeleton className="h-10 w-10 rounded-xl" />
       <div className="flex-1 space-y-2">
         <div className="flex items-center justify-between gap-3">
@@ -243,30 +244,30 @@ export default function AdminNotificationsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-indigo-500/15 via-white/5 to-cyan-500/10 shadow-2xl shadow-black/35 backdrop-blur">
+    <WorkspaceScope className="space-y-6">
+      <Card className="overflow-hidden border border-(--ws-line) bg-linear-to-br from-indigo-500/15 via-(--ws-fill) to-cyan-500/10 shadow-[var(--ws-shadow)] backdrop-blur">
         <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
+            <Badge className="w-fit bg-(--ws-fill-strong) text-(--ws-fg-80)">
               <Sparkles className="h-3.5 w-3.5" />
               App inbox
             </Badge>
             <div>
-              <h1 className="text-2xl font-semibold text-white">Notifications</h1>
-              <p className="text-sm text-white/65">
+              <h1 className="text-2xl font-semibold text-(--ws-fg)">Notifications</h1>
+              <p className="text-sm text-(--ws-fg-60)">
                 Read lesson note reviews, operational reminders, and school alerts in one stream.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge className="bg-indigo-500/20 text-indigo-100">{totalCount} total</Badge>
-              <Badge className="bg-cyan-500/20 text-cyan-100">{unreadCount} unread</Badge>
-              <Badge className="bg-rose-500/20 text-rose-100">{highPriorityCount} high priority</Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-100">{actionableCount} actionable</Badge>
+              <Badge className="bg-cyan-500/20 text-(--ws-cyan)">{unreadCount} unread</Badge>
+              <Badge className="bg-rose-500/20 text-(--ws-rose)">{highPriorityCount} high priority</Badge>
+              <Badge className="bg-emerald-500/20 text-(--ws-emerald)">{actionableCount} actionable</Badge>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 lg:items-end">
-            <Button variant="outline" onClick={() => router.back()} className="border-white/15 bg-white/5 text-white/80 hover:bg-white/10">
+            <Button variant="outline" onClick={() => router.back()} className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)">
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
@@ -275,7 +276,7 @@ export default function AdminNotificationsPage() {
                 variant="outline"
                 onClick={() => markAllRead.mutate()}
                 disabled={markAllRead.isPending}
-                className="border-white/15 bg-white/5 text-white/80 hover:bg-white/10"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
               >
                 <CheckCheck className="h-4 w-4" />
                 {markAllRead.isPending ? "Marking..." : "Mark all read"}
@@ -285,23 +286,23 @@ export default function AdminNotificationsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader>
           <CardTitle className="text-lg">Filter notifications</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by title or message"
-                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                className="border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               />
             </div>
 
-            <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70">
+            <label className="inline-flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-70)">
               <Switch checked={unreadOnly} onCheckedChange={setUnreadOnly} />
               Unread only
             </label>
@@ -315,8 +316,8 @@ export default function AdminNotificationsPage() {
                 className={cn(
                   "rounded-full border px-3 py-1 text-xs font-medium transition-all",
                   filter === item
-                    ? "border-white/20 bg-white/10 text-white"
-                    : "border-white/5 bg-white/5 text-white/50 hover:border-white/10 hover:bg-white/10 hover:text-white/80"
+                    ? "border-(--ws-line-strong) bg-(--ws-fill-strong) text-(--ws-fg)"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                 )}
               >
                 {item === "all" ? "All" : typeConfig[item]?.label || item}
@@ -336,7 +337,7 @@ export default function AdminNotificationsPage() {
 
       {error && !isLoading && (
         <Card className="border-rose-500/30 bg-rose-500/10">
-          <CardContent className="flex items-center gap-3 p-4 text-sm text-rose-200">
+          <CardContent className="flex items-center gap-3 p-4 text-sm text-(--ws-rose)">
             <AlertCircle className="h-4 w-4" />
             Failed to load notifications. Please try again.
           </CardContent>
@@ -344,13 +345,13 @@ export default function AdminNotificationsPage() {
       )}
 
       {!isLoading && !error && filteredNotifications.length === 0 && (
-        <Card className="border border-white/10 bg-white/5">
+        <Card className="border border-(--ws-line) bg-(--ws-fill)">
           <CardContent className="p-8 text-center">
-            <Bell className="mx-auto h-8 w-8 text-white/35" />
-            <h3 className="mt-4 text-base font-semibold text-white">
+            <Bell className="mx-auto h-8 w-8 text-(--ws-fg-40)" />
+            <h3 className="mt-4 text-base font-semibold text-(--ws-fg)">
               {notifications.length === 0 ? "No notifications yet" : "No matching notifications"}
             </h3>
-            <p className="mt-1 text-sm text-white/50">
+            <p className="mt-1 text-sm text-(--ws-fg-50)">
               {filter === "all"
                 ? "You're all caught up for now."
                 : `No ${typeConfig[filter as NotificationType]?.label.toLowerCase() || filter} notifications found.`}
@@ -370,6 +371,6 @@ export default function AdminNotificationsPage() {
           ))}
         </div>
       )}
-    </div>
+    </WorkspaceScope>
   );
 }

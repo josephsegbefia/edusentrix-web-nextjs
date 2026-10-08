@@ -24,13 +24,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import {
   useInvitations,
   useInvitationStats,
@@ -185,14 +186,14 @@ function StatCard({
     >
       <CardContent className="p-4">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-white/60">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-(--ws-fg-60)">
             {label}
           </p>
-          <div className="rounded-lg border border-white/10 bg-white/10 p-1.5">
-            <Icon className="h-3.5 w-3.5 text-white/80" />
+          <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill-strong) p-1.5">
+            <Icon className="h-3.5 w-3.5 text-(--ws-fg-80)" />
           </div>
         </div>
-        <p className="text-2xl font-bold text-white">{value.toLocaleString()}</p>
+        <p className="text-2xl font-bold text-(--ws-fg)">{value.toLocaleString()}</p>
       </CardContent>
     </Card>
   );
@@ -345,8 +346,9 @@ export default function InvitationsPage() {
   };
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-6 shadow-2xl shadow-black/40">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-6 shadow-[var(--ws-shadow)]">
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gradient-to-br from-indigo-500/20 via-cyan-500/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -356,7 +358,7 @@ export default function InvitationsPage() {
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
@@ -367,10 +369,10 @@ export default function InvitationsPage() {
                 <ShieldCheck className="h-5 w-5 text-indigo-200" />
               </div>
               <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                <h1 className="text-3xl font-extrabold tracking-tight text-(--ws-fg) sm:text-4xl">
                   Invitations
                 </h1>
-                <p className="mt-1 text-sm text-white/70">
+                <p className="mt-1 text-sm text-(--ws-fg-70)">
                   Monitor invitation delivery, acceptance, and access lifecycle.
                 </p>
               </div>
@@ -381,14 +383,14 @@ export default function InvitationsPage() {
             <Button
               onClick={() => refetchInvitations()}
               variant="outline"
-              className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+              className="gap-2 border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               Refresh
             </Button>
             <Button
               onClick={handleExport}
-              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <Download className="h-4 w-4" />
               Export CSV
@@ -433,7 +435,7 @@ export default function InvitationsPage() {
             />
           </div>
 
-          <Card className="border border-white/10 bg-white/5">
+          <Card className="border border-(--ws-line) bg-(--ws-fill)">
             <CardContent className="p-3">
               <div className="flex flex-wrap items-center gap-2">
                 {rolePills.map((item) => {
@@ -449,13 +451,13 @@ export default function InvitationsPage() {
                         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-all",
                         active
                           ? "border-brand/40 bg-brand/20 text-brand"
-                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       <span className="font-medium">{item.label}</span>
                       <Badge
                         variant="outline"
-                        className="border-white/15 bg-black/20 px-1.5 py-0 text-[10px]"
+                        className="border-(--ws-line-strong) bg-(--ws-fill) px-1.5 py-0 text-[10px]"
                       >
                         {item.count}
                       </Badge>
@@ -468,11 +470,11 @@ export default function InvitationsPage() {
         </section>
       )}
 
-      <Card className="border border-white/10 bg-white/5">
+      <Card className="border border-(--ws-line) bg-(--ws-fill)">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
               <Input
                 type="text"
                 placeholder="Search by email..."
@@ -481,50 +483,50 @@ export default function InvitationsPage() {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="h-10 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/40"
+                className="h-10 border-(--ws-line) bg-(--ws-fill) pl-10 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               />
             </div>
 
-            <Select
+            <PremiumSelect
               value={statusFilter}
               onValueChange={(value) => {
                 setStatusFilter(value as InvitationStatus | "all");
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full border-white/10 bg-black/20 text-white lg:w-[180px]">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-neutral-950">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="accepted">Accepted</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="revoked">Revoked</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
+              <PremiumSelectTrigger className="h-10 w-full lg:w-[180px]">
+                <PremiumSelectValue placeholder="All Status" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all">All Status</PremiumSelectItem>
+                <PremiumSelectItem value="pending">Pending</PremiumSelectItem>
+                <PremiumSelectItem value="accepted">Accepted</PremiumSelectItem>
+                <PremiumSelectItem value="expired">Expired</PremiumSelectItem>
+                <PremiumSelectItem value="revoked">Revoked</PremiumSelectItem>
+                <PremiumSelectItem value="failed">Failed</PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
 
-            <Select
+            <PremiumSelect
               value={roleFilter}
               onValueChange={(value) => {
                 setRoleFilter(value as InvitationRole | "all");
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full border-white/10 bg-black/20 text-white lg:w-[200px]">
-                <SelectValue placeholder="All Roles" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-neutral-950">
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="teacher">Teacher</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="school_admin">School Admin</SelectItem>
-                <SelectItem value="billing_owner">Billing Owner</SelectItem>
-                <SelectItem value="parent">Parent</SelectItem>
-                <SelectItem value="bursar">Bursar</SelectItem>
-              </SelectContent>
-            </Select>
+              <PremiumSelectTrigger className="h-10 w-full lg:w-[200px]">
+                <PremiumSelectValue placeholder="All Roles" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all">All Roles</PremiumSelectItem>
+                <PremiumSelectItem value="teacher">Teacher</PremiumSelectItem>
+                <PremiumSelectItem value="staff">Staff</PremiumSelectItem>
+                <PremiumSelectItem value="school_admin">School Admin</PremiumSelectItem>
+                <PremiumSelectItem value="billing_owner">Billing Owner</PremiumSelectItem>
+                <PremiumSelectItem value="parent">Parent</PremiumSelectItem>
+                <PremiumSelectItem value="bursar">Bursar</PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
 
             <Button
               variant="outline"
@@ -535,7 +537,7 @@ export default function InvitationsPage() {
                 setPage(1);
               }}
               disabled={!hasActiveFilters}
-              className="h-10 gap-2 border-white/10 bg-black/20 text-white hover:bg-white/10"
+              className="h-10 gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <FilterX className="h-4 w-4" />
               Reset
@@ -544,19 +546,19 @@ export default function InvitationsPage() {
         </CardContent>
       </Card>
 
-      <Card className="relative overflow-hidden border border-white/10 bg-white/5 shadow-xl shadow-black/30">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-(--ws-fill) shadow-xl shadow-black/30">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent"
           aria-hidden="true"
         />
-        <CardHeader className="border-b border-white/10 pb-4">
-          <CardTitle className="flex items-center justify-between gap-3 text-lg font-semibold text-white">
+        <CardHeader className="border-b border-(--ws-line) pb-4">
+          <CardTitle className="flex items-center justify-between gap-3 text-lg font-semibold text-(--ws-fg)">
             <span className="inline-flex items-center gap-2">
               <Mail className="h-4 w-4 text-indigo-300" />
               Invitations
             </span>
             {!isLoading && (
-              <span className="text-xs font-normal text-white/60">
+              <span className="text-xs font-normal text-(--ws-fg-60)">
                 {pagination?.total ?? invitations.length} total
               </span>
             )}
@@ -564,10 +566,10 @@ export default function InvitationsPage() {
         </CardHeader>
         <CardContent className="p-4">
           {isLoading ? (
-            <div className="py-14 text-center text-white/60">Loading invitations...</div>
+            <div className="py-14 text-center text-(--ws-fg-60)">Loading invitations...</div>
           ) : invitations.length === 0 ? (
-            <div className="py-14 text-center text-white/60">
-              <Mail className="mx-auto mb-3 h-10 w-10 text-white/20" />
+            <div className="py-14 text-center text-(--ws-fg-60)">
+              <Mail className="mx-auto mb-3 h-10 w-10 text-(--ws-fg)/20" />
               <p className="text-sm">No invitations found for current filters</p>
             </div>
           ) : (
@@ -579,27 +581,27 @@ export default function InvitationsPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="rounded-xl border border-white/10 bg-black/20 p-4 transition-all hover:border-white/20 hover:bg-black/30"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong) hover:bg-black/30"
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0 space-y-1">
-                        <p className="truncate text-sm font-semibold text-white">
+                        <p className="truncate text-sm font-semibold text-(--ws-fg)">
                           {invitation.email}
                         </p>
-                        <p className="text-xs text-white/60">
+                        <p className="text-xs text-(--ws-fg-60)">
                           {invitation.metadata?.firstName && invitation.metadata?.lastName
                             ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`
                             : "No profile name provided"}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/50">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-(--ws-fg-50)">
                           <span>Sent {format(new Date(invitation.sentAt), "MMM d, yyyy")}</span>
-                          <span className="text-white/30">•</span>
+                          <span className="text-(--ws-fg-40)">•</span>
                           <span>
                             Expires {format(new Date(invitation.expiresAt), "MMM d, yyyy")}
                           </span>
                           {invitation.resendCount > 0 && (
                             <>
-                              <span className="text-white/30">•</span>
+                              <span className="text-(--ws-fg-40)">•</span>
                               <span>{invitation.resendCount} resend(s)</span>
                             </>
                           )}
@@ -619,7 +621,7 @@ export default function InvitationsPage() {
                               variant="outline"
                               onClick={() => handleResend(invitation._id)}
                               disabled={isActionBusy}
-                              className="h-8 gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              className="h-8 gap-1.5 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                             >
                               <Send className="h-3 w-3" />
                               Resend
@@ -629,7 +631,7 @@ export default function InvitationsPage() {
                               variant="outline"
                               onClick={() => handleRevoke(invitation._id)}
                               disabled={isActionBusy}
-                              className="h-8 gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              className="h-8 gap-1.5 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                             >
                               <Ban className="h-3 w-3" />
                               Revoke
@@ -644,7 +646,7 @@ export default function InvitationsPage() {
                             variant="outline"
                             onClick={() => handleResend(invitation._id)}
                             disabled={isActionBusy}
-                            className="h-8 gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            className="h-8 gap-1.5 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                           >
                             <RefreshCw className="h-3 w-3" />
                             Resend
@@ -656,7 +658,7 @@ export default function InvitationsPage() {
                           variant="outline"
                           onClick={() => handleDelete(invitation._id)}
                           disabled={isActionBusy}
-                          className="h-8 border-white/10 bg-white/5 text-rose-300 hover:bg-white/10 hover:text-rose-200"
+                          className="h-8 border-(--ws-line) bg-(--ws-fill) text-rose-300 hover:bg-(--ws-fill-strong) hover:text-rose-200"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -669,8 +671,8 @@ export default function InvitationsPage() {
           )}
 
           {pagination && pagination.totalPages > 1 && (
-            <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-white/60">
+            <div className="mt-6 flex flex-col gap-3 border-t border-(--ws-line) pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-(--ws-fg-60)">
                 Showing {Math.min((page - 1) * pagination.limit + 1, pagination.total)} to{" "}
                 {Math.min(page * pagination.limit, pagination.total)} of{" "}
                 {pagination.total} invitations
@@ -681,12 +683,12 @@ export default function InvitationsPage() {
                   variant="outline"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="h-8 gap-1 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="h-8 gap-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   Previous
                 </Button>
-                <span className="px-2 text-sm text-white/80">
+                <span className="px-2 text-sm text-(--ws-fg-80)">
                   Page {page} / {pagination.totalPages}
                 </span>
                 <Button
@@ -694,7 +696,7 @@ export default function InvitationsPage() {
                   variant="outline"
                   onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                   disabled={page === pagination.totalPages}
-                  className="h-8 gap-1 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="h-8 gap-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   Next
                   <ChevronRight className="h-3.5 w-3.5" />
@@ -706,5 +708,6 @@ export default function InvitationsPage() {
       </Card>
       {confirmationDialog}
     </div>
+    </WorkspaceScope>
   );
 }

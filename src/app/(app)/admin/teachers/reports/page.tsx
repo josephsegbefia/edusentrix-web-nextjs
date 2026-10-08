@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ function SimpleBarChart({
             <div className="text-xs text-muted-foreground text-center truncate w-full">
               {item.label}
             </div>
-            <div className="text-xs font-semibold text-white/80">
+            <div className="text-xs font-semibold text-(--ws-fg-80)">
               {item.value.toFixed(1)}
             </div>
           </div>
@@ -91,10 +92,11 @@ export default function TeachersReportsPage() {
   });
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="mb-2 text-3xl font-bold">Teacher Reports</h1>
+        <h1 className="mb-2 text-3xl font-bold text-(--ws-fg)">Teacher Reports</h1>
         <p className="text-muted-foreground">
           Analytics and insights for teacher management
         </p>
@@ -102,7 +104,7 @@ export default function TeachersReportsPage() {
 
       <div className="space-y-4">
         {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-white/10">
+        <div className="flex gap-2 border-b border-(--ws-line)">
           <Button
             variant={activeTab === "workload" ? "default" : "ghost"}
             size="sm"
@@ -304,7 +306,7 @@ export default function TeachersReportsPage() {
                       {assignmentsData.data.bySubject.slice(0, 5).map((s: any) => (
                         <div
                           key={s.subjectId}
-                          className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                          className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
                         >
                           <div>
                             <p className="font-medium">{s.subjectName}</p>
@@ -330,7 +332,7 @@ export default function TeachersReportsPage() {
                       {assignmentsData.data.byTeacher.slice(0, 5).map((t: any) => (
                         <div
                           key={t.teacherId}
-                          className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                          className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
                         >
                           <div>
                             <p className="font-medium">{t.teacherName}</p>
@@ -431,7 +433,7 @@ export default function TeachersReportsPage() {
                       .map((t: any) => (
                         <div
                           key={t.teacherId}
-                          className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                          className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
                         >
                           <div>
                             <p className="font-medium">{t.name}</p>
@@ -530,7 +532,7 @@ export default function TeachersReportsPage() {
                     {attendanceData.data.teachers.slice(0, 15).map((t: any) => (
                       <div
                         key={t.teacherId}
-                        className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                        className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
                       >
                         <div>
                           <p className="font-medium">{t.name}</p>
@@ -561,5 +563,6 @@ export default function TeachersReportsPage() {
         )}
       </div>
     </div>
+    </WorkspaceScope>
   );
 }

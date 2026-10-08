@@ -50,7 +50,7 @@ function SimpleBarChart({
             <div className="text-xs text-muted-foreground text-center">
               {item.label}
             </div>
-            <div className="text-xs font-semibold text-white/80">
+            <div className="text-xs font-semibold text-(--ws-fg-80)">
               {formatMoney(item.value)}
             </div>
           </div>
@@ -145,13 +145,13 @@ export function FeesCharts({ studentId }: Props) {
     <div className="grid gap-4 md:grid-cols-2">
       {/* Payment Trend */}
       {hasMultiplePeriods && (
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/5 via-emerald-500/2 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white/80">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-(--ws-fg-80)">
               <TrendingUp className="h-4 w-4" />
               Payment Trend
             </CardTitle>
@@ -161,7 +161,7 @@ export function FeesCharts({ studentId }: Props) {
               <SimpleLineChart data={paymentTrendData} height={150} />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Last {paymentTrendData.length} periods</span>
-                <span className="font-semibold text-emerald-200">
+                <span className="font-semibold text-(--ws-emerald)">
                   {formatMoney(
                     paymentTrendData.reduce(
                       (sum: number, d: { value: number }) => sum + d.value,
@@ -177,13 +177,13 @@ export function FeesCharts({ studentId }: Props) {
       )}
 
       {/* Outstanding Breakdown */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/5 via-amber-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white/80">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-(--ws-fg-80)">
             <DollarSign className="h-4 w-4" />
             Outstanding Breakdown
           </CardTitle>
@@ -192,13 +192,13 @@ export function FeesCharts({ studentId }: Props) {
           <div className="space-y-4">
             <SimpleBarChart data={outstandingBreakdownData} height={150} />
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
                 <div className="text-muted-foreground">Current Period</div>
-                <div className="mt-1 font-semibold text-amber-200">
+                <div className="mt-1 font-semibold text-(--ws-amber)">
                   {formatMoney(summary.currentPeriod.totalOutstanding)}
                 </div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
                 <div className="text-muted-foreground">All Time</div>
                 <div className="mt-1 font-semibold text-red-200">
                   {formatMoney(summary.allTime.totalOutstanding)}
@@ -210,22 +210,22 @@ export function FeesCharts({ studentId }: Props) {
       </Card>
 
       {/* Collection Rate */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur md:col-span-2">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur md:col-span-2">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white/80">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-(--ws-fg-80)">
             <TrendingUp className="h-4 w-4" />
             Collection Rate
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="text-xs text-muted-foreground">Current Period</div>
-              <div className="mt-2 text-2xl font-bold text-white/90">
+              <div className="mt-2 text-2xl font-bold text-(--ws-fg-90)">
                 {summary.currentPeriod.collectionRate}%
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
@@ -233,9 +233,9 @@ export function FeesCharts({ studentId }: Props) {
                 {formatMoney(summary.currentPeriod.totalBilled)}
               </div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="text-xs text-muted-foreground">All Time</div>
-              <div className="mt-2 text-2xl font-bold text-white/90">
+              <div className="mt-2 text-2xl font-bold text-(--ws-fg-90)">
                 {summary.allTime.collectionRate}%
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
@@ -243,15 +243,15 @@ export function FeesCharts({ studentId }: Props) {
                 {formatMoney(summary.allTime.totalBilled)}
               </div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="text-xs text-muted-foreground">Credit Balance</div>
               <div className="mt-2 text-2xl font-bold text-sky-200">
                 {formatMoney(summary.creditBalance)}
               </div>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="text-xs text-muted-foreground">Upcoming</div>
-              <div className="mt-2 text-2xl font-bold text-amber-200">
+              <div className="mt-2 text-2xl font-bold text-(--ws-amber)">
                 {summary.upcomingInstallments.count}
               </div>
               <div className="mt-1 text-xs text-muted-foreground">

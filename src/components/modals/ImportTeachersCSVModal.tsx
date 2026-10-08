@@ -221,7 +221,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]"
           >
             <div className="px-6 pt-6">
               <div className="flex items-start justify-between gap-4">
@@ -229,7 +229,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                   <h1 className="text-lg font-semibold">
                     Import Teachers
                   </h1>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-(--ws-fg-60)">
                     Upload a CSV or Excel file to bulk import teachers. Download
                     the template to see the required format.
                   </p>
@@ -240,26 +240,26 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                   variant="ghost"
                   size="icon"
                   disabled={isPending}
-                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  className="h-9 w-9 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   onClick={() => onOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="mt-5 h-px bg-white/10" />
+              <div className="mt-5 h-px bg-(--ws-fill-strong)" />
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
               <div className="space-y-4">
                 <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-4">
                   <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <FileText className="h-5 w-5 text-(--ws-cyan) mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-100 mb-1">
+                      <p className="text-sm font-medium text-(--ws-cyan) mb-1">
                         Spreadsheet Template
                       </p>
-                      <p className="text-xs text-blue-200/80 mb-3">
+                      <p className="text-xs text-(--ws-cyan) mb-3">
                         Use subject offering names, not IDs. For multiple subjects,
                         separate them with semicolons, for example: Mathematics - JHS;
                         English Language - JHS. Homeroom uses the class name, for
@@ -291,7 +291,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                       id="csv-file-input"
                     />
                     <label htmlFor="csv-file-input" className="flex-1 cursor-pointer">
-                      <div className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors">
+                      <div className="flex items-center justify-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4 hover:bg-(--ws-fill-strong) transition-colors">
                         <Upload className="h-5 w-5 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
                           {file ? file.name : "Click to select CSV or Excel file"}
@@ -324,8 +324,8 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                       </div>
                     </div>
 
-                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-white/10 bg-white/5">
-                      <div className="divide-y divide-white/5">
+                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-(--ws-line) bg-(--ws-fill)">
+                      <div className="divide-y divide-(--ws-line)">
                         {results.map((result, idx) => (
                           <div
                             key={idx}
@@ -349,11 +349,11 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                                   </span>
                                 </div>
                                 {result.success ? (
-                                  <p className="text-xs text-green-200/80">
+                                  <p className="text-xs text-(--ws-emerald)">
                                     Teacher created successfully
                                   </p>
                                 ) : (
-                                  <p className="text-xs text-red-200/80">
+                                  <p className="text-xs text-(--ws-rose)">
                                     {result.error || "Unknown error"}
                                   </p>
                                 )}
@@ -368,8 +368,8 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
 
                 <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-300 mt-0.5" />
-                    <div className="text-xs text-amber-200/80">
+                    <AlertCircle className="h-4 w-4 text-(--ws-amber) mt-0.5" />
+                    <div className="text-xs text-(--ws-amber)/80">
                       <p className="font-medium mb-1">Required Columns:</p>
                       <ul className="list-disc list-inside space-y-0.5">
                         <li>firstName, lastName, email (required)</li>
@@ -390,13 +390,13 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+                <div className="flex items-center justify-between gap-2 border-t border-(--ws-line) pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => onOpenChange(false)}
                     disabled={isPending}
-                    className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     {results ? "Close" : "Cancel"}
                   </Button>

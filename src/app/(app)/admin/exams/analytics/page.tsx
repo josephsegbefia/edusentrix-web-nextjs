@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { BarChart3, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ export default function ExamAnalyticsPage() {
   const periods = periodsData?.periods ?? [];
 
   return (
-    <WorkspacePageShell>
+    <WorkspaceScope>
+      <WorkspacePageShell>
       <WorkspacePageHeader
         icon={BarChart3}
         title="Exam operations"
@@ -60,5 +62,6 @@ export default function ExamAnalyticsPage() {
         academicPeriodId={periodFilter === "all" ? null : periodFilter}
       />
     </WorkspacePageShell>
+    </WorkspaceScope>
   );
 }

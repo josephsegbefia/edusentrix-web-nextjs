@@ -78,26 +78,26 @@ export function ManualPlacementModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-slate-900 text-white sm:max-w-lg">
+      <DialogContent className="border-(--ws-line) bg-slate-900 text-(--ws-fg) sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-amber-300" />
+            <MapPin className="h-4 w-4 text-(--ws-amber)" />
             Set target placement
           </DialogTitle>
         </DialogHeader>
 
         {decision ? (
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-              <p className="font-medium text-white">{decision.studentName}</p>
-              <p className="mt-1 text-xs text-white/50">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+              <p className="font-medium text-(--ws-fg)">{decision.studentName}</p>
+              <p className="mt-1 text-xs text-(--ws-fg-50)">
                 Current placement: {decision.fromGradeName} {decision.fromClassGroupName}
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/70">Target grade</Label>
+                <Label className="text-(--ws-fg-70)">Target grade</Label>
                 <PremiumSelect value={targetGradeId} onValueChange={setTargetGradeId}>
                   <PremiumSelectTrigger className="h-9 w-full rounded-xl">
                     <PremiumSelectValue placeholder="Select grade" />
@@ -113,7 +113,7 @@ export function ManualPlacementModal({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/70">Target class</Label>
+                <Label className="text-(--ws-fg-70)">Target class</Label>
                 <PremiumSelect
                   value={targetClassGroupId}
                   onValueChange={setTargetClassGroupId}
@@ -136,14 +136,14 @@ export function ManualPlacementModal({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">Reason</Label>
+              <Label className="text-(--ws-fg-70)">Reason</Label>
               <Textarea
                 value={reasonText}
                 onChange={(event) => setReasonText(event.target.value)}
                 rows={3}
                 required
                 placeholder="Explain why this class is the right placement..."
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               />
             </div>
 

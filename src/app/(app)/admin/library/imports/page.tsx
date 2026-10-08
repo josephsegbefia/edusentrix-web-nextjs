@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -89,7 +90,8 @@ export default function AdminLibraryImportsPage() {
   }
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library" label="Library home" />
       <LibraryPageHeader
         icon={Upload}
@@ -98,7 +100,7 @@ export default function AdminLibraryImportsPage() {
       />
 
       {!canImport ? (
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <p className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
           You need catalogue create permission to run imports.
         </p>
       ) : null}
@@ -107,14 +109,14 @@ export default function AdminLibraryImportsPage() {
         <form onSubmit={onSubmit} className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-white/80">Import type</Label>
+              <Label className="text-(--ws-fg-80)">Import type</Label>
               <PremiumSelect
                 value={importType}
                 onValueChange={(v) =>
                   setImportType(v as "books" | "copies" | "books_and_copies")
                 }
               >
-                <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
+                <PremiumSelectTrigger className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)">
                   <PremiumSelectValue />
                 </PremiumSelectTrigger>
                 <PremiumSelectContent>
@@ -125,20 +127,20 @@ export default function AdminLibraryImportsPage() {
               </PremiumSelect>
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">File name (label)</Label>
+              <Label className="text-(--ws-fg-80)">File name (label)</Label>
               <Input
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                className="border-white/15 bg-white/5 text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-white/80">CSV contents</Label>
+            <Label className="text-(--ws-fg-80)">CSV contents</Label>
             <Textarea
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
-              className="min-h-[220px] border-white/15 bg-white/5 font-mono text-sm text-white"
+              className="min-h-[220px] border-(--ws-line-strong) bg-(--ws-fill) font-mono text-sm text-(--ws-fg)"
               placeholder={`Example books header:\ntitle,author,isbn,initialCopies,tags`}
             />
           </div>
@@ -154,9 +156,9 @@ export default function AdminLibraryImportsPage() {
           </Button>
 
           {displaySummary ? (
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/80">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-80)">
               <p>
-                Status: <strong className="text-white">{String(displaySummary.status)}</strong>
+                Status: <strong className="text-(--ws-fg)">{String(displaySummary.status)}</strong>
               </p>
               <p>Total rows: {String(displaySummary.totalRows ?? "—")}</p>
               <p>Successful: {String(displaySummary.successfulRows ?? "—")}</p>
@@ -177,5 +179,6 @@ export default function AdminLibraryImportsPage() {
         </form>
       ) : null}
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }

@@ -72,22 +72,22 @@ export function OverrideDecisionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-slate-900 text-white sm:max-w-md">
+      <DialogContent className="border-(--ws-line) bg-slate-900 text-(--ws-fg) sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Override Decision</DialogTitle>
         </DialogHeader>
         {decision && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-(--ws-fg-70)">
               {decision.studentName}
               {decision.admissionNo && ` (${decision.admissionNo})`}
             </p>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-(--ws-fg-50)">
               Current: {decision.finalOutcome} • From: {decision.fromGradeName} {decision.fromClassGroupName}
             </p>
 
             <div className="space-y-2">
-              <Label className="text-white/70">New outcome</Label>
+              <Label className="text-(--ws-fg-70)">New outcome</Label>
               <PremiumSelect value={outcome} onValueChange={(v) => setOutcome(v)}>
                 <PremiumSelectTrigger className="h-9 w-full rounded-xl">
                   <PremiumSelectValue placeholder="Select outcome" />
@@ -103,14 +103,14 @@ export function OverrideDecisionModal({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">Reason (required)</Label>
+              <Label className="text-(--ws-fg-70)">Reason (required)</Label>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Explain why this override is needed..."
                 rows={3}
                 required
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               />
             </div>
 

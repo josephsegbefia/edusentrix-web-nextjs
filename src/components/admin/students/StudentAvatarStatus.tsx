@@ -46,7 +46,7 @@ export function StudentAvatarStatus({
       <Avatar
         className={cn(
           sizeClasses[size],
-          "border border-white/20 bg-slate-800/80 text-xs font-semibold text-slate-100 shadow-md shadow-black/40"
+          "border border-(--ws-line-strong) bg-slate-800/80 text-xs font-semibold text-slate-100 shadow-md shadow-black/40"
         )}
       >
         {photoUrl ? (
@@ -59,7 +59,7 @@ export function StudentAvatarStatus({
       </Avatar>
       <span
         className={cn(
-          "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-slate-900",
+          "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-(--ws-dot-ring)",
           statusClasses[status]
         )}
       />

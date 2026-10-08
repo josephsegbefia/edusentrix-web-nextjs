@@ -18,19 +18,19 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
 
   if (subjectsWithScores.length === 0) {
     return (
-      <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
               <Award className="h-4 w-4 text-primary-200" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Subject Performance Overview
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
+          <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) px-4 py-8 text-center">
             <p className="text-[11px] text-muted-foreground/90">
               No subject data available
             </p>
@@ -44,13 +44,13 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
   const bottomSubjects = subjectsWithScores.slice(-3).reverse();
 
   return (
-    <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
             <Award className="h-4 w-4 text-primary-200" />
           </div>
-          <CardTitle className="text-sm font-semibold text-white/80">
+          <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
             Subject Performance Overview
           </CardTitle>
         </div>
@@ -60,7 +60,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
-            <h4 className="text-xs font-semibold text-emerald-200 uppercase tracking-wide">
+            <h4 className="text-xs font-semibold text-(--ws-emerald) uppercase tracking-wide">
               Top Performers
             </h4>
           </div>
@@ -71,15 +71,15 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                 className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/30 text-[10px] font-bold text-emerald-100">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/30 text-[10px] font-bold text-(--ws-emerald)">
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white truncate">
+                    <p className="text-xs font-medium text-(--ws-fg) truncate">
                       {subject.subjectName}
                     </p>
                     {subject.shortCode && (
-                      <p className="text-[10px] text-emerald-200/70">
+                      <p className="text-[10px] text-(--ws-emerald)/70">
                         {subject.shortCode}
                       </p>
                     )}
@@ -87,16 +87,16 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                 </div>
                 <div className="flex items-center gap-2 ml-3">
                   <div className="text-right">
-                    <p className="text-sm font-bold text-emerald-100">
+                    <p className="text-sm font-bold text-(--ws-emerald)">
                       {subject.score.toFixed(1)}%
                     </p>
                     {subject.gradeLabel ? (
-                      <p className="text-[10px] text-emerald-200/70">
+                      <p className="text-[10px] text-(--ws-emerald)/70">
                         Grade {subject.gradeLabel}
                       </p>
                     ) : null}
                     {subject.sourceLabel ? (
-                      <p className="text-[10px] text-emerald-200/50">{subject.sourceLabel}</p>
+                      <p className="text-[10px] text-(--ws-emerald)/50">{subject.sourceLabel}</p>
                     ) : null}
                   </div>
                 </div>
@@ -110,7 +110,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <TrendingDown className="h-4 w-4 text-amber-400" />
-              <h4 className="text-xs font-semibold text-amber-200 uppercase tracking-wide">
+              <h4 className="text-xs font-semibold text-(--ws-amber) uppercase tracking-wide">
                 Areas for Improvement
               </h4>
             </div>
@@ -130,14 +130,14 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                       className={cn(
                         "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
                         subject.score < 50
-                          ? "bg-red-500/30 text-red-100"
-                          : "bg-amber-500/30 text-amber-100"
+                          ? "bg-red-500/30 text-(--ws-rose)"
+                          : "bg-amber-500/30 text-(--ws-amber)"
                       )}
                     >
                       {bottomSubjects.length - idx}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-white truncate">
+                      <p className="text-xs font-medium text-(--ws-fg) truncate">
                         {subject.subjectName}
                       </p>
                       {subject.shortCode && (
@@ -146,7 +146,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                             "text-[10px]",
                             subject.score < 50
                               ? "text-red-200/70"
-                              : "text-amber-200/70"
+                              : "text-(--ws-amber)/70"
                           )}
                         >
                           {subject.shortCode}
@@ -160,8 +160,8 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                         className={cn(
                           "text-sm font-bold",
                           subject.score < 50
-                            ? "text-red-100"
-                            : "text-amber-100"
+                            ? "text-(--ws-rose)"
+                            : "text-(--ws-amber)"
                         )}
                       >
                         {subject.score.toFixed(1)}%
@@ -172,7 +172,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                             "text-[10px]",
                             subject.score < 50
                               ? "text-red-200/70"
-                              : "text-amber-200/70"
+                              : "text-(--ws-amber)/70"
                           )}
                         >
                           Grade {subject.gradeLabel}

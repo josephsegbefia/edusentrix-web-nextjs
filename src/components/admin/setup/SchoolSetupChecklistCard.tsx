@@ -52,10 +52,10 @@ export function SchoolSetupChecklistCard({
 
   if (loading) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-white/80 uppercase tracking-wider flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-white/50" />
+          <CardTitle className="text-sm font-semibold text-(--ws-fg-80) uppercase tracking-wider flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-(--ws-fg-50)" />
             School setup checklist
           </CardTitle>
         </CardHeader>
@@ -69,8 +69,8 @@ export function SchoolSetupChecklistCard({
         <CardContent className="pt-6 pb-6 flex flex-col sm:flex-row sm:items-center gap-4">
           <CheckCircle2 className="h-10 w-10 text-emerald-400 shrink-0" />
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-white">Setup checklist complete</h3>
-            <p className="text-xs text-white/60 mt-1">
+            <h3 className="text-sm font-semibold text-(--ws-fg)">Setup checklist complete</h3>
+            <p className="text-xs text-(--ws-fg-60) mt-1">
               Core configuration looks good. You can still adjust fees, schedule, and payments
               anytime under School settings and Fees.
             </p>
@@ -88,7 +88,7 @@ export function SchoolSetupChecklistCard({
   });
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-violet-500/8 via-white/5 to-transparent">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-violet-500/8 via-white/5 to-transparent">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-transparent to-cyan-500/5"
         aria-hidden
@@ -96,10 +96,10 @@ export function SchoolSetupChecklistCard({
       <CardHeader className="relative z-10 pb-2 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-sm font-semibold text-white/90 uppercase tracking-wider">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-90) uppercase tracking-wider">
               School setup checklist
             </CardTitle>
-            <p className="text-xs text-white/55 mt-1">
+            <p className="text-xs text-(--ws-fg-50) mt-1">
               Launch onboarding is done — finish these so finance, attendance, and timetables work
               the way parents and staff expect.
             </p>
@@ -108,7 +108,7 @@ export function SchoolSetupChecklistCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="shrink-0 text-white/70 hover:text-white hover:bg-white/10"
+            className="shrink-0 text-(--ws-fg-70) hover:text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             onClick={() => setExpanded((e) => !e)}
             aria-expanded={expanded}
           >
@@ -120,13 +120,13 @@ export function SchoolSetupChecklistCard({
           </Button>
         </div>
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-white/60">
+          <div className="flex justify-between text-xs text-(--ws-fg-60)">
             <span>{completionPercent}% complete</span>
             <span>
               {incompleteCount} remaining
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-(--ws-fill-strong) overflow-hidden">
             <div
               className="h-full rounded-full bg-linear-to-r from-violet-400/90 to-brand/90 transition-all duration-500"
               style={{ width: `${completionPercent}%` }}
@@ -150,13 +150,13 @@ export function SchoolSetupChecklistCard({
               <span className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-200/95">
                 Leo
               </span>
-              <span className="text-xs text-white/45 ml-auto">
+              <span className="text-xs text-(--ws-fg-40) ml-auto">
                 {leoOpen ? "Hide" : "Show"} suggestion
               </span>
             </button>
             {leoOpen ? (
               <div className="mt-3 space-y-3 pl-11">
-                <p className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm text-(--ws-fg-80) leading-relaxed whitespace-pre-wrap">
                   {displayedCoach}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -164,7 +164,7 @@ export function SchoolSetupChecklistCard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-violet-400/35 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20 hover:text-white"
+                    className="border-violet-400/35 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20 hover:text-(--ws-fg)"
                     disabled={coachMutation.isPending}
                     onClick={() =>
                       coachMutation.mutate(undefined, {
@@ -188,7 +188,7 @@ export function SchoolSetupChecklistCard({
                     )}
                   </Button>
                   {leoDetail?.fallback ? (
-                    <span className="text-[11px] text-white/45">
+                    <span className="text-[11px] text-(--ws-fg-40)">
                       Using quick tip (add OpenAI key for richer coaching).
                     </span>
                   ) : null}
@@ -211,24 +211,24 @@ export function SchoolSetupChecklistCard({
                 className={cn(
                   "rounded-lg border px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3",
                   item.done
-                    ? "border-white/8 bg-white/3 opacity-75"
+                    ? "border-(--ws-line) bg-(--ws-fill) opacity-75"
                     : item.priority === "blocking"
                       ? "border-amber-500/25 bg-amber-500/8"
-                      : "border-white/10 bg-white/5"
+                      : "border-(--ws-line) bg-(--ws-fill)"
                 )}
               >
                 <div className="flex items-start gap-2 min-w-0 flex-1">
                   {item.done ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                   ) : (
-                    <Circle className="h-4 w-4 text-white/35 shrink-0 mt-0.5" />
+                    <Circle className="h-4 w-4 text-(--ws-fg-40) shrink-0 mt-0.5" />
                   )}
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
                         className={cn(
                           "text-sm font-medium",
-                          item.done ? "text-white/55 line-through" : "text-white/90"
+                          item.done ? "text-(--ws-fg-50) line-through" : "text-(--ws-fg-90)"
                         )}
                       >
                         {item.title}
@@ -237,16 +237,16 @@ export function SchoolSetupChecklistCard({
                         className={cn(
                           "text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border",
                           item.priority === "blocking"
-                            ? "border-amber-400/35 text-amber-200/90"
+                            ? "border-amber-400/35 text-(--ws-amber)/90"
                             : item.priority === "high"
-                              ? "border-white/15 text-white/55"
-                              : "border-white/10 text-white/45"
+                              ? "border-(--ws-line) text-(--ws-fg-50)"
+                              : "border-(--ws-line) text-(--ws-fg-40)"
                         )}
                       >
                         {priorityLabel(item.priority)}
                       </span>
                     </div>
-                    <p className="text-xs text-white/50 mt-0.5">{item.description}</p>
+                    <p className="text-xs text-(--ws-fg-50) mt-0.5">{item.description}</p>
                   </div>
                 </div>
                 {!item.done ? (

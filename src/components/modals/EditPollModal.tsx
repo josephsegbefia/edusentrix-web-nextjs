@@ -112,11 +112,11 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
       <div className="mb-4 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <GripVertical className="h-4 w-4 text-white/30" />
-          <span className="text-sm font-medium text-white/60">Question {index + 1}</span>
+          <GripVertical className="h-4 w-4 text-(--ws-fg-40)" />
+          <span className="text-sm font-medium text-(--ws-fg-60)">Question {index + 1}</span>
         </div>
         {canRemove && !disabled && (
           <Button
@@ -124,7 +124,7 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
             variant="ghost"
             size="icon"
             onClick={onRemove}
-            className="h-7 w-7 text-white/40 hover:text-rose-400"
+            className="h-7 w-7 text-(--ws-fg-40) hover:text-rose-400"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -133,19 +133,19 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
 
       <div className="space-y-4">
         <div>
-          <Label className="text-white/70">Question Text</Label>
+          <Label className="text-(--ws-fg-70)">Question Text</Label>
           <Input
             value={question.prompt}
             onChange={(e) => onChange({ ...question, prompt: e.target.value })}
             placeholder="Enter your question..."
-            className="mt-1 border-white/10 bg-white/5 text-white"
+            className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             disabled={disabled}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label className="text-white/70">Question Type</Label>
+            <Label className="text-(--ws-fg-70)">Question Type</Label>
             <PremiumSelect
               value={question.type}
               onValueChange={(v) => onChange({ ...question, type: v as QuestionType })}
@@ -171,7 +171,7 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
                 onCheckedChange={(checked) => onChange({ ...question, required: checked })}
                 disabled={disabled}
               />
-              <Label className="text-sm text-white/60">Required</Label>
+              <Label className="text-sm text-(--ws-fg-60)">Required</Label>
             </div>
             {needsOptions && (
               <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
                   onCheckedChange={(checked) => onChange({ ...question, allowOther: checked })}
                   disabled={disabled}
                 />
-                <Label className="text-sm text-white/60">Allow &quot;Other&quot;</Label>
+                <Label className="text-sm text-(--ws-fg-60)">Allow &quot;Other&quot;</Label>
               </div>
             )}
           </div>
@@ -188,15 +188,15 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
 
         {needsOptions && (
           <div className="space-y-2">
-            <Label className="text-white/70">Options</Label>
+            <Label className="text-(--ws-fg-70)">Options</Label>
             {question.options.map((option, optIndex) => (
               <div key={option.id} className="flex items-center gap-2">
-                <span className="w-6 text-center text-sm text-white/40">{optIndex + 1}.</span>
+                <span className="w-6 text-center text-sm text-(--ws-fg-40)">{optIndex + 1}.</span>
                 <Input
                   value={option.label}
                   onChange={(e) => updateOption(option.id, e.target.value)}
                   placeholder={`Option ${optIndex + 1}`}
-                  className="flex-1 border-white/10 bg-white/5 text-white"
+                  className="flex-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   disabled={disabled}
                 />
                 {question.options.length > 2 && !disabled && (
@@ -205,7 +205,7 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
                     variant="ghost"
                     size="icon"
                     onClick={() => removeOption(option.id)}
-                    className="h-8 w-8 text-white/40 hover:text-rose-400"
+                    className="h-8 w-8 text-(--ws-fg-40) hover:text-rose-400"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -218,7 +218,7 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove, disabl
                 variant="outline"
                 size="sm"
                 onClick={addOption}
-                className="mt-2 gap-1 border-white/10 text-white/60"
+                className="mt-2 gap-1 border-(--ws-line) text-(--ws-fg-60)"
               >
                 <Plus className="h-4 w-4" />
                 Add Option
@@ -392,7 +392,7 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f0f14] p-6 shadow-2xl"
+          className="relative w-full max-w-2xl rounded-2xl border border-(--ws-line) bg-[#0f0f14] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -402,7 +402,7 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
                 <Pencil className="h-5 w-5 text-violet-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Edit Poll</h2>
+                <h2 className="text-xl font-bold text-(--ws-fg)">Edit Poll</h2>
                 {isLive && (
                   <p className="text-xs text-amber-400">
                     Poll is live - questions cannot be modified
@@ -414,7 +414,7 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -425,21 +425,21 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
             {/* Basic Info */}
             <div className="space-y-4">
               <div>
-                <Label className="text-white">Poll Title *</Label>
+                <Label className="text-(--ws-fg)">Poll Title *</Label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter poll title..."
-                  className="mt-1 border-white/10 bg-white/5 text-white"
+                  className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div>
-                <Label className="text-white/70">Description</Label>
+                <Label className="text-(--ws-fg-70)">Description</Label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Optional description..."
-                  className="mt-1 min-h-[80px] border-white/10 bg-white/5 text-white"
+                  className="mt-1 min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
             </div>
@@ -447,7 +447,7 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
             {/* Settings */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label className="text-white/70">Audience</Label>
+                <Label className="text-(--ws-fg-70)">Audience</Label>
                 <PremiumSelect
                   value={audienceScope}
                   onValueChange={(v) => setAudienceScope(v as AudienceScope)}
@@ -466,7 +466,7 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
                 </PremiumSelect>
               </div>
               <div>
-                <Label className="text-white/70">Show Results</Label>
+                <Label className="text-(--ws-fg-70)">Show Results</Label>
                 <PremiumSelect
                   value={revealResults}
                   onValueChange={(v) => setRevealResults(v as RevealResults)}
@@ -490,25 +490,25 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
                   onCheckedChange={setAllowAnonymous}
                   disabled={isLive}
                 />
-                <Label className="text-sm text-white/60">Allow anonymous voting</Label>
+                <Label className="text-sm text-(--ws-fg-60)">Allow anonymous voting</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={allowComments} onCheckedChange={setAllowComments} />
-                <Label className="text-sm text-white/60">Allow comments</Label>
+                <Label className="text-sm text-(--ws-fg-60)">Allow comments</Label>
               </div>
             </div>
 
             {/* Questions */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <Label className="text-white">Questions *</Label>
+                <Label className="text-(--ws-fg)">Questions *</Label>
                 {canEditQuestions && (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={addQuestion}
-                    className="gap-1 border-white/10 text-white/60"
+                    className="gap-1 border-(--ws-line) text-(--ws-fg-60)"
                   >
                     <Plus className="h-4 w-4" />
                     Add Question
@@ -536,7 +536,7 @@ export default function EditPollModal({ open, onOpenChange, poll, onSuccess }: E
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 text-white/60"
+                className="border-(--ws-line) text-(--ws-fg-60)"
               >
                 Cancel
               </Button>

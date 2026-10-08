@@ -188,24 +188,24 @@ export function ExportStatementButton({
           type="button"
           variant="outline"
           size="sm"
-          className="h-7 border-white/10 bg-white/5 text-xs text-white/70"
+          className="h-7 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70)"
           disabled={isExporting}
         >
           <FileText className="h-4 w-4" />
           {isExporting ? "Exporting..." : "Export"}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="border-white/10 bg-black/60 backdrop-blur">
+      <DropdownMenuContent align="end" className="border-(--ws-line) bg-black/60 backdrop-blur">
         <DropdownMenuItem
           onClick={() => handleExport("csv")}
-          className="text-white/80 hover:bg-white/10"
+          className="text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
         >
           <Download className="mr-2 h-4 w-4" />
           Export as CSV
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => handleExport("txt")}
-          className="text-white/80 hover:bg-white/10"
+          className="text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
         >
           <FileDown className="mr-2 h-4 w-4" />
           Export as Text

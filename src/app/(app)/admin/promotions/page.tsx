@@ -36,6 +36,7 @@ import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 type WorkspaceTab = "overview" | "review" | "placement" | "finalize" | "history";
 
@@ -78,15 +79,15 @@ const WORKSPACE_TABS: Array<{
 ] as const;
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-white/10 bg-white/[0.04] text-white/70",
-  preview_ready: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  review_in_progress: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
+  preview_ready: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  review_in_progress: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   approved: "border-indigo-500/30 bg-indigo-500/10 text-indigo-100",
   finalizing: "border-sky-500/30 bg-sky-500/10 text-sky-100",
-  finalized: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  finalize_failed: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-  rolled_back: "border-white/10 bg-white/[0.04] text-white/70",
-  rollback_failed: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  finalized: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  finalize_failed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  rolled_back: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
+  rollback_failed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
 const DELETABLE_CYCLE_STATUSES = new Set([
@@ -302,22 +303,22 @@ export default function PromotionsPage() {
   );
 
   return (
-    <>
+    <WorkspaceScope>
       <div className="space-y-8 pb-10">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
           <section className="relative overflow-hidden rounded-[1.8rem] border border-amber-500/20 bg-linear-to-br from-amber-950/40 via-slate-950 to-slate-950 p-6 sm:p-8">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.16),transparent_45%)]" />
             <div className="relative space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-200/80">
+              <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-amber)/80">
                 <Sparkles className="h-3.5 w-3.5" />
                 Academic Promotions
               </div>
 
               <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-[2.4rem]">
+                <h1 className="text-3xl font-semibold tracking-tight text-(--ws-fg) sm:text-[2.4rem]">
                   Keep promotions clear, staged, and easy to trust.
                 </h1>
-                <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base">
+                <p className="max-w-2xl text-sm leading-6 text-(--ws-fg-60) sm:text-base">
                   This page is now centered on Leo. Create or inspect active policies, let Leo run
                   a safe preview for the chosen academic period, then step into review, placements,
                   and finalization only when needed.
@@ -325,32 +326,32 @@ export default function PromotionsPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                     Active policies
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{activePolicies.length}</p>
-                  <p className="mt-1 text-sm text-white/50">
+                  <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{activePolicies.length}</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     {activePolicies.length > 0 ? "Ready for Leo previews" : "Create one to begin"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                     Latest cycle
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                  <p className="mt-2 text-lg font-semibold text-(--ws-fg)">
                     {latestCycle?.sourceYearLabel ?? "No preview yet"}
                   </p>
-                  <p className="mt-1 text-sm text-white/50">
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     {latestCycle ? formatStatus(latestCycle.status) : "Run the first preview"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                     Next action
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-white">{nextAction}</p>
-                  <p className="mt-1 text-sm text-white/50">Leo will guide the safe order.</p>
+                  <p className="mt-2 text-lg font-semibold text-(--ws-fg)">{nextAction}</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">Leo will guide the safe order.</p>
                 </div>
               </div>
 
@@ -361,7 +362,7 @@ export default function PromotionsPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="gap-2 border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   onClick={() => setPreviewWizardOpen(true)}
                 >
                   <GraduationCap className="h-4 w-4" />
@@ -373,29 +374,29 @@ export default function PromotionsPage() {
 
           <section className="rounded-[1.8rem] border border-cyan-500/20 bg-cyan-500/10 p-6 sm:p-7">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                <LeoIcon className="h-5 w-5 text-cyan-100" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill-strong)">
+                <LeoIcon className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-cyan-100">
+                <div className="flex items-center gap-2 text-(--ws-cyan)">
                   <Wand2 className="h-4 w-4" />
                   <p className="text-sm font-semibold">Leo promotion guide</p>
                 </div>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-(--ws-fg)">
                   {leoGuidance.title}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-white/70">{leoGuidance.body}</p>
+                <p className="mt-3 text-sm leading-6 text-(--ws-fg-70)">{leoGuidance.body}</p>
               </div>
             </div>
 
-            <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-black/10 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/35">
+            <div className="mt-6 rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-40)">
                 Leo will help you with
               </p>
-              <ul className="mt-3 space-y-2.5 text-sm text-white/72">
+              <ul className="mt-3 space-y-2.5 text-sm text-(--ws-fg)/72">
                 {leoGuidance.actions.map((action) => (
                   <li key={action} className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                     <span>{action}</span>
                   </li>
                 ))}
@@ -406,8 +407,8 @@ export default function PromotionsPage() {
 
         <section className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-white">Promotion workspace</h2>
-            <p className="mt-1 text-sm text-white/50">
+            <h2 className="text-xl font-semibold text-(--ws-fg)">Promotion workspace</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">
               Keep the detailed tools available, but only open them when you need them.
             </p>
           </div>
@@ -423,8 +424,8 @@ export default function PromotionsPage() {
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors",
                     isActive
-                      ? "border-cyan-400/30 bg-cyan-500/15 text-cyan-100"
-                      : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white"
+                      ? "border-cyan-400/30 bg-cyan-500/15 text-(--ws-cyan)"
+                      : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   )}
                 >
                   <TabIcon className="h-4 w-4" />
@@ -438,17 +439,17 @@ export default function PromotionsPage() {
         {activeTab === "overview" ? (
           <div className="space-y-8">
             <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <div className="rounded-[1.6rem] border border-white/10 bg-slate-950/80 p-6">
+              <div className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-popover) p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">Active policies</h3>
-                    <p className="mt-1 text-sm text-white/50">
+                    <h3 className="text-lg font-semibold text-(--ws-fg)">Active policies</h3>
+                    <p className="mt-1 text-sm text-(--ws-fg-50)">
                       Click any active policy to inspect the exact rules Leo will use.
                     </p>
                   </div>
                   <Button
                     variant="outline"
-                    className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                    className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     onClick={() => setPolicyWizardOpen(true)}
                   >
                     <BookOpenCheck className="h-4 w-4" />
@@ -458,9 +459,9 @@ export default function PromotionsPage() {
 
                 {activePolicies.length === 0 ? (
                   <div className="mt-5 space-y-5">
-                    <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
-                      <p className="text-base font-medium text-white">No active promotion policy yet</p>
-                      <p className="mt-2 text-sm text-white/50">
+                    <div className="rounded-[1.4rem] border border-dashed border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+                      <p className="text-base font-medium text-(--ws-fg)">No active promotion policy yet</p>
+                      <p className="mt-2 text-sm text-(--ws-fg-50)">
                         Create one policy first, then Leo can use it to explain promotion outcomes.
                       </p>
                       <Button onClick={() => setPolicyWizardOpen(true)} className="mt-4 gap-2">
@@ -470,10 +471,10 @@ export default function PromotionsPage() {
                     </div>
 
                     {inactivePolicies.length > 0 ? (
-                      <div className="rounded-[1.4rem] border border-white/10 bg-black/10 p-4">
+                      <div className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
                         <div>
-                          <p className="text-sm font-semibold text-white">Saved drafts</p>
-                          <p className="mt-1 text-sm text-white/45">
+                          <p className="text-sm font-semibold text-(--ws-fg)">Saved drafts</p>
+                          <p className="mt-1 text-sm text-(--ws-fg-40)">
                             These policies are not active yet, but you can still open or delete them.
                           </p>
                         </div>
@@ -486,7 +487,7 @@ export default function PromotionsPage() {
                                 setSelectedPolicy(policy);
                                 setPolicyDetailsOpen(true);
                               }}
-                              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+                              className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-4 py-2 text-sm text-(--ws-fg-70) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                             >
                               {policy.name} • v{policy.version}
                             </button>
@@ -511,25 +512,25 @@ export default function PromotionsPage() {
                               setSelectedPolicy(policy);
                               setPolicyDetailsOpen(true);
                             }}
-                            className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-5 text-left transition-colors hover:bg-white/[0.06]"
+                            className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-5 text-left transition-colors hover:bg-(--ws-fill-strong)"
                           >
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-base font-semibold text-white">{policy.name}</p>
+                              <p className="text-base font-semibold text-(--ws-fg)">{policy.name}</p>
                               <Badge
                                 variant="outline"
-                                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+                                className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
                               >
                                 Active
                               </Badge>
                               <Badge
                                 variant="outline"
-                                className="border-white/10 bg-white/[0.04] text-white/70"
+                                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                               >
                                 v{policy.version}
                               </Badge>
                             </div>
 
-                            <p className="mt-3 text-sm text-white/55">
+                            <p className="mt-3 text-sm text-(--ws-fg-50)">
                               {scopedGrades.length > 0
                                 ? `Applies to ${scopedGrades.join(", ")}`
                                 : "Applies to all grades"}
@@ -540,7 +541,7 @@ export default function PromotionsPage() {
                                 <Badge
                                   key={`${policy.id}-${criterion.key}-${criterion.operator}-${criterion.value}`}
                                   variant="outline"
-                                  className="border-white/10 bg-white/[0.04] text-white/65"
+                                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                                 >
                                   {criterion.key.replace(/_/g, " ")} {criterion.operator} {criterion.value}
                                 </Badge>
@@ -552,10 +553,10 @@ export default function PromotionsPage() {
                     </div>
 
                     {inactivePolicies.length > 0 ? (
-                      <div className="rounded-[1.4rem] border border-white/10 bg-black/10 p-4">
+                      <div className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
                         <div>
-                          <p className="text-sm font-semibold text-white">Saved drafts</p>
-                          <p className="mt-1 text-sm text-white/45">
+                          <p className="text-sm font-semibold text-(--ws-fg)">Saved drafts</p>
+                          <p className="mt-1 text-sm text-(--ws-fg-40)">
                             Old or inactive policies can also be opened and deleted here.
                           </p>
                         </div>
@@ -568,7 +569,7 @@ export default function PromotionsPage() {
                                 setSelectedPolicy(policy);
                                 setPolicyDetailsOpen(true);
                               }}
-                              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+                              className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-4 py-2 text-sm text-(--ws-fg-70) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                             >
                               {policy.name} • v{policy.version}
                             </button>
@@ -580,18 +581,18 @@ export default function PromotionsPage() {
                 )}
               </div>
 
-              <div className="rounded-[1.6rem] border border-white/10 bg-slate-950/80 p-6">
+              <div className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-popover) p-6">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">How Leo runs promotion</h3>
-                    <p className="mt-1 text-sm text-white/50">
+                    <h3 className="text-lg font-semibold text-(--ws-fg)">How Leo runs promotion</h3>
+                    <p className="mt-1 text-sm text-(--ws-fg-50)">
                       The engine already understands academic periods, next grades, and same-section
                       placements.
                     </p>
                   </div>
                   <Button
                     variant="outline"
-                    className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                    className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     onClick={() => setPreviewWizardOpen(true)}
                   >
                     <GraduationCap className="h-4 w-4" />
@@ -600,30 +601,30 @@ export default function PromotionsPage() {
                 </div>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-cyan-100">
+                  <div className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-cyan)">
                       <GraduationCap className="h-4 w-4" />
                     </div>
-                    <p className="mt-4 text-base font-semibold text-white">Academic-period aware</p>
-                    <p className="mt-2 text-sm leading-6 text-white/55">
+                    <p className="mt-4 text-base font-semibold text-(--ws-fg)">Academic-period aware</p>
+                    <p className="mt-2 text-sm leading-6 text-(--ws-fg-50)">
                       Leo evaluates students inside the source academic period you choose for the year-end run.
                     </p>
                   </div>
-                  <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-cyan-100">
+                  <div className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-cyan)">
                       <MapPin className="h-4 w-4" />
                     </div>
-                    <p className="mt-4 text-base font-semibold text-white">Smart placement</p>
-                    <p className="mt-2 text-sm leading-6 text-white/55">
+                    <p className="mt-4 text-base font-semibold text-(--ws-fg)">Smart placement</p>
+                    <p className="mt-2 text-sm leading-6 text-(--ws-fg-50)">
                       Same-section promotion is preferred first, such as JHS 1 A to JHS 2 A, before other fallbacks.
                     </p>
                   </div>
-                  <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-cyan-100">
+                  <div className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-cyan)">
                       <Eye className="h-4 w-4" />
                     </div>
-                    <p className="mt-4 text-base font-semibold text-white">Preview first</p>
-                    <p className="mt-2 text-sm leading-6 text-white/55">
+                    <p className="mt-4 text-base font-semibold text-(--ws-fg)">Preview first</p>
+                    <p className="mt-2 text-sm leading-6 text-(--ws-fg-50)">
                       Leo creates a reviewable cycle first, so live student records stay untouched until finalization.
                     </p>
                   </div>
@@ -631,17 +632,17 @@ export default function PromotionsPage() {
               </div>
             </section>
 
-            <section className="rounded-[1.6rem] border border-white/10 bg-slate-950/80 p-6">
+            <section className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-popover) p-6">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Recent promotion runs</h3>
-                  <p className="mt-1 text-sm text-white/50">
+                  <h3 className="text-lg font-semibold text-(--ws-fg)">Recent promotion runs</h3>
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     Open the latest cycle directly where work is still pending.
                   </p>
                 </div>
                 <Button
                   variant="outline"
-                  className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   onClick={() => setActiveTab("history")}
                 >
                   <History className="h-4 w-4" />
@@ -650,9 +651,9 @@ export default function PromotionsPage() {
               </div>
 
               {cycles.length === 0 ? (
-                <div className="mt-5 rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
-                  <p className="text-base font-medium text-white">No promotion cycles yet</p>
-                  <p className="mt-2 text-sm text-white/50">
+                <div className="mt-5 rounded-[1.4rem] border border-dashed border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+                  <p className="text-base font-medium text-(--ws-fg)">No promotion cycles yet</p>
+                  <p className="mt-2 text-sm text-(--ws-fg-50)">
                     Use Leo to run the first preview for the academic period students are completing.
                   </p>
                 </div>
@@ -669,16 +670,16 @@ export default function PromotionsPage() {
                     return (
                       <article
                         key={cycle.id}
-                        className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-5"
+                        className="rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-5"
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-base font-semibold text-white">{cycle.sourceYearLabel}</p>
+                            <p className="text-base font-semibold text-(--ws-fg)">{cycle.sourceYearLabel}</p>
                             <Badge
                               variant="outline"
                               className={cn(
                                 "capitalize",
-                                STATUS_STYLES[cycle.status] ?? "border-white/10 bg-white/[0.04] text-white/70"
+                                STATUS_STYLES[cycle.status] ?? "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                               )}
                             >
                               {formatStatus(cycle.status)}
@@ -688,7 +689,7 @@ export default function PromotionsPage() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 shrink-0 text-white/40 hover:bg-rose-500/10 hover:text-rose-300"
+                            className="h-8 w-8 shrink-0 text-(--ws-fg-40) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                             onClick={() => handleDeleteCycle(cycle.id, cycle.sourceYearLabel)}
                             disabled={
                               deleteCycle.isPending ||
@@ -700,31 +701,31 @@ export default function PromotionsPage() {
                         </div>
 
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                               Source period
                             </p>
-                            <p className="mt-2 text-sm font-medium text-white">
+                            <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                               {sourcePeriod
                                 ? `${sourcePeriod.yearLabel} • ${sourcePeriod.term}`
                                 : cycle.sourceYearLabel}
                             </p>
-                            <p className="mt-1 text-xs text-white/45">
+                            <p className="mt-1 text-xs text-(--ws-fg-40)">
                               {sourcePeriod
                                 ? formatDateRange(sourcePeriod.startDate, sourcePeriod.endDate)
                                 : "Period details unavailable"}
                             </p>
                           </div>
-                          <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                               Target period
                             </p>
-                            <p className="mt-2 text-sm font-medium text-white">
+                            <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                               {targetPeriod
                                 ? `${targetPeriod.yearLabel} • ${targetPeriod.term}`
                                 : "Not set"}
                             </p>
-                            <p className="mt-1 text-xs text-white/45">
+                            <p className="mt-1 text-xs text-(--ws-fg-40)">
                               {targetPeriod
                                 ? formatDateRange(targetPeriod.startDate, targetPeriod.endDate)
                                 : "Optional during preview setup"}
@@ -734,34 +735,34 @@ export default function PromotionsPage() {
 
                         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                               Evaluated
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-white">
+                            <p className="mt-1 text-lg font-semibold text-(--ws-fg)">
                               {cycle.totals.studentsEvaluated}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                               Promote
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-emerald-200">
+                            <p className="mt-1 text-lg font-semibold text-(--ws-emerald)">
                               {cycle.totals.promote}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                               Hold
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-white">
+                            <p className="mt-1 text-lg font-semibold text-(--ws-fg)">
                               {cycle.totals.hold}
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                               Created
                             </p>
-                            <p className="mt-1 text-sm font-medium text-white/75">
+                            <p className="mt-1 text-sm font-medium text-(--ws-fg-70)">
                               {formatDate(cycle.createdAt)}
                             </p>
                           </div>
@@ -780,7 +781,7 @@ export default function PromotionsPage() {
                             <Button
                               type="button"
                               variant="outline"
-                              className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                              className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                               onClick={() => setActiveTab("placement")}
                             >
                               Check placements
@@ -796,23 +797,23 @@ export default function PromotionsPage() {
             </section>
           </div>
         ) : (
-          <section className="rounded-[1.6rem] border border-white/10 bg-slate-950/80 p-6">
-            <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
+          <section className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-popover) p-6">
+            <div className="mb-6 flex flex-col gap-4 border-b border-(--ws-line) pb-5 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-fg-40)">
                   Promotion workspace
                 </p>
-                <h3 className="mt-2 text-2xl font-semibold text-white">
+                <h3 className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                   {WORKSPACE_TABS.find((tab) => tab.id === activeTab)?.label}
                 </h3>
-                <p className="mt-2 text-sm text-white/50">
+                <p className="mt-2 text-sm text-(--ws-fg-50)">
                   {WORKSPACE_TABS.find((tab) => tab.id === activeTab)?.description}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button
                   variant="outline"
-                  className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   onClick={() => setActiveTab("overview")}
                 >
                   <Layers3 className="h-4 w-4" />
@@ -845,6 +846,6 @@ export default function PromotionsPage() {
         isDeleting={deletePolicy.isPending}
       />
       {confirmationDialog}
-    </>
+    </WorkspaceScope>
   );
 }

@@ -43,9 +43,9 @@ export function StudentsBulkActionsBar({
     >
       <div
         className={cn(
-          "mx-auto max-w-5xl rounded-2xl border border-white/15",
-          "bg-linear-to-r from-slate-900/90 via-slate-900/80 to-slate-900/90",
-          "shadow-2xl shadow-black/40 backdrop-blur-xl",
+          "mx-auto max-w-5xl rounded-2xl border border-(--ws-line)",
+          "bg-linear-to-r from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)",
+          "shadow-[var(--ws-shadow)] backdrop-blur-xl",
           "px-4 py-3 md:px-6 md:py-3.5",
           "max-w-full" // Ensure it doesn't exceed viewport
         )}
@@ -62,7 +62,7 @@ export function StudentsBulkActionsBar({
             <button
               type="button"
               onClick={onClearSelection}
-              className="inline-flex items-center gap-1 text-[11px] text-slate-300/80 hover:text-slate-50"
+              className="inline-flex items-center gap-1 text-[11px] text-(--ws-fg-60)/80 hover:text-(--ws-fg)"
             >
               <X className="h-3 w-3" />
               <span>Clear</span>
@@ -108,7 +108,7 @@ export function StudentsBulkActionsBar({
               type="button"
               size="sm"
               variant="outline"
-              className="border-white/20 bg-white/5 text-[11px] font-medium text-slate-50 hover:bg-white/10"
+              className="border-(--ws-line-strong) bg-(--ws-fill) text-[11px] font-medium text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={onExportSelected}
             >
               <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -119,7 +119,7 @@ export function StudentsBulkActionsBar({
               type="button"
               size="sm"
               variant="ghost"
-              className="hidden border-white/10 bg-white/0 text-[11px] font-medium text-slate-200 hover:bg-white/10 md:inline-flex"
+              className="hidden border-(--ws-line) bg-white/0 text-[11px] font-medium text-(--ws-fg-80) hover:bg-(--ws-fill-strong) md:inline-flex"
               onClick={onChangeStatus}
             >
               <span>More</span>

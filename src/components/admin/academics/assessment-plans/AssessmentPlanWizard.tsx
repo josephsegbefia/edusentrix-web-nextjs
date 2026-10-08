@@ -244,27 +244,27 @@ export function AssessmentPlanWizard({
       onOpenChange={onOpenChange}
       title={isEditing ? "Edit assessment plan" : "Create assessment plan"}
       description="Set up how marks contribute to report cards for a grade and term."
-      className="max-w-3xl border-white/10 bg-slate-950 text-white"
+      className="max-w-3xl border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)"
     >
       <div className="space-y-5">
         <div className={cn(glassInsetClass, "p-4")}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-400/20 bg-teal-500/10">
-                <StepIcon className="h-5 w-5 text-teal-200" />
+                <StepIcon className="h-5 w-5 text-(--ws-teal)" />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-(--ws-fg)">
                   Step {currentStep} of {ASSESSMENT_PLAN_WIZARD_STEPS.length}: {stepMeta.title}
                 </p>
-                <p className="text-xs text-white/55">{stepMeta.description}</p>
+                <p className="text-xs text-(--ws-fg-50)">{stepMeta.description}</p>
               </div>
             </div>
-            <Badge variant="outline" className="border-white/10 bg-white/5 text-white/70">
+            <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
               {progressPercent}%
             </Badge>
           </div>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-(--ws-fill-strong)">
             <div
               className="h-full rounded-full bg-linear-to-r from-teal-400 to-cyan-400 transition-all"
               style={{ width: `${progressPercent}%` }}
@@ -281,7 +281,7 @@ export function AssessmentPlanWizard({
                 value={form.name}
                 onChange={(event) => updateForm({ name: event.target.value })}
                 placeholder="JHS 1 Term 1 Assessment Plan"
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -293,9 +293,9 @@ export function AssessmentPlanWizard({
               ].map(([key, label, checked]) => (
                 <label
                   key={key}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                 >
-                  <span className="text-sm text-white/75">{label}</span>
+                  <span className="text-sm text-(--ws-fg-70)">{label}</span>
                   <Switch
                     checked={checked as boolean}
                     onCheckedChange={(value) => updateForm({ [key]: value } as Partial<AssessmentPlanWizardState>)}
@@ -346,12 +346,12 @@ export function AssessmentPlanWizard({
               </PremiumSelect>
             </div>
             {selectedPolicy ? (
-              <div className="sm:col-span-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/65">
+              <div className="sm:col-span-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-60)">
                 {selectedPolicy.scoreComponents
                   .map((component) => `${component.label} ${component.weight}%`)
                   .join(" · ")}
                 {selectedPolicy.status !== "active" ? (
-                  <p className="mt-2 text-xs text-amber-200">
+                  <p className="mt-2 text-xs text-(--ws-amber)">
                     This policy is not active yet. You can save the plan as draft, but activation requires an active policy.
                   </p>
                 ) : null}
@@ -366,13 +366,13 @@ export function AssessmentPlanWizard({
               <div className="mb-2 flex items-center justify-between gap-3">
                 <Label>Grades</Label>
                 {policyGradeIds.length ? (
-                  <span className="text-xs text-white/40">
+                  <span className="text-xs text-(--ws-fg-40)">
                     Limited to the selected grading policy scope
                   </span>
                 ) : null}
               </div>
               {availableGrades.length === 0 ? (
-                <p className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                <p className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-(--ws-amber)">
                   This grading policy does not currently match any active grade options.
                 </p>
               ) : (
@@ -387,8 +387,8 @@ export function AssessmentPlanWizard({
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-sm transition",
                           selected
-                            ? "border-teal-400/30 bg-teal-500/15 text-teal-100"
-                            : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10"
+                            ? "border-teal-400/30 bg-teal-500/15 text-(--ws-teal)"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         {grade.name}
@@ -401,14 +401,14 @@ export function AssessmentPlanWizard({
             <div>
               <Label className="mb-2 block">Class groups</Label>
               {classGroupsLoading ? (
-                <div className="flex items-center gap-2 text-sm text-white/60">
+                <div className="flex items-center gap-2 text-sm text-(--ws-fg-60)">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading class groups…
                 </div>
               ) : form.appliesToGradeIds.length === 0 ? (
-                <p className="text-sm text-white/55">Select at least one grade first.</p>
+                <p className="text-sm text-(--ws-fg-50)">Select at least one grade first.</p>
               ) : (classGroupsData?.length ?? 0) === 0 ? (
-                <p className="text-sm text-white/55">No active class groups found for this grade.</p>
+                <p className="text-sm text-(--ws-fg-50)">No active class groups found for this grade.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {classGroupsData?.map((classGroup) => {
@@ -421,8 +421,8 @@ export function AssessmentPlanWizard({
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-sm transition",
                           selected
-                            ? "border-teal-400/30 bg-teal-500/15 text-teal-100"
-                            : "border-white/10 bg-white/5 text-white/65 hover:bg-white/10"
+                            ? "border-teal-400/30 bg-teal-500/15 text-(--ws-teal)"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         {classGroup.label || classGroup.name}
@@ -437,7 +437,7 @@ export function AssessmentPlanWizard({
 
         {currentStep === 4 && selectedPolicy ? (
           <div className="space-y-4">
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-(--ws-fg-60)">
               Choose how each score component collects marks. Use teacher-selected when staff should pick contributing items, or a rule-based mode when the system should decide automatically.
             </p>
             {selectedPolicy.scoreComponents.map((component) => {
@@ -452,10 +452,10 @@ export function AssessmentPlanWizard({
                 <div key={component.key} className={cn(glassInsetClass, "p-4")}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-white">{component.label}</p>
-                      <p className="text-xs text-white/50">Weight {component.weight}%</p>
+                      <p className="font-medium text-(--ws-fg)">{component.label}</p>
+                      <p className="text-xs text-(--ws-fg-50)">Weight {component.weight}%</p>
                     </div>
-                    <Badge variant="outline" className="border-white/10 bg-white/5 text-white/70">
+                    <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
                       {selectedMode?.group === "teacher" ? "Teacher selected" : "Rule-based"}
                     </Badge>
                   </div>
@@ -481,7 +481,7 @@ export function AssessmentPlanWizard({
                       </PremiumSelectContent>
                     </PremiumSelect>
                     {selectedMode ? (
-                      <p className="text-xs text-white/50">{selectedMode.help}</p>
+                      <p className="text-xs text-(--ws-fg-50)">{selectedMode.help}</p>
                     ) : null}
                   </div>
 
@@ -498,7 +498,7 @@ export function AssessmentPlanWizard({
                               minItems: event.target.value ? Number(event.target.value) : undefined,
                             })
                           }
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -512,7 +512,7 @@ export function AssessmentPlanWizard({
                               maxItems: event.target.value ? Number(event.target.value) : undefined,
                             })
                           }
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                     </div>
@@ -530,7 +530,7 @@ export function AssessmentPlanWizard({
                             bestN: event.target.value ? Number(event.target.value) : undefined,
                           })
                         }
-                        className="border-white/10 bg-white/5 text-white"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
                     </div>
                   ) : null}
@@ -549,7 +549,7 @@ export function AssessmentPlanWizard({
                           })
                         }
                         placeholder="exam, mock"
-                        className="border-white/10 bg-white/5 text-white"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
                     </div>
                   ) : null}
@@ -561,20 +561,20 @@ export function AssessmentPlanWizard({
 
         {currentStep === 5 ? (
           <div className="space-y-4">
-            <div className={cn(glassInsetClass, "space-y-3 p-4 text-sm text-white/75")}>
-              <p><span className="text-white/45">Name:</span> {form.name}</p>
-              <p><span className="text-white/45">Period:</span> {periods.find((p) => p._id === form.academicPeriodId)?.yearLabel} · {periods.find((p) => p._id === form.academicPeriodId)?.term}</p>
-              <p><span className="text-white/45">Policy:</span> {selectedPolicy?.name}</p>
+            <div className={cn(glassInsetClass, "space-y-3 p-4 text-sm text-(--ws-fg-70)")}>
+              <p><span className="text-(--ws-fg-40)">Name:</span> {form.name}</p>
+              <p><span className="text-(--ws-fg-40)">Period:</span> {periods.find((p) => p._id === form.academicPeriodId)?.yearLabel} · {periods.find((p) => p._id === form.academicPeriodId)?.term}</p>
+              <p><span className="text-(--ws-fg-40)">Policy:</span> {selectedPolicy?.name}</p>
               <p>
-                <span className="text-white/45">Grades:</span>{" "}
+                <span className="text-(--ws-fg-40)">Grades:</span>{" "}
                 {form.appliesToGradeIds
                   .map((gradeId) => grades.find((g) => g._id === gradeId)?.name)
                   .filter(Boolean)
                   .join(", ") || "None"}
               </p>
-              <p><span className="text-white/45">Class groups:</span> {form.appliesToClassGroupIds.length}</p>
+              <p><span className="text-(--ws-fg-40)">Class groups:</span> {form.appliesToClassGroupIds.length}</p>
               <div>
-                <p className="text-white/45">Component rules</p>
+                <p className="text-(--ws-fg-40)">Component rules</p>
                 <ul className="mt-2 space-y-1">
                   {form.componentRules.map((rule) => {
                     const component = selectedPolicy?.scoreComponents.find(
@@ -592,10 +592,10 @@ export function AssessmentPlanWizard({
                 </ul>
               </div>
             </div>
-            <label className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <label className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
               <div>
-                <p className="text-sm font-medium text-white">Activate after saving</p>
-                <p className="text-xs text-white/55">
+                <p className="text-sm font-medium text-(--ws-fg)">Activate after saving</p>
+                <p className="text-xs text-(--ws-fg-50)">
                   Requires an active grading policy. Overlapping active plans will be archived.
                 </p>
               </div>
@@ -604,7 +604,7 @@ export function AssessmentPlanWizard({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--ws-line) pt-4">
           <Button
             type="button"
             variant="outline"

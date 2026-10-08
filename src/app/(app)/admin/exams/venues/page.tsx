@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import {
   Building2,
   Loader2,
@@ -53,27 +54,27 @@ function VenueRow({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-white">{venue.name}</h3>
+            <h3 className="text-base font-semibold text-(--ws-fg)">{venue.name}</h3>
             <Badge
               variant="outline"
               className={
                 venue.isActive
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-                  : "border-white/10 bg-white/5 text-white/45"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/45"
               }
             >
               {venue.isActive ? "Active" : "Inactive"}
             </Badge>
-            <Badge variant="outline" className="border-white/10 bg-white/5 text-white/60">
+            <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)">
               {venue.type}
             </Badge>
           </div>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-(--ws-fg-60)">
             {venue.code ? `Code: ${venue.code}` : "No code"} ·{" "}
             {venue.capacity ? `Capacity: ${venue.capacity}` : "Capacity not set"}
           </p>
           {venue.locationNote ? (
-            <p className="mt-1 text-xs text-white/45">{venue.locationNote}</p>
+            <p className="mt-1 text-xs text-(--ws-fg)/45">{venue.locationNote}</p>
           ) : null}
         </div>
 
@@ -158,7 +159,8 @@ export default function ExamVenuesPage() {
   }
 
   return (
-    <WorkspacePageShell>
+    <WorkspaceScope>
+      <WorkspacePageShell>
       <WorkspacePageHeader
         icon={Building2}
         title="Exam Venues"
@@ -198,7 +200,7 @@ export default function ExamVenuesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-white/60">
+          <div className="flex items-center justify-center py-16 text-(--ws-fg-60)">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading venues…
           </div>
@@ -214,8 +216,8 @@ export default function ExamVenuesPage() {
         ) : venues.length === 0 ? (
           <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
             <Building2 className="mx-auto h-10 w-10 text-cyan-300/80" />
-            <h3 className="mt-4 text-lg font-semibold text-white">No exam venues yet</h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-white/60">
+            <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">No exam venues yet</h3>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-(--ws-fg-60)">
               Add classrooms, halls, and labs before scheduling exam papers.
             </p>
             <Button
@@ -249,5 +251,6 @@ export default function ExamVenuesPage() {
         onCompleted={() => setEditingVenue(null)}
       />
     </WorkspacePageShell>
+    </WorkspaceScope>
   );
 }

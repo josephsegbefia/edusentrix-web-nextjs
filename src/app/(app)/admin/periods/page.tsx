@@ -23,9 +23,10 @@ import {
 import { useBusyToast } from "@/hooks/useBusyToast";
 import CreateAcademicPeriodModal from "@/components/modals/CreateAcademicPeriodModal";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 const glassPanel =
-  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+  "relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl";
 
 function formatDateRange(start?: string | Date, end?: string | Date) {
   if (!start || !end) return "—";
@@ -44,7 +45,7 @@ function getStatusBadge(
 
   if (period.isCurrent) {
     return (
-      <Badge className="border-emerald-500/40 bg-emerald-500/20 text-emerald-300">
+      <Badge className="border-emerald-500/40 bg-emerald-500/20 text-(--ws-emerald)">
         <Star className="mr-1 h-3 w-3" />
         Current
       </Badge>
@@ -53,7 +54,7 @@ function getStatusBadge(
 
   if (end && now > end) {
     return (
-      <Badge variant="outline" className="border-white/20 text-white/60">
+      <Badge variant="outline" className="border-(--ws-line-strong) text-(--ws-fg-60)">
         Expired
       </Badge>
     );
@@ -61,14 +62,14 @@ function getStatusBadge(
 
   if (start && now < start) {
     return (
-      <Badge variant="outline" className="border-amber-500/40 text-amber-300">
+      <Badge variant="outline" className="border-amber-500/40 text-(--ws-amber)">
         Upcoming
       </Badge>
     );
   }
 
   return (
-    <Badge variant="outline" className="border-white/20 text-white/70">
+    <Badge variant="outline" className="border-(--ws-line-strong) text-(--ws-fg-70)">
       Active
     </Badge>
   );
@@ -117,20 +118,20 @@ export default function PeriodsPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+    <WorkspaceScope className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-8">
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-blue-600/10 blur-3xl" />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70 backdrop-blur-sm">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs font-medium text-(--ws-fg-70) backdrop-blur-sm">
               <Calendar className="h-3.5 w-3.5 text-sky-200" />
               Terms & academic years
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg) sm:text-3xl">
               Academic Periods
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-(--ws-fg-60)">
               Manage terms, set the current period for your school, and open each period&apos;s
               dashboard for reports and configuration.
             </p>
@@ -143,11 +144,11 @@ export default function PeriodsPage() {
             ].map((step) => (
               <div
                 key={step.label}
-                className="rounded-xl border border-white/10 bg-white/4 p-3 backdrop-blur-sm"
+                className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 backdrop-blur-sm"
               >
                 <step.icon className="h-4 w-4 text-sky-200" />
-                <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
-                <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
+                <p className="mt-2 text-sm font-medium text-(--ws-fg)">{step.label}</p>
+                <p className="mt-0.5 text-xs text-(--ws-fg-40)">{step.text}</p>
               </div>
             ))}
           </div>
@@ -164,36 +165,36 @@ export default function PeriodsPage() {
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-2">
               <Sparkles className="h-5 w-5 text-sky-100" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">What admins do here</h2>
-              <p className="mt-1 text-sm leading-6 text-white/55">
+              <h2 className="text-sm font-semibold text-(--ws-fg)">What admins do here</h2>
+              <p className="mt-1 text-sm leading-6 text-(--ws-fg-50)">
                 Periods anchor timetables, calendars, and reporting. Mark exactly one as current so
                 the rest of the product knows which term you are in.
               </p>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+            <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
               {periods.length} period{periods.length === 1 ? "" : "s"}
             </Badge>
             {currentCount > 0 ? (
-              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
+              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-(--ws-emerald)">
                 Current term set
               </Badge>
             ) : !isLoading ? (
-              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-amber-100">
+              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-(--ws-amber)">
                 No current period
               </Badge>
             ) : null}
           </div>
-          <p className="mt-3 text-xs leading-5 text-white/45">
+          <p className="mt-3 text-xs leading-5 text-(--ws-fg-40)">
             Year-end terminal periods can be flagged when creating a term for rollover workflows.
           </p>
         </div>
@@ -203,7 +204,7 @@ export default function PeriodsPage() {
         <Card className={glassPanel}>
           <CardContent className="flex items-center justify-center gap-2 py-12">
             <Loader2 className="h-5 w-5 animate-spin text-sky-200" />
-            <span className="text-sm text-white/60">Loading periods...</span>
+            <span className="text-sm text-(--ws-fg-60)">Loading periods...</span>
           </CardContent>
         </Card>
       ) : periods.length === 0 ? (
@@ -211,14 +212,14 @@ export default function PeriodsPage() {
           <CardContent className="py-12 text-center">
             <div
               className={cn(
-                "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10",
-                "bg-white/6 backdrop-blur-sm"
+                "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line)",
+                "bg-(--ws-fill) backdrop-blur-sm"
               )}
             >
               <Calendar className="h-8 w-8 text-sky-200/70" />
             </div>
-            <p className="mt-4 font-medium text-white">No academic periods yet</p>
-            <p className="mt-1 text-sm text-white/55">
+            <p className="mt-4 font-medium text-(--ws-fg)">No academic periods yet</p>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">
               Create your first period to start using the system
             </p>
             <Button
@@ -233,10 +234,10 @@ export default function PeriodsPage() {
       ) : (
         <>
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="text-lg font-semibold text-white">All periods</CardTitle>
-                <Badge variant="outline" className="w-fit border-white/15 bg-white/5 text-white/60">
+                <CardTitle className="text-lg font-semibold text-(--ws-fg)">All periods</CardTitle>
+                <Badge variant="outline" className="w-fit border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                   {periods.length} total
                 </Badge>
               </div>
@@ -245,17 +246,17 @@ export default function PeriodsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/5">
-                      <th className="px-1 pb-3 pt-1 text-left text-xs font-medium uppercase tracking-wider text-white/55 first:rounded-tl-lg">
+                    <tr className="border-b border-(--ws-line) bg-(--ws-fill)">
+                      <th className="px-1 pb-3 pt-1 text-left text-xs font-medium uppercase tracking-wider text-(--ws-fg-50) first:rounded-tl-lg">
                         Year · Term
                       </th>
-                      <th className="px-1 pb-3 pt-1 text-left text-xs font-medium uppercase tracking-wider text-white/55">
+                      <th className="px-1 pb-3 pt-1 text-left text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                         Dates
                       </th>
-                      <th className="px-1 pb-3 pt-1 text-left text-xs font-medium uppercase tracking-wider text-white/55">
+                      <th className="px-1 pb-3 pt-1 text-left text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                         Status
                       </th>
-                      <th className="px-1 pb-3 pt-1 text-right text-xs font-medium uppercase tracking-wider text-white/55 last:rounded-tr-lg">
+                      <th className="px-1 pb-3 pt-1 text-right text-xs font-medium uppercase tracking-wider text-(--ws-fg-50) last:rounded-tr-lg">
                         Actions
                       </th>
                     </tr>
@@ -264,14 +265,14 @@ export default function PeriodsPage() {
                     {periods.map((period) => (
                       <tr
                         key={period._id}
-                        className="border-b border-white/5 transition-colors last:border-0 hover:bg-white/4"
+                        className="border-b border-(--ws-line) transition-colors last:border-0 hover:bg-(--ws-fill)"
                       >
                         <td className="py-4">
-                          <span className="font-medium text-white">
+                          <span className="font-medium text-(--ws-fg)">
                             {period.yearLabel} · {period.term}
                           </span>
                         </td>
-                        <td className="py-4 text-sm text-white/70">
+                        <td className="py-4 text-sm text-(--ws-fg-70)">
                           {formatDateRange(period.startDate, period.endDate)}
                         </td>
                         <td className="py-4">{getStatusBadge(period)}</td>
@@ -280,7 +281,7 @@ export default function PeriodsPage() {
                             {period.isYearEndTerminal ? (
                               <Badge
                                 variant="outline"
-                                className="border-cyan-500/40 text-cyan-300"
+                                className="border-cyan-500/40 text-(--ws-cyan)"
                               >
                                 Year End
                               </Badge>
@@ -288,7 +289,7 @@ export default function PeriodsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-white/80 hover:bg-white/10 hover:text-white"
+                              className="text-(--ws-fg-80) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                               asChild
                             >
                               <Link href={`/admin/periods/${period._id}`}>
@@ -300,7 +301,7 @@ export default function PeriodsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-white/20 text-white/80 hover:bg-white/10 hover:text-white"
+                                className="border-(--ws-line-strong) text-(--ws-fg-80) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                                 onClick={() => handleSetCurrent(period._id)}
                                 disabled={setCurrentMutation.isPending}
                               >
@@ -331,6 +332,6 @@ export default function PeriodsPage() {
         isLoading={createMutation.isPending}
         periods={periods}
       />
-    </div>
+    </WorkspaceScope>
   );
 }

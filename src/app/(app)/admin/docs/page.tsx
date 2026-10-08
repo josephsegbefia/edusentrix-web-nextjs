@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default function AdminDocsRedirect() {
   const router = useRouter();
@@ -11,8 +12,10 @@ export default function AdminDocsRedirect() {
   }, [router]);
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="text-white/60">Redirecting to documentation...</div>
-    </div>
+    <WorkspaceScope>
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-(--ws-fg-60)">Redirecting to documentation...</div>
+      </div>
+    </WorkspaceScope>
   );
 }

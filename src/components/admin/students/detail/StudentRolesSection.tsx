@@ -95,7 +95,7 @@ const CATEGORY_INFO: Record<
 > = {
   leadership: {
     label: "Leadership",
-    color: "text-amber-300",
+    color: "text-(--ws-amber)",
     bgColor: "bg-amber-500/20",
     borderColor: "border-amber-500/30",
   },
@@ -107,19 +107,19 @@ const CATEGORY_INFO: Record<
   },
   service: {
     label: "Service",
-    color: "text-emerald-300",
+    color: "text-(--ws-emerald)",
     bgColor: "bg-emerald-500/20",
     borderColor: "border-emerald-500/30",
   },
   social: {
     label: "Social",
-    color: "text-purple-300",
+    color: "text-(--ws-violet)",
     bgColor: "bg-purple-500/20",
     borderColor: "border-purple-500/30",
   },
   custom: {
     label: "Custom",
-    color: "text-slate-300",
+    color: "text-(--ws-fg-60)",
     bgColor: "bg-slate-500/20",
     borderColor: "border-slate-500/30",
   },
@@ -186,9 +186,9 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
 
   if (isLoading) {
     return (
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
             <Crown className="h-4 w-4 text-amber-400" />
             Class Roles
           </CardTitle>
@@ -204,9 +204,9 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
 
   if (isError) {
     return (
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
             <Crown className="h-4 w-4 text-amber-400" />
             Class Roles
           </CardTitle>
@@ -222,10 +222,10 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
   }
 
   return (
-    <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+    <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
             <Crown className="h-4 w-4 text-amber-400" />
             Student Roles
           </CardTitle>
@@ -242,17 +242,17 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
       <CardContent>
         {!hasAnyRoles ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-              <Crown className="h-6 w-6 text-white/30" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
+              <Crown className="h-6 w-6 text-(--ws-fg-40)" />
             </div>
-            <p className="mt-3 text-sm text-white/50">No roles assigned</p>
+            <p className="mt-3 text-sm text-(--ws-fg-50)">No roles assigned</p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* School-wide roles */}
             {schoolRoles.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-white/40">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)">
                   School Roles
                 </h4>
                 <div className="space-y-2">
@@ -265,7 +265,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
                     return (
                       <div
                         key={roleAssignment.id}
-                        className="flex items-center gap-3 rounded-lg border p-3 transition-all hover:bg-white/5"
+                        className="flex items-center gap-3 rounded-lg border p-3 transition-all hover:bg-(--ws-fill)"
                         style={{
                           borderColor: `${badgeColor}40`,
                           backgroundColor: `${badgeColor}10`,
@@ -281,7 +281,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
                           <p className="font-medium" style={{ color: badgeColor }}>
                             {roleAssignment.role.name}
                           </p>
-                          <span className="text-xs text-white/50 capitalize">
+                          <span className="text-xs text-(--ws-fg-50) capitalize">
                             {roleAssignment.role.category}
                           </span>
                         </div>
@@ -289,7 +289,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => router.push("/admin/roles-duties")}
-                          className="h-7 w-7 shrink-0 text-white/40 hover:bg-white/10 hover:text-white"
+                          className="h-7 w-7 shrink-0 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
@@ -303,7 +303,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
             {/* Class roles */}
             {classRoles.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-white/40">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)">
                   Class Roles
                 </h4>
                 <div className="space-y-2">
@@ -317,7 +317,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
                       <div
                         key={roleAssignment.id}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg border p-3 transition-all hover:bg-white/5",
+                          "flex items-center gap-3 rounded-lg border p-3 transition-all hover:bg-(--ws-fill)",
                           categoryInfo.borderColor,
                           categoryInfo.bgColor
                         )}
@@ -336,14 +336,14 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {roleAssignment.classGroup && (
-                              <span className="text-xs text-white/50">
+                              <span className="text-xs text-(--ws-fg-50)">
                                 {roleAssignment.classGroup.fullLabel}
                               </span>
                             )}
                             {roleAssignment.subject && (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] border-white/20 bg-white/5"
+                                className="text-[10px] border-(--ws-line-strong) bg-(--ws-fill)"
                               >
                                 {roleAssignment.subject.name}
                               </Badge>
@@ -357,7 +357,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
                             onClick={() =>
                               router.push(`/admin/classes/${roleAssignment.classGroup!.id}?tab=roles`)
                             }
-                            className="h-7 w-7 shrink-0 text-white/40 hover:bg-white/10 hover:text-white"
+                            className="h-7 w-7 shrink-0 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Button>

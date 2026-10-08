@@ -1,8 +1,8 @@
 // src/components/ui/premium.ts
 /**
- * Premium UI component styles for consistent, elegant dark theme design.
- * Use these across dropdown menus, selects, and other popup components.
- * In-flow nav classes follow the shell theme. Menu and select classes stay dark.
+ * Premium UI component styles.
+ * Menu and select colors follow `--ws-*` (dark by default, light inside `.workspace`).
+ * In-flow nav classes follow the shell theme.
  */
 import {
   shellSidebarItemActiveClass,
@@ -15,15 +15,15 @@ import {
 // ============================================================================
 
 export const premiumMenuContent =
-  "bg-neutral-950/95 backdrop-blur-xl border border-white/10 " +
-  "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)] " +
+  "bg-(--ws-popover) text-(--ws-fg) backdrop-blur-xl border border-(--ws-line) " +
+  "shadow-[var(--ws-popover-shadow)] " +
   "rounded-xl p-1.5";
 
 export const premiumMenuItem =
   "rounded-lg px-3 py-2.5 text-sm font-medium " +
-  "text-white/70 hover:text-white " +
-  "hover:bg-white/10 " +
-  "focus:bg-white/10 focus:text-white focus:outline-none " +
+  "text-(--ws-fg-70) hover:text-(--ws-fg) " +
+  "hover:bg-(--ws-fill-strong) " +
+  "focus:bg-(--ws-fill-strong) focus:text-(--ws-fg) focus:outline-none " +
   "cursor-pointer transition-all duration-150 " +
   "flex items-center gap-2.5";
 
@@ -51,7 +51,7 @@ export const premiumMenuItemWarning =
   "cursor-pointer transition-all duration-150 " +
   "flex items-center gap-2.5";
 
-export const premiumSeparator = "bg-white/10 my-1.5";
+export const premiumSeparator = "bg-(--ws-line) my-1.5";
 
 // ============================================================================
 // Select Component Styles
@@ -59,25 +59,25 @@ export const premiumSeparator = "bg-white/10 my-1.5";
 
 export const premiumSelectTrigger =
   "flex h-10 w-full items-center justify-between gap-2 " +
-  "rounded-xl border border-white/10 bg-white/5 " +
-  "px-3.5 py-2 text-sm text-white " +
-  "ring-offset-background placeholder:text-white/40 " +
-  "hover:bg-white/8 hover:border-white/20 " +
+  "rounded-xl border border-(--ws-line) bg-(--ws-fill) " +
+  "px-3.5 py-2 text-sm text-(--ws-fg) " +
+  "ring-offset-background placeholder:text-(--ws-fg-40) " +
+  "hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong) " +
   "focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500/50 " +
   "disabled:cursor-not-allowed disabled:opacity-50 " +
   "transition-all duration-150";
 
 export const premiumSelectContent =
-  "bg-neutral-950/95 backdrop-blur-xl border border-white/10 " +
-  "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.05)] " +
+  "bg-(--ws-popover) text-(--ws-fg) backdrop-blur-xl border border-(--ws-line) " +
+  "shadow-[var(--ws-popover-shadow)] " +
   "rounded-xl p-1.5 overflow-hidden";
 
 export const premiumSelectItem =
   "relative flex w-full cursor-pointer select-none items-center " +
   "rounded-lg py-2.5 pl-3 pr-8 text-sm font-medium outline-none " +
-  "text-white/70 " +
-  "hover:bg-white/10 hover:text-white " +
-  "focus:bg-white/10 focus:text-white " +
+  "text-(--ws-fg-70) " +
+  "hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) " +
+  "focus:bg-(--ws-fill-strong) focus:text-(--ws-fg) " +
   "data-[disabled]:pointer-events-none data-[disabled]:opacity-50 " +
   "transition-all duration-150";
 
@@ -85,10 +85,10 @@ export const premiumSelectItemIndicator =
   "absolute right-2.5 flex h-4 w-4 items-center justify-center text-violet-400";
 
 export const premiumSelectLabel =
-  "px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/40";
+  "px-3 py-2 text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)";
 
 export const premiumSelectScrollButton =
-  "flex cursor-default items-center justify-center py-1.5 text-white/50";
+  "flex cursor-default items-center justify-center py-1.5 text-(--ws-fg-50)";
 
 // ============================================================================
 // Navigation Styles

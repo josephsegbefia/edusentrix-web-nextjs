@@ -65,19 +65,19 @@ function SummaryCardShell({
   return (
     <Card
       className={cn(
-        "border-white/10 bg-linear-to-br to-slate-950/80 shadow-inner",
+        "border-(--ws-line) bg-linear-to-br to-slate-950/80 shadow-inner",
         gradient
       )}
     >
       <CardContent className="flex flex-col gap-1.5 p-3.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-white/70">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-70)">
             {title}
           </span>
-          <span className="text-white/35">{icon}</span>
+          <span className="text-(--ws-fg-40)">{icon}</span>
         </div>
-        <span className="text-2xl font-semibold text-white">{value}</span>
-        <span className="text-[11px] text-white/55">{subtitle}</span>
+        <span className="text-2xl font-semibold text-(--ws-fg)">{value}</span>
+        <span className="text-[11px] text-(--ws-fg-50)">{subtitle}</span>
         {footer}
       </CardContent>
     </Card>
@@ -124,7 +124,7 @@ export function AcademicSummaryCards({
         gradient="from-emerald-500/10 via-emerald-500/5 shadow-emerald-500/10"
         icon={<Percent className="h-4 w-4" />}
         footer={
-          <div className="flex items-center gap-1.5 text-[11px] text-emerald-100/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-(--ws-emerald)/80">
             <TrendIcon trend={average.trend} />
             <span className="capitalize">{average.trendLabel}</span>
           </div>
@@ -164,10 +164,10 @@ export function AcademicSummaryCardsSkeleton() {
       {[1, 2, 3, 4].map((key) => (
         <Card
           key={key}
-          className="border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black"
+          className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)"
         >
           <CardContent className="p-3.5">
-            <div className="h-20 animate-pulse rounded-xl bg-white/5" />
+            <div className="h-20 animate-pulse rounded-xl bg-(--ws-fill)" />
           </CardContent>
         </Card>
       ))}

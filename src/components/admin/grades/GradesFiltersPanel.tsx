@@ -34,7 +34,7 @@ function FilterField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-medium uppercase tracking-wider text-white/40">
+      <label className="text-[11px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
         {label}
       </label>
       {children}
@@ -85,13 +85,13 @@ export function GradesFiltersPanel({
     <div
       className={cn(
         "animate-in slide-in-from-top-2 fade-in-0 duration-200",
-        "rounded-xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950/95 to-black/95 p-5 shadow-xl shadow-black/20 backdrop-blur-xl"
+        "rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from)/95 via-(--ws-panel-via)/95 to-black/95 p-5 shadow-xl shadow-black/20 backdrop-blur-xl"
       )}
     >
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-white">Advanced Filters</h3>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Advanced Filters</h3>
           {activeFilterCount > 0 && (
             <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-300">
               {activeFilterCount} active
@@ -101,7 +101,7 @@ export function GradesFiltersPanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1.5 text-white/40 hover:bg-white/10 hover:text-white"
+          className="rounded-lg p-1.5 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
         >
           <X className="h-4 w-4" />
         </button>
@@ -158,7 +158,7 @@ export function GradesFiltersPanel({
           variant="ghost"
           size="sm"
           onClick={handleReset}
-          className="gap-1.5 text-white/60 hover:text-white"
+          className="gap-1.5 text-(--ws-fg-60) hover:text-(--ws-fg)"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           Reset

@@ -73,13 +73,13 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
   };
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/5 via-indigo-500/2 to-transparent"
         aria-hidden="true"
       />
       <CardHeader className="relative z-10 pb-3">
-        <CardTitle className="text-sm font-semibold text-white">
+        <CardTitle className="text-sm font-semibold text-(--ws-fg)">
           Installment Schedule: {lineItemName}
         </CardTitle>
       </CardHeader>
@@ -96,7 +96,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
                 "rounded-lg border p-4 space-y-3 transition-all",
                 isOverdue
                   ? "border-rose-500/30 bg-rose-500/5"
-                  : "border-white/10 bg-white/5"
+                  : "border-(--ws-line) bg-(--ws-fill)"
               )}
             >
               <div className="flex items-center justify-between">
@@ -105,10 +105,10 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
                     {installment.installmentNumber}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-(--ws-fg)">
                       Installment {installment.installmentNumber}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-white/60">
+                    <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
                       <Calendar className="h-3 w-3" />
                       Due: {dueDate.toLocaleDateString()}
                     </div>
@@ -119,8 +119,8 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/80">Amount</span>
-                  <span className="font-semibold text-white">
+                  <span className="text-(--ws-fg-80)">Amount</span>
+                  <span className="font-semibold text-(--ws-fg)">
                     {formatMoney(installment.amountMinor)}
                   </span>
                 </div>
@@ -128,12 +128,12 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
                 {installment.amountPaidMinor > 0 && (
                   <>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-white/60">Paid</span>
+                      <span className="text-(--ws-fg-60)">Paid</span>
                       <span className="text-emerald-300">
                         {formatMoney(installment.amountPaidMinor)}
                       </span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-(--ws-fill-strong) overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all"
                         style={{
@@ -147,8 +147,8 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
                   </>
                 )}
 
-                <div className="flex items-center justify-between text-sm pt-1 border-t border-white/10">
-                  <span className="text-white/80">Outstanding</span>
+                <div className="flex items-center justify-between text-sm pt-1 border-t border-(--ws-line)">
+                  <span className="text-(--ws-fg-80)">Outstanding</span>
                   <span className={cn(
                     "font-semibold",
                     installment.amountOutstandingMinor > 0

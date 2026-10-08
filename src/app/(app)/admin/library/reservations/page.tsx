@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { format } from "date-fns";
 import { Bookmark, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -109,7 +110,8 @@ export default function AdminLibraryReservationsPage() {
   const pag = listQ.data?.data?.pagination;
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library" label="Library home" />
       <LibraryPageHeader
         icon={Bookmark}
@@ -118,7 +120,7 @@ export default function AdminLibraryReservationsPage() {
       />
 
       {!canRead ? (
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <p className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
           You do not have permission to view reservations.
         </p>
       ) : null}
@@ -127,7 +129,7 @@ export default function AdminLibraryReservationsPage() {
         <div className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-2">
-              <Label className="text-white/80">Status</Label>
+              <Label className="text-(--ws-fg-80)">Status</Label>
               <PremiumSelect
                 value={statusFilter}
                 onValueChange={(v) => {
@@ -135,7 +137,7 @@ export default function AdminLibraryReservationsPage() {
                   setPage(1);
                 }}
               >
-                <PremiumSelectTrigger className="w-[200px] border-white/15 bg-white/5 text-white">
+                <PremiumSelectTrigger className="w-[200px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)">
                   <PremiumSelectValue />
                 </PremiumSelectTrigger>
                 <PremiumSelectContent>
@@ -151,25 +153,25 @@ export default function AdminLibraryReservationsPage() {
           </div>
 
           {canManage ? (
-            <form onSubmit={onCreate} className="grid gap-3 border-t border-white/10 pt-4 md:grid-cols-4">
+            <form onSubmit={onCreate} className="grid gap-3 border-t border-(--ws-line) pt-4 md:grid-cols-4">
               <div className="relative space-y-2 md:col-span-4">
-                <Label className="text-white/80">Find borrower</Label>
+                <Label className="text-(--ws-fg-80)">Find borrower</Label>
                 <Input
                   value={borrowerSearchInput}
                   onChange={(e) => setBorrowerSearchInput(e.target.value)}
                   placeholder="Type name — at least 2 characters"
-                  className="border-white/15 bg-white/5 text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                   autoComplete="off"
                 />
                 {borrowerSearchQ.data?.data?.items &&
                 borrowerSearchQ.data.data.items.length > 0 &&
                 debouncedBorrowerQ.trim().length >= 2 ? (
-                  <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-white/15 bg-slate-950 py-1 shadow-lg">
+                  <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-(--ws-line-strong) bg-(--ws-panel-to) py-1 shadow-lg">
                     {borrowerSearchQ.data.data.items.map((h) => (
                       <li key={`${h.borrowerType}-${h.borrowerId}`}>
                         <button
                           type="button"
-                          className="w-full px-3 py-2 text-left text-sm text-white/90 hover:bg-white/10"
+                          className="w-full px-3 py-2 text-left text-sm text-(--ws-fg-90) hover:bg-(--ws-fill-strong)"
                           onClick={() => {
                             setBorrowerType(h.borrowerType);
                             setBorrowerId(h.borrowerId);
@@ -178,32 +180,32 @@ export default function AdminLibraryReservationsPage() {
                           }}
                         >
                           <span className="font-medium">{h.name}</span>
-                          <span className="ml-2 text-xs text-white/50">{h.borrowerType}</span>
+                          <span className="ml-2 text-xs text-(--ws-fg-50)">{h.borrowerType}</span>
                         </button>
                       </li>
                     ))}
                   </ul>
                 ) : null}
                 {selectedBorrowerHint ? (
-                  <p className="text-xs text-emerald-200/80">Selected: {selectedBorrowerHint}</p>
+                  <p className="text-xs text-(--ws-emerald)/80">Selected: {selectedBorrowerHint}</p>
                 ) : null}
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-white/80">New hold — book id</Label>
+                <Label className="text-(--ws-fg-80)">New hold — book id</Label>
                 <Input
                   value={bookId}
                   onChange={(e) => setBookId(e.target.value)}
                   placeholder="Mongo id of the book"
-                  className="border-white/15 bg-white/5 text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Borrower type</Label>
+                <Label className="text-(--ws-fg-80)">Borrower type</Label>
                 <PremiumSelect
                   value={borrowerType}
                   onValueChange={(v) => setBorrowerType(v as typeof borrowerType)}
                 >
-                  <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
+                  <PremiumSelectTrigger className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)">
                     <PremiumSelectValue />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -214,12 +216,12 @@ export default function AdminLibraryReservationsPage() {
                 </PremiumSelect>
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Borrower id</Label>
+                <Label className="text-(--ws-fg-80)">Borrower id</Label>
                 <Input
                   value={borrowerId}
                   onChange={(e) => setBorrowerId(e.target.value)}
                   placeholder="Student / teacher / user id"
-                  className="border-white/15 bg-white/5 text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="md:col-span-4">
@@ -238,47 +240,47 @@ export default function AdminLibraryReservationsPage() {
           ) : null}
 
           {listQ.isLoading ? (
-            <div className="flex items-center gap-2 py-8 text-white/60">
+            <div className="flex items-center gap-2 py-8 text-(--ws-fg-60)">
               <Loader2 className="h-5 w-5 animate-spin" /> Loading…
             </div>
           ) : items.length === 0 ? (
-            <p className="py-6 text-sm text-white/55">No reservations match this filter.</p>
+            <p className="py-6 text-sm text-(--ws-fg)/55">No reservations match this filter.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-white/80">Book</TableHead>
-                  <TableHead className="text-white/80">Patron</TableHead>
-                  <TableHead className="text-white/80">Status</TableHead>
-                  <TableHead className="text-white/80">Queue</TableHead>
-                  <TableHead className="text-white/80">Copy</TableHead>
-                  <TableHead className="text-white/80">Reserved</TableHead>
-                  <TableHead className="text-right text-white/80">Actions</TableHead>
+                <TableRow className="border-(--ws-line) hover:bg-transparent">
+                  <TableHead className="text-(--ws-fg-80)">Book</TableHead>
+                  <TableHead className="text-(--ws-fg-80)">Patron</TableHead>
+                  <TableHead className="text-(--ws-fg-80)">Status</TableHead>
+                  <TableHead className="text-(--ws-fg-80)">Queue</TableHead>
+                  <TableHead className="text-(--ws-fg-80)">Copy</TableHead>
+                  <TableHead className="text-(--ws-fg-80)">Reserved</TableHead>
+                  <TableHead className="text-right text-(--ws-fg-80)">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((row) => (
-                  <TableRow key={row.id} className="border-white/10 hover:bg-white/[0.03]">
+                  <TableRow key={row.id} className="border-(--ws-line) hover:bg-(--ws-fill)">
                     <TableCell className="max-w-[180px]">
-                      <div className="truncate font-medium text-white">{row.bookTitle}</div>
-                      <div className="truncate text-xs text-white/45">{row.bookId}</div>
+                      <div className="truncate font-medium text-(--ws-fg)">{row.bookTitle}</div>
+                      <div className="truncate text-xs text-(--ws-fg)/45">{row.bookId}</div>
                     </TableCell>
-                    <TableCell className="text-sm text-white/80">
+                    <TableCell className="text-sm text-(--ws-fg-80)">
                       <div>{row.borrowerName}</div>
-                      <div className="text-xs text-white/45">
+                      <div className="text-xs text-(--ws-fg)/45">
                         {row.borrowerType} · {row.borrowerId}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="border-white/20 text-[10px] text-white/85">
+                      <Badge variant="outline" className="border-(--ws-line-strong) text-[10px] text-(--ws-fg-80)">
                         {row.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-white/75">{row.queuePosition}</TableCell>
-                    <TableCell className="text-xs text-white/60">
+                    <TableCell className="text-sm text-(--ws-fg)/75">{row.queuePosition}</TableCell>
+                    <TableCell className="text-xs text-(--ws-fg-60)">
                       {row.copyCode ?? "—"}
                     </TableCell>
-                    <TableCell className="text-xs text-white/60">
+                    <TableCell className="text-xs text-(--ws-fg-60)">
                       {format(new Date(row.reservedAt), "MMM d, yyyy HH:mm")}
                     </TableCell>
                     <TableCell className="text-right">
@@ -307,7 +309,7 @@ export default function AdminLibraryReservationsPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 border-white/20 text-white"
+                            className="h-8 border-(--ws-line-strong) text-(--ws-fg)"
                             disabled={cancelM.isPending}
                             onClick={() => {
                               void (async () => {
@@ -332,7 +334,7 @@ export default function AdminLibraryReservationsPage() {
           )}
 
           {pag && pag.totalPages > 1 ? (
-            <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-4 text-sm text-white/70">
+            <div className="flex items-center justify-between gap-2 border-t border-(--ws-line) pt-4 text-sm text-(--ws-fg-70)">
               <span>
                 Page {pag.page} of {pag.totalPages} ({pag.total} total)
               </span>
@@ -341,7 +343,7 @@ export default function AdminLibraryReservationsPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="border-white/20 text-white"
+                  className="border-(--ws-line-strong) text-(--ws-fg)"
                   disabled={!pag.hasPreviousPage}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
@@ -351,7 +353,7 @@ export default function AdminLibraryReservationsPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="border-white/20 text-white"
+                  className="border-(--ws-line-strong) text-(--ws-fg)"
                   disabled={!pag.hasNextPage}
                   onClick={() => setPage((p) => p + 1)}
                 >
@@ -363,5 +365,6 @@ export default function AdminLibraryReservationsPage() {
         </div>
       ) : null}
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }

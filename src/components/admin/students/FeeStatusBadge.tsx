@@ -16,7 +16,7 @@ export function FeeStatusBadge({ status, amountOwed }: FeeStatusBadgeProps) {
         return {
           label: "Fees Cleared",
           classes:
-            "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40",
+            "bg-emerald-500/15 text-(--ws-emerald) border border-emerald-400/40",
         };
       case "owing":
         return {
@@ -26,7 +26,7 @@ export function FeeStatusBadge({ status, amountOwed }: FeeStatusBadgeProps) {
                   maximumFractionDigits: 2,
                 })}`
               : "Owing Fees",
-          classes: "bg-red-500/15 text-red-100 border border-red-400/40",
+          classes: "bg-red-500/15 text-(--ws-rose) border border-red-400/40",
         };
       case "partial":
         return {
@@ -36,18 +36,18 @@ export function FeeStatusBadge({ status, amountOwed }: FeeStatusBadgeProps) {
                   maximumFractionDigits: 2,
                 })} left`
               : "Partially paid",
-          classes: "bg-amber-500/15 text-amber-100 border border-amber-400/40",
+          classes: "bg-amber-500/15 text-(--ws-amber) border border-amber-400/40",
         };
       case "none":
         return {
           label: "No fees assigned yet",
-          classes: "bg-blue-500/10 text-blue-100 border border-blue-400/40",
+          classes: "bg-blue-500/10 text-(--ws-cyan) border border-blue-400/40",
         };
       case "unknown":
       default:
         return {
           label: "Fee data pending",
-          classes: "bg-slate-700/70 text-slate-100 border border-slate-500/40",
+          classes: "bg-(--ws-fill-strong) text-(--ws-fg-80) border border-(--ws-line)",
         };
     }
   }, [status, amountOwed]);

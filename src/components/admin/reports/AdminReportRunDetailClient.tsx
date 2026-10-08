@@ -237,7 +237,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
       />
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20 text-white/60">
+        <div className="flex items-center justify-center py-20 text-(--ws-fg-60)">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Loading report run…
         </div>
@@ -259,8 +259,8 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
       ) : run ? (
         <div className="space-y-4">
           <GlassPanel className="p-4 sm:p-5" glow="cyan">
-            <h3 className="text-base font-semibold text-white">Admin actions</h3>
-            <p className="mt-2 text-sm leading-6 text-white/60">
+            <h3 className="text-base font-semibold text-(--ws-fg)">Admin actions</h3>
+            <p className="mt-2 text-sm leading-6 text-(--ws-fg-60)">
               {canApprove
                 ? "This run is waiting for your review. Approve it when ready, or return it with clear correction notes."
                 : canRelease
@@ -323,20 +323,20 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <GlassPanel className="p-4">
-              <p className="text-xs uppercase tracking-wide text-white/45">Subjects submitted</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Subjects submitted</p>
+              <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                 {readiness?.subjectsSubmitted ?? 0}/{readiness?.subjectsExpected ?? 0}
               </p>
             </GlassPanel>
             <GlassPanel className="p-4">
-              <p className="text-xs uppercase tracking-wide text-white/45">Students complete</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Students complete</p>
+              <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                 {readiness?.studentsComplete ?? 0}/{readiness?.studentsExpected ?? 0}
               </p>
             </GlassPanel>
             <GlassPanel className="p-4">
-              <p className="text-xs uppercase tracking-wide text-white/45">Attendance ready</p>
-              <p className="mt-2 text-lg font-semibold text-white">
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Attendance ready</p>
+              <p className="mt-2 text-lg font-semibold text-(--ws-fg)">
                 {readiness?.attendanceReady ? (
                   <span className="text-emerald-200">Ready</span>
                 ) : (
@@ -345,8 +345,8 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
               </p>
             </GlassPanel>
             <GlassPanel className="p-4">
-              <p className="text-xs uppercase tracking-wide text-white/45">Compiled cards</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Compiled cards</p>
+              <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                 {run.studentReportCardCount}
               </p>
             </GlassPanel>
@@ -356,9 +356,9 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
             <GlassPanel className="p-4 sm:p-5">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-teal-200" />
-                <h3 className="text-base font-semibold text-white">Attendance readiness</h3>
+                <h3 className="text-base font-semibold text-(--ws-fg)">Attendance readiness</h3>
               </div>
-              <p className="mt-3 text-sm text-white/60">
+              <p className="mt-3 text-sm text-(--ws-fg-60)">
                 {readiness?.attendanceReady
                   ? "Homeroom attendance records exist for this period."
                   : "Attendance records are missing for this period."}
@@ -368,9 +368,9 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
             <GlassPanel className="p-4 sm:p-5">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-cyan-200" />
-                <h3 className="text-base font-semibold text-white">Comments readiness</h3>
+                <h3 className="text-base font-semibold text-(--ws-fg)">Comments readiness</h3>
               </div>
-              <p className="mt-3 text-sm text-white/60">
+              <p className="mt-3 text-sm text-(--ws-fg-60)">
                 {readiness?.commentsReady
                   ? "Homeroom and headteacher comments are ready."
                   : "Report comments are not fully captured yet. Homeroom and headteacher comments will be required before release."}
@@ -379,16 +379,16 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
           </div>
 
           <GlassPanel className="overflow-hidden p-0">
-            <div className="border-b border-white/10 px-4 py-3 sm:px-5">
-              <h3 className="text-base font-semibold text-white">Subject readiness</h3>
-              <p className="mt-1 text-sm text-white/50">
+            <div className="border-b border-(--ws-line) px-4 py-3 sm:px-5">
+              <h3 className="text-base font-semibold text-(--ws-fg)">Subject readiness</h3>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Submitted subject results included in this report run.
               </p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5 text-left text-xs uppercase tracking-wide text-white/45">
+                  <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-left text-xs uppercase tracking-wide text-(--ws-fg-40)">
                     <th className="px-4 py-3">Subject</th>
                     <th className="px-4 py-3">Teacher</th>
                     <th className="px-4 py-3">Submitted</th>
@@ -399,16 +399,16 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                 <tbody>
                   {run.subjectReadiness.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-white/50">
+                      <td colSpan={5} className="px-4 py-8 text-center text-(--ws-fg-50)">
                         No subject assignments found for this class.
                       </td>
                     </tr>
                   ) : (
                     run.subjectReadiness.map((row) => (
-                      <tr key={row.subjectId} className="border-b border-white/5 align-top">
-                        <td className="px-4 py-3 text-white">{row.subjectName}</td>
-                        <td className="px-4 py-3 text-white/70">{row.teacherName ?? "—"}</td>
-                        <td className="px-4 py-3 text-white/70">
+                      <tr key={row.subjectId} className="border-b border-(--ws-line) align-top">
+                        <td className="px-4 py-3 text-(--ws-fg)">{row.subjectName}</td>
+                        <td className="px-4 py-3 text-(--ws-fg-70)">{row.teacherName ?? "—"}</td>
+                        <td className="px-4 py-3 text-(--ws-fg-70)">
                           {row.submittedCount}/{row.studentsExpected}
                         </td>
                         <td className="px-4 py-3">
@@ -416,7 +416,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                             {SUBJECT_STATUS_LABELS[row.status]}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-white/55">
+                        <td className="px-4 py-3 text-(--ws-fg-50)">
                           {row.issues.length > 0 ? (
                             <ul className="space-y-1 text-xs text-amber-200">
                               {row.issues.map((issue) => (
@@ -437,7 +437,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
 
           {(run.issueSummary?.length ?? 0) > 0 ? (
             <GlassPanel className="p-4 sm:p-5">
-              <h3 className="text-base font-semibold text-white">Readiness issues</h3>
+              <h3 className="text-base font-semibold text-(--ws-fg)">Readiness issues</h3>
               <ul className="mt-4 space-y-2">
                 {run.issueSummary?.map((issue) => (
                   <li
@@ -445,13 +445,13 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                     className={cn(
                       glassInsetClass,
                       "flex items-start gap-2 px-3 py-2 text-sm",
-                      issue.severity === "error" ? "text-amber-200" : "text-white/60"
+                      issue.severity === "error" ? "text-amber-200" : "text-(--ws-fg-60)"
                     )}
                   >
                     {issue.severity === "error" ? (
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                     ) : (
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-white/40" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-fg-40)" />
                     )}
                     <span>{issue.message}</span>
                   </li>
@@ -461,29 +461,29 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
           ) : null}
 
           <GlassPanel className="p-4 sm:p-5">
-            <h3 className="text-base font-semibold text-white">Approval timeline</h3>
+            <h3 className="text-base font-semibold text-(--ws-fg)">Approval timeline</h3>
             {(run.approvalLogs?.length ?? 0) === 0 ? (
-              <p className="mt-3 text-sm text-white/50">No approval events recorded yet.</p>
+              <p className="mt-3 text-sm text-(--ws-fg-50)">No approval events recorded yet.</p>
             ) : (
               <ul className="mt-4 space-y-3">
                 {run.approvalLogs.map((entry) => (
                   <li key={entry._id} className={cn(glassInsetClass, "px-3 py-3")}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-white">
+                      <span className="text-sm font-medium text-(--ws-fg)">
                         {formatApprovalAction(entry.action)}
                       </span>
                       {entry.beforeStatus && entry.afterStatus ? (
-                        <span className="text-xs text-white/45">
+                        <span className="text-xs text-(--ws-fg-40)">
                           {entry.beforeStatus} → {entry.afterStatus}
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-xs text-white/45">
+                    <p className="mt-1 text-xs text-(--ws-fg-40)">
                       {format(new Date(entry.createdAt), "MMM d, yyyy · h:mm a")} ·{" "}
                       {entry.actorRole}
                     </p>
                     {entry.note ? (
-                      <p className="mt-2 text-sm leading-6 text-white/70">{entry.note}</p>
+                      <p className="mt-2 text-sm leading-6 text-(--ws-fg-70)">{entry.note}</p>
                     ) : null}
                   </li>
                 ))}
@@ -492,7 +492,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
           </GlassPanel>
 
           {run.submittedAt ? (
-            <GlassPanel className={cn(glassInsetClass, "px-4 py-3 text-sm text-white/60")}>
+            <GlassPanel className={cn(glassInsetClass, "px-4 py-3 text-sm text-(--ws-fg-60)")}>
               Submitted for approval on{" "}
               {format(new Date(run.submittedAt), "MMM d, yyyy · h:mm a")}.
             </GlassPanel>
@@ -507,10 +507,10 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
       ) : null}
 
       <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
-        <DialogContent className="border-white/10 bg-slate-950 text-white">
+        <DialogContent className="border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg)">
           <DialogHeader>
             <DialogTitle>Return report run</DialogTitle>
-            <DialogDescription className="text-white/60">
+            <DialogDescription className="text-(--ws-fg-60)">
               Explain what the homeroom teacher should fix before resubmitting. A note is required.
             </DialogDescription>
           </DialogHeader>
@@ -521,7 +521,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
               value={returnNote}
               onChange={(event) => setReturnNote(event.target.value)}
               placeholder="Describe the corrections needed…"
-              className="min-h-28 border-white/10 bg-black/20 text-white placeholder:text-white/30"
+              className="min-h-28 border-(--ws-line) bg-black/20 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               maxLength={2000}
             />
           </div>

@@ -134,13 +134,13 @@ export function GradingPolicyDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full border-white/10 bg-slate-950 text-white sm:max-w-2xl"
+        className="w-full border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) sm:max-w-2xl"
       >
-        <SheetHeader className="border-b border-white/10 pb-4">
-          <SheetTitle className="text-white">
+        <SheetHeader className="border-b border-(--ws-line) pb-4">
+          <SheetTitle className="text-(--ws-fg)">
             {isEditing ? "Edit grading policy" : "Create grading policy"}
           </SheetTitle>
-          <SheetDescription className="text-white/60">
+          <SheetDescription className="text-(--ws-fg-60)">
             Define score breakdowns, grade labels, and report-card display rules.
           </SheetDescription>
         </SheetHeader>
@@ -148,7 +148,7 @@ export function GradingPolicyDrawer({
         <form onSubmit={handleSubmit} className="flex h-[calc(100%-5rem)] flex-col">
           <div className="flex-1 space-y-5 overflow-y-auto px-1 py-4">
             <GlassPanel glow="teal" className="p-4">
-              <h3 className="text-sm font-semibold text-white">Policy details</h3>
+              <h3 className="text-sm font-semibold text-(--ws-fg)">Policy details</h3>
               <div className="mt-4 grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="policy-name">Name</Label>
@@ -158,7 +158,7 @@ export function GradingPolicyDrawer({
                     onChange={(event) => updateForm({ name: event.target.value })}
                     placeholder="Primary Term Grading Policy"
                     disabled={isArchived}
-                    className="border-white/10 bg-white/5 text-white"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -169,7 +169,7 @@ export function GradingPolicyDrawer({
                     onChange={(event) => updateForm({ description: event.target.value })}
                     placeholder="Used for primary and JHS report cards."
                     disabled={isArchived}
-                    className="min-h-20 border-white/10 bg-white/5 text-white"
+                    className="min-h-20 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -229,7 +229,7 @@ export function GradingPolicyDrawer({
                         updateForm({ passMark: Number(event.target.value) || 0 })
                       }
                       disabled={isArchived}
-                      className="border-white/10 bg-white/5 text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -242,14 +242,14 @@ export function GradingPolicyDrawer({
                       }
                       placeholder="ghana_nacca"
                       disabled={isArchived}
-                      className="border-white/10 bg-white/5 text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <div className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                   <div>
-                    <p className="text-sm font-medium text-white">Default school policy</p>
-                    <p className="text-xs text-white/55">
+                    <p className="text-sm font-medium text-(--ws-fg)">Default school policy</p>
+                    <p className="text-xs text-(--ws-fg-50)">
                       Use when no grade-specific policy matches.
                     </p>
                   </div>
@@ -265,8 +265,8 @@ export function GradingPolicyDrawer({
             <GlassPanel glow="cyan" className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-sm font-semibold text-white">Score components</h3>
-                  <p className="mt-1 text-xs text-white/55">
+                  <h3 className="text-sm font-semibold text-(--ws-fg)">Score components</h3>
+                  <p className="mt-1 text-xs text-(--ws-fg-50)">
                     Weights must total {COMPONENT_WEIGHT_TOTAL}%.
                   </p>
                 </div>
@@ -274,8 +274,8 @@ export function GradingPolicyDrawer({
                   className={cn(
                     "rounded-full px-2.5 py-1 text-xs font-medium",
                     weightsValid
-                      ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-                      : "border border-amber-500/30 bg-amber-500/10 text-amber-100"
+                      ? "border border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
+                      : "border border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
                   )}
                 >
                   Total: {weightTotal.toFixed(1)}%
@@ -298,7 +298,7 @@ export function GradingPolicyDrawer({
                             });
                           }}
                           disabled={isArchived}
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -314,7 +314,7 @@ export function GradingPolicyDrawer({
                             })
                           }
                           disabled={isArchived}
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                     </div>
@@ -335,8 +335,8 @@ export function GradingPolicyDrawer({
                             className={cn(
                               "rounded-full border px-2.5 py-1 text-xs capitalize transition",
                               selected
-                                ? "border-teal-400/30 bg-teal-500/15 text-teal-100"
-                                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                                ? "border-teal-400/30 bg-teal-500/15 text-(--ws-teal)"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong)"
                             )}
                           >
                             {type.replace(/_/g, " ")}
@@ -345,7 +345,7 @@ export function GradingPolicyDrawer({
                       })}
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <label className="flex items-center gap-2 text-xs text-white/70">
+                      <label className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
                         <Switch
                           checked={component.required}
                           onCheckedChange={(checked) =>
@@ -360,7 +360,7 @@ export function GradingPolicyDrawer({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="text-rose-200 hover:bg-rose-500/10 hover:text-rose-100"
+                          className="text-(--ws-rose) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                           onClick={() =>
                             updateForm({
                               scoreComponents: form.scoreComponents.filter((_, idx) => idx !== index),
@@ -398,8 +398,8 @@ export function GradingPolicyDrawer({
             </GlassPanel>
 
             <GlassPanel className="p-4">
-              <h3 className="text-sm font-semibold text-white">Grade boundaries</h3>
-              <p className="mt-1 text-xs text-white/55">
+              <h3 className="text-sm font-semibold text-(--ws-fg)">Grade boundaries</h3>
+              <p className="mt-1 text-xs text-(--ws-fg-50)">
                 Define how final percentages map to grade labels.
               </p>
               <div className="mt-4 space-y-3">
@@ -414,7 +414,7 @@ export function GradingPolicyDrawer({
                             updateBoundary(index, { gradeLabel: event.target.value })
                           }
                           disabled={isArchived}
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -430,7 +430,7 @@ export function GradingPolicyDrawer({
                             })
                           }
                           disabled={isArchived}
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -446,7 +446,7 @@ export function GradingPolicyDrawer({
                             })
                           }
                           disabled={isArchived}
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                       <div className="grid gap-2">
@@ -459,7 +459,7 @@ export function GradingPolicyDrawer({
                             })
                           }
                           disabled={isArchived}
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                     </div>
@@ -469,7 +469,7 @@ export function GradingPolicyDrawer({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="text-rose-200 hover:bg-rose-500/10 hover:text-rose-100"
+                          className="text-(--ws-rose) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                           onClick={() =>
                             updateForm({
                               gradeBoundaries: form.gradeBoundaries.filter((_, idx) => idx !== index),
@@ -503,7 +503,7 @@ export function GradingPolicyDrawer({
             </GlassPanel>
           </div>
 
-          <SheetFooter className="border-t border-white/10 pt-4">
+          <SheetFooter className="border-t border-(--ws-line) pt-4">
             <Button
               type="button"
               variant="outline"

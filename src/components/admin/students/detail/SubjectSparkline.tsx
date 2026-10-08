@@ -56,7 +56,7 @@ export function SubjectSparkline({ history, className }: Props) {
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
               return (
-                <div className="rounded border border-white/20 bg-slate-950 px-2 py-1 text-[10px]">
+                <div className="rounded border border-(--ws-line-strong) bg-(--ws-popover) px-2 py-1 text-[10px]">
                   {payload[0].value?.toFixed(1)}%
                 </div>
               );

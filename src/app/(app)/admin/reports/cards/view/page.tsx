@@ -10,6 +10,7 @@ import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { useReportCard } from "@/hooks/admin/useReportCard";
 import { glassSecondaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { Button } from "@/components/ui/button";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default function AdminReportCardViewPage() {
   const searchParams = useSearchParams();
@@ -22,7 +23,7 @@ export default function AdminReportCardViewPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] p-4 md:p-6">
+    <WorkspaceScope className="mx-auto w-full max-w-[1400px] p-4 md:p-6">
       <WorkspacePageShell>
         <WorkspacePageHeader
           backHref="/admin/reports/report-runs"
@@ -44,26 +45,26 @@ export default function AdminReportCardViewPage() {
         />
 
         {!studentId || !academicPeriodId ? (
-          <GlassPanel className="p-6 text-sm text-white/60">
+          <GlassPanel className="p-6 text-sm text-(--ws-fg-60)">
             Provide `studentId` and `academicPeriodId` query parameters to preview a report card.
           </GlassPanel>
         ) : isLoading ? (
-          <div className="flex items-center justify-center py-20 text-white/60">
+          <div className="flex items-center justify-center py-20 text-(--ws-fg-60)">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading report card…
           </div>
         ) : error ? (
-          <GlassPanel className="p-6 text-sm text-rose-200">
+          <GlassPanel className="p-6 text-sm text-(--ws-rose)">
             {error instanceof Error ? error.message : "Failed to load report card."}
           </GlassPanel>
         ) : data ? (
           <div className="space-y-4">
             {data.source === "snapshot" ? (
-              <GlassPanel className="px-4 py-3 text-sm text-emerald-100/80">
+              <GlassPanel className="px-4 py-3 text-sm text-(--ws-emerald)/80">
                 Showing frozen report snapshot ({data.status ?? "snapshot"}).
               </GlassPanel>
             ) : (
-              <GlassPanel className="px-4 py-3 text-sm text-amber-100/80">
+              <GlassPanel className="px-4 py-3 text-sm text-(--ws-amber)/80">
                 Showing legacy SubjectGrade data fallback until a released snapshot exists.
               </GlassPanel>
             )}
@@ -71,6 +72,6 @@ export default function AdminReportCardViewPage() {
           </div>
         ) : null}
       </WorkspacePageShell>
-    </div>
+    </WorkspaceScope>
   );
 }

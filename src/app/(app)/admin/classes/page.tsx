@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 /**
  * Redirect /admin/classes to /admin/grades.
@@ -16,9 +17,9 @@ export default function ClassesRedirectPage() {
   }, [router]);
 
   return (
-    <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-white/60">
-      <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
+    <WorkspaceScope className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-(--ws-fg-60)">
+      <Loader2 className="h-8 w-8 animate-spin text-(--ws-teal)" />
       <p className="text-sm">Redirecting to Grades…</p>
-    </div>
+    </WorkspaceScope>
   );
 }

@@ -120,7 +120,7 @@ export function ReportCardView({ data }: { data: ReportCardViewData }) {
         switch (section.type) {
           case "header":
             return (
-              <div key={`${section.type}-${section.order}`} className="bg-slate-800 text-white p-8 text-center">
+              <div key={`${section.type}-${section.order}`} className="bg-slate-800 text-(--ws-fg) p-8 text-center">
                 {data.school.logo ? (
                   <img
                     src={data.school.logo}
@@ -130,16 +130,16 @@ export function ReportCardView({ data }: { data: ReportCardViewData }) {
                 ) : null}
                 <h1 className="text-2xl font-bold tracking-wide">{data.school.name}</h1>
                 {data.school.motto ? (
-                  <p className="mt-1 text-sm text-white/70 italic">{data.school.motto}</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-70) italic">{data.school.motto}</p>
                 ) : null}
                 {data.school.address ? (
-                  <p className="text-sm text-white/70 mt-1">
+                  <p className="text-sm text-(--ws-fg-70) mt-1">
                     {data.school.address}
                     {data.school.city ? `, ${data.school.city}` : ""}
                     {data.school.region ? ` - ${data.school.region}` : ""}
                   </p>
                 ) : null}
-                <div className="mt-3 inline-block rounded-full bg-white/10 px-4 py-1 text-sm">
+                <div className="mt-3 inline-block rounded-full bg-(--ws-fill-strong) px-4 py-1 text-sm">
                   {data.template.name}
                 </div>
               </div>

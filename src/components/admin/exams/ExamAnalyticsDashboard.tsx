@@ -22,10 +22,10 @@ type ExamAnalyticsDashboardProps = {
 };
 
 const CARD_TONES = [
-  "text-cyan-200",
-  "text-emerald-200",
-  "text-amber-200",
-  "text-rose-200",
+  "text-(--ws-cyan)",
+  "text-(--ws-emerald)",
+  "text-(--ws-amber)",
+  "text-(--ws-rose)",
   "text-violet-200",
 ];
 
@@ -40,7 +40,7 @@ export function ExamAnalyticsDashboard({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10 text-white/60">
+      <div className="flex items-center justify-center py-10 text-(--ws-fg-60)">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
         Loading exam analytics…
       </div>
@@ -50,7 +50,7 @@ export function ExamAnalyticsDashboard({
   if (isError || !analytics) {
     return (
       <GlassPanel className="p-6 text-center">
-        <p className="text-sm text-white/60">Could not load exam analytics.</p>
+        <p className="text-sm text-(--ws-fg-60)">Could not load exam analytics.</p>
         <Button
           type="button"
           variant="outline"
@@ -103,11 +103,11 @@ export function ExamAnalyticsDashboard({
           const Icon = card.icon;
           return (
             <Link key={card.label} href={card.href} className="block">
-              <GlassPanel className="h-full p-4 transition hover:border-white/20">
+              <GlassPanel className="h-full p-4 transition hover:border-(--ws-line-strong)">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-white/45">{card.label}</p>
-                    <p className={cn("mt-2 text-2xl font-semibold text-white", CARD_TONES[index])}>
+                    <p className="text-xs uppercase tracking-wide text-(--ws-fg)/45">{card.label}</p>
+                    <p className={cn("mt-2 text-2xl font-semibold text-(--ws-fg)", CARD_TONES[index])}>
                       {card.value}
                     </p>
                   </div>
@@ -124,8 +124,8 @@ export function ExamAnalyticsDashboard({
           <GlassPanel className="p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold text-white">Session highlights</h3>
-                <p className="text-sm text-white/50">
+                <h3 className="text-base font-semibold text-(--ws-fg)">Session highlights</h3>
+                <p className="text-sm text-(--ws-fg-50)">
                   Drill down into timetables and conflict review from each session.
                 </p>
               </div>
@@ -142,7 +142,7 @@ export function ExamAnalyticsDashboard({
             </div>
 
             {analytics.sessionHighlights.length === 0 ? (
-              <div className={cn(glassInsetClass, "px-4 py-8 text-center text-sm text-white/50")}>
+              <div className={cn(glassInsetClass, "px-4 py-8 text-center text-sm text-(--ws-fg-50)")}>
                 No active exam sessions in this view.
               </div>
             ) : (
@@ -153,8 +153,8 @@ export function ExamAnalyticsDashboard({
                     className={cn(glassInsetClass, "flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between")}
                   >
                     <div>
-                      <p className="font-medium text-white">{session.sessionName}</p>
-                      <p className="mt-1 text-sm text-white/55">
+                      <p className="font-medium text-(--ws-fg)">{session.sessionName}</p>
+                      <p className="mt-1 text-sm text-(--ws-fg)/55">
                         {formatExamSessionStatus(session.status)} · {session.totalPapers} papers ·{" "}
                         {session.publishedPapers} published · {session.conflictErrors} blocking
                         conflict{session.conflictErrors === 1 ? "" : "s"}
@@ -191,13 +191,13 @@ export function ExamAnalyticsDashboard({
           </GlassPanel>
 
           <GlassPanel className="p-4 sm:p-5">
-            <h3 className="text-base font-semibold text-white">Invigilation workload</h3>
-            <p className="mt-1 text-sm text-white/50">
+            <h3 className="text-base font-semibold text-(--ws-fg)">Invigilation workload</h3>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">
               Teachers with the highest active invigilation load across active sessions.
             </p>
             <div className="mt-4 space-y-2">
               {analytics.invigilationWorkload.length === 0 ? (
-                <div className={cn(glassInsetClass, "px-4 py-6 text-sm text-white/50")}>
+                <div className={cn(glassInsetClass, "px-4 py-6 text-sm text-(--ws-fg-50)")}>
                   No invigilator assignments yet.
                 </div>
               ) : (
@@ -206,7 +206,7 @@ export function ExamAnalyticsDashboard({
                     key={row.teacherId}
                     className={cn(glassInsetClass, "flex items-center justify-between px-3 py-2")}
                   >
-                    <span className="text-sm text-white/80">
+                    <span className="text-sm text-(--ws-fg-80)">
                       {row.teacherName ?? "Teacher"}
                     </span>
                     <span className="text-sm font-medium text-cyan-100">

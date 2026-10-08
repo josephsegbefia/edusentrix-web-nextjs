@@ -203,7 +203,7 @@ export function ExploreContentQaDetailClient({
   };
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Explore mission review"
@@ -215,7 +215,7 @@ export function ExploreContentQaDetailClient({
             <button
               type="button"
               onClick={() => router.push(listHref)}
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-xl border border-(--ws-line-strong) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
             >
               <ArrowLeft className="h-4 w-4" />
               All missions
@@ -232,12 +232,12 @@ export function ExploreContentQaDetailClient({
             <GlassPanel className="p-5" glow="both">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold text-white">{detail.title}</h2>
-                  <p className="text-sm text-white/60">
+                  <h2 className="text-xl font-semibold text-(--ws-fg)">{detail.title}</h2>
+                  <p className="text-sm text-(--ws-fg-60)">
                     {detail.subjectName} · {detail.classGroupName} · {detail.gradeLevel} ·{" "}
                     {detail.missionType.replaceAll("_", " ")}
                   </p>
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-(--ws-fg-40)">
                     Source lesson: {detail.sourceLessonTitle} · Generated{" "}
                     {new Date(detail.generatedAt).toLocaleString()}
                   </p>
@@ -257,7 +257,7 @@ export function ExploreContentQaDetailClient({
                       value={reviewNotes}
                       onChange={(e) => setReviewNotes(e.target.value)}
                       placeholder="Optional review note for your team..."
-                      className="min-h-[72px] rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35"
+                      className="min-h-[72px] rounded-xl border border-(--ws-line-strong) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                     />
                     <div className="flex flex-wrap gap-2">
                       <ActionBtn
@@ -317,20 +317,20 @@ export function ExploreContentQaDetailClient({
                 {detail.sourceContext?.curriculum ? (
                   <p>Curriculum: {detail.sourceContext.curriculum}</p>
                 ) : null}
-                <p className="text-xs text-white/45">Snapshot: {detail.contentSnapshotId}</p>
+                <p className="text-xs text-(--ws-fg-40)">Snapshot: {detail.contentSnapshotId}</p>
               </Section>
 
               <Section title="AI metadata">
                 <p>Provider: {detail.aiMetadata?.provider ?? "—"}</p>
                 <p>Model: {detail.aiMetadata?.model ?? "—"}</p>
                 <p>Prompt version: {detail.aiMetadata?.promptVersion ?? "—"}</p>
-                <p className="text-white/70">{detail.aiSummary}</p>
+                <p className="text-(--ws-fg-70)">{detail.aiSummary}</p>
               </Section>
             </div>
 
             <Section title="Safety checks">
               {detail.safetyChecks.map((check) => (
-                <p key={check.name} className="text-sm text-white/75">
+                <p key={check.name} className="text-sm text-(--ws-fg)/75">
                   {check.passed ? "✓" : "○"} {check.name} ({check.severity})
                   {check.note ? ` — ${check.note}` : ""}
                 </p>
@@ -360,7 +360,7 @@ export function ExploreContentQaDetailClient({
                   <p key={row.misconception} className="mb-2 text-sm">
                     <span className="text-amber-100">{row.misconception}</span>
                     <br />
-                    <span className="text-white/75">→ {row.leoCorrection}</span>
+                    <span className="text-(--ws-fg)/75">→ {row.leoCorrection}</span>
                   </p>
                 ))}
               </Section>
@@ -397,7 +397,7 @@ export function ExploreContentQaDetailClient({
                   <p className="font-medium">
                     {index + 1}. {q.prompt}
                   </p>
-                  <ul className="mt-2 space-y-1 text-xs text-white/70">
+                  <ul className="mt-2 space-y-1 text-xs text-(--ws-fg-70)">
                     {q.options.map((opt) => (
                       <li key={opt.letter}>
                         {opt.letter}. {opt.label}
@@ -413,7 +413,7 @@ export function ExploreContentQaDetailClient({
             {detail.reports.length ? (
               <Section title="Student reports">
                 {detail.reports.map((report) => (
-                  <p key={report.id} className="text-sm text-white/75">
+                  <p key={report.id} className="text-sm text-(--ws-fg)/75">
                     {report.reason ?? report.action}
                     {report.notes ? ` — ${report.notes}` : ""} ·{" "}
                     {new Date(report.createdAt).toLocaleString()}
@@ -425,7 +425,7 @@ export function ExploreContentQaDetailClient({
             {detail.reviewHistory?.length ? (
               <Section title="Review history">
                 {detail.reviewHistory.map((row) => (
-                  <p key={row.id} className="text-sm text-white/70">
+                  <p key={row.id} className="text-sm text-(--ws-fg-70)">
                     {row.action} by {row.reviewerRole}
                     {row.notes ? ` — ${row.notes}` : ""} · {new Date(row.createdAt).toLocaleString()}
                   </p>
@@ -434,7 +434,7 @@ export function ExploreContentQaDetailClient({
             ) : null}
           </div>
         ) : (
-          <GlassPanel className="p-6 text-sm text-white/55">
+          <GlassPanel className="p-6 text-sm text-(--ws-fg-50)">
             Mission not found.{" "}
             <Link href={listHref} className="text-teal-200 underline">
               Back to list
@@ -450,7 +450,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <GlassPanel className="p-4" glow="teal">
       <h3 className="text-sm font-semibold text-teal-100">{title}</h3>
-      <div className="mt-2 space-y-2 whitespace-pre-wrap text-sm text-white/75">{children}</div>
+      <div className="mt-2 space-y-2 whitespace-pre-wrap text-sm text-(--ws-fg)/75">{children}</div>
     </GlassPanel>
   );
 }
@@ -458,8 +458,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className={cn(glassInsetClass, "p-3")}>
-      <p className="text-[10px] uppercase tracking-wide text-white/45">{label}</p>
-      <p className="text-lg font-semibold text-white">{value}</p>
+      <p className="text-[10px] uppercase tracking-wide text-(--ws-fg-40)">{label}</p>
+      <p className="text-lg font-semibold text-(--ws-fg)">{value}</p>
     </div>
   );
 }
@@ -475,7 +475,7 @@ function Badge({
     <span
       className={cn(
         "rounded-full px-2.5 py-1 text-xs",
-        tone === "warn" ? "bg-amber-400/20 text-amber-100" : "bg-white/10 text-white/70"
+        tone === "warn" ? "bg-amber-400/20 text-amber-100" : "bg-(--ws-fill-strong) text-(--ws-fg-70)"
       )}
     >
       {label}
@@ -507,7 +507,7 @@ function ActionBtn({
         "inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium disabled:opacity-50",
         primary && "bg-teal-400 text-slate-950 hover:bg-teal-300",
         danger && "border border-rose-300/30 bg-rose-400/15 text-rose-100",
-        !primary && !danger && "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+        !primary && !danger && "border border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
       )}
     >
       {icon}

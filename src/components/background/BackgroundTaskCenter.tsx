@@ -39,16 +39,16 @@ function TaskRow({ job }: { job: SafeBackgroundTask }) {
   const cancel = useCancelBackgroundTask();
   const retry = useRetryBackgroundTask();
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-white">{job.displayLabel}</p>
-          <p className="text-xs text-white/60">{statusLabel(job)}</p>
+          <p className="text-sm font-medium text-(--ws-fg)">{job.displayLabel}</p>
+          <p className="text-xs text-(--ws-fg-60)">{statusLabel(job)}</p>
           {job.progressMessage ? (
-            <p className="text-xs text-white/50">{job.progressMessage}</p>
+            <p className="text-xs text-(--ws-fg-50)">{job.progressMessage}</p>
           ) : null}
           {job.status === "failed" && job.error ? (
-            <p className="text-xs text-rose-200">{job.error.message}</p>
+            <p className="text-xs text-(--ws-rose)">{job.error.message}</p>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -82,7 +82,7 @@ function TaskRow({ job }: { job: SafeBackgroundTask }) {
       {["queued", "dispatch_failed", "running", "waiting", "cancel_requested"].includes(
         job.status
       ) ? (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-(--ws-fill-strong)">
           <div
             className="h-full rounded-full bg-teal-400/80"
             style={{ width: `${Math.max(4, job.progressPercent)}%` }}
@@ -119,8 +119,8 @@ export function BackgroundTaskCenter({
               className={cn(
                 "rounded-full border px-3 py-1 text-xs font-medium",
                 filter === item.id
-                  ? "border-teal-300/30 bg-teal-500/15 text-teal-100"
-                  : "border-white/10 bg-white/5 text-white/70"
+                  ? "border-teal-300/30 bg-teal-500/15 text-(--ws-teal)"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
               )}
             >
               {item.label}
@@ -128,14 +128,14 @@ export function BackgroundTaskCenter({
           ))}
         </div>
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-white/60">
+          <div className="flex items-center gap-2 text-sm text-(--ws-fg-60)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading tasks…
           </div>
         ) : error ? (
-          <p className="text-sm text-rose-200">Could not load tasks.</p>
+          <p className="text-sm text-(--ws-rose)">Could not load tasks.</p>
         ) : !data?.jobs.length ? (
-          <p className="text-sm text-white/55">No tasks in this view.</p>
+          <p className="text-sm text-(--ws-fg-50)">No tasks in this view.</p>
         ) : (
           <div className="space-y-3">
             {data.jobs.map((job) => (

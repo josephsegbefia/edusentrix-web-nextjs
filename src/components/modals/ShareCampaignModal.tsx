@@ -127,20 +127,20 @@ export function ShareCampaignModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 shadow-2xl sm:max-w-lg">
+      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 shadow-2xl sm:max-w-lg">
         {/* Ambient gradient */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
 
         {/* Header */}
-        <DialogHeader className="relative z-10 border-b border-white/5 p-6">
+        <DialogHeader className="relative z-10 border-b border-(--ws-line) p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-blue-500/20 to-cyan-500/20">
               <Share2 className="h-6 w-6 text-blue-400" />
             </div>
             <div>
-              <DialogTitle className="text-xl text-white">Share Campaign</DialogTitle>
-              <DialogDescription className="mt-1 text-white/50">
+              <DialogTitle className="text-xl text-(--ws-fg)">Share Campaign</DialogTitle>
+              <DialogDescription className="mt-1 text-(--ws-fg-50)">
                 Share a public donation link
               </DialogDescription>
             </div>
@@ -150,9 +150,9 @@ export function ShareCampaignModal({
         {/* Content */}
         <div className="relative z-10 space-y-6 p-6">
           {/* Campaign Info */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="font-medium text-white">{campaign.title}</p>
-            <p className="mt-1 text-sm text-white/50">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="font-medium text-(--ws-fg)">{campaign.title}</p>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">
               {campaign.status === "live" ? "Accepting donations" : `Status: ${campaign.status}`}
             </p>
           </div>
@@ -167,13 +167,13 @@ export function ShareCampaignModal({
           {/* Sharing Not Enabled */}
           {!isLoading && !shareSettings?.enabled && (
             <div className="space-y-4">
-              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-white/20 p-8 text-center">
+              <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-(--ws-line-strong) p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-blue-500/10 to-cyan-500/10">
                   <Globe className="h-8 w-8 text-blue-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-white">Public Sharing Disabled</p>
-                  <p className="mt-1 text-sm text-white/50">
+                  <p className="font-medium text-(--ws-fg)">Public Sharing Disabled</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     Enable public sharing to allow anyone to donate via a link or QR code
                   </p>
                 </div>
@@ -210,20 +210,20 @@ export function ShareCampaignModal({
             <div className="space-y-5">
               {/* Share Link */}
               <div className="space-y-2">
-                <Label className="text-sm text-white/60">Public Donation Link</Label>
+                <Label className="text-sm text-(--ws-fg-60)">Public Donation Link</Label>
                 <div className="flex gap-2">
                   <Input
                     value={shareSettings.shareUrl}
                     readOnly
-                    className="flex-1 border-white/10 bg-white/5 text-sm text-white"
+                    className="flex-1 border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg)"
                   />
                   <Button
                     onClick={handleCopyLink}
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      "shrink-0 border border-white/10",
-                      copied ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/60 hover:text-white"
+                      "shrink-0 border border-(--ws-line)",
+                      copied ? "bg-emerald-500/20 text-emerald-400" : "bg-(--ws-fill) text-(--ws-fg-60) hover:text-(--ws-fg)"
                     )}
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -232,7 +232,7 @@ export function ShareCampaignModal({
                     onClick={handleOpenLink}
                     variant="ghost"
                     size="icon"
-                    className="shrink-0 border border-white/10 bg-white/5 text-white/60 hover:text-white"
+                    className="shrink-0 border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:text-(--ws-fg)"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </Button>
@@ -243,13 +243,13 @@ export function ShareCampaignModal({
               <div className="space-y-3">
                 <button
                   onClick={() => setShowQR(!showQR)}
-                  className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                  className="flex w-full items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill-strong)"
                 >
                   <div className="flex items-center gap-3">
                     <QrCode className="h-5 w-5 text-blue-400" />
-                    <span className="font-medium text-white">QR Code</span>
+                    <span className="font-medium text-(--ws-fg)">QR Code</span>
                   </div>
-                  <span className="text-sm text-white/50">
+                  <span className="text-sm text-(--ws-fg-50)">
                     {showQR ? "Hide" : "Show"}
                   </span>
                 </button>
@@ -262,13 +262,13 @@ export function ShareCampaignModal({
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="flex flex-col items-center gap-4 rounded-xl border border-white/10 bg-linear-to-br from-slate-800/50 to-slate-900/50 p-6">
+                      <div className="flex flex-col items-center gap-4 rounded-xl border border-(--ws-line) bg-linear-to-br from-slate-800/50 to-slate-900/50 p-6">
                         <img
                           src={generateQRCodeSVG(shareSettings.shareUrl, 180)}
                           alt="QR Code"
                           className="h-44 w-44 rounded-lg"
                         />
-                        <p className="text-center text-xs text-white/40">
+                        <p className="text-center text-xs text-(--ws-fg-40)">
                           Scan to donate directly to this campaign
                         </p>
                       </div>
@@ -278,12 +278,12 @@ export function ShareCampaignModal({
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col gap-3 border-t border-white/10 pt-5">
+              <div className="flex flex-col gap-3 border-t border-(--ws-line) pt-5">
                 <Button
                   onClick={handleRegenerateLink}
                   disabled={enableShareMutation.isPending}
                   variant="outline"
-                  className="w-full gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="w-full gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   {enableShareMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -314,7 +314,7 @@ export function ShareCampaignModal({
         {/* Close Button */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-4 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-lg text-(--ws-fg-40) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
         >
           <X className="h-4 w-4" />
         </button>

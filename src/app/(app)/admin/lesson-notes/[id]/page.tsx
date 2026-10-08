@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -70,8 +71,9 @@ export default function AdminLessonNoteDetailPage() {
 
   if (error) {
     return (
+      <WorkspaceScope>
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
-        <Button variant="outline" size="sm" asChild className="w-fit border-white/10 bg-white/5 text-white">
+        <Button variant="outline" size="sm" asChild className="w-fit border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
           <Link href="/admin/lesson-notes">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to inbox
@@ -83,25 +85,29 @@ export default function AdminLessonNoteDetailPage() {
           </CardContent>
         </Card>
       </div>
+      </WorkspaceScope>
     );
   }
 
   if (isLoading || !note) {
     return (
+      <WorkspaceScope>
       <div className="mx-auto flex min-h-[50vh] w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
-        <div className="h-9 w-44 animate-pulse rounded-lg border border-white/10 bg-white/6 backdrop-blur-xl" />
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/55">
+        <div className="h-9 w-44 animate-pulse rounded-lg border border-(--ws-line) bg-(--ws-fill) backdrop-blur-xl" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-(--ws-fg-50)">
           <Loader2 className="h-8 w-8 animate-spin text-sky-200" />
           <p className="text-sm">Loading lesson note…</p>
         </div>
       </div>
+      </WorkspaceScope>
     );
   }
 
   return (
+    <WorkspaceScope>
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 text-white">
+        <Button variant="outline" size="sm" asChild className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
           <Link href="/admin/lesson-notes">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to inbox
@@ -150,7 +156,7 @@ export default function AdminLessonNoteDetailPage() {
               size="sm"
               variant="outline"
               onClick={() => handleReopen(comment.id)}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               <RotateCcw className="mr-2 h-3.5 w-3.5" />
               Reopen
@@ -181,5 +187,6 @@ export default function AdminLessonNoteDetailPage() {
         onDeleted={() => router.push("/admin/lesson-notes")}
       />
     </div>
+    </WorkspaceScope>
   );
 }

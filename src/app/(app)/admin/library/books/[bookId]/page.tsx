@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { useParams } from "next/navigation";
 import {
   Archive,
@@ -204,29 +205,34 @@ export default function AdminLibraryBookDetailPage() {
 
   if (!bookId) {
     return (
+      <WorkspaceScope>
       <LibraryPageShell>
         <LibraryEmptyState
           title="Missing book id"
           description="The selected catalogue record could not be opened."
         />
       </LibraryPageShell>
+    </WorkspaceScope>
     );
   }
 
   if (bookLoading || !book) {
     return (
+      <WorkspaceScope>
       <LibraryPageShell>
         <div className="flex justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-white/40" />
+          <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
         </div>
       </LibraryPageShell>
+    </WorkspaceScope>
     );
   }
 
   const isArchived = book.status === "archived";
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library/books" label="Books" />
       <LibraryPageHeader
         icon={BookOpenCheck}
@@ -238,7 +244,7 @@ export default function AdminLibraryBookDetailPage() {
               isArchived ? (
                 <Button
                   variant="outline"
-                  className="border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   onClick={() => void restoreBook()}
                   disabled={updateBook.isPending}
                 >
@@ -247,7 +253,7 @@ export default function AdminLibraryBookDetailPage() {
               ) : (
                 <Button
                   variant="outline"
-                  className="border-amber-500/40 text-amber-200 hover:bg-amber-500/10"
+                  className="border-amber-500/40 text-(--ws-amber) hover:bg-amber-500/10"
                   onClick={() => void archiveBook()}
                   disabled={updateBook.isPending}
                 >
@@ -259,7 +265,7 @@ export default function AdminLibraryBookDetailPage() {
               <Button
                 onClick={() => void saveBook()}
                 disabled={updateBook.isPending}
-                className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+                className="bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
               >
                 {updateBook.isPending ? (
                   <>
@@ -312,70 +318,70 @@ export default function AdminLibraryBookDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <section className={`${libraryGlassPanel} space-y-5 p-5`}>
           <div>
-            <h2 className="text-base font-semibold text-white">Book details</h2>
-            <p className="mt-1 text-sm text-white/50">Catalogue metadata for this title.</p>
+            <h2 className="text-base font-semibold text-(--ws-fg)">Book details</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">Catalogue metadata for this title.</p>
           </div>
           <fieldset
             disabled={!canUpdateBook}
             className="grid gap-3 border-0 p-0 disabled:opacity-70 min-w-0"
           >
             <div className="space-y-2">
-              <Label className="text-white/80">Title</Label>
+              <Label className="text-(--ws-fg-80)">Title</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/80">Author</Label>
+                <Label className="text-(--ws-fg-80)">Author</Label>
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  className="border-white/15 bg-white/[0.05] text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">ISBN</Label>
+                <Label className="text-(--ws-fg-80)">ISBN</Label>
                 <Input
                   value={isbn}
                   onChange={(e) => setIsbn(e.target.value)}
-                  className="border-white/15 bg-white/[0.05] text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Publisher</Label>
+                <Label className="text-(--ws-fg-80)">Publisher</Label>
                 <Input
                   value={publisher}
                   onChange={(e) => setPublisher(e.target.value)}
-                  className="border-white/15 bg-white/[0.05] text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Language</Label>
+                <Label className="text-(--ws-fg-80)">Language</Label>
                 <Input
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="border-white/15 bg-white/[0.05] text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Description</Label>
+              <Label className="text-(--ws-fg-80)">Description</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Tags</Label>
+              <Label className="text-(--ws-fg-80)">Tags</Label>
               <Input
                 value={tagsRaw}
                 onChange={(e) => setTagsRaw(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
           </fieldset>
@@ -383,7 +389,7 @@ export default function AdminLibraryBookDetailPage() {
 
         <aside className="space-y-6">
         <section className={`${libraryGlassPanel} space-y-4 p-5`}>
-          <h2 className="text-base font-semibold text-white">Cover image</h2>
+          <h2 className="text-base font-semibold text-(--ws-fg)">Cover image</h2>
           {schoolId ? (
             <LibraryBookCoverUpload
               schoolId={schoolId}
@@ -399,8 +405,8 @@ export default function AdminLibraryBookDetailPage() {
 
         <section className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div>
-            <h2 className="text-base font-semibold text-white">Reading levels</h2>
-            <p className="mt-1 text-sm text-white/50">Optional grade links for library discovery.</p>
+            <h2 className="text-base font-semibold text-(--ws-fg)">Reading levels</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">Optional grade links for library discovery.</p>
           </div>
           <fieldset
             disabled={!canUpdateBook}
@@ -409,7 +415,7 @@ export default function AdminLibraryBookDetailPage() {
             {grades.map((g) => (
               <label
                 key={g._id}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/80 hover:bg-white/5"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--ws-line) px-3 py-2 text-sm text-(--ws-fg-80) hover:bg-(--ws-fill)"
               >
                 <Checkbox
                   checked={gradeLevelIds.includes(g._id)}
@@ -426,10 +432,10 @@ export default function AdminLibraryBookDetailPage() {
       <section className={`${libraryGlassPanel} space-y-4 p-5`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-white">Copies</h2>
-            <p className="mt-1 text-sm text-white/50">Manage copy status and condition.</p>
+            <h2 className="text-base font-semibold text-(--ws-fg)">Copies</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">Manage copy status and condition.</p>
           </div>
-          <label className="flex items-center gap-2 text-xs text-white/60">
+          <label className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
             <Checkbox
               checked={includeArchived}
               onCheckedChange={(c) => setIncludeArchived(Boolean(c))}
@@ -438,22 +444,22 @@ export default function AdminLibraryBookDetailPage() {
           </label>
         </div>
         {copiesLoading ? (
-          <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+          <Loader2 className="h-6 w-6 animate-spin text-(--ws-fg-40)" />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10 bg-linear-to-br from-white/5 to-transparent">
+          <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent">
             <Table>
               <TableHeader>
-                    <TableRow className="border-white/10 hover:bg-transparent">
-                      <TableHead className="text-white/70">Code</TableHead>
-                      <TableHead className="text-white/70">Status</TableHead>
-                      <TableHead className="text-white/70">Condition</TableHead>
-                      <TableHead className="text-white/70 text-center">Label</TableHead>
-                      <TableHead className="text-white/70">Actions</TableHead>
+                    <TableRow className="border-(--ws-line) hover:bg-transparent">
+                      <TableHead className="text-(--ws-fg-70)">Code</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Status</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Condition</TableHead>
+                      <TableHead className="text-(--ws-fg-70) text-center">Label</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Actions</TableHead>
                     </TableRow>
               </TableHeader>
               <TableBody>
                 {copies.length === 0 ? (
-                    <TableRow className="border-white/10 hover:bg-transparent">
+                    <TableRow className="border-(--ws-line) hover:bg-transparent">
                     <TableCell colSpan={5} className="p-6">
                       <LibraryEmptyState
                         title="No copies yet"
@@ -478,25 +484,25 @@ export default function AdminLibraryBookDetailPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-end gap-3 border-t border-white/10 pt-4">
+        <div className="flex flex-wrap items-end gap-3 border-t border-(--ws-line) pt-4">
           <div className="space-y-2">
-            <Label className="text-white/80">New copy code</Label>
+            <Label className="text-(--ws-fg-80)">New copy code</Label>
             <Input
               value={newCopyCode}
               onChange={(e) => setNewCopyCode(e.target.value)}
               placeholder="e.g. B-1042"
-              className="w-[200px] border-white/15 bg-white/[0.05] text-white"
+              className="w-[200px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               disabled={!canCreateCopy}
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-white/80">Condition</Label>
+            <Label className="text-(--ws-fg-80)">Condition</Label>
             <PremiumSelect
               value={newCondition}
               onValueChange={(v) => setNewCondition(v as typeof newCondition)}
             >
               <PremiumSelectTrigger
-                className="w-[160px] border-white/15 bg-white/[0.05] text-white"
+                className="w-[160px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 disabled={!canCreateCopy}
               >
                 <PremiumSelectValue />
@@ -514,7 +520,7 @@ export default function AdminLibraryBookDetailPage() {
             type="button"
             onClick={() => void addCopy()}
             disabled={!canCreateCopy || createCopy.isPending}
-            className="bg-white/10 text-white hover:bg-white/15"
+            className="bg-(--ws-fill-strong) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             {createCopy.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -528,6 +534,7 @@ export default function AdminLibraryBookDetailPage() {
         </div>
       </section>
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }
 
@@ -573,17 +580,17 @@ function CopyRow({
   }
 
   return (
-    <TableRow className="border-white/10">
-      <TableCell className="font-medium text-white">
+    <TableRow className="border-(--ws-line)">
+      <TableCell className="font-medium text-(--ws-fg)">
         <div>{copy.copyCode}</div>
         {copy.barcode ? (
-          <div className="mt-0.5 font-mono text-[10px] text-white/45">{copy.barcode}</div>
+          <div className="mt-0.5 font-mono text-[10px] text-(--ws-fg)/45">{copy.barcode}</div>
         ) : null}
       </TableCell>
       <TableCell>
         <PremiumSelect value={status} onValueChange={setStatus}>
           <PremiumSelectTrigger
-            className="h-9 w-[140px] border-white/15 bg-white/[0.05] text-white text-xs"
+            className="h-9 w-[140px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) text-xs"
             disabled={!canEdit}
           >
             <PremiumSelectValue />
@@ -602,7 +609,7 @@ function CopyRow({
       <TableCell>
         <PremiumSelect value={condition} onValueChange={setCondition}>
           <PremiumSelectTrigger
-            className="h-9 w-[120px] border-white/15 bg-white/[0.05] text-white text-xs"
+            className="h-9 w-[120px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) text-xs"
             disabled={!canEdit}
           >
             <PremiumSelectValue />
@@ -628,7 +635,7 @@ function CopyRow({
         <Button
           size="sm"
           variant="outline"
-          className="border-white/20 text-white text-xs h-8"
+          className="border-(--ws-line-strong) text-(--ws-fg) text-xs h-8"
           onClick={() => void save()}
           disabled={!canEdit || updateCopy.isPending}
         >

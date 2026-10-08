@@ -34,9 +34,9 @@ export function StudentsPagination({
   const end = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-linear-to-br from-white/5 to-transparent px-4 py-3 text-xs text-muted-foreground shadow-lg shadow-black/15 backdrop-blur md:flex-row md:items-center md:justify-between min-w-0">
+    <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent px-4 py-3 text-xs text-muted-foreground shadow-lg shadow-black/15 backdrop-blur md:flex-row md:items-center md:justify-between min-w-0">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px]">
+        <span className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1 text-[11px]">
           Showing{" "}
           <span className="font-semibold text-foreground">
             {start}-{end}
@@ -47,7 +47,7 @@ export function StudentsPagination({
           </span>{" "}
           {itemLabel}
         </span>
-        <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px]">
+        <span className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1 text-[11px]">
           Page <span className="font-semibold text-foreground">{page}</span> of{" "}
           <span className="font-semibold text-foreground">{totalPages}</span>
         </span>
@@ -60,7 +60,7 @@ export function StudentsPagination({
             value={pageSize}
             onChange={(e) => onChangePageSize(Number(e.target.value))}
             className={cn(
-              "h-7 rounded-md border border-white/15 bg-black/40 px-2 text-[11px] text-foreground",
+              "h-7 rounded-md border border-(--ws-line) bg-(--ws-fill-strong) px-2 text-[11px] text-foreground",
               "focus:outline-none focus:ring-1 foucs:ring-ring/60"
             )}
           >
@@ -76,7 +76,7 @@ export function StudentsPagination({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-full border border-white/10 bg-black/30 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            className="h-7 w-7 rounded-full border border-(--ws-line) bg-(--ws-fill) text-muted-foreground hover:bg-(--ws-fill-strong) hover:text-foreground"
             disabled={!canPrev}
             onClick={() => canPrev && onChangePage(page - 1)}
           >
@@ -86,7 +86,7 @@ export function StudentsPagination({
             type="button"
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-full border border-white/10 bg-black/30 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            className="h-7 w-7 rounded-full border border-(--ws-line) bg-(--ws-fill) text-muted-foreground hover:bg-(--ws-fill-strong) hover:text-foreground"
             disabled={!canNext}
             onClick={() => canNext && onChangePage(page + 1)}
           >

@@ -357,7 +357,7 @@ export default function CreateAcademicPeriodModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]"
           >
             <div className="px-6 pt-6">
               <div className="flex items-start justify-between gap-4">
@@ -365,7 +365,7 @@ export default function CreateAcademicPeriodModal({
                   <h1 className="text-lg font-semibold">
                     {title}
                   </h1>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-(--ws-fg-60)">
                     {description}
                   </p>
                 </div>
@@ -375,14 +375,14 @@ export default function CreateAcademicPeriodModal({
                   variant="ghost"
                   size="icon"
                   disabled={isPending}
-                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  className="h-9 w-9 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   onClick={() => onOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="mt-5 h-px bg-white/10" />
+              <div className="mt-5 h-px bg-(--ws-fill-strong)" />
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
@@ -395,7 +395,7 @@ export default function CreateAcademicPeriodModal({
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
                       Leo suggestion
                     </p>
-                    <p className="mt-1 text-sm text-white/75">{leoNote}</p>
+                    <p className="mt-1 text-sm text-(--ws-fg-70)">{leoNote}</p>
                   </div>
                 ) : null}
 
@@ -406,7 +406,7 @@ export default function CreateAcademicPeriodModal({
                     </Label>
                     <Input
                       placeholder="2024/2025"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       {...form.register("yearLabel")}
                     />
                     {form.formState.errors.yearLabel ? (
@@ -422,7 +422,7 @@ export default function CreateAcademicPeriodModal({
                     </Label>
                     <Input
                       placeholder="1st Term"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       {...form.register("term")}
                     />
                     {form.formState.errors.term ? (
@@ -444,7 +444,8 @@ export default function CreateAcademicPeriodModal({
                           shouldValidate: true,
                         })
                       }
-                      className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                      surface="theme"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                     {form.formState.errors.startDate ? (
                       <p className="text-xs text-rose-300">
@@ -464,7 +465,8 @@ export default function CreateAcademicPeriodModal({
                         })
                       }
                       minDate={startDateValue || undefined}
-                      className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                      surface="theme"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                     {form.formState.errors.endDate ? (
                       <p className="text-xs text-rose-300">
@@ -474,13 +476,13 @@ export default function CreateAcademicPeriodModal({
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                         Year-end period
                       </Label>
-                      <p className="text-sm text-white/60">
+                      <p className="text-sm text-(--ws-fg-60)">
                         Mark this only when the period is the final period of the academic year. Promotions automation uses this flag.
                       </p>
                     </div>
@@ -495,13 +497,13 @@ export default function CreateAcademicPeriodModal({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-end gap-2 pt-4 border-t border-(--ws-line)">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => onOpenChange(false)}
                     disabled={isPending}
-                    className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     Cancel
                   </Button>

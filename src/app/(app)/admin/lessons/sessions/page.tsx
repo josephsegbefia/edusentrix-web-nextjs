@@ -1,4 +1,5 @@
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { AdminLessonSessionsOverview } from "@/components/admin/lesson-sessions/AdminLessonSessionsOverview";
@@ -7,7 +8,8 @@ export const metadata = { title: "Lesson Sessions" };
 
 export default function AdminLessonSessionsPage() {
   return (
-    <WorkspacePageShell>
+    <WorkspaceScope>
+      <WorkspacePageShell>
       <WorkspacePageHeader
         iconName="presentation"
         title="Lesson Sessions"
@@ -17,5 +19,6 @@ export default function AdminLessonSessionsPage() {
       />
       <AdminLessonSessionsOverview />
     </WorkspacePageShell>
+    </WorkspaceScope>
   );
 }

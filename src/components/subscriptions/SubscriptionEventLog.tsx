@@ -115,7 +115,7 @@ const EVENT_FILTER_OPTIONS = [
 
 function EventRow({ event, platformMode }: { event: EventRow; platformMode?: boolean }) {
   const Icon = EVENT_ICON[event.eventType] ?? Activity;
-  const tone = EVENT_TONE[event.eventType] ?? "text-white/40";
+  const tone = EVENT_TONE[event.eventType] ?? "text-(--ws-fg-40)";
 
   const date = new Date(event.createdAt).toLocaleDateString("en-GH", {
     day: "2-digit",
@@ -133,17 +133,17 @@ function EventRow({ event, platformMode }: { event: EventRow; platformMode?: boo
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs leading-relaxed text-white/70">{event.summary}</p>
-        <p className="mt-0.5 text-[10px] text-white/30">
+        <p className="text-xs leading-relaxed text-(--ws-fg-70)">{event.summary}</p>
+        <p className="mt-0.5 text-[10px] text-(--ws-fg-40)">
           {date} · {time}
           {platformMode && event.actorEmail ? (
-            <span className="ml-1 text-white/25">· {event.actorEmail}</span>
+            <span className="ml-1 text-(--ws-fg-40)">· {event.actorEmail}</span>
           ) : null}
         </p>
       </div>
       <span className={cn(
         "shrink-0 rounded-full border px-1.5 py-0.5 font-mono text-[9px]",
-        "border-white/10 bg-white/5 text-white/25"
+        "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)"
       )}>
         {event.eventType.replace(/_/g, " ")}
       </span>
@@ -199,14 +199,14 @@ export function SubscriptionEventLog({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-white/50">{title}</p>
+        <p className="text-xs font-semibold text-(--ws-fg-50)">{title}</p>
         <div className="flex items-center gap-2">
           {platformMode && (
             <PremiumSelect
               value={filter || "all"}
               onValueChange={(value) => setFilter(value === "all" ? "" : value)}
             >
-              <PremiumSelectTrigger className="h-8 min-w-[9.5rem] border-white/15 bg-white/5 px-2.5 text-[11px] text-white">
+              <PremiumSelectTrigger className="h-8 min-w-[9.5rem] border-(--ws-line-strong) bg-(--ws-fill) px-2.5 text-[11px] text-(--ws-fg)">
                 <PremiumSelectValue placeholder="All events" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
@@ -221,7 +221,7 @@ export function SubscriptionEventLog({
           <button
             type="button"
             onClick={() => load(1)}
-            className="text-white/30 transition hover:text-white/70"
+            className="text-(--ws-fg-40) transition hover:text-(--ws-fg-70)"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
@@ -230,12 +230,12 @@ export function SubscriptionEventLog({
 
       {loading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="h-4 w-4 animate-spin text-white/30" />
+          <Loader2 className="h-4 w-4 animate-spin text-(--ws-fg-40)" />
         </div>
       ) : events.length === 0 ? (
         <div className={cn(glassInsetClass, "py-6 text-center")}>
-          <Activity className="mx-auto mb-2 h-5 w-5 text-white/20" />
-          <p className="text-xs text-white/30">No events recorded yet.</p>
+          <Activity className="mx-auto mb-2 h-5 w-5 text-(--ws-fg-40)" />
+          <p className="text-xs text-(--ws-fg-40)">No events recorded yet.</p>
         </div>
       ) : (
         <>
@@ -250,7 +250,7 @@ export function SubscriptionEventLog({
               type="button"
               onClick={() => load(page + 1, true)}
               disabled={loadingMore}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 py-2 text-xs text-white/40 transition hover:text-white disabled:opacity-50"
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-(--ws-line) bg-(--ws-fill) py-2 text-xs text-(--ws-fg-40) transition hover:text-(--ws-fg) disabled:opacity-50"
             >
               {loadingMore ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

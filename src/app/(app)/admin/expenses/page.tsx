@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/premium-dropdown-menu";
 import { useExpenses, useExpenseCategories, useSeedDefaultCategories, ExpenseDTO, ExpenseStatus } from "@/hooks/admin/useExpenses";
 import { CreateExpenseModal } from "@/components/modals/CreateExpenseModal";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { formatCurrency } from "@/lib/fees/money";
 import { toast } from "sonner";
 
@@ -119,7 +120,7 @@ function KPICard({
 }) {
   if (loading) {
     return (
-      <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+      <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
         <CardContent className="p-5">
           <Skeleton className="h-4 w-24 mb-3" />
           <Skeleton className="h-8 w-32 mb-2" />
@@ -130,17 +131,17 @@ function KPICard({
   }
 
   return (
-    <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 shadow-lg transition-all duration-300 hover:border-white/20 hover:shadow-xl">
+    <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-lg transition-all duration-300 hover:border-(--ws-line-strong) hover:shadow-xl">
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-white/50">{title}</p>
-          <div className="rounded-lg bg-white/5 p-2">
-            <Icon className="h-4 w-4 text-white/40" />
+          <p className="text-xs font-medium text-(--ws-fg-50)">{title}</p>
+          <div className="rounded-lg bg-(--ws-fill) p-2">
+            <Icon className="h-4 w-4 text-(--ws-fg-40)" />
           </div>
         </div>
-        <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+        <p className="mt-2 text-2xl font-bold text-(--ws-fg)">{value}</p>
         {subValue && (
-          <p className="mt-1 text-xs text-white/40">{subValue}</p>
+          <p className="mt-1 text-xs text-(--ws-fg-40)">{subValue}</p>
         )}
         {trend && (
           <p
@@ -181,7 +182,7 @@ function ExpenseRow({
   const canEdit = expense.status === "draft" || expense.status === "rejected";
 
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-4 transition-all duration-200 hover:border-white/10 hover:bg-white/4">
+    <div className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all duration-200 hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)">
       {/* Icon */}
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-amber-500/20 to-orange-600/20">
         <Receipt className="h-5 w-5 text-amber-400" />
@@ -190,10 +191,10 @@ function ExpenseRow({
       {/* Main Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="font-medium text-white truncate">{expense.title}</p>
-          <span className="text-xs text-white/30">{expense.expenseNumber}</span>
+          <p className="font-medium text-(--ws-fg) truncate">{expense.title}</p>
+          <span className="text-xs text-(--ws-fg-40)">{expense.expenseNumber}</span>
         </div>
-        <div className="mt-1 flex items-center gap-3 text-xs text-white/50">
+        <div className="mt-1 flex items-center gap-3 text-xs text-(--ws-fg-50)">
           <span>{category.name}</span>
           {vendor && (
             <>
@@ -208,7 +209,7 @@ function ExpenseRow({
 
       {/* Amount */}
       <div className="text-right">
-        <p className="font-semibold text-white">
+        <p className="font-semibold text-(--ws-fg)">
           {formatCurrency(expense.amountMinor, { currency: expense.currency })}
         </p>
       </div>
@@ -331,12 +332,13 @@ export default function ExpensesListPage() {
   };
 
   return (
+    <WorkspaceScope>
     <div className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white md:text-3xl">Expenses</h1>
-          <p className="mt-1 text-sm text-white/50">
+          <h1 className="text-2xl font-bold text-(--ws-fg) md:text-3xl">Expenses</h1>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             Track and manage school operational expenses
           </p>
         </div>
@@ -345,13 +347,13 @@ export default function ExpensesListPage() {
             variant="outline"
             size="icon"
             onClick={() => refetch()}
-            className="border-white/10 bg-white/5 hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button
             onClick={() => setCreateModalOpen(true)}
-            className="group bg-linear-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
+            className="group bg-linear-to-r from-amber-500 to-orange-600 text-(--ws-fg) hover:from-amber-600 hover:to-orange-700"
           >
             <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
             New Expense
@@ -392,12 +394,12 @@ export default function ExpensesListPage() {
       </div>
 
       {/* Filters */}
-      <Card className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+      <Card className="mb-6 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
               <Input
                 placeholder="Search expenses..."
                 value={search}
@@ -405,7 +407,7 @@ export default function ExpensesListPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pl-10 border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                className="pl-10 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
               />
             </div>
 
@@ -444,9 +446,9 @@ export default function ExpensesListPage() {
       </Card>
 
       {/* Expenses List */}
-      <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-        <CardHeader className="border-b border-white/5 pb-4">
-          <CardTitle className="text-lg font-semibold text-white">
+      <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+        <CardHeader className="border-b border-(--ws-line) pb-4">
+          <CardTitle className="text-lg font-semibold text-(--ws-fg)">
             {statusFilter === "all" ? "All Expenses" : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Expenses`}
           </CardTitle>
         </CardHeader>
@@ -467,11 +469,11 @@ export default function ExpensesListPage() {
             </div>
           ) : expenses.length === 0 ? (
             <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
-                <Receipt className="h-8 w-8 text-white/30" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-(--ws-fill)">
+                <Receipt className="h-8 w-8 text-(--ws-fg-40)" />
               </div>
-              <h3 className="text-lg font-medium text-white">No expenses found</h3>
-              <p className="mt-1 text-sm text-white/50">
+              <h3 className="text-lg font-medium text-(--ws-fg)">No expenses found</h3>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 {search || statusFilter !== "all" || categoryFilter !== "all"
                   ? "Try adjusting your filters"
                   : "Create your first expense to get started"}
@@ -501,8 +503,8 @@ export default function ExpensesListPage() {
 
           {/* Pagination */}
           {pagination && pagination.pages > 1 && (
-            <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4">
-              <p className="text-sm text-white/50">
+            <div className="mt-6 flex items-center justify-between border-t border-(--ws-line) pt-4">
+              <p className="text-sm text-(--ws-fg-50)">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
                 {pagination.total} expenses
@@ -513,7 +515,7 @@ export default function ExpensesListPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/10 bg-white/5"
+                  className="border-(--ws-line) bg-(--ws-fill)"
                 >
                   Previous
                 </Button>
@@ -522,7 +524,7 @@ export default function ExpensesListPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
                   disabled={page === pagination.pages}
-                  className="border-white/10 bg-white/5"
+                  className="border-(--ws-line) bg-(--ws-fill)"
                 >
                   Next
                 </Button>
@@ -539,5 +541,6 @@ export default function ExpensesListPage() {
         onSuccess={() => refetch()}
       />
     </div>
+    </WorkspaceScope>
   );
 }

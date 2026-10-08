@@ -81,7 +81,7 @@ export function AdmissionsWorkspace({ isAdmin }: AdmissionsWorkspaceProps) {
         onManageDelegation={() => setAssignDelegateOpen(true)}
       />
 
-      <div className="rounded-[1.6rem] border border-white/10 bg-slate-950/60 p-2">
+      <div className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-panel-via) p-2">
         <div className="flex flex-wrap gap-1">
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
@@ -94,8 +94,8 @@ export function AdmissionsWorkspace({ isAdmin }: AdmissionsWorkspaceProps) {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition",
                   isActive
-                    ? "bg-white/10 text-white"
-                    : "text-white/55 hover:bg-white/5 hover:text-white"
+                    ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                    : "text-(--ws-fg-50) hover:bg-(--ws-fill) hover:text-(--ws-fg)"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -124,7 +124,7 @@ export function AdmissionsWorkspace({ isAdmin }: AdmissionsWorkspaceProps) {
       ) : null}
 
       {!isAdmin && delegate ? (
-        <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-xs text-white/55">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-via) p-4 text-xs text-(--ws-fg-50)">
           <Briefcase className="mr-2 inline h-3.5 w-3.5 align-text-bottom" />
           You are managing admissions on behalf of the school. The school admin
           can review every action you take.

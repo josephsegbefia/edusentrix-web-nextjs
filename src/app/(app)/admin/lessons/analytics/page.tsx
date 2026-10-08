@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { format } from "date-fns/format";
 import {
@@ -38,13 +39,13 @@ function StatTile({
 }) {
   return (
     <div className={cn(glassInsetClass, "p-4 sm:p-5")}>
-      <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg)/45">{label}</p>
       {loading ? (
-        <div className="mt-2 h-9 w-24 animate-pulse rounded bg-white/10" />
+        <div className="mt-2 h-9 w-24 animate-pulse rounded bg-(--ws-fill-strong)" />
       ) : (
-        <p className="mt-1 text-2xl font-semibold text-white">{value}</p>
+        <p className="mt-1 text-2xl font-semibold text-(--ws-fg)">{value}</p>
       )}
-      {subtitle ? <p className="mt-1 text-xs text-white/50">{subtitle}</p> : null}
+      {subtitle ? <p className="mt-1 text-xs text-(--ws-fg-50)">{subtitle}</p> : null}
     </div>
   );
 }
@@ -62,13 +63,13 @@ function AnalyticsSection({
 }) {
   return (
     <GlassPanel className="p-0">
-      <div className="border-b border-white/10 px-5 py-4 sm:px-6">
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/70">
-          <Icon className="h-4 w-4 text-teal-300" />
+      <div className="border-b border-(--ws-line) px-5 py-4 sm:px-6">
+        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-(--ws-fg-70)">
+          <Icon className="h-4 w-4 text-(--ws-teal)" />
           {title}
         </h2>
         {description ? (
-          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-white/50">{description}</p>
+          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-(--ws-fg-50)">{description}</p>
         ) : null}
       </div>
       <div className="p-5 sm:p-6">{children}</div>
@@ -91,12 +92,12 @@ function RankingPanel({
 }) {
   return (
     <GlassPanel className="p-0">
-      <div className="border-b border-white/10 px-5 py-4 sm:px-6">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-white">
-          <Icon className={cn("h-4 w-4", iconClassName ?? "text-teal-300")} />
+      <div className="border-b border-(--ws-line) px-5 py-4 sm:px-6">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
+          <Icon className={cn("h-4 w-4", iconClassName ?? "text-(--ws-teal)")} />
           {title}
         </h2>
-        <p className="mt-1 text-xs text-white/50">{subtitle}</p>
+        <p className="mt-1 text-xs text-(--ws-fg-50)">{subtitle}</p>
       </div>
       <div className="p-5 sm:p-6">{children}</div>
     </GlassPanel>
@@ -131,7 +132,8 @@ export default function AdminLessonAnalyticsPage() {
   );
 
   return (
-    <WorkspacePageShell>
+    <WorkspaceScope>
+      <WorkspacePageShell>
       <WorkspacePageHeader
         iconName="bar-chart-3"
         title="Lesson analytics"
@@ -160,13 +162,14 @@ export default function AdminLessonAnalyticsPage() {
       />
 
       <GlassPanel className="p-5 sm:p-6">
-        <h2 className="text-lg font-semibold text-white">Date range</h2>
-        <p className="mt-1 text-xs leading-relaxed text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Date range</h2>
+        <p className="mt-1 text-xs leading-relaxed text-(--ws-fg-50)">
           Applies to lesson creation, publish events, reflections, flashcard reviews, student lesson
           activity, and roster-weighted curriculum completion for lessons published in range.
         </p>
         <div className="mt-4">
           <DateRangePicker
+            surface="theme"
             startDate={startDate}
             endDate={endDate}
             onStartDateChange={setStartDate}
@@ -175,8 +178,8 @@ export default function AdminLessonAnalyticsPage() {
             endLabel="To"
           />
           {rangeLabel ? (
-            <p className="mt-3 text-xs text-white/45">
-              Selected window: <span className="text-white/70">{rangeLabel}</span>
+            <p className="mt-3 text-xs text-(--ws-fg)/45">
+              Selected window: <span className="text-(--ws-fg-70)">{rangeLabel}</span>
             </p>
           ) : null}
         </div>
@@ -217,13 +220,13 @@ export default function AdminLessonAnalyticsPage() {
         </div>
         {isLoading || data ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant="outline" className="border-white/20 text-white/70">
+            <Badge variant="outline" className="border-(--ws-line-strong) text-(--ws-fg-70)">
               Draft: {isLoading ? "…" : data?.createdInRange.byStatus.draft}
             </Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-200">
+            <Badge variant="outline" className="border-emerald-500/30 text-(--ws-emerald)">
               Published: {isLoading ? "…" : data?.createdInRange.byStatus.published}
             </Badge>
-            <Badge variant="outline" className="border-white/20 text-white/60">
+            <Badge variant="outline" className="border-(--ws-line-strong) text-(--ws-fg-60)">
               Archived: {isLoading ? "…" : data?.createdInRange.byStatus.archived}
             </Badge>
           </div>
@@ -450,10 +453,10 @@ export default function AdminLessonAnalyticsPage() {
         >
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
             </div>
           ) : !data?.topTeachers.length ? (
-            <p className="py-6 text-center text-sm text-white/45">No data for this range.</p>
+            <p className="py-6 text-center text-sm text-(--ws-fg)/45">No data for this range.</p>
           ) : (
             <ul className="space-y-3">
               {data.topTeachers.map((t) => (
@@ -461,14 +464,14 @@ export default function AdminLessonAnalyticsPage() {
                   key={t.teacherId}
                   className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(120px,1fr)_2.5rem] sm:gap-3"
                 >
-                  <span className="truncate text-sm text-white/90">{t.name}</span>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <span className="truncate text-sm text-(--ws-fg-90)">{t.name}</span>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div
                       className="h-full rounded-full bg-sky-500/60"
                       style={{ width: `${Math.min(100, (t.count / maxTeacher) * 100)}%` }}
                     />
                   </div>
-                  <span className="text-right text-sm tabular-nums text-white/80 sm:pt-0">
+                  <span className="text-right text-sm tabular-nums text-(--ws-fg-80) sm:pt-0">
                     {t.count}
                   </span>
                 </li>
@@ -485,10 +488,10 @@ export default function AdminLessonAnalyticsPage() {
         >
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
             </div>
           ) : !data?.classCoverage.length ? (
-            <p className="py-6 text-center text-sm text-white/45">No published lessons in range.</p>
+            <p className="py-6 text-center text-sm text-(--ws-fg)/45">No published lessons in range.</p>
           ) : (
             <ul className="space-y-3">
               {data.classCoverage.map((c) => (
@@ -496,8 +499,8 @@ export default function AdminLessonAnalyticsPage() {
                   key={c.classGroupId}
                   className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(120px,1fr)_2.5rem] sm:gap-3"
                 >
-                  <span className="truncate text-sm text-white/90">{c.label}</span>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <span className="truncate text-sm text-(--ws-fg-90)">{c.label}</span>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div
                       className="h-full rounded-full bg-emerald-500/60"
                       style={{
@@ -505,7 +508,7 @@ export default function AdminLessonAnalyticsPage() {
                       }}
                     />
                   </div>
-                  <span className="text-right text-sm tabular-nums text-white/80">
+                  <span className="text-right text-sm tabular-nums text-(--ws-fg-80)">
                     {c.publishedLessonsInRange}
                   </span>
                 </li>
@@ -524,10 +527,10 @@ export default function AdminLessonAnalyticsPage() {
         >
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
             </div>
           ) : !data?.lessonTasks.teacherRanking.length ? (
-            <p className="py-6 text-center text-sm text-white/45">No linked task data in range.</p>
+            <p className="py-6 text-center text-sm text-(--ws-fg)/45">No linked task data in range.</p>
           ) : (
             <ul className="space-y-3">
               {data.lessonTasks.teacherRanking.map((row) => (
@@ -536,15 +539,15 @@ export default function AdminLessonAnalyticsPage() {
                   className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(120px,1fr)_3rem] sm:gap-3"
                 >
                   <div>
-                    <p className="truncate text-sm text-white/90">{row.name}</p>
-                    <p className="text-xs text-white/45">
+                    <p className="truncate text-sm text-(--ws-fg-90)">{row.name}</p>
+                    <p className="text-xs text-(--ws-fg)/45">
                       {row.submissionsInRange} submissions · {row.gradedSubmissionsInRange} graded
                       {row.averageScorePercentInRange != null
                         ? ` · ${row.averageScorePercentInRange}% avg`
                         : ""}
                     </p>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div
                       className="h-full rounded-full bg-sky-500/60"
                       style={{
@@ -552,7 +555,7 @@ export default function AdminLessonAnalyticsPage() {
                       }}
                     />
                   </div>
-                  <span className="text-right text-sm tabular-nums text-white/80">
+                  <span className="text-right text-sm tabular-nums text-(--ws-fg-80)">
                     {row.linkedTasksCreatedInRange}
                   </span>
                 </li>
@@ -569,10 +572,10 @@ export default function AdminLessonAnalyticsPage() {
         >
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
             </div>
           ) : !data?.lessonTasks.classRanking.length ? (
-            <p className="py-6 text-center text-sm text-white/45">No linked task data in range.</p>
+            <p className="py-6 text-center text-sm text-(--ws-fg)/45">No linked task data in range.</p>
           ) : (
             <ul className="space-y-3">
               {data.lessonTasks.classRanking.map((row) => (
@@ -581,10 +584,10 @@ export default function AdminLessonAnalyticsPage() {
                   className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(120px,1fr)_3rem] sm:gap-3"
                 >
                   <div>
-                    <p className="truncate text-sm text-white/90">{row.label}</p>
-                    <p className="text-xs text-white/45">{row.submissionsInRange} submissions</p>
+                    <p className="truncate text-sm text-(--ws-fg-90)">{row.label}</p>
+                    <p className="text-xs text-(--ws-fg)/45">{row.submissionsInRange} submissions</p>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div
                       className="h-full rounded-full bg-emerald-500/60"
                       style={{
@@ -592,7 +595,7 @@ export default function AdminLessonAnalyticsPage() {
                       }}
                     />
                   </div>
-                  <span className="text-right text-sm tabular-nums text-white/80">
+                  <span className="text-right text-sm tabular-nums text-(--ws-fg-80)">
                     {row.linkedTasksCreatedInRange}
                   </span>
                 </li>
@@ -609,10 +612,10 @@ export default function AdminLessonAnalyticsPage() {
         >
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-white/30" />
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
             </div>
           ) : !data?.collaboration.hotspots.length ? (
-            <p className="py-6 text-center text-sm text-white/45">No open collaboration notes.</p>
+            <p className="py-6 text-center text-sm text-(--ws-fg)/45">No open collaboration notes.</p>
           ) : (
             <ul className="space-y-3">
               {data.collaboration.hotspots.map((row) => (
@@ -623,8 +626,8 @@ export default function AdminLessonAnalyticsPage() {
                     "flex items-center justify-between gap-3 px-3 py-2"
                   )}
                 >
-                  <span className="line-clamp-2 text-sm text-white/85">{row.lessonTitle}</span>
-                  <Badge variant="outline" className="border-amber-500/30 text-amber-200">
+                  <span className="line-clamp-2 text-sm text-(--ws-fg-80)">{row.lessonTitle}</span>
+                  <Badge variant="outline" className="border-amber-500/30 text-(--ws-amber)">
                     {row.openCommentsNow} open
                   </Badge>
                 </li>
@@ -636,5 +639,6 @@ export default function AdminLessonAnalyticsPage() {
 
       <LessonsV2CoverageSection v2Coverage={data?.v2Coverage} loading={isLoading} />
     </WorkspacePageShell>
+    </WorkspaceScope>
   );
 }

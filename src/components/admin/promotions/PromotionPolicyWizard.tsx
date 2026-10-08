@@ -263,13 +263,13 @@ export function PromotionPolicyWizard({
       className="sm:max-w-5xl"
     >
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950 to-black p-5">
+        <div className="flex flex-col gap-4 rounded-[1.5rem] border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/55">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-(--ws-fg-50)">
+              <Sparkles className="h-3.5 w-3.5 text-(--ws-cyan)" />
               Step {currentStep} of {STEPS.length}
             </div>
-            <div className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-40)">
               {progressPercent}% complete
             </div>
           </div>
@@ -277,8 +277,8 @@ export function PromotionPolicyWizard({
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-semibold text-white">{currentStepMeta.title}</h2>
-                <p className="mt-1 text-sm text-white/55">{currentStepMeta.description}</p>
+                <h2 className="text-xl font-semibold text-(--ws-fg)">{currentStepMeta.title}</h2>
+                <p className="mt-1 text-sm text-(--ws-fg-50)">{currentStepMeta.description}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-4">
@@ -295,7 +295,7 @@ export function PromotionPolicyWizard({
                           ? "border-cyan-400/30 bg-cyan-500/10"
                           : isComplete
                             ? "border-emerald-500/20 bg-emerald-500/10"
-                            : "border-white/10 bg-white/[0.03]"
+                            : "border-(--ws-line) bg-(--ws-fill)"
                       )}
                     >
                       <div className="flex items-center gap-2">
@@ -303,19 +303,19 @@ export function PromotionPolicyWizard({
                           className={cn(
                             "flex h-9 w-9 items-center justify-center rounded-xl border",
                             isCurrent
-                              ? "border-cyan-400/30 bg-cyan-500/20 text-cyan-100"
+                              ? "border-cyan-400/30 bg-cyan-500/20 text-(--ws-cyan)"
                               : isComplete
-                                ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-100"
-                                : "border-white/10 bg-white/5 text-white/50"
+                                ? "border-emerald-500/30 bg-emerald-500/20 text-(--ws-emerald)"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
                           )}
                         >
                           <StepIcon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                             Step {index + 1}
                           </p>
-                          <p className="truncate text-sm font-medium text-white">{step.title}</p>
+                          <p className="truncate text-sm font-medium text-(--ws-fg)">{step.title}</p>
                         </div>
                       </div>
                     </div>
@@ -326,7 +326,7 @@ export function PromotionPolicyWizard({
               {currentStep === 1 && (
                 <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="promotion-policy-name" className="text-white/72">
+                    <Label htmlFor="promotion-policy-name" className="text-(--ws-fg)/72">
                       Policy name
                     </Label>
                     <Input
@@ -334,14 +334,14 @@ export function PromotionPolicyWizard({
                       value={name}
                       onChange={(event) => setName(event.target.value)}
                       placeholder="e.g. 2026 End-of-Year Promotion Policy"
-                      className="border-white/10 bg-white/[0.04] text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
 
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-white/72">Apply to grades</Label>
-                      <p className="mt-1 text-sm text-white/45">
+                      <Label className="text-(--ws-fg)/72">Apply to grades</Label>
+                      <p className="mt-1 text-sm text-(--ws-fg-40)">
                         Leave this empty only when the same promotion rules should apply to the whole school.
                       </p>
                     </div>
@@ -362,8 +362,8 @@ export function PromotionPolicyWizard({
                             className={cn(
                               "rounded-full border px-4 py-2 text-sm transition-colors",
                               checked
-                                ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
-                                : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                                ? "border-cyan-400/40 bg-cyan-500/15 text-(--ws-cyan)"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                             )}
                           >
                             {grade.name}
@@ -378,7 +378,7 @@ export function PromotionPolicyWizard({
               {currentStep === 2 && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="promotion-attendance-min" className="text-white/72">
+                    <Label htmlFor="promotion-attendance-min" className="text-(--ws-fg)/72">
                       Minimum attendance (%)
                     </Label>
                     <Input
@@ -388,11 +388,11 @@ export function PromotionPolicyWizard({
                       max={100}
                       value={attendanceMin}
                       onChange={(event) => setAttendanceMin(Number(event.target.value))}
-                      className="border-white/10 bg-white/[0.04] text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="promotion-average-min" className="text-white/72">
+                    <Label htmlFor="promotion-average-min" className="text-(--ws-fg)/72">
                       Minimum overall average (%)
                     </Label>
                     <Input
@@ -402,7 +402,7 @@ export function PromotionPolicyWizard({
                       max={100}
                       value={averageMin}
                       onChange={(event) => setAverageMin(Number(event.target.value))}
-                      className="border-white/10 bg-white/[0.04] text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                 </div>
@@ -410,37 +410,37 @@ export function PromotionPolicyWizard({
 
               {currentStep === 3 && (
                 <div className="space-y-4">
-                  <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <label className="flex items-start gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                     <Switch checked={treatExcused} onCheckedChange={setTreatExcused} />
                     <span className="space-y-1">
-                      <span className="block text-sm font-medium text-white">
+                      <span className="block text-sm font-medium text-(--ws-fg)">
                         Treat excused absences as present
                       </span>
-                      <span className="block text-sm text-white/50">
+                      <span className="block text-sm text-(--ws-fg-50)">
                         Use excused absence records to protect a student&apos;s attendance percentage.
                       </span>
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <label className="flex items-start gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                     <Switch checked={financeEnabled} onCheckedChange={setFinanceEnabled} />
                     <span className="space-y-1">
-                      <span className="block text-sm font-medium text-white">
+                      <span className="block text-sm font-medium text-(--ws-fg)">
                         Hold students with outstanding fees
                       </span>
-                      <span className="block text-sm text-white/50">
+                      <span className="block text-sm text-(--ws-fg-50)">
                         Leo will flag them for review instead of promoting them automatically.
                       </span>
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <label className="flex items-start gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                     <Switch checked={activateNow} onCheckedChange={setActivateNow} />
                     <span className="space-y-1">
-                      <span className="block text-sm font-medium text-white">
+                      <span className="block text-sm font-medium text-(--ws-fg)">
                         Activate this policy now
                       </span>
-                      <span className="block text-sm text-white/50">
+                      <span className="block text-sm text-(--ws-fg-50)">
                         If another active policy overlaps with this scope, it will be replaced.
                       </span>
                     </span>
@@ -450,18 +450,18 @@ export function PromotionPolicyWizard({
 
               {currentStep === 4 && (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                  <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                       Policy
                     </p>
-                    <h3 className="mt-1 text-lg font-semibold text-white">{name.trim() || "Promotion Policy"}</h3>
+                    <h3 className="mt-1 text-lg font-semibold text-(--ws-fg)">{name.trim() || "Promotion Policy"}</h3>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {selectedGradeNames.length > 0 ? (
                         selectedGradeNames.map((gradeName) => (
                           <Badge
                             key={gradeName}
                             variant="outline"
-                            className="border-cyan-400/30 bg-cyan-500/10 text-cyan-100"
+                            className="border-cyan-400/30 bg-cyan-500/10 text-(--ws-cyan)"
                           >
                             {gradeName}
                           </Badge>
@@ -469,7 +469,7 @@ export function PromotionPolicyWizard({
                       ) : (
                         <Badge
                           variant="outline"
-                          className="border-white/10 bg-white/[0.04] text-white/70"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                         >
                           All grades
                         </Badge>
@@ -478,41 +478,41 @@ export function PromotionPolicyWizard({
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Academic rule
                       </p>
-                      <p className="mt-2 text-sm text-white/70">
+                      <p className="mt-2 text-sm text-(--ws-fg-70)">
                         Students need at least{" "}
-                        <span className="font-semibold text-white">{averageMin}%</span> overall
+                        <span className="font-semibold text-(--ws-fg)">{averageMin}%</span> overall
                         average to pass this policy.
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Attendance rule
                       </p>
-                      <p className="mt-2 text-sm text-white/70">
+                      <p className="mt-2 text-sm text-(--ws-fg-70)">
                         Students need at least{" "}
-                        <span className="font-semibold text-white">{attendanceMin}%</span>{" "}
+                        <span className="font-semibold text-(--ws-fg)">{attendanceMin}%</span>{" "}
                         attendance to pass this policy.
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Excused absences
                       </p>
-                      <p className="mt-2 text-sm text-white/70">
+                      <p className="mt-2 text-sm text-(--ws-fg-70)">
                         {treatExcused
                           ? "Excused absences count as present."
                           : "Excused absences do not count as present."}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+                    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         Finance hold
                       </p>
-                      <p className="mt-2 text-sm text-white/70">
+                      <p className="mt-2 text-sm text-(--ws-fg-70)">
                         {financeEnabled
                           ? "Students with outstanding fees are held for review."
                           : "Fees do not block promotion in this policy."}
@@ -525,27 +525,27 @@ export function PromotionPolicyWizard({
 
             <aside className="rounded-[1.5rem] border border-cyan-500/20 bg-cyan-500/10 p-5">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
-                  <LeoIcon className="h-5 w-5 text-cyan-100" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill-strong)">
+                  <LeoIcon className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <Wand2 className="h-4 w-4 text-cyan-100" />
-                    <p className="text-sm font-semibold text-white">Leo policy guidance</p>
+                    <Wand2 className="h-4 w-4 text-(--ws-cyan)" />
+                    <p className="text-sm font-semibold text-(--ws-fg)">Leo policy guidance</p>
                   </div>
-                  <h3 className="mt-2 text-lg font-semibold text-white">{leoGuidance.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/70">{leoGuidance.body}</p>
+                  <h3 className="mt-2 text-lg font-semibold text-(--ws-fg)">{leoGuidance.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-(--ws-fg-70)">{leoGuidance.body}</p>
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+              <div className="mt-5 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
                   What Leo is watching
                 </p>
-                <ul className="mt-3 space-y-2 text-sm text-white/72">
+                <ul className="mt-3 space-y-2 text-sm text-(--ws-fg)/72">
                   {leoGuidance.actions.map((action) => (
                     <li key={action} className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                       <span>{action}</span>
                     </li>
                   ))}
@@ -554,7 +554,7 @@ export function PromotionPolicyWizard({
             </aside>
           </div>
 
-          <div className="h-2 rounded-full bg-white/8">
+          <div className="h-2 rounded-full bg-(--ws-fill)">
             <div
               className="h-2 rounded-full bg-linear-to-r from-cyan-400 to-emerald-300 transition-all"
               style={{ width: `${progressPercent}%` }}
@@ -562,11 +562,11 @@ export function PromotionPolicyWizard({
           </div>
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col-reverse gap-3 border-t border-(--ws-line) pt-4 sm:flex-row sm:items-center sm:justify-between">
           <Button
             type="button"
             variant="outline"
-            className="gap-2 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06]"
+            className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             onClick={() => {
               if (currentStep === 1) handleOpenChange(false);
               else setCurrentStep((step) => Math.max(1, step - 1));

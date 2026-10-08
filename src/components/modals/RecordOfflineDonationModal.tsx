@@ -133,7 +133,7 @@ export default function RecordOfflineDonationModal({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#0f0f14] p-6 shadow-2xl"
+          className="relative w-full max-w-lg rounded-2xl border border-(--ws-line) bg-[#0f0f14] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -143,15 +143,15 @@ export default function RecordOfflineDonationModal({
                 <Banknote className="h-6 w-6 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Record Offline Donation</h2>
-                <p className="text-sm text-white/50">For: {campaignTitle}</p>
+                <h2 className="text-lg font-bold text-(--ws-fg)">Record Offline Donation</h2>
+                <p className="text-sm text-(--ws-fg-50)">For: {campaignTitle}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -162,7 +162,7 @@ export default function RecordOfflineDonationModal({
             {/* Amount & Payment Method */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label className="text-white">Amount ({currency}) *</Label>
+                <Label className="text-(--ws-fg)">Amount ({currency}) *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -170,11 +170,11 @@ export default function RecordOfflineDonationModal({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="e.g., 100.00"
-                  className="mt-1 border-white/10 bg-white/5 text-white"
+                  className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div>
-                <Label className="text-white/70">Payment Method</Label>
+                <Label className="text-(--ws-fg-70)">Payment Method</Label>
                 <PremiumSelect
                   value={paymentMethod}
                   onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
@@ -194,43 +194,43 @@ export default function RecordOfflineDonationModal({
             </div>
 
             {/* Anonymous Toggle */}
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} />
               <div>
-                <Label className="text-white">Anonymous Donation</Label>
-                <p className="text-xs text-white/50">Donor information will not be displayed publicly</p>
+                <Label className="text-(--ws-fg)">Anonymous Donation</Label>
+                <p className="text-xs text-(--ws-fg-50)">Donor information will not be displayed publicly</p>
               </div>
             </div>
 
             {/* Donor Info */}
             {!isAnonymous && (
-              <div className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="space-y-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div>
-                  <Label className="text-white">Donor Name *</Label>
+                  <Label className="text-(--ws-fg)">Donor Name *</Label>
                   <Input
                     value={donorName}
                     onChange={(e) => setDonorName(e.target.value)}
                     placeholder="Enter donor's full name"
-                    className="mt-1 border-white/10 bg-white/5 text-white"
+                    className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <Label className="text-white/70">Email (Optional)</Label>
+                    <Label className="text-(--ws-fg-70)">Email (Optional)</Label>
                     <Input
                       type="email"
                       value={donorEmail}
                       onChange={(e) => setDonorEmail(e.target.value)}
                       placeholder="donor@email.com"
-                      className="mt-1 border-white/10 bg-white/5 text-white"
+                      className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                   <div>
-                    <Label className="text-white/70">Phone (Optional)</Label>
+                    <Label className="text-(--ws-fg-70)">Phone (Optional)</Label>
                     <GhanaPhoneInput
                       value={donorPhone}
                       onChange={(e) => setDonorPhone(e.target.value)}
-                      className="mt-1 border-white/10 bg-white/5 text-white"
+                      className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                 </div>
@@ -239,12 +239,12 @@ export default function RecordOfflineDonationModal({
 
             {/* Message */}
             <div>
-              <Label className="text-white/70">Donor Message (Optional)</Label>
+              <Label className="text-(--ws-fg-70)">Donor Message (Optional)</Label>
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Any message from the donor..."
-                className="mt-1 min-h-[80px] border-white/10 bg-white/5 text-white"
+                className="mt-1 min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
 
@@ -254,7 +254,7 @@ export default function RecordOfflineDonationModal({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 text-white/60"
+                className="border-(--ws-line) text-(--ws-fg-60)"
               >
                 Cancel
               </Button>

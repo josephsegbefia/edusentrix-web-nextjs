@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { format } from "date-fns";
 import { AlertTriangle, Loader2 } from "lucide-react";
@@ -79,7 +80,8 @@ export default function AdminLibraryOverduePage() {
   }
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library" label="Library home" />
       <LibraryPageHeader
         icon={AlertTriangle}
@@ -88,7 +90,7 @@ export default function AdminLibraryOverduePage() {
       />
 
       {!canReadLoans ? (
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <p className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
           Your role does not include reading library loans. Ask a school admin to extend library
           delegation.
         </p>
@@ -113,36 +115,36 @@ export default function AdminLibraryOverduePage() {
               ) : null}
             </div>
             {overdueQuery.isLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+              <Loader2 className="h-6 w-6 animate-spin text-(--ws-fg-40)" />
             ) : overdue.length === 0 ? (
-              <p className="text-sm text-white/50">No overdue open loans.</p>
+              <p className="text-sm text-(--ws-fg-50)">No overdue open loans.</p>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-white/10">
+              <div className="overflow-x-auto rounded-xl border border-(--ws-line)">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-white/10 hover:bg-transparent">
-                      <TableHead className="text-white/70">Title</TableHead>
-                      <TableHead className="text-white/70">Borrower</TableHead>
-                      <TableHead className="text-white/70">Due</TableHead>
-                      <TableHead className="text-white/70">Days</TableHead>
-                      <TableHead className="text-right text-white/70">Actions</TableHead>
+                    <TableRow className="border-(--ws-line) hover:bg-transparent">
+                      <TableHead className="text-(--ws-fg-70)">Title</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Borrower</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Due</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Days</TableHead>
+                      <TableHead className="text-right text-(--ws-fg-70)">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {overdue.map((loan) => (
-                      <TableRow key={loan._id} className="border-white/10 hover:bg-transparent">
-                        <TableCell className="max-w-[200px] truncate font-medium text-white">
+                      <TableRow key={loan._id} className="border-(--ws-line) hover:bg-transparent">
+                        <TableCell className="max-w-[200px] truncate font-medium text-(--ws-fg)">
                           {loan.book.title}
                         </TableCell>
-                        <TableCell className="text-sm text-white/75">
+                        <TableCell className="text-sm text-(--ws-fg)/75">
                           {loan.borrower.name}
                         </TableCell>
-                        <TableCell className="text-xs text-white/60">
+                        <TableCell className="text-xs text-(--ws-fg-60)">
                           {format(new Date(loan.dueAt), "MMM d, yyyy")}
                         </TableCell>
                         <TableCell className="text-xs text-amber-100/90">{loan.daysOverdue}d</TableCell>
                         <TableCell className="text-right">
-                          <Button asChild size="sm" variant="outline" className="h-8 border-white/20 text-white">
+                          <Button asChild size="sm" variant="outline" className="h-8 border-(--ws-line-strong) text-(--ws-fg)">
                             <Link href="/admin/library/circulation">Circulation</Link>
                           </Button>
                         </TableCell>
@@ -155,41 +157,41 @@ export default function AdminLibraryOverduePage() {
           </section>
 
           <section className={`${libraryGlassPanel} space-y-4 p-5`}>
-            <h2 className="text-base font-semibold text-white">Pending fines</h2>
+            <h2 className="text-base font-semibold text-(--ws-fg)">Pending fines</h2>
             {finesQuery.isLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+              <Loader2 className="h-6 w-6 animate-spin text-(--ws-fg-40)" />
             ) : pendingFines.length === 0 ? (
-              <p className="text-sm text-white/50">No pending fines.</p>
+              <p className="text-sm text-(--ws-fg-50)">No pending fines.</p>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-white/10">
+              <div className="overflow-x-auto rounded-xl border border-(--ws-line)">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-white/10 hover:bg-transparent">
-                      <TableHead className="text-white/70">Title</TableHead>
-                      <TableHead className="text-white/70">Borrower</TableHead>
-                      <TableHead className="text-white/70">Returned</TableHead>
-                      <TableHead className="text-white/70">Fine</TableHead>
-                      <TableHead className="text-right text-white/70">Actions</TableHead>
+                    <TableRow className="border-(--ws-line) hover:bg-transparent">
+                      <TableHead className="text-(--ws-fg-70)">Title</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Borrower</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Returned</TableHead>
+                      <TableHead className="text-(--ws-fg-70)">Fine</TableHead>
+                      <TableHead className="text-right text-(--ws-fg-70)">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingFines.map((loan) => (
-                      <TableRow key={loan._id} className="border-white/10 hover:bg-transparent">
-                        <TableCell className="max-w-[200px] truncate font-medium text-white">
+                      <TableRow key={loan._id} className="border-(--ws-line) hover:bg-transparent">
+                        <TableCell className="max-w-[200px] truncate font-medium text-(--ws-fg)">
                           {loan.book.title}
                         </TableCell>
-                        <TableCell className="text-sm text-white/75">{loan.borrower.name}</TableCell>
-                        <TableCell className="text-xs text-white/60">
+                        <TableCell className="text-sm text-(--ws-fg)/75">{loan.borrower.name}</TableCell>
+                        <TableCell className="text-xs text-(--ws-fg-60)">
                           {loan.returnedAt
                             ? format(new Date(loan.returnedAt), "MMM d, yyyy")
                             : "—"}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-white">{loan.fineAmount.toFixed(2)}</span>
+                            <span className="text-sm text-(--ws-fg)">{loan.fineAmount.toFixed(2)}</span>
                             <Badge
                               variant="outline"
-                              className="border-white/20 text-[10px] text-white/80"
+                              className="border-(--ws-line-strong) text-[10px] text-(--ws-fg-80)"
                             >
                               {loan.fineStatus}
                             </Badge>
@@ -207,7 +209,7 @@ export default function AdminLibraryOverduePage() {
                               Waive
                             </Button>
                           ) : (
-                            <span className="text-xs text-white/40">No waive access</span>
+                            <span className="text-xs text-(--ws-fg-40)">No waive access</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -220,5 +222,6 @@ export default function AdminLibraryOverduePage() {
         </div>
       ) : null}
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }

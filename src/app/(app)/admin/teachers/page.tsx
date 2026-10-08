@@ -65,6 +65,7 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
 import type { TeacherStatus } from "@/types/admin/teacher";
 import { toast } from "sonner";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 function isTypingTarget(el: EventTarget | null) {
   if (!el || !(el as HTMLElement).tagName) return false;
@@ -134,7 +135,7 @@ const STATUS_ACTION_CONFIG: Record<
     emptyMessage: "No eligible teachers found to place on leave.",
     actionLabel: "Start Leave",
     actionClassName:
-      "border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30",
+      "border-amber-500/40 bg-amber-500/20 text-(--ws-amber) hover:bg-amber-500/30",
   },
   terminated: {
     ctaLabel: "Add a terminated teacher",
@@ -147,7 +148,7 @@ const STATUS_ACTION_CONFIG: Record<
     emptyMessage: "No eligible teachers found to terminate.",
     actionLabel: "Terminate",
     actionClassName:
-      "border-rose-500/40 bg-rose-500/20 text-rose-100 hover:bg-rose-500/30",
+      "border-rose-500/40 bg-rose-500/20 text-(--ws-rose) hover:bg-rose-500/30",
   },
 };
 
@@ -159,10 +160,10 @@ const STATUS_LABELS: Record<TeacherStatus, string> = {
 };
 
 const STATUS_BADGE_STYLES: Record<TeacherStatus, string> = {
-  active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  active: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   inactive: "border-slate-400/30 bg-slate-500/10 text-slate-300",
-  on_leave: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  terminated: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+  on_leave: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+  terminated: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
 function isStatusActionTarget(tab: TeachersTabId): tab is StatusActionTarget {
@@ -615,9 +616,9 @@ export default function TeachersPage() {
   }, [leaveStartDate, leaveEndDate]);
 
   return (
-    <div className="space-y-8">
+    <WorkspaceScope className="space-y-8">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from)/90 via-(--ws-panel-via)/95 to-black p-8 shadow-[var(--ws-shadow)]">
         {/* Background decorations */}
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
@@ -628,26 +629,26 @@ export default function TeachersPage() {
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
                 <Users className="h-6 w-6 text-indigo-300" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-white">
+                <h1 className="text-3xl font-bold tracking-tight text-(--ws-fg)">
                   Teachers
                 </h1>
-                <p className="text-sm text-white/60">
+                <p className="text-sm text-(--ws-fg-60)">
                   Staff management & directory
                 </p>
               </div>
             </div>
-            <p className="max-w-lg text-sm leading-relaxed text-white/50">
+            <p className="max-w-lg text-sm leading-relaxed text-(--ws-fg-50)">
               Manage staff profiles, subjects, and homeroom assignments. Track
               performance, attendance, and professional development across your
               school.
@@ -659,7 +660,7 @@ export default function TeachersPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="group gap-2 border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+              className="group gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               onClick={() => setImportOpen(true)}
             >
               <Upload className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
@@ -668,7 +669,7 @@ export default function TeachersPage() {
             <Button
               type="button"
               size="sm"
-              className="group gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 hover:shadow-indigo-500/40"
+              className="group gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-(--ws-fg) shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 hover:shadow-indigo-500/40"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
@@ -679,18 +680,18 @@ export default function TeachersPage() {
         </div>
 
         {/* Keyboard shortcuts hint */}
-        <div className="relative z-10 mt-6 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-          <span className="text-[11px] uppercase tracking-wider text-white/40">
+        <div className="relative z-10 mt-6 flex flex-wrap items-center gap-3 border-t border-(--ws-line) pt-4">
+          <span className="text-[11px] uppercase tracking-wider text-(--ws-fg-40)">
             Shortcuts
           </span>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-60)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               /
             </kbd>
             <span>Focus search</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-60)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               <Command className="inline h-2.5 w-2.5" />K
             </kbd>
             <span>Command palette</span>
@@ -702,37 +703,37 @@ export default function TeachersPage() {
       <TeachersQuickStatsSection />
 
       {/* Teacher directory shell */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         {/* Decorative elements */}
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill) shadow-inner shadow-white/5">
                   <Sparkles className="h-5 w-5 text-indigo-300" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400" />
               </div>
               <div className="space-y-0.5">
-                <CardTitle className="text-lg font-semibold tracking-tight text-white">
+                <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                   Teacher Directory
                 </CardTitle>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-50)">
                   Search, filter, and manage staff profiles
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-emerald)">
                 {pagination?.total ?? 0} total
               </span>
             </div>
@@ -757,24 +758,24 @@ export default function TeachersPage() {
       </Card>
 
       {/* Data summary shell – cards/table + pagination */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         {/* Decorative elements */}
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-60)">
                 Directory Results
               </CardTitle>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-(--ws-fg-80)">
                 {isLoading
                   ? "Loading..."
                   : `${pagination?.total ?? 0} teachers found`}
@@ -786,12 +787,12 @@ export default function TeachersPage() {
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
                     ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-300"
-                    : "border-white/10 bg-white/5 text-white/60"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                 )}
               >
                 {viewMode === "cards" ? "Cards" : "Table"} view
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium capitalize text-white/60">
+              <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[10px] font-medium capitalize text-(--ws-fg-60)">
                 {tab === "all" ? "All teachers" : tab.replace("_", " ")}
               </span>
             </div>
@@ -808,10 +809,10 @@ export default function TeachersPage() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-sm font-medium text-(--ws-fg-80)">
                   Loading teachers...
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-50)">
                   Fetching your teacher directory
                 </p>
               </div>
@@ -841,18 +842,18 @@ export default function TeachersPage() {
           ) : teachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-                  <Users className="h-10 w-10 text-white/30" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill)">
+                  <Users className="h-10 w-10 text-(--ws-fg-40)" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-indigo-500">
-                  <Plus className="h-4 w-4 text-white" />
+                  <Plus className="h-4 w-4 text-(--ws-fg)" />
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-white/80">
+                <p className="text-base font-medium text-(--ws-fg-80)">
                   No teachers found
                 </p>
-                <p className="mt-1 max-w-xs text-sm text-white/50">
+                <p className="mt-1 max-w-xs text-sm text-(--ws-fg-50)">
                   {search
                     ? "Try adjusting your search or filters to find what you're looking for"
                     : tabStatusActionConfig?.emptyStateDescription ||
@@ -862,7 +863,7 @@ export default function TeachersPage() {
               {!search && (
                 <Button
                   size="sm"
-                  className="mt-2 gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700"
+                  className="mt-2 gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-(--ws-fg) shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700"
                   onClick={() => {
                     if (tabStatusActionConfig && isStatusActionTarget(tab)) {
                       openStatusModal(tab);
@@ -879,26 +880,26 @@ export default function TeachersPage() {
           ) : (
             <div className="space-y-5">
               {/* Results summary bar */}
-              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-4 py-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-2 text-sm text-white/70">
+              <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent px-4 py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-300">
                     {teachers.length}
                   </span>
                   <span>
                     teacher{teachers.length === 1 ? "" : "s"} on page{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-(--ws-fg)">
                       {pagination.page}
                     </span>{" "}
                     of{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-(--ws-fg)">
                       {pagination.totalPages}
                     </span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-white/50">
+                <div className="flex items-center gap-2 text-[11px] text-(--ws-fg-50)">
                   <span>
                     Total:{" "}
-                    <span className="font-medium text-white/70">
+                    <span className="font-medium text-(--ws-fg-70)">
                       {pagination.total}
                     </span>{" "}
                     records
@@ -1044,24 +1045,24 @@ export default function TeachersPage() {
         >
           <div className="space-y-5">
             <div className="space-y-3">
-              <p className="text-sm text-white/70">
+              <p className="text-sm text-(--ws-fg-70)">
                 {statusModalConfig.modalDescription}
               </p>
               {statusModalTarget === "on_leave" ? (
                 <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-200/80">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)/80">
                       Leave Period
                     </p>
                     {isLeavePeriodValid && leaveDurationDays > 0 && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-(--ws-amber)">
                         {leaveDurationDays} day{leaveDurationDays !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-white/60">Start date</label>
+                      <label className="text-xs font-medium text-(--ws-fg-60)">Start date</label>
                       <CustomDatePicker
                         value={leaveStartDate}
                         onChange={(date) => {
@@ -1071,14 +1072,16 @@ export default function TeachersPage() {
                           }
                         }}
                         minDate={new Date()}
+                        surface="theme"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-white/60">End date</label>
+                      <label className="text-xs font-medium text-(--ws-fg-60)">End date</label>
                       <CustomDatePicker
                         value={leaveEndDate}
                         onChange={(date) => setLeaveEndDate(date)}
                         minDate={leaveStartDate || new Date()}
+                        surface="theme"
                       />
                     </div>
                   </div>
@@ -1086,10 +1089,10 @@ export default function TeachersPage() {
                   {isLeavePeriodValid && leaveDurationDays > 0 && (
                     <div className="flex items-center gap-2 rounded-xl border border-amber-500/10 bg-amber-500/5 px-3 py-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20">
-                        <span className="text-sm font-bold text-amber-200">{leaveDurationDays}</span>
+                        <span className="text-sm font-bold text-(--ws-amber)">{leaveDurationDays}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white/70">
+                        <p className="text-xs text-(--ws-fg-70)">
                           {leaveStartDate!.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                           {" → "}
                           {leaveEndDate!.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
@@ -1099,18 +1102,18 @@ export default function TeachersPage() {
                   )}
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-white/60">
-                      Reason <span className="text-white/30">(optional)</span>
+                    <label className="text-xs font-medium text-(--ws-fg-60)">
+                      Reason <span className="text-(--ws-fg-40)">(optional)</span>
                     </label>
                     <Textarea
                       value={leaveReason}
                       onChange={(e) => setLeaveReason(e.target.value)}
                       placeholder="e.g., Medical leave, Personal leave, Professional development..."
-                      className="min-h-[78px] rounded-xl border-white/15 bg-white/5 text-white placeholder:text-white/40"
+                      className="min-h-[78px] rounded-xl border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                       maxLength={500}
                     />
                     {leaveReason.length > 0 && (
-                      <p className="text-right text-[10px] text-white/30">{leaveReason.length}/500</p>
+                      <p className="text-right text-[10px] text-(--ws-fg-40)">{leaveReason.length}/500</p>
                     )}
                   </div>
 
@@ -1122,19 +1125,19 @@ export default function TeachersPage() {
                 </div>
               ) : null}
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
                 <Input
                   value={statusModalSearch}
                   onChange={(e) => setStatusModalSearch(e.target.value)}
                   placeholder={statusModalConfig.searchPlaceholder}
-                  className="h-11 border-white/15 bg-white/5 pl-9 text-white placeholder:text-white/40 focus-visible:ring-indigo-400"
+                  className="h-11 border-(--ws-line-strong) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40) focus-visible:ring-indigo-400"
                 />
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/3 p-3">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
               {isStatusSearchLoading ? (
-                <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/60">
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-(--ws-fg-60)">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Searching teachers...
                 </div>
@@ -1147,8 +1150,8 @@ export default function TeachersPage() {
                 </div>
               ) : statusSearchResults.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-                  <Users className="h-6 w-6 text-white/30" />
-                  <p className="text-sm text-white/60">
+                  <Users className="h-6 w-6 text-(--ws-fg-40)" />
+                  <p className="text-sm text-(--ws-fg-60)">
                     {statusModalConfig.emptyMessage}
                   </p>
                 </div>
@@ -1162,21 +1165,21 @@ export default function TeachersPage() {
                     return (
                       <div
                         key={teacher.id}
-                        className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/4 p-3 md:flex-row md:items-center md:justify-between"
+                        className="flex flex-col gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 md:flex-row md:items-center md:justify-between"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 border border-white/10">
+                            <Avatar className="h-9 w-9 border border-(--ws-line)">
                               <AvatarImage src={teacher.photoUrl ?? undefined} />
-                              <AvatarFallback className="bg-white/10 text-xs text-white/80">
+                              <AvatarFallback className="bg-(--ws-fill-strong) text-xs text-(--ws-fg-80)">
                                 {getTeacherInitials(teacher.fullName)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-white">
+                              <p className="truncate text-sm font-medium text-(--ws-fg)">
                                 {teacher.fullName}
                               </p>
-                              <p className="truncate text-xs text-white/55">
+                              <p className="truncate text-xs text-(--ws-fg)/55">
                                 {teacher.email || "No email"}
                               </p>
                             </div>
@@ -1229,8 +1232,8 @@ export default function TeachersPage() {
             onClose={() => setEditTeacherId(null)}
           >
             <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-white/70" />
-              <p className="text-sm text-white/60">Loading teacher...</p>
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-70)" />
+              <p className="text-sm text-(--ws-fg-60)">Loading teacher...</p>
             </div>
           </TeacherModalShell>
         ) : editTeacher ? (
@@ -1332,6 +1335,6 @@ export default function TeachersPage() {
         onImportTeachers={() => notifyComingSoon("CSV import shortcut")}
       />
       {confirmationDialog}
-    </div>
+    </WorkspaceScope>
   );
 }

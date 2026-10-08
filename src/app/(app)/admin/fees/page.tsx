@@ -38,6 +38,7 @@ import {
   PeriodBlockedAlert,
   useOperationBlocked,
 } from "@/components/dashboard/PeriodBlockedAlert";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 function MetricCard({
   label,
@@ -65,10 +66,10 @@ function MetricCard({
 
   const trendColor =
     trend?.direction === "up"
-      ? "text-emerald-300"
+      ? "text-(--ws-emerald)"
       : trend?.direction === "down"
-      ? "text-rose-300"
-      : "text-white/60";
+      ? "text-(--ws-rose)"
+      : "text-(--ws-fg-60)";
 
   const Wrapper: React.ElementType = onClick ? "button" : "div";
 
@@ -76,9 +77,9 @@ function MetricCard({
     <Wrapper
       onClick={onClick}
       className={[
-        "relative w-full overflow-hidden rounded-2xl border border-white/10",
-        "bg-linear-to-br from-white/5 to-transparent p-5 lg:p-6",
-        "shadow-lg shadow-black/20 backdrop-blur",
+        "relative w-full overflow-hidden rounded-2xl border border-(--ws-line)",
+        "bg-linear-to-br from-(--ws-fill) to-transparent p-5 lg:p-6",
+        "shadow-[var(--ws-shadow)] backdrop-blur",
         onClick
           ? "text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           : "",
@@ -90,18 +91,18 @@ function MetricCard({
       />
       <div className="relative z-10 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">
             {label}
           </div>
           {Icon && (
-            <Icon className="h-4 w-4 text-white/40" aria-hidden="true" />
+            <Icon className="h-4 w-4 text-(--ws-fg-40)" aria-hidden="true" />
           )}
         </div>
-        <div className="text-3xl font-semibold text-white drop-shadow-sm">
+        <div className="text-3xl font-semibold text-(--ws-fg) drop-shadow-sm">
           {typeof value === "number" ? value.toLocaleString() : value}
         </div>
         {(subtitle || trend) && (
-          <div className="flex items-center gap-2 text-xs text-white/60">
+          <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
             {trend && TrendIcon && (
               <span className={`inline-flex items-center gap-1 ${trendColor}`}>
                 <TrendIcon className="h-3 w-3" />
@@ -111,7 +112,7 @@ function MetricCard({
             {subtitle && <span>{subtitle}</span>}
           </div>
         )}
-        <div className="h-[3px] w-12 rounded-full bg-white/30" />
+        <div className="h-[3px] w-12 rounded-full bg-(--ws-line-strong)" />
       </div>
     </Wrapper>
   );
@@ -144,23 +145,23 @@ function QuickAction({
         group w-full text-left my-3 px-4 py-3.5 rounded-xl border transition-all duration-200
         ${
           disabled
-            ? "border-white/5 bg-white/5 opacity-40 cursor-not-allowed"
+            ? "border-(--ws-line) bg-(--ws-fill) opacity-40 cursor-not-allowed"
             : highlighted
-            ? "border-white/20 bg-white/10"
-            : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+            ? "border-(--ws-line-strong) bg-(--ws-fill-strong)"
+            : "border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
         }
       `}
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${accent}`}>
-          <Icon className="h-4 w-4 text-white/80" />
+          <Icon className="h-4 w-4 text-(--ws-fg-80)" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-white mb-1">{title}</div>
-          <div className="text-xs text-white/60">{description}</div>
+          <div className="font-semibold text-(--ws-fg) mb-1">{title}</div>
+          <div className="text-xs text-(--ws-fg-60)">{description}</div>
         </div>
         {!disabled && (
-          <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+          <ArrowRight className="h-4 w-4 text-(--ws-fg-40) group-hover:text-(--ws-fg)/60 group-hover:translate-x-1 transition-all" />
         )}
       </div>
     </div>
@@ -310,7 +311,7 @@ export default function FeesPage() {
 
   if (!data && !isLoading) {
     return (
-      <div className="space-y-6 p-6">
+      <WorkspaceScope className="space-y-6 p-6">
         <div>
           <h1 className="text-3xl font-bold mb-2">Fees & Payments</h1>
           <p className="text-muted-foreground">
@@ -322,12 +323,12 @@ export default function FeesPage() {
             <p className="text-destructive">Failed to load fee data</p>
           </CardContent>
         </Card>
-      </div>
+      </WorkspaceScope>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <WorkspaceScope className="space-y-6 p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -350,7 +351,7 @@ export default function FeesPage() {
               }
               setShowCreateInvoiceModal(true);
             }}
-            className={`bg-brand hover:bg-brand/90 text-white shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all ${
+            className={`bg-brand hover:bg-brand/90 text-(--ws-fg) shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all ${
               isInvoiceCreationBlocked ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -369,7 +370,7 @@ export default function FeesPage() {
               }
               setShowBulkCreateInvoiceModal(true);
             }}
-            className={`group relative flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent backdrop-blur-sm text-white font-medium transition-all duration-200 hover:from-purple-500/30 hover:via-purple-500/20 hover:to-transparent hover:border-white/30 hover:shadow-lg hover:shadow-purple-500/20 ${
+            className={`group relative flex items-center gap-2 px-4 py-2 rounded-lg border border-(--ws-line-strong) bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent backdrop-blur-sm text-(--ws-fg) font-medium transition-all duration-200 hover:from-purple-500/30 hover:via-purple-500/20 hover:to-transparent hover:border-(--ws-line-strong) hover:shadow-lg hover:shadow-purple-500/20 ${
               isInvoiceCreationBlocked ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -379,7 +380,7 @@ export default function FeesPage() {
           <button
             type="button"
             onClick={() => setShowRecordPaymentModal(true)}
-            className="group relative flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20 bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent backdrop-blur-sm text-white font-medium transition-all duration-200 hover:from-emerald-500/30 hover:via-emerald-500/20 hover:to-transparent hover:border-white/30 hover:shadow-lg hover:shadow-emerald-500/20"
+            className="group relative flex items-center gap-2 px-4 py-2 rounded-lg border border-(--ws-line-strong) bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent backdrop-blur-sm text-(--ws-fg) font-medium transition-all duration-200 hover:from-emerald-500/30 hover:via-emerald-500/20 hover:to-transparent hover:border-(--ws-line-strong) hover:shadow-lg hover:shadow-emerald-500/20"
           >
             <Receipt className="h-4 w-4 transition-transform group-hover:scale-110" />
             <span>Record Payment</span>
@@ -430,15 +431,15 @@ export default function FeesPage() {
       </div>
 
       {/* Status overview */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 flex items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-white">Bill Status</CardTitle>
-            <p className="text-sm text-white/60">
+            <CardTitle className="text-(--ws-fg)">Bill Status</CardTitle>
+            <p className="text-sm text-(--ws-fg-60)">
               Append-only bill model with clear status counts.
             </p>
           </div>
@@ -446,7 +447,7 @@ export default function FeesPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-white/80 hover:text-white"
+              className="text-(--ws-fg-80) hover:text-(--ws-fg)"
             >
               View bills
               <ArrowRight className="h-4 w-4 ml-2" />
@@ -503,7 +504,7 @@ export default function FeesPage() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-4 shadow-md backdrop-blur"
+                  className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-4 shadow-md backdrop-blur"
                 >
                   <div
                     className={`pointer-events-none absolute inset-0 bg-linear-to-br ${item.accent}`}
@@ -511,14 +512,14 @@ export default function FeesPage() {
                   />
                   <div className="relative z-10 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-(--ws-fg-60)">
                         {item.label}
                       </p>
-                      <p className="text-2xl font-semibold text-white drop-shadow-sm">
+                      <p className="text-2xl font-semibold text-(--ws-fg) drop-shadow-sm">
                         {item.value}
                       </p>
                     </div>
-                    <item.icon className="h-5 w-5 text-white/40" />
+                    <item.icon className="h-5 w-5 text-(--ws-fg-40)" />
                   </div>
                 </div>
               ))}
@@ -529,18 +530,18 @@ export default function FeesPage() {
 
       {/* Upcoming dues & defaulters */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/5 via-amber-500/2 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
-            <CardTitle className="text-white">
+            <CardTitle className="text-(--ws-fg)">
               Upcoming Due (next 14 days)
             </CardTitle>
             <Badge
               variant="secondary"
-              className="bg-amber-500/20 text-amber-300 border-amber-500/30"
+              className="bg-amber-500/20 text-(--ws-amber) border-amber-500/30"
             >
               {upcomingDue.length}
             </Badge>
@@ -552,7 +553,7 @@ export default function FeesPage() {
                 <Skeleton className="h-16" />
               </div>
             ) : upcomingDue.length === 0 ? (
-              <p className="text-sm text-white/60 text-center py-6">
+              <p className="text-sm text-(--ws-fg-60) text-center py-6">
                 Nothing due in the next two weeks.
               </p>
             ) : (
@@ -561,29 +562,29 @@ export default function FeesPage() {
                   <Link
                     key={invoice._id}
                     href={`/admin/fees/invoices/${invoice._id}`}
-                    className="group block rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 hover:border-white/20"
+                    className="group block rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-white">
+                        <p className="font-semibold text-(--ws-fg)">
                           {invoice.invoiceNumber}
                         </p>
-                        <p className="text-sm text-white/70">
+                        <p className="text-sm text-(--ws-fg-70)">
                           {invoice.studentId?.firstName}{" "}
                           {invoice.studentId?.lastName}
                           {invoice.studentId?.admissionNo &&
                             ` • ${invoice.studentId.admissionNo}`}
                         </p>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-(--ws-fg-50)">
                           {invoice.academicPeriodId?.yearLabel} •{" "}
                           {invoice.academicPeriodId?.term}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-(--ws-fg)">
                           {formatMoney(invoice.totalOutstandingMinor)}
                         </p>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-(--ws-fg-50)">
                           Due {new Date(invoice.dueDate).toLocaleDateString()}
                         </p>
                       </div>
@@ -595,15 +596,15 @@ export default function FeesPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-500/5 via-red-500/2 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-white">Top Defaulters</CardTitle>
-              <p className="text-sm text-white/60">
+              <CardTitle className="text-(--ws-fg)">Top Defaulters</CardTitle>
+              <p className="text-sm text-(--ws-fg-60)">
                 Highest outstanding balances across bills.
               </p>
             </div>
@@ -622,7 +623,7 @@ export default function FeesPage() {
                 <Skeleton className="h-16" />
               </div>
             ) : defaulters.length === 0 ? (
-              <p className="text-sm text-white/60 text-center py-6">
+              <p className="text-sm text-(--ws-fg-60) text-center py-6">
                 No outstanding balances recorded.
               </p>
             ) : (
@@ -630,27 +631,27 @@ export default function FeesPage() {
                 {defaulters.map((item: DefaulterItem) => (
                   <div
                     key={item.studentId}
-                    className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 hover:border-white/20"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                   >
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-(--ws-fg)">
                           {item.firstName} {item.lastName}
                         </p>
-                        <p className="text-xs text-white/60">
+                        <p className="text-xs text-(--ws-fg-60)">
                           {item.admissionNo || "—"} • {item.invoiceCount}{" "}
                           bill
                           {item.invoiceCount !== 1 ? "s" : ""}
                         </p>
                         {item.latestDueDate && (
-                          <p className="text-xs text-white/50">
+                          <p className="text-xs text-(--ws-fg-50)">
                             Latest due{" "}
                             {new Date(item.latestDueDate).toLocaleDateString()}
                           </p>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-white">
+                        <p className="font-semibold text-(--ws-fg)">
                           {formatMoney(item.totalOutstandingMinor)}
                         </p>
                       </div>
@@ -666,19 +667,19 @@ export default function FeesPage() {
       {/* Recent Payments & Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Recent Payments */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/5 via-emerald-500/2 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white">Recent Payments</CardTitle>
+              <CardTitle className="text-(--ws-fg)">Recent Payments</CardTitle>
               <Link href="/admin/fees/payments">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white/80 hover:text-white"
+                  className="text-(--ws-fg-80) hover:text-(--ws-fg)"
                 >
                   View All
                   <ArrowRight className="h-4 w-4 ml-2" />
@@ -694,7 +695,7 @@ export default function FeesPage() {
                 <Skeleton className="h-16" />
               </div>
             ) : recentPayments.length === 0 ? (
-              <p className="text-sm text-white/60 text-center py-4">
+              <p className="text-sm text-(--ws-fg-60) text-center py-4">
                 No recent payments
               </p>
             ) : (
@@ -702,23 +703,23 @@ export default function FeesPage() {
                 {recentPayments.map((payment: any) => (
                   <div
                     key={payment._id}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10 hover:border-white/20"
+                    className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-(--ws-fg)">
                         {payment.studentId?.firstName}{" "}
                         {payment.studentId?.lastName}
                       </p>
-                      <p className="text-sm text-white/70">
+                      <p className="text-sm text-(--ws-fg-70)">
                         {payment.invoiceId?.invoiceNumber} •{" "}
                         {payment.paymentMethod}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-white">
+                      <p className="font-semibold text-(--ws-fg)">
                         {formatMoney(payment.amountMinor)}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-(--ws-fg-50)">
                         {new Date(payment.paymentDate).toLocaleDateString()}
                       </p>
                     </div>
@@ -730,13 +731,13 @@ export default function FeesPage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10">
-            <CardTitle className="text-white">Quick Actions</CardTitle>
+            <CardTitle className="text-(--ws-fg)">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             <QuickAction
@@ -808,6 +809,6 @@ export default function FeesPage() {
           isLoading={recordPayment.isPending}
         />
       </ResponsiveModal>
-    </div>
+    </WorkspaceScope>
   );
 }

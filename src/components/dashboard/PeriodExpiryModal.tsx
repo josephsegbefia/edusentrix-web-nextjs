@@ -41,25 +41,25 @@ function OperationStatus({
   warning?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/10 last:border-b-0">
-      <span className="text-sm text-white/80">{label}</span>
+    <div className="flex items-center justify-between py-2 border-b border-(--ws-line) last:border-b-0">
+      <span className="text-sm text-(--ws-fg-80)">{label}</span>
       <div className="flex items-center gap-1.5">
         {allowed ? (
           warning ? (
             <>
               <MinusCircle className="h-4 w-4 text-amber-400" />
-              <span className="text-xs text-amber-300">With warnings</span>
+              <span className="text-xs text-(--ws-amber)">With warnings</span>
             </>
           ) : (
             <>
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              <span className="text-xs text-emerald-300">Available</span>
+              <span className="text-xs text-(--ws-emerald)">Available</span>
             </>
           )
         ) : (
           <>
             <XCircle className="h-4 w-4 text-red-400" />
-            <span className="text-xs text-red-300">Blocked</span>
+            <span className="text-xs text-(--ws-rose)">Blocked</span>
           </>
         )}
       </div>
@@ -83,7 +83,7 @@ function getStatusInfo(status: PeriodStatus | undefined): {
           "Your school needs an academic period to function properly. Create your first period to start managing students, fees, and academic records.",
         Icon: Calendar,
         iconBg: "bg-red-500/20 border border-red-400/30",
-        iconColor: "text-red-300",
+        iconColor: "text-(--ws-rose)",
         gradientFrom: "from-red-500/20",
       };
     case "expired":
@@ -93,7 +93,7 @@ function getStatusInfo(status: PeriodStatus | undefined): {
           "Your academic period has expired. Some critical operations are now blocked. Create a new period immediately to restore full functionality.",
         Icon: AlertCircle,
         iconBg: "bg-red-500/20 border border-red-400/30",
-        iconColor: "text-red-300",
+        iconColor: "text-(--ws-rose)",
         gradientFrom: "from-red-500/20",
       };
     case "grace_period":
@@ -113,7 +113,7 @@ function getStatusInfo(status: PeriodStatus | undefined): {
           "Your academic period is about to end. Create a new period now to ensure uninterrupted operations.",
         Icon: Clock,
         iconBg: "bg-red-500/20 border border-red-400/30",
-        iconColor: "text-red-300",
+        iconColor: "text-(--ws-rose)",
         gradientFrom: "from-red-500/20",
       };
     default:
@@ -177,7 +177,7 @@ export function PeriodExpiryModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className={cn(
-          "max-w-lg border border-white/10 bg-slate-950/95 text-slate-50 shadow-2xl shadow-black/50",
+          "max-w-lg border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]",
           !canClose && "[&>button]:hidden" // Hide close button if can't close
         )}
       >
@@ -199,13 +199,13 @@ export function PeriodExpiryModal({
                 {title}
               </DialogTitle>
               {currentPeriod && (
-                <p className="text-xs text-white/50 mt-0.5">
+                <p className="text-xs text-(--ws-fg-50) mt-0.5">
                   {currentPeriod.term} {currentPeriod.yearLabel}
                 </p>
               )}
             </div>
           </div>
-          <DialogDescription className="text-sm text-white/70">
+          <DialogDescription className="text-sm text-(--ws-fg-70)">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -224,7 +224,7 @@ export function PeriodExpiryModal({
               )}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-(--ws-fg-70)">
                   {daysSinceExpiry !== null
                     ? "Period ended"
                     : "Time remaining"}
@@ -233,10 +233,10 @@ export function PeriodExpiryModal({
                   className={cn(
                     "text-lg font-bold",
                     status === "expired" || status === "no_period"
-                      ? "text-red-300"
+                      ? "text-(--ws-rose)"
                       : status === "grace_period"
                       ? "text-orange-300"
-                      : "text-amber-300"
+                      : "text-(--ws-amber)"
                   )}
                 >
                   {daysSinceExpiry !== null
@@ -250,11 +250,11 @@ export function PeriodExpiryModal({
               </div>
               {status === "grace_period" && daysSinceExpiry !== null && (
                 <div className="mt-2">
-                  <div className="flex items-center justify-between text-xs text-white/50 mb-1">
+                  <div className="flex items-center justify-between text-xs text-(--ws-fg-50) mb-1">
                     <span>Grace period</span>
                     <span>{7 - daysSinceExpiry} days remaining</span>
                   </div>
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-2 bg-(--ws-fill-strong) rounded-full overflow-hidden">
                     <div
                       className="h-full bg-orange-400 rounded-full transition-all"
                       style={{ width: `${((7 - daysSinceExpiry) / 7) * 100}%` }}
@@ -266,8 +266,8 @@ export function PeriodExpiryModal({
           )}
 
           {/* Operations status */}
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <h4 className="text-sm font-medium text-white/90 mb-3">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <h4 className="text-sm font-medium text-(--ws-fg-90) mb-3">
               System Operations Status
             </h4>
             <div className="space-y-1">
@@ -301,11 +301,11 @@ export function PeriodExpiryModal({
 
           {/* Helpful tips */}
           {currentPeriod && (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <h4 className="text-sm font-medium text-white/90 mb-2">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <h4 className="text-sm font-medium text-(--ws-fg-90) mb-2">
                 Tip: Creating a New Period
               </h4>
-              <ul className="space-y-1.5 text-xs text-white/60">
+              <ul className="space-y-1.5 text-xs text-(--ws-fg-60)">
                 <li className="flex items-start gap-2">
                   <span className="text-brand">•</span>
                   You can backdate the start date if the new term has already
@@ -331,9 +331,9 @@ export function PeriodExpiryModal({
               className={cn(
                 "flex-1 gap-2",
                 status === "expired" || status === "no_period"
-                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  ? "bg-red-500 hover:bg-red-600 text-(--ws-fg)"
                   : status === "grace_period" || status === "expiring_critical"
-                  ? "bg-orange-500 hover:bg-orange-600 text-white"
+                  ? "bg-orange-500 hover:bg-orange-600 text-(--ws-fg)"
                   : "bg-brand hover:bg-brand/90 text-black"
               )}
             >
@@ -348,7 +348,7 @@ export function PeriodExpiryModal({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/15 bg-white/5 text-white/80 hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
               >
                 Later
               </Button>
@@ -356,7 +356,7 @@ export function PeriodExpiryModal({
           </div>
 
           {!canClose && (
-            <p className="text-xs text-center text-white/40">
+            <p className="text-xs text-center text-(--ws-fg-40)">
               This action is required to continue using the system.
             </p>
           )}

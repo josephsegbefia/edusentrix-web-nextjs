@@ -32,7 +32,7 @@ export function OnboardingProgressIndicator({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/10",
+        "relative overflow-hidden rounded-2xl border border-(--ws-line)",
         "bg-linear-to-br from-white/[0.07] via-white/[0.02] to-transparent",
         "shadow-[0_24px_56px_-28px_rgba(0,0,0,0.9)] backdrop-blur-md"
       )}
@@ -52,24 +52,24 @@ export function OnboardingProgressIndicator({
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-fg-40)">
                 School setup
               </p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
+              <h2 className="mt-1 text-lg font-semibold tracking-tight text-(--ws-fg) sm:text-xl">
                 Finish onboarding your workspace
               </h2>
-              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-white/50">
+              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-(--ws-fg-50)">
                 Work through each step in order. Sidebar navigation stays on
                 Dashboard until setup is complete—use the quick actions for your
                 current step.
               </p>
             </div>
           </div>
-          <div className="flex shrink-0 items-baseline gap-1.5 rounded-xl border border-white/10 bg-black/30 px-4 py-3 shadow-inner shadow-black/20">
-            <span className="text-3xl font-bold tabular-nums tracking-tight text-white">
+          <div className="flex shrink-0 items-baseline gap-1.5 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 shadow-inner shadow-black/20">
+            <span className="text-3xl font-bold tabular-nums tracking-tight text-(--ws-fg)">
               {progressPercentage}
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
               % done
             </span>
           </div>
@@ -98,10 +98,10 @@ export function OnboardingProgressIndicator({
                         isCompleted &&
                           "border-brand bg-brand text-black shadow-md shadow-brand/20",
                         isCurrent &&
-                          "border-sky-400/70 bg-sky-400/12 text-sky-100 ring-2 ring-sky-400/20",
+                          "border-sky-400/70 bg-sky-400/12 text-(--ws-cyan) ring-2 ring-sky-400/20",
                         !isCompleted &&
                           !isCurrent &&
-                          "border-white/14 bg-white/[0.04] text-white/38"
+                          "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)"
                       )}
                     >
                       {isCompleted ? (
@@ -114,12 +114,12 @@ export function OnboardingProgressIndicator({
                       <p
                         className={cn(
                           "text-[11px] font-semibold leading-snug sm:text-xs",
-                          isCurrent ? "text-sky-200" : "text-white/55"
+                          isCurrent ? "text-sky-200" : "text-(--ws-fg)/55"
                         )}
                       >
                         {step.shortLabel}
                       </p>
-                      <p className="mt-0.5 hidden text-[10px] leading-tight text-white/38 sm:block">
+                      <p className="mt-0.5 hidden text-[10px] leading-tight text-(--ws-fg)/38 sm:block">
                         {step.label}
                       </p>
                     </div>
@@ -128,7 +128,7 @@ export function OnboardingProgressIndicator({
                     <div
                       className={cn(
                         "hidden h-0.5 min-w-[0.75rem] flex-1 rounded-full sm:block",
-                        index < currentStepIndex ? "bg-brand/60" : "bg-white/10"
+                        index < currentStepIndex ? "bg-brand/60" : "bg-(--ws-fill-strong)"
                       )}
                       aria-hidden
                     />

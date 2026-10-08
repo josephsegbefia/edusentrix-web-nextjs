@@ -85,16 +85,16 @@ export function GradesTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/10">
+    <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
       <table className="min-w-full border-collapse text-xs md:text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-white/5 text-xs text-muted-foreground">
+          <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-xs text-muted-foreground">
             <th className="w-8 px-3 py-2 text-left align-middle">
               <Checkbox
                 checked={allVisibleSelected}
                 onCheckedChange={handleHeaderCheckboxChange}
                 className={cn(
-                  "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                  "h-4 w-4 border-(--ws-line-strong) bg-slate-900/80 data-[state=checked]:bg-primary"
                 )}
                 aria-label="Select all visible grades"
                 indeterminate={someVisibleSelected}
@@ -168,8 +168,8 @@ export function GradesTable({
                 key={grade.id}
                 onClick={() => onView?.(grade.id)}
                 className={cn(
-                  "border-b border-white/5 transition-colors cursor-pointer",
-                  "hover:bg-white/5",
+                  "border-b border-(--ws-line) transition-colors cursor-pointer",
+                  "hover:bg-(--ws-fill)",
                   isSelected && "bg-blue-500/10"
                 )}
               >
@@ -177,7 +177,7 @@ export function GradesTable({
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => onToggleRow(grade.id)}
-                    className="h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                    className="h-4 w-4 border-(--ws-line-strong) bg-slate-900/80 data-[state=checked]:bg-primary"
                     aria-label={`Select ${grade.name}`}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -188,25 +188,25 @@ export function GradesTable({
                       <GraduationCap className="h-4 w-4 text-blue-300" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-white">
+                      <p className="truncate text-xs font-medium text-(--ws-fg)">
                         {grade.name}
                       </p>
-                      <p className="truncate text-[11px] text-white/60">
+                      <p className="truncate text-[11px] text-(--ws-fg-60)">
                         {grade.code ?? "—"}
                       </p>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/70">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-70)">
                   {grade.code ?? "—"}
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {grade.stage}
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {classCount}
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {studentCount}
                 </td>
                 <td className="px-3 py-2 align-middle text-xs">

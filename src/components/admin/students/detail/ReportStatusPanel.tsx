@@ -16,10 +16,10 @@ import type { StudentAcademicProfileDTO } from "@/types/academics/student-academ
 import { cn } from "@/lib/utils";
 
 const ROW_TONE_CLASS: Record<string, string> = {
-  success: "text-emerald-200",
-  warning: "text-amber-200",
-  error: "text-rose-200",
-  neutral: "text-white/80",
+  success: "text-(--ws-emerald)",
+  warning: "text-(--ws-amber)",
+  error: "text-(--ws-rose)",
+  neutral: "text-(--ws-fg-80)",
 };
 
 type Props = {
@@ -40,7 +40,7 @@ function StatusRow({
 }) {
   return (
     <div className={cn("flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4", glassInsetClass, "px-3 py-2")}>
-      <span className="text-[11px] font-medium uppercase tracking-wide text-white/45">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
         {label}
       </span>
       <span
@@ -76,11 +76,11 @@ export function ReportStatusPanel({
     <GlassPanel className="p-4 sm:p-5" glow="cyan">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-teal-500/20">
-            <FileText className="h-5 w-5 text-cyan-300" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-teal-500/20">
+            <FileText className="h-5 w-5 text-(--ws-cyan)" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-white">{model.title}</h3>
+            <h3 className="text-sm font-semibold text-(--ws-fg)">{model.title}</h3>
             <OfficialStatusBadge
               status={model.badgeStatus}
               isOfficial={profile?.reportStatus.isOfficial}
@@ -139,7 +139,7 @@ export function ReportStatusPanel({
       </div>
 
       {model.parentMessage ? (
-        <p className="mt-4 text-sm leading-relaxed text-white/70">{model.parentMessage}</p>
+        <p className="mt-4 text-sm leading-relaxed text-(--ws-fg-70)">{model.parentMessage}</p>
       ) : null}
 
       {model.showStaffDetails && model.rows.length > 0 ? (
@@ -174,7 +174,7 @@ export function ReportStatusPanel({
 export function ReportStatusPanelSkeleton() {
   return (
     <GlassPanel className="p-5" glow="none">
-      <div className="h-28 animate-pulse rounded-xl bg-white/5" />
+      <div className="h-28 animate-pulse rounded-xl bg-(--ws-fill)" />
     </GlassPanel>
   );
 }

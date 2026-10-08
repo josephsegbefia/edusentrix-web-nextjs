@@ -163,18 +163,18 @@ export function StudentDetailAvatar({
           dragOver && "ring-2 ring-teal-400/50 ring-offset-2 ring-offset-slate-950"
         )}
       >
-        <Avatar className="size-24 rounded-full border-2 border-white/20 shadow-xl shadow-black/50 ring-2 ring-teal-500/20 transition-all group-hover:border-teal-400/40 group-hover:ring-teal-400/30">
+        <Avatar className="size-24 rounded-full border-2 border-(--ws-line-strong) shadow-xl shadow-black/50 ring-2 ring-teal-500/20 transition-all group-hover:border-teal-400/40 group-hover:ring-teal-400/30">
           {displayUrl ? (
             <AvatarImage src={displayUrl} alt={fullName} className="object-cover" />
           ) : null}
-          <AvatarFallback className="bg-linear-to-br from-teal-600/40 to-cyan-600/40 text-2xl font-bold text-white">
+          <AvatarFallback className="bg-linear-to-br from-teal-600/40 to-cyan-600/40 text-2xl font-bold text-(--ws-fg)">
             {initialsFromName(fullName)}
           </AvatarFallback>
         </Avatar>
 
         <div
           className={cn(
-            "absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-full bg-black/55 text-white transition-opacity",
+            "absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-full bg-(--ws-fill)5 text-(--ws-fg) transition-opacity",
             busy || dragOver ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}
         >
@@ -183,7 +183,7 @@ export function StudentDetailAvatar({
           ) : (
             <>
               <Camera className="h-5 w-5" aria-hidden />
-              <span className="px-2 text-center text-[9px] font-medium leading-tight text-white/90">
+              <span className="px-2 text-center text-[9px] font-medium leading-tight text-(--ws-fg-90)">
                 {displayUrl ? "Replace" : "Upload"}
               </span>
             </>
@@ -202,7 +202,7 @@ export function StudentDetailAvatar({
 
       {status === "active" && (
         <div className="pointer-events-none absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-900 bg-emerald-500 shadow-lg shadow-emerald-500/30">
-          <Sparkles className="h-3 w-3 text-white" />
+          <Sparkles className="h-3 w-3 text-(--ws-fg)" />
         </div>
       )}
     </div>

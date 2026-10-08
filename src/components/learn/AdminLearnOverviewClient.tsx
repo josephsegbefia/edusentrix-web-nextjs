@@ -84,7 +84,7 @@ export function AdminLearnOverviewClient() {
   }, []);
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="EduSentrix Learn"
@@ -108,7 +108,7 @@ export function AdminLearnOverviewClient() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <Link href="/admin/learn/accounts">
                   <KeyRound className="mr-2 h-4 w-4" />
@@ -118,7 +118,7 @@ export function AdminLearnOverviewClient() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <Link href="/admin/learn/activity">
                   <Activity className="mr-2 h-4 w-4" />
@@ -128,7 +128,7 @@ export function AdminLearnOverviewClient() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <Link href="/admin/learn/explore-content">
                   <Compass className="mr-2 h-4 w-4" />
@@ -138,7 +138,7 @@ export function AdminLearnOverviewClient() {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <Link href="/admin/learn/settings">
                   <Settings className="mr-2 h-4 w-4" />
@@ -152,19 +152,19 @@ export function AdminLearnOverviewClient() {
         {loading ? (
           <GlassPanel className="p-8 text-center" glow="cyan">
             <Loader2 className="mx-auto h-6 w-6 animate-spin text-teal-200" />
-            <p className="mt-3 text-sm text-white/55">Loading Learn overview...</p>
+            <p className="mt-3 text-sm text-(--ws-fg-50)">Loading Learn overview...</p>
           </GlassPanel>
         ) : error ? (
           <GlassPanel className="p-8 text-center" glow="cyan">
-            <p className="font-medium text-white">Could not load Learn overview.</p>
-            <p className="mt-2 text-sm text-white/55">{error}</p>
+            <p className="font-medium text-(--ws-fg)">Could not load Learn overview.</p>
+            <p className="mt-2 text-sm text-(--ws-fg-50)">{error}</p>
           </GlassPanel>
         ) : data ? (
           <>
             {!data.eligibility.eligible ? (
               <GlassPanel className="p-6" glow="cyan">
-                <h2 className="text-lg font-semibold text-white">Learn unavailable</h2>
-                <p className="mt-2 text-sm text-white/60">
+                <h2 className="text-lg font-semibold text-(--ws-fg)">Learn unavailable</h2>
+                <p className="mt-2 text-sm text-(--ws-fg-60)">
                   {data.eligibility.reason || "This school is not eligible for EduSentrix Learn."}
                 </p>
               </GlassPanel>
@@ -183,8 +183,8 @@ export function AdminLearnOverviewClient() {
               <GlassPanel className="p-6" glow="both">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Account readiness</h2>
-                    <p className="mt-1 text-sm text-white/55">
+                    <h2 className="text-lg font-semibold text-(--ws-fg)">Account readiness</h2>
+                    <p className="mt-1 text-sm text-(--ws-fg-50)">
                       Create accounts for students in{" "}
                       {data.metrics.gradeRange || "Primary 4 / Grade 4 through JHS 3"} who are
                       eligible but not yet provisioned.
@@ -207,7 +207,7 @@ export function AdminLearnOverviewClient() {
               </GlassPanel>
 
               <GlassPanel className="p-6" glow="teal">
-                <h2 className="text-lg font-semibold text-white">Top active classes</h2>
+                <h2 className="text-lg font-semibold text-(--ws-fg)">Top active classes</h2>
                 <div className="mt-4 space-y-3">
                   {data.topClasses.length ? (
                     data.topClasses.map((row) => (
@@ -215,7 +215,7 @@ export function AdminLearnOverviewClient() {
                         key={row.classGroupId}
                         className={cn(glassInsetClass, "flex items-center justify-between gap-3 p-3")}
                       >
-                        <span className="text-sm font-medium text-white">
+                        <span className="text-sm font-medium text-(--ws-fg)">
                           {row.classGroupName}
                         </span>
                         <span className="text-sm text-teal-100">
@@ -224,7 +224,7 @@ export function AdminLearnOverviewClient() {
                       </div>
                     ))
                   ) : (
-                    <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/55">
+                    <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-50)">
                       No Learn activity has been recorded this week.
                     </p>
                   )}
@@ -241,10 +241,10 @@ export function AdminLearnOverviewClient() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <GlassPanel className="p-4" glow="cyan">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-40)">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value.toLocaleString()}</p>
+      <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{value.toLocaleString()}</p>
     </GlassPanel>
   );
 }
@@ -262,10 +262,10 @@ function ProgressRow({
   return (
     <div>
       <div className="flex items-center justify-between text-sm">
-        <span className="text-white/65">{label}</span>
-        <span className="font-medium text-white">{percent}%</span>
+        <span className="text-(--ws-fg-60)">{label}</span>
+        <span className="font-medium text-(--ws-fg)">{percent}%</span>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-(--ws-fill-strong)">
         <div className="h-full rounded-full bg-teal-300" style={{ width: `${percent}%` }} />
       </div>
     </div>

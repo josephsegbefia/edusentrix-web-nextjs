@@ -78,9 +78,9 @@ const DELIVERY_STATUS_LABELS: Record<SessionRow["deliveryStatus"], string> = {
 };
 
 const DELIVERY_STATUS_STYLES: Record<SessionRow["deliveryStatus"], string> = {
-  completed: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
-  in_progress: "border-teal-400/30 bg-teal-500/10 text-teal-200",
-  not_started: "border-amber-400/30 bg-amber-500/10 text-amber-200",
+  completed: "border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)",
+  in_progress: "border-teal-400/30 bg-teal-500/10 text-(--ws-teal)",
+  not_started: "border-amber-400/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
 function StatCard({
@@ -102,10 +102,10 @@ function StatCard({
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-2xl font-semibold text-white">
-            {value === null ? <span className="inline-block h-7 w-8 animate-pulse rounded bg-white/10" /> : value}
+          <p className="text-2xl font-semibold text-(--ws-fg)">
+            {value === null ? <span className="inline-block h-7 w-8 animate-pulse rounded bg-(--ws-fill-strong)" /> : value}
           </p>
-          <p className="text-xs text-white/50">{label}</p>
+          <p className="text-xs text-(--ws-fg-50)">{label}</p>
         </div>
       </div>
     </div>
@@ -193,13 +193,13 @@ export function AdminLessonSessionsOverview() {
           label="Total sessions"
           value={stats?.total ?? null}
           icon={BookOpen}
-          color="bg-teal-500/15 text-teal-200"
+          color="bg-teal-500/15 text-(--ws-teal)"
         />
         <StatCard
           label="Delivered"
           value={stats?.delivered ?? null}
           icon={CheckCircle2}
-          color="bg-emerald-500/15 text-emerald-200"
+          color="bg-emerald-500/15 text-(--ws-emerald)"
         />
         <StatCard
           label="In progress"
@@ -211,7 +211,7 @@ export function AdminLessonSessionsOverview() {
           label="Not started"
           value={stats?.pending ?? null}
           icon={XCircle}
-          color="bg-amber-500/15 text-amber-200"
+          color="bg-amber-500/15 text-(--ws-amber)"
         />
       </div>
 
@@ -221,12 +221,12 @@ export function AdminLessonSessionsOverview() {
         <div className="flex flex-wrap items-end gap-3">
           {/* Search */}
           <div className="relative min-w-[200px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search sessions, teacher, class…"
-              className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/30"
+              className="border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
             />
           </div>
 
@@ -246,13 +246,15 @@ export function AdminLessonSessionsOverview() {
           {/* Week start / end */}
           <div className="flex items-center gap-2">
             <CustomDatePicker
+              surface="theme"
               value={weekStart}
               onChange={setWeekStart}
               placeholder="From date"
               className="w-[150px]"
             />
-            <span className="text-xs text-white/30">–</span>
+            <span className="text-xs text-(--ws-fg-40)">–</span>
             <CustomDatePicker
+              surface="theme"
               value={weekEnd}
               onChange={setWeekEnd}
               placeholder="To date"
@@ -267,7 +269,7 @@ export function AdminLessonSessionsOverview() {
               variant="outline"
               onClick={() => void refetch()}
               disabled={isFetching}
-              className="border-white/10 bg-white/5 text-white/60"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
             </Button>
@@ -277,7 +279,7 @@ export function AdminLessonSessionsOverview() {
                 size="sm"
                 variant="ghost"
                 onClick={clearFilters}
-                className="text-white/40 hover:text-white/70"
+                className="text-(--ws-fg-40) hover:text-(--ws-fg)/70"
               >
                 Clear
               </Button>
@@ -293,7 +295,7 @@ export function AdminLessonSessionsOverview() {
         {isLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full rounded-xl bg-white/5" />
+              <Skeleton key={i} className="h-12 w-full rounded-xl bg-(--ws-fill)" />
             ))}
           </div>
         ) : error ? (
@@ -306,22 +308,22 @@ export function AdminLessonSessionsOverview() {
               size="sm"
               variant="outline"
               onClick={() => void refetch()}
-              className="mt-3 border-white/10 bg-white/5 text-white/60"
+              className="mt-3 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
             >
               Retry
             </Button>
           </div>
         ) : filteredSessions.length === 0 ? (
           <div className="p-10 text-center">
-            <BookOpen className="mx-auto mb-3 h-8 w-8 text-white/20" />
-            <p className="text-sm font-medium text-white/50">No sessions found</p>
+            <BookOpen className="mx-auto mb-3 h-8 w-8 text-(--ws-fg)/20" />
+            <p className="text-sm font-medium text-(--ws-fg-50)">No sessions found</p>
             {hasActiveFilters ? (
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
                 onClick={clearFilters}
-                className="mt-2 text-white/35"
+                className="mt-2 text-(--ws-fg)/35"
               >
                 Clear filters
               </Button>
@@ -331,26 +333,26 @@ export function AdminLessonSessionsOverview() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px] text-sm">
               <thead>
-                <tr className="border-b border-white/8">
-                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-white/40">
+                <tr className="border-b border-(--ws-line)">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Session
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Class
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Subject
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Teacher
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-white/40">
+                  <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                     Actions
                   </th>
                 </tr>
@@ -359,26 +361,26 @@ export function AdminLessonSessionsOverview() {
                 {filteredSessions.map((session) => (
                   <tr
                     key={session.id}
-                    className="border-b border-white/5 transition hover:bg-white/3"
+                    className="border-b border-(--ws-line) transition hover:bg-(--ws-fill)"
                   >
                     <td className="px-4 py-3">
-                      <p className="font-medium text-white/90">{session.title}</p>
-                      <p className="text-xs text-white/35">
+                      <p className="font-medium text-(--ws-fg-90)">{session.title}</p>
+                      <p className="text-xs text-(--ws-fg)/35">
                         {session.contentBlockCount} block{session.contentBlockCount === 1 ? "" : "s"}
                         {session.assessmentItemCount > 0
                           ? ` · ${session.assessmentItemCount} assessment item${session.assessmentItemCount === 1 ? "" : "s"}`
                           : ""}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-white/70">
+                    <td className="px-4 py-3 text-(--ws-fg-70)">
                       <p>{session.scheduledDate}</p>
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-(--ws-fg-40)">
                         {DAY_LABELS[session.dayOfWeek] ?? ""} · {session.startTime}–{session.endTime}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-white/70">{session.classGroupName}</td>
-                    <td className="px-4 py-3 text-white/70">{session.subjectName}</td>
-                    <td className="px-4 py-3 text-white/70">{session.teacherName}</td>
+                    <td className="px-4 py-3 text-(--ws-fg-70)">{session.classGroupName}</td>
+                    <td className="px-4 py-3 text-(--ws-fg-70)">{session.subjectName}</td>
+                    <td className="px-4 py-3 text-(--ws-fg-70)">{session.teacherName}</td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
@@ -389,7 +391,7 @@ export function AdminLessonSessionsOverview() {
                         {DELIVERY_STATUS_LABELS[session.deliveryStatus]}
                       </span>
                       {session.completedAt ? (
-                        <p className="mt-0.5 text-[10px] text-white/30">
+                        <p className="mt-0.5 text-[10px] text-(--ws-fg-40)">
                           {new Date(session.completedAt).toLocaleDateString()}
                         </p>
                       ) : null}
@@ -399,7 +401,7 @@ export function AdminLessonSessionsOverview() {
                         asChild
                         size="sm"
                         variant="ghost"
-                        className="h-8 border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/90"
+                        className="h-8 border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)/90"
                       >
                         <Link href={`/admin/lessons/sessions/${session.id}`}>
                           View
@@ -416,8 +418,8 @@ export function AdminLessonSessionsOverview() {
 
         {/* Pagination */}
         {pagination && pagination.pages > 1 ? (
-          <div className="flex items-center justify-between border-t border-white/8 px-4 py-3">
-            <p className="text-xs text-white/40">
+          <div className="flex items-center justify-between border-t border-(--ws-line) px-4 py-3">
+            <p className="text-xs text-(--ws-fg-40)">
               Page {pagination.page} of {pagination.pages} · {pagination.total} result
               {pagination.total === 1 ? "" : "s"}
             </p>
@@ -428,7 +430,7 @@ export function AdminLessonSessionsOverview() {
                 variant="outline"
                 disabled={page <= 1 || isFetching}
                 onClick={() => setPage((p) => p - 1)}
-                className="border-white/10 bg-white/5 text-white/60"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
               >
                 Previous
               </Button>
@@ -438,7 +440,7 @@ export function AdminLessonSessionsOverview() {
                 variant="outline"
                 disabled={page >= pagination.pages || isFetching}
                 onClick={() => setPage((p) => p + 1)}
-                className="border-white/10 bg-white/5 text-white/60"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
               >
                 Next
               </Button>
@@ -448,7 +450,7 @@ export function AdminLessonSessionsOverview() {
       </div>
 
       {isFetching && !isLoading ? (
-        <p className="flex items-center gap-1.5 text-xs text-white/35">
+        <p className="flex items-center gap-1.5 text-xs text-(--ws-fg)/35">
           <Loader2 className="h-3 w-3 animate-spin" />
           Refreshing…
         </p>

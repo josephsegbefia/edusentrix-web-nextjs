@@ -57,7 +57,7 @@ export default function ApprovePollModal({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f14] p-6 shadow-2xl"
+          className="relative w-full max-w-md rounded-2xl border border-(--ws-line) bg-[#0f0f14] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -67,27 +67,27 @@ export default function ApprovePollModal({
                 <CheckCircle className="h-6 w-6 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Approve Poll</h2>
-                <p className="text-sm text-white/50">Confirm approval</p>
+                <h2 className="text-lg font-bold text-(--ws-fg)">Approve Poll</h2>
+                <p className="text-sm text-(--ws-fg-50)">Confirm approval</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Content */}
-          <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-white/70">
+          <div className="mb-6 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="text-sm text-(--ws-fg-70)">
               You are about to approve the poll:
             </p>
-            <p className="mt-2 font-medium text-white">&ldquo;{pollTitle}&rdquo;</p>
-            <p className="mt-3 text-sm text-white/50">
+            <p className="mt-2 font-medium text-(--ws-fg)">&ldquo;{pollTitle}&rdquo;</p>
+            <p className="mt-3 text-sm text-(--ws-fg-50)">
               Once approved, the poll can be published and will be visible to the target audience.
             </p>
           </div>
@@ -97,7 +97,7 @@ export default function ApprovePollModal({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-white/10 text-white/60"
+              className="border-(--ws-line) text-(--ws-fg-60)"
             >
               Cancel
             </Button>

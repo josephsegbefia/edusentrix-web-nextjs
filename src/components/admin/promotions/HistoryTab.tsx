@@ -14,11 +14,11 @@ import { StudentsPagination } from "@/components/admin/students/StudentsPaginati
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-  preview_ready: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  review_in_progress: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  preview_ready: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
+  review_in_progress: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
   approved: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
   finalizing: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  finalized: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  finalized: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   finalize_failed: "bg-red-500/20 text-red-300 border-red-500/30",
   cancelled: "bg-slate-500/20 text-slate-400 border-slate-500/30",
   rolled_back: "bg-slate-500/20 text-slate-400 border-slate-500/30",
@@ -45,7 +45,7 @@ export function HistoryTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-white/40" />
+        <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
       </div>
     );
   }
@@ -56,17 +56,17 @@ export function HistoryTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white">Cycle history</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Cycle history</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">
           Past promotion cycles and their status.
         </p>
       </div>
 
       {cycles.length === 0 ? (
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] py-12 text-center">
-          <History className="mx-auto h-12 w-12 text-white/20" />
-          <p className="mt-4 text-white/60">No promotion cycles yet</p>
-          <p className="mt-1 text-sm text-white/40">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) py-12 text-center">
+          <History className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+          <p className="mt-4 text-(--ws-fg-60)">No promotion cycles yet</p>
+          <p className="mt-1 text-sm text-(--ws-fg-40)">
             Run a preview in the Preview tab to create your first cycle
           </p>
         </div>
@@ -75,28 +75,28 @@ export function HistoryTab() {
           {cycles.map((c) => (
             <div
               key={c.id}
-              className="flex flex-wrap items-center gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
+              className="flex flex-wrap items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill)"
             >
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-white">{c.sourceYearLabel}</p>
-                <p className="text-xs text-white/50">
+                <p className="font-medium text-(--ws-fg)">{c.sourceYearLabel}</p>
+                <p className="text-xs text-(--ws-fg-50)">
                   {c.totals.studentsEvaluated} evaluated • P: {c.totals.promote} R: {c.totals.repeat}{" "}
                   G: {c.totals.graduate} H: {c.totals.hold}
                 </p>
               </div>
               <Badge
                 variant="outline"
-                className={cn("shrink-0", STATUS_COLORS[c.status] ?? "bg-white/10")}
+                className={cn("shrink-0", STATUS_COLORS[c.status] ?? "bg-(--ws-fill-strong)")}
               >
                 {formatStatus(c.status)}
               </Badge>
-              <span className="text-xs text-white/40">
+              <span className="text-xs text-(--ws-fg-40)">
                 {new Date(c.createdAt).toLocaleDateString()}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 text-white/40 hover:bg-red-500/10 hover:text-red-400"
+                className="h-8 w-8 shrink-0 text-(--ws-fg-40) hover:bg-red-500/10 hover:text-red-400"
                 onClick={async () => {
                   const ok = await confirm({
                     title: "Delete cycle?",
@@ -128,7 +128,7 @@ export function HistoryTab() {
 
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-(--ws-fg-50)">
             Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
           </p>
           <div className="flex gap-2">

@@ -99,7 +99,7 @@ function TemplateCard({ template, isSelected, onClick }: TemplateCardProps) {
         "hover:scale-[1.02] hover:shadow-lg",
         isSelected
           ? `${colorClass.border} ${colorClass.bg} ring-2 ring-${template.color}-500/50`
-          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/[0.07]"
+          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
       )}
     >
       {/* Selection indicator */}
@@ -121,8 +121,8 @@ function TemplateCard({ template, isSelected, onClick }: TemplateCardProps) {
           {CATEGORY_ICONS[template.category] || <FileText className="h-5 w-5" />}
         </div>
         <div className="min-w-0 flex-1">
-          <h4 className="truncate font-medium text-white">{template.name}</h4>
-          <p className="mt-0.5 line-clamp-2 text-sm text-white/50">{template.description}</p>
+          <h4 className="truncate font-medium text-(--ws-fg)">{template.name}</h4>
+          <p className="mt-0.5 line-clamp-2 text-sm text-(--ws-fg-50)">{template.description}</p>
           <div className="mt-2 flex items-center gap-2">
             <Badge className={cn("text-[10px]", colorClass.border, colorClass.bg, colorClass.text)}>
               {template.questionCount} question{template.questionCount !== 1 ? "s" : ""}
@@ -195,14 +195,14 @@ export default function PollTemplateSelector({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-4xl rounded-2xl border border-white/10 bg-[#0f0f14] shadow-2xl"
+          className="relative w-full max-w-4xl rounded-2xl border border-(--ws-line) bg-[#0f0f14] shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 p-6">
+          <div className="flex items-center justify-between border-b border-(--ws-line) p-6">
             <div>
-              <h2 className="text-xl font-bold text-white">Create a Poll</h2>
-              <p className="mt-1 text-sm text-white/60">
+              <h2 className="text-xl font-bold text-(--ws-fg)">Create a Poll</h2>
+              <p className="mt-1 text-sm text-(--ws-fg-60)">
                 Choose a template to get started quickly, or create from scratch
               </p>
             </div>
@@ -210,7 +210,7 @@ export default function PollTemplateSelector({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -219,8 +219,8 @@ export default function PollTemplateSelector({
           {/* Content */}
           <div className="flex min-h-[400px]">
             {/* Category Sidebar */}
-            <div className="w-56 shrink-0 border-r border-white/10 p-4">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/40">
+            <div className="w-56 shrink-0 border-r border-(--ws-line) p-4">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)">
                 Categories
               </h3>
               <div className="space-y-1">
@@ -230,8 +230,8 @@ export default function PollTemplateSelector({
                   className={cn(
                     "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
                     selectedCategory === "all"
-                      ? "bg-white/10 text-white"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                      ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                      : "text-(--ws-fg-60) hover:bg-(--ws-fill) hover:text-(--ws-fg)"
                   )}
                 >
                   <Sparkles className="h-4 w-4" />
@@ -245,8 +245,8 @@ export default function PollTemplateSelector({
                     className={cn(
                       "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
                       selectedCategory === cat.id
-                        ? "bg-white/10 text-white"
-                        : "text-white/60 hover:bg-white/5 hover:text-white"
+                        ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                        : "text-(--ws-fg-60) hover:bg-(--ws-fill) hover:text-(--ws-fg)"
                     )}
                   >
                     {CATEGORY_ICONS[cat.id]}
@@ -262,16 +262,16 @@ export default function PollTemplateSelector({
                 <div className="flex h-full items-center justify-center">
                   <div className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-400" />
-                    <p className="mt-2 text-sm text-white/60">Loading templates...</p>
+                    <p className="mt-2 text-sm text-(--ws-fg-60)">Loading templates...</p>
                   </div>
                 </div>
               ) : isError || !templatesData?.data?.length ? (
                 <div className="flex h-full flex-col items-center justify-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                    <FileText className="h-8 w-8 text-white/30" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-fill)">
+                    <FileText className="h-8 w-8 text-(--ws-fg-40)" />
                   </div>
-                  <p className="mt-4 font-medium text-white/80">No templates available</p>
-                  <p className="mt-1 text-sm text-white/50">
+                  <p className="mt-4 font-medium text-(--ws-fg-80)">No templates available</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     Seed the default templates to get started
                   </p>
                   <Button
@@ -307,11 +307,11 @@ export default function PollTemplateSelector({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-white/10 p-6">
+          <div className="flex items-center justify-between border-t border-(--ws-line) p-6">
             <Button
               variant="outline"
               onClick={handleStartFromScratch}
-              className="gap-2 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+              className="gap-2 border-(--ws-line) text-(--ws-fg-60) hover:bg-(--ws-fill) hover:text-(--ws-fg)"
             >
               <Plus className="h-4 w-4" />
               Start from Scratch
@@ -320,7 +320,7 @@ export default function PollTemplateSelector({
               <Button
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 text-white/60"
+                className="border-(--ws-line) text-(--ws-fg-60)"
               >
                 Cancel
               </Button>

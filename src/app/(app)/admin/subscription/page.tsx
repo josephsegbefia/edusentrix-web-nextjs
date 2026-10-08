@@ -25,6 +25,7 @@ import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { SubscriptionEventLog } from "@/components/subscriptions/SubscriptionEventLog";
 import { SubscriptionBillingGuideButton } from "@/components/subscriptions/SubscriptionBillingGuideButton";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { LIMIT_KEYS, ONE_GB } from "@/lib/subscriptions/limit-keys";
 import { getAccessModeBannerMessage } from "@/lib/subscriptions/access-mode";
 import type { SchoolEntitlementSnapshot } from "@/lib/subscriptions/resolve-school-entitlements";
@@ -35,15 +36,15 @@ type SubscriptionData = Omit<SchoolEntitlementSnapshot, "hasFeature" | "getLimit
 };
 
 const STATUS_TONE: Record<string, string> = {
-  active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  pilot: "border-violet-500/30 bg-violet-500/10 text-violet-200",
-  grace: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  active: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  pilot: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
+  grace: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   restricted_read_only: "border-orange-500/30 bg-orange-500/10 text-orange-200",
-  suspended: "border-rose-500/30 bg-rose-500/10 text-rose-200",
-  draft: "border-white/10 bg-white/5 text-white/40",
-  cancelled: "border-white/10 bg-white/5 text-white/40",
-  expired: "border-white/10 bg-white/5 text-white/40",
-  past_due: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  suspended: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
+  cancelled: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
+  expired: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
+  past_due: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
 function formatGHS(minor: number) {
@@ -79,15 +80,15 @@ function UsageBar({
     <div className={cn(glassInsetClass, "px-4 py-3")}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-white/40" />
-          <span className="text-xs text-white/60">{label}</span>
+          <Icon className="h-4 w-4 text-(--ws-fg-40)" />
+          <span className="text-xs text-(--ws-fg-60)">{label}</span>
         </div>
-        <span className="text-xs text-white/50">
+        <span className="text-xs text-(--ws-fg-50)">
           {isUnlimited ? (
-            <span className="text-emerald-300/70">Unlimited</span>
+            <span className="text-(--ws-emerald)/70">Unlimited</span>
           ) : (
             <>
-              <span className={cn("font-medium", isDanger ? "text-rose-300" : "text-white/80")}>
+              <span className={cn("font-medium", isDanger ? "text-(--ws-rose)" : "text-(--ws-fg-80)")}>
                 {used.toLocaleString()}{unit}
               </span>
               {" / "}
@@ -97,7 +98,7 @@ function UsageBar({
         </span>
       </div>
       {!isUnlimited && limit !== null && limit > 0 ? (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-(--ws-fill-strong)">
           <div
             className={cn(
               "h-full rounded-full transition-all",
@@ -115,11 +116,11 @@ function FeatureRow({ label, enabled }: { label: string; enabled: boolean }) {
   return (
     <div className="flex items-center gap-2 py-1">
       {enabled ? (
-        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-teal-400" />
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-(--ws-teal)" />
       ) : (
-        <Lock className="h-3.5 w-3.5 shrink-0 text-white/20" />
+        <Lock className="h-3.5 w-3.5 shrink-0 text-(--ws-fg-40)" />
       )}
-      <span className={cn("text-xs", enabled ? "text-white/70" : "text-white/30 line-through")}>
+      <span className={cn("text-xs", enabled ? "text-(--ws-fg-70)" : "text-(--ws-fg-40) line-through")}>
         {label}
       </span>
     </div>
@@ -248,17 +249,17 @@ export default function AdminSubscriptionPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-      </div>
+      <WorkspaceScope className="flex min-h-64 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-(--ws-fg-40)" />
+      </WorkspaceScope>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-white/40">
+      <WorkspaceScope className="flex min-h-64 items-center justify-center text-(--ws-fg-40)">
         <p>Unable to load subscription information.</p>
-      </div>
+      </WorkspaceScope>
     );
   }
 
@@ -268,19 +269,19 @@ export default function AdminSubscriptionPage() {
   const isEnforcementOn = process.env.NEXT_PUBLIC_SUBSCRIPTION_ENFORCEMENT_ENABLED === "true";
 
   return (
-    <div className="space-y-6 p-2 md:p-4">
+    <WorkspaceScope className="space-y-6 p-2 md:p-4">
       {/* Header */}
       <div className={cn(glassPanelClass, "px-5 py-5")}>
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/40">
+            <p className="text-xs font-semibold uppercase tracking-widest text-(--ws-fg-40)">
               Subscription & Billing
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-(--ws-fg)">
               Your subscription
             </h1>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               Plan details, feature access, and usage for {data.schoolName}.
             </p>
           </div>
@@ -289,7 +290,7 @@ export default function AdminSubscriptionPage() {
             <button
               type="button"
               onClick={load}
-              className="rounded-xl border border-white/10 bg-white/5 p-2 text-white/40 transition hover:text-white"
+              className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-2 text-(--ws-fg-40) transition hover:text-(--ws-fg)"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -300,16 +301,16 @@ export default function AdminSubscriptionPage() {
       {/* Access mode banner */}
       {bannerMessage ? (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-          <p className="text-sm text-amber-200">{bannerMessage}</p>
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-amber)" />
+          <p className="text-sm text-(--ws-amber)">{bannerMessage}</p>
         </div>
       ) : null}
 
       {/* Enforcement off notice */}
       {!isEnforcementOn && (
         <div className={cn(glassInsetClass, "flex items-start gap-3 px-4 py-3")}>
-          <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-white/30" />
-          <p className="text-xs text-white/40">
+          <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-fg-40)" />
+          <p className="text-xs text-(--ws-fg-40)">
             Subscription gating is currently disabled. You have full access to all features while
             the billing system is being set up.
           </p>
@@ -320,16 +321,16 @@ export default function AdminSubscriptionPage() {
         {/* Subscription summary */}
         <div className="space-y-5">
           <div className={cn(glassPanelClass, "px-5 py-4")}>
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
             <div className="mb-4 flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-white/50" />
-              <p className="text-sm font-semibold text-white/80">Plan details</p>
+              <CreditCard className="h-4 w-4 text-(--ws-fg-50)" />
+              <p className="text-sm font-semibold text-(--ws-fg-80)">Plan details</p>
             </div>
 
             {sub.planName ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">{sub.planName}</span>
+                  <span className="text-sm font-semibold text-(--ws-fg)">{sub.planName}</span>
                   <span
                     className={cn(
                       "rounded-full border px-2 py-0.5 text-xs",
@@ -341,7 +342,7 @@ export default function AdminSubscriptionPage() {
                 </div>
 
                 {sub.effectivePriceMinor > 0 ? (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-(--ws-fg-50)">
                     {formatGHS(sub.effectivePriceMinor)} / {sub.billingCadence ?? "term"}
                   </p>
                 ) : null}
@@ -375,9 +376,9 @@ export default function AdminSubscriptionPage() {
               </div>
             ) : (
               <div className="py-6 text-center">
-                <CircleDashed className="mx-auto mb-2 h-6 w-6 text-white/20" />
-                <p className="text-xs text-white/40">No active subscription.</p>
-                <p className="mt-1 text-xs text-white/30">
+                <CircleDashed className="mx-auto mb-2 h-6 w-6 text-(--ws-fg-40)" />
+                <p className="text-xs text-(--ws-fg-40)">No active subscription.</p>
+                <p className="mt-1 text-xs text-(--ws-fg-40)">
                   Contact EduSentrix to set up your school&apos;s plan.
                 </p>
               </div>
@@ -386,8 +387,8 @@ export default function AdminSubscriptionPage() {
 
           {/* Usage */}
           <div className={cn(glassPanelClass, "px-5 py-4")}>
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
-            <p className="mb-3 text-sm font-semibold text-white/80">Usage</p>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
+            <p className="mb-3 text-sm font-semibold text-(--ws-fg-80)">Usage</p>
             <div className="space-y-2">
               <UsageBar
                 label="Students"
@@ -421,14 +422,14 @@ export default function AdminSubscriptionPage() {
 
           {/* Payments */}
           <div className={cn(glassPanelClass, "px-5 py-4")}>
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
-            <p className="mb-3 text-sm font-semibold text-white/80">Payment charges</p>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
+            <p className="mb-3 text-sm font-semibold text-(--ws-fg-80)">Payment charges</p>
             <div className="space-y-1 text-xs">
               <Row label="Payer mode" value={data.transactionChargeSummary.defaultPayerMode.replace(/_/g, " ")} />
               <Row label="School fees" value={data.transactionChargeSummary.schoolFeesRateLabel} />
               <Row label="Admission fees" value={data.transactionChargeSummary.admissionFeesRateLabel} />
             </div>
-            <p className="mt-3 text-[11px] text-white/30">
+            <p className="mt-3 text-[11px] text-(--ws-fg-40)">
               Transaction charges are applied to parent payments. Contact EduSentrix for details.
             </p>
           </div>
@@ -441,7 +442,7 @@ export default function AdminSubscriptionPage() {
 
           {/* Event history */}
           <div className={cn(glassPanelClass, "px-5 py-4")}>
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
             <SubscriptionEventLog
               apiPath="/api/admin/subscription/events"
               title="Subscription history"
@@ -452,20 +453,20 @@ export default function AdminSubscriptionPage() {
 
         {/* Feature access */}
         <div className={cn(glassPanelClass, "lg:col-span-2 px-0 py-0")}>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
-          <div className="border-b border-white/10 px-5 py-4">
-            <h2 className="text-sm font-semibold text-white">Feature access</h2>
-            <p className="text-xs text-white/40">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
+          <div className="border-b border-(--ws-line) px-5 py-4">
+            <h2 className="text-sm font-semibold text-(--ws-fg)">Feature access</h2>
+            <p className="text-xs text-(--ws-fg-40)">
               {featureSet.size} feature{featureSet.size !== 1 ? "s" : ""} enabled on your current plan.
             </p>
           </div>
 
-          <div className="divide-y divide-white/5 p-4">
+          <div className="divide-y divide-(--ws-line) p-4">
             {DISPLAY_FEATURE_GROUPS.map((group) => (
               <div key={group.label} className="py-4 first:pt-0 last:pb-0">
                 <div className="mb-2 flex items-center gap-2">
-                  <group.icon className="h-3.5 w-3.5 text-white/30" />
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
+                  <group.icon className="h-3.5 w-3.5 text-(--ws-fg-40)" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)">
                     {group.label}
                   </p>
                 </div>
@@ -483,15 +484,15 @@ export default function AdminSubscriptionPage() {
           </div>
         </div>
       </div>
-    </div>
+    </WorkspaceScope>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-white/40">{label}</span>
-      <span className="text-white/70">{value}</span>
+      <span className="text-(--ws-fg-40)">{label}</span>
+      <span className="text-(--ws-fg-70)">{value}</span>
     </div>
   );
 }
@@ -536,10 +537,10 @@ type PlanChangeQuote = {
 };
 
 const INV_STATUS_PILL: Record<string, string> = {
-  issued: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
-  paid: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  overdue: "border-rose-500/30 bg-rose-500/10 text-rose-200",
-  forgiven: "border-violet-500/30 bg-violet-500/10 text-violet-200",
+  issued: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
+  paid: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  overdue: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  forgiven: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
 };
 
 function PlanChangePanel({
@@ -612,10 +613,10 @@ function PlanChangePanel({
 
   return (
     <div className={cn(glassPanelClass, "px-5 py-4")}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
       <div className="mb-3 flex items-center gap-2">
-        <ArrowUpDown className="h-4 w-4 text-white/50" />
-        <p className="text-sm font-semibold text-white/80">Plan changes</p>
+        <ArrowUpDown className="h-4 w-4 text-(--ws-fg-50)" />
+        <p className="text-sm font-semibold text-(--ws-fg-80)">Plan changes</p>
       </div>
       <div className="space-y-3">
         <div className="grid gap-2">
@@ -633,19 +634,19 @@ function PlanChangePanel({
                 "rounded-xl border px-3 py-3 text-left transition",
                 selectedPlanId === plan._id
                   ? "border-cyan-400/40 bg-cyan-400/10"
-                  : "border-white/10 bg-white/5 hover:border-white/20"
+                  : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong)"
               )}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-white/80">{plan.name}</span>
+                <span className="text-sm font-semibold text-(--ws-fg-80)">{plan.name}</span>
                 {plan.pricing?.pricePerStudentPerTermMinor ? (
-                  <span className="text-[11px] text-white/40">
+                  <span className="text-[11px] text-(--ws-fg-40)">
                     {formatGHS(plan.pricing.pricePerStudentPerTermMinor)} / student / term
                   </span>
                 ) : null}
               </div>
               {plan.description ? (
-                <p className="mt-1 text-xs text-white/40">{plan.description}</p>
+                <p className="mt-1 text-xs text-(--ws-fg-40)">{plan.description}</p>
               ) : null}
             </button>
           ))}
@@ -663,8 +664,8 @@ function PlanChangePanel({
               className={cn(
                 "rounded-lg px-3 py-2 text-xs font-medium capitalize transition",
                 targetBillingCadence === cadence
-                  ? "bg-cyan-400/15 text-cyan-100"
-                  : "text-white/40 hover:bg-white/5 hover:text-white/70"
+                  ? "bg-cyan-400/15 text-(--ws-cyan)"
+                  : "text-(--ws-fg-40) hover:bg-(--ws-fill) hover:text-(--ws-fg-70)"
               )}
             >
               {cadence === "term" ? "Termly" : "Annual"}
@@ -676,7 +677,7 @@ function PlanChangePanel({
           type="button"
           disabled={!selectedPlanId || requesting}
           onClick={requestQuote}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-(--ws-cyan) transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {requesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
           Request smart quote
@@ -698,11 +699,11 @@ function PlanChangePanel({
                 ? new Date(quote.scheduledAt).toLocaleDateString("en-GH", { dateStyle: "medium" })
                 : "After billing confirmation"}
             />
-            <p className="pt-2 text-[11px] text-white/35">{quote.note}</p>
+            <p className="pt-2 text-[11px] text-(--ws-fg-40)">{quote.note}</p>
           </div>
         ) : null}
 
-        {message ? <p className="text-xs text-white/40">{message}</p> : null}
+        {message ? <p className="text-xs text-(--ws-fg-40)">{message}</p> : null}
       </div>
     </div>
   );
@@ -753,27 +754,27 @@ function InvoicePanel() {
 
   return (
     <div className={cn(glassPanelClass, "px-0 py-0")}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
-      <div className="border-b border-white/10 px-5 py-3">
-        <p className="text-sm font-semibold text-white/80">Invoices</p>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
+      <div className="border-b border-(--ws-line) px-5 py-3">
+        <p className="text-sm font-semibold text-(--ws-fg-80)">Invoices</p>
       </div>
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-(--ws-line)">
         {invoices.map((inv) => (
           <div key={inv._id} className="flex items-center justify-between gap-3 px-5 py-3">
             <div>
-              <p className="font-mono text-xs text-white/60">{inv.invoiceNumber}</p>
+              <p className="font-mono text-xs text-(--ws-fg-60)">{inv.invoiceNumber}</p>
               {inv.billingPeriodStart && inv.billingPeriodEnd && (
-                <p className="text-[10px] text-white/30">
+                <p className="text-[10px] text-(--ws-fg-40)">
                   {new Date(inv.billingPeriodStart).toLocaleDateString("en-GH", { dateStyle: "medium" })} –{" "}
                   {new Date(inv.billingPeriodEnd).toLocaleDateString("en-GH", { dateStyle: "medium" })}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px]", INV_STATUS_PILL[inv.status] ?? "border-white/10 bg-white/5 text-white/40")}>
+              <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px]", INV_STATUS_PILL[inv.status] ?? "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)")}>
                 {inv.status}
               </span>
-              <span className="font-mono text-xs text-white/60">
+              <span className="font-mono text-xs text-(--ws-fg-60)">
                 GHS {(inv.totalMinor / 100).toLocaleString("en-GH", { minimumFractionDigits: 2 })}
               </span>
               {inv.status === "issued" || inv.status === "overdue" ? (
@@ -781,7 +782,7 @@ function InvoicePanel() {
                   type="button"
                   onClick={() => startCheckout(inv._id)}
                   disabled={payingId === inv._id}
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-(--ws-emerald) transition hover:bg-emerald-500/20 disabled:opacity-50"
                 >
                   {payingId === inv._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
                   Pay
@@ -790,7 +791,7 @@ function InvoicePanel() {
               {inv.status === "paid" ? (
                 <a
                   href={`/api/admin/subscription/invoices/${inv._id}/receipt`}
-                  className="rounded-lg border border-white/10 bg-white/5 p-1 text-white/45 transition hover:text-white"
+                  className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-1 text-(--ws-fg-40) transition hover:text-(--ws-fg)"
                   aria-label={`Download receipt for ${inv.invoiceNumber}`}
                 >
                   <FileDown className="h-3.5 w-3.5" />

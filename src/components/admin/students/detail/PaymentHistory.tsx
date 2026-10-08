@@ -52,12 +52,12 @@ function statusBadge(status: string) {
   const statusMap: Record<string, { label: string; className: string; icon: any }> = {
     pending: {
       label: "Pending",
-      className: "border-amber-400/25 bg-amber-500/10 text-amber-200",
+      className: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
       icon: Clock,
     },
     completed: {
       label: "Completed",
-      className: "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
+      className: "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)",
       icon: CheckCircle2,
     },
     reversed: {
@@ -87,7 +87,7 @@ function paymentMethodBadge(method: string) {
   const label = String(method || "unknown").replaceAll("_", " ");
   return (
     <Badge
-      className="border-white/10 bg-white/5 text-xs text-white/70"
+      className="border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70)"
       variant="outline"
     >
       <CreditCard className="mr-1 h-3 w-3" />
@@ -185,14 +185,14 @@ export function PaymentHistory({
 
   return (
     <>
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+            <CardTitle className="text-sm font-semibold uppercase tracking-wider text-(--ws-fg-80)">
               Payment History
             </CardTitle>
             {academicPeriodId && (
@@ -204,8 +204,8 @@ export function PaymentHistory({
                 className={cn(
                   "h-7 text-xs",
                   viewAllTerms
-                    ? "bg-white/10 text-white"
-                    : "text-white/60 hover:text-white/80"
+                    ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                    : "text-(--ws-fg-60) hover:text-(--ws-fg-80)"
                 )}
               >
                 {viewAllTerms ? "This term" : "All terms"}
@@ -224,23 +224,23 @@ export function PaymentHistory({
           {/* Summary Cards */}
           {summary && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="text-xs text-muted-foreground">{summaryTotalLabel}</div>
-                <div className="mt-1 text-sm font-semibold text-emerald-200">
+                <div className="mt-1 text-sm font-semibold text-(--ws-emerald)">
                   {formatMoney(summary.totalPaid)}
                 </div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="text-xs text-muted-foreground">Avg Payment Time</div>
-                <div className="mt-1 text-sm font-semibold text-white/90">
+                <div className="mt-1 text-sm font-semibold text-(--ws-fg-90)">
                   {summaryShowsCompleted
                     ? `${summary.averagePaymentTime} days`
                     : "--"}
                 </div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="text-xs text-muted-foreground">Total Payments</div>
-                <div className="mt-1 text-sm font-semibold text-white/90">
+                <div className="mt-1 text-sm font-semibold text-(--ws-fg-90)">
                   {summary.paymentCount}
                 </div>
               </div>
@@ -255,7 +255,7 @@ export function PaymentHistory({
                 placeholder="Search by receipt #, bill #, or method..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-white/5 border-white/10"
+                className="pl-9 bg-(--ws-fill) border-(--ws-line)"
               />
             </div>
             <PremiumDropdownMenu>
@@ -263,13 +263,13 @@ export function PaymentHistory({
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex w-full items-center justify-between rounded-full border-white/15 bg-white/5 px-3 text-xs text-white/80 sm:w-[190px]"
+                  className="flex w-full items-center justify-between rounded-full border-(--ws-line-strong) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-80) sm:w-[190px]"
                 >
                   <span className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
                     {paymentMethodLabel}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+                  <ChevronDown className="h-3.5 w-3.5 text-(--ws-fg-50)" />
                 </Button>
               </PremiumDropdownMenuTrigger>
               <PremiumDropdownMenuContent align="start" className="min-w-[180px]">
@@ -302,13 +302,13 @@ export function PaymentHistory({
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex w-full items-center justify-between rounded-full border-white/15 bg-white/5 px-3 text-xs text-white/80 sm:w-[190px]"
+                  className="flex w-full items-center justify-between rounded-full border-(--ws-line-strong) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-80) sm:w-[190px]"
                 >
                   <span className="flex items-center gap-2">
                     <Filter className="h-4 w-4" />
                     {statusLabel}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+                  <ChevronDown className="h-3.5 w-3.5 text-(--ws-fg-50)" />
                 </Button>
               </PremiumDropdownMenuTrigger>
               <PremiumDropdownMenuContent align="start" className="min-w-[180px]">
@@ -342,8 +342,8 @@ export function PaymentHistory({
               className={cn(
                 "h-7 px-2 text-xs",
                 sortBy === "date"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                  : "text-(--ws-fg-60) hover:text-(--ws-fg)"
               )}
             >
               Date
@@ -362,8 +362,8 @@ export function PaymentHistory({
               className={cn(
                 "h-7 px-2 text-xs",
                 sortBy === "amount"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                  : "text-(--ws-fg-60) hover:text-(--ws-fg)"
               )}
             >
               Amount
@@ -382,8 +382,8 @@ export function PaymentHistory({
               className={cn(
                 "h-7 px-2 text-xs",
                 sortBy === "status"
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                  : "text-(--ws-fg-60) hover:text-(--ws-fg)"
               )}
             >
               Status
@@ -407,9 +407,9 @@ export function PaymentHistory({
               Failed to load payments. Please try again.
             </div>
           ) : filteredAndSorted.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center">
-              <Receipt className="mx-auto h-12 w-12 text-white/20" />
-              <p className="mt-3 text-sm font-medium text-white/80">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-8 text-center">
+              <Receipt className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+              <p className="mt-3 text-sm font-medium text-(--ws-fg-80)">
                 No payments found
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -425,19 +425,19 @@ export function PaymentHistory({
                   key={payment._id}
                   type="button"
                   onClick={() => handlePaymentClick(payment._id)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-left transition-all hover:border-white/20 hover:bg-white/10"
+                  className="w-full rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-left transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
-                        <div className="font-semibold text-white/90">
+                        <div className="font-semibold text-(--ws-fg-90)">
                           {formatMoney(payment.amountMinor)}
                         </div>
                         {statusBadge(payment.status)}
                         {paymentMethodBadge(payment.paymentMethod)}
                         {payment.receiptNumber && (
                           <Badge
-                            className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-xs"
+                            className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) text-xs"
                             variant="outline"
                           >
                             <Receipt className="h-3 w-3" />
@@ -472,7 +472,7 @@ export function PaymentHistory({
 
           {/* Pagination */}
           {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between border-t border-(--ws-line) pt-4">
               <div className="text-xs text-muted-foreground">
                 Page {pagination.page} of {pagination.pages}
               </div>
@@ -483,7 +483,7 @@ export function PaymentHistory({
                   size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/10 bg-white/5 text-xs"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs"
                 >
                   Previous
                 </Button>
@@ -493,7 +493,7 @@ export function PaymentHistory({
                   size="sm"
                   onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
                   disabled={page === pagination.pages}
-                  className="border-white/10 bg-white/5 text-xs"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs"
                 >
                   Next
                 </Button>

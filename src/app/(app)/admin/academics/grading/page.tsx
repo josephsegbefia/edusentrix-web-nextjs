@@ -38,11 +38,12 @@ import {
 } from "@/hooks/admin/useGradingPolicies";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-white/10 bg-white/5 text-white/70",
-  active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  archived: "border-white/10 bg-white/5 text-white/45",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
+  active: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
 };
 
 function formatStatus(status: string) {
@@ -73,21 +74,21 @@ function PolicyRow({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-white">{policy.name}</h3>
+            <h3 className="text-base font-semibold text-(--ws-fg)">{policy.name}</h3>
             <Badge variant="outline" className={STATUS_STYLES[policy.status] ?? STATUS_STYLES.draft}>
               {formatStatus(policy.status)}
             </Badge>
             {policy.isDefault ? (
-              <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-cyan-100">
+              <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)">
                 Default
               </Badge>
             ) : null}
           </div>
           {policy.description ? (
-            <p className="mt-2 text-sm text-white/60">{policy.description}</p>
+            <p className="mt-2 text-sm text-(--ws-fg-60)">{policy.description}</p>
           ) : null}
-          <p className="mt-3 text-xs text-white/50">{componentSummary || "No components configured"}</p>
-          <p className="mt-1 text-xs text-white/40">
+          <p className="mt-3 text-xs text-(--ws-fg-50)">{componentSummary || "No components configured"}</p>
+          <p className="mt-1 text-xs text-(--ws-fg-40)">
             Pass mark {policy.passMark}% · {policy.gradeBoundaries.length} grade boundaries
           </p>
         </div>
@@ -128,7 +129,7 @@ function PolicyRow({
               type="button"
               size="sm"
               variant="outline"
-              className="border-rose-500/25 bg-rose-500/5 text-rose-100 hover:bg-rose-500/10"
+              className="border-rose-500/25 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
               onClick={onArchive}
               disabled={archiving}
             >
@@ -212,7 +213,7 @@ export default function AdminGradingPoliciesPage() {
   }
 
   return (
-    <>
+    <WorkspaceScope>
       {confirmationDialog}
       <WorkspacePageShell>
         <WorkspacePageHeader
@@ -231,24 +232,24 @@ export default function AdminGradingPoliciesPage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <GlassPanel className="p-4" glow="teal">
-            <p className="text-xs uppercase tracking-wide text-white/45">Policies</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{policies.length}</p>
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Policies</p>
+            <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{policies.length}</p>
           </GlassPanel>
           <GlassPanel className="p-4" glow="cyan">
-            <p className="text-xs uppercase tracking-wide text-white/45">Active</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{activeCount}</p>
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Active</p>
+            <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{activeCount}</p>
           </GlassPanel>
           <GlassPanel className="p-4">
-            <p className="text-xs uppercase tracking-wide text-white/45">Component rule</p>
-            <p className="mt-2 text-sm text-white/75">Weights must total {COMPONENT_WEIGHT_TOTAL}%</p>
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Component rule</p>
+            <p className="mt-2 text-sm text-(--ws-fg-70)">Weights must total {COMPONENT_WEIGHT_TOTAL}%</p>
           </GlassPanel>
         </div>
 
         <GlassPanel className="p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-white">Policy list</h2>
-              <p className="mt-1 text-sm text-white/55">
+              <h2 className="text-base font-semibold text-(--ws-fg)">Policy list</h2>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Create a policy, then activate it when you are ready to use it in assessment plans.
               </p>
             </div>
@@ -280,13 +281,13 @@ export default function AdminGradingPoliciesPage() {
 
           <div className="mt-5">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16 text-white/60">
+              <div className="flex items-center justify-center py-16 text-(--ws-fg-60)">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Loading grading policies…
               </div>
             ) : error ? (
               <div className={cn(glassInsetClass, "p-6 text-center")}>
-                <p className="text-sm text-rose-200">
+                <p className="text-sm text-(--ws-rose)">
                   {error instanceof Error ? error.message : "Failed to load grading policies."}
                 </p>
                 <Button
@@ -301,11 +302,11 @@ export default function AdminGradingPoliciesPage() {
               </div>
             ) : policies.length === 0 ? (
               <div className={cn(glassInsetClass, "px-6 py-10 text-center")}>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                  <Sparkles className="h-5 w-5 text-cyan-200" />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+                  <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-white">No grading policy yet</h3>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/60">
+                <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">No grading policy yet</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-(--ws-fg-60)">
                   Create a grading policy to define score breakdowns, grade labels, and report-card
                   rules.
                 </p>
@@ -343,6 +344,6 @@ export default function AdminGradingPoliciesPage() {
         policy={selectedPolicy}
         onSaved={() => void refetch()}
       />
-    </>
+    </WorkspaceScope>
   );
 }

@@ -109,7 +109,7 @@ const STATUS_STYLES: Record<string, string> = {
   draft: "border-amber-400/30 bg-amber-500/10 text-amber-100",
   ready: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100",
   published: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
-  archived: "border-white/15 bg-white/5 text-white/60",
+  archived: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)",
   scheduled: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100",
   in_progress: "border-teal-400/30 bg-teal-500/10 text-teal-100",
   delivered: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
@@ -149,7 +149,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={cn(
         "inline-flex rounded-full border px-2.5 py-1 text-xs font-medium",
-        STATUS_STYLES[status] ?? "border-white/15 bg-white/5 text-white/70",
+        STATUS_STYLES[status] ?? "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-70)",
       )}
     >
       {humanize(status)}
@@ -173,8 +173,8 @@ function MetricCard({
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-lg font-semibold text-white">{value}</p>
-          <p className="text-xs text-white/45">{label}</p>
+          <p className="text-lg font-semibold text-(--ws-fg)">{value}</p>
+          <p className="text-xs text-(--ws-fg)/45">{label}</p>
         </div>
       </div>
     </div>
@@ -183,9 +183,9 @@ function MetricCard({
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/5 py-3 last:border-0">
-      <span className="text-sm text-white/45">{label}</span>
-      <span className="max-w-[65%] text-right text-sm font-medium text-white/80">{value}</span>
+    <div className="flex items-start justify-between gap-4 border-b border-(--ws-line) py-3 last:border-0">
+      <span className="text-sm text-(--ws-fg)/45">{label}</span>
+      <span className="max-w-[65%] text-right text-sm font-medium text-(--ws-fg-80)">{value}</span>
     </div>
   );
 }
@@ -212,7 +212,7 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
     return (
       <div className={cn(glassPanelClass, "p-6")}>
         <div className={glassPanelTopShineClass} />
-        <div className="flex items-center gap-3 text-sm text-white/60">
+        <div className="flex items-center gap-3 text-sm text-(--ws-fg-60)">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading lesson session...
         </div>
@@ -224,7 +224,7 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
     return (
       <div className={cn(glassPanelClass, "p-6 text-center")}>
         <div className={glassPanelTopShineClass} />
-        <p className="text-sm text-rose-200">
+        <p className="text-sm text-(--ws-rose)">
           {error instanceof Error ? error.message : "Could not load this lesson session."}
         </p>
         <Button
@@ -232,7 +232,7 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
           size="sm"
           variant="outline"
           onClick={() => void refetch()}
-          className="mt-4 border-white/10 bg-white/5 text-white/70"
+          className="mt-4 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
         >
           Retry
         </Button>
@@ -250,17 +250,17 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <StatusBadge status={session.status} />
-              <Badge variant="secondary" className="border-white/10 bg-white/5 text-white/60">
+              <Badge variant="secondary" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)">
                 Session {session.sequenceInWeek}
               </Badge>
               {isFetching ? (
-                <Badge variant="secondary" className="border-white/10 bg-white/5 text-white/50">
+                <Badge variant="secondary" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)">
                   Refreshing
                 </Badge>
               ) : null}
             </div>
-            <h2 className="text-2xl font-semibold tracking-normal text-white">{session.title}</h2>
-            <p className="mt-2 max-w-3xl text-sm text-white/55">
+            <h2 className="text-2xl font-semibold tracking-normal text-(--ws-fg)">{session.title}</h2>
+            <p className="mt-2 max-w-3xl text-sm text-(--ws-fg)/55">
               {session.subject.name} for {session.classGroup.name}, owned by {session.teacher.name}.
             </p>
           </div>
@@ -269,7 +269,7 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
             size="sm"
             variant="outline"
             onClick={() => void refetch()}
-            className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
           >
             Refresh
           </Button>
@@ -295,12 +295,12 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
         <section className={cn(glassPanelClass, "p-5 sm:p-6")}>
           <div className={glassPanelTopShineClass} />
           <div className="mb-4 flex items-center gap-2">
-            <Presentation className="h-5 w-5 text-teal-200" />
-            <h3 className="text-base font-semibold text-white">Delivery tracking</h3>
+            <Presentation className="h-5 w-5 text-(--ws-teal)" />
+            <h3 className="text-base font-semibold text-(--ws-fg)">Delivery tracking</h3>
           </div>
 
           {deliveries.length === 0 ? (
-            <div className={cn(glassInsetClass, "p-5 text-sm text-white/55")}>
+            <div className={cn(glassInsetClass, "p-5 text-sm text-(--ws-fg)/55")}>
               No delivery record has been created for this session yet.
             </div>
           ) : (
@@ -311,18 +311,18 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={delivery.status} />
-                        <span className="text-sm font-medium text-white">{delivery.classGroup.name}</span>
+                        <span className="text-sm font-medium text-(--ws-fg)">{delivery.classGroup.name}</span>
                       </div>
-                      <p className="mt-2 text-sm text-white/50">
+                      <p className="mt-2 text-sm text-(--ws-fg-50)">
                         {DAY_LABELS[delivery.dayOfWeek] ?? "Day"} - {formatDate(delivery.scheduledDate)} -{" "}
                         {delivery.startTime}-{delivery.endTime}
                       </p>
                     </div>
                     <div className="text-left sm:text-right">
-                      <p className="text-sm font-medium text-white/80">
+                      <p className="text-sm font-medium text-(--ws-fg-80)">
                         {delivery.actualTeacher?.name ?? delivery.scheduledTeacher.name}
                       </p>
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-(--ws-fg-40)">
                         {delivery.actualTeacher ? "Actual teacher" : "Scheduled teacher"}
                       </p>
                     </div>
@@ -347,8 +347,8 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
           <section className={cn(glassPanelClass, "p-5")}>
             <div className={glassPanelTopShineClass} />
             <div className="mb-4 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-cyan-200" />
-              <h3 className="text-base font-semibold text-white">Session details</h3>
+              <FileText className="h-5 w-5 text-(--ws-cyan)" />
+              <h3 className="text-base font-semibold text-(--ws-fg)">Session details</h3>
             </div>
             <DetailRow label="Teacher" value={session.teacher.name} />
             <DetailRow label="Class" value={session.classGroup.name} />
@@ -361,8 +361,8 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
           <section className={cn(glassPanelClass, "p-5")}>
             <div className={glassPanelTopShineClass} />
             <div className="mb-4 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-emerald-200" />
-              <h3 className="text-base font-semibold text-white">Visibility</h3>
+              <ShieldCheck className="h-5 w-5 text-(--ws-emerald)" />
+              <h3 className="text-base font-semibold text-(--ws-fg)">Visibility</h3>
             </div>
             <DetailRow label="Students" value={humanize(session.visibility.student)} />
             <DetailRow label="Parents" value={session.visibility.parent ? "Visible" : "Hidden"} />
@@ -379,17 +379,17 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
         <section className={cn(glassPanelClass, "p-5 sm:p-6")}>
           <div className={glassPanelTopShineClass} />
           <div className="mb-4 flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-teal-200" />
-            <h3 className="text-base font-semibold text-white">Content outline</h3>
+            <BookOpen className="h-5 w-5 text-(--ws-teal)" />
+            <h3 className="text-base font-semibold text-(--ws-fg)">Content outline</h3>
           </div>
           {session.planNotes ? (
             <div className={cn(glassInsetClass, "mb-4 p-4")}>
-              <p className="text-xs font-medium uppercase tracking-wide text-white/35">Plan notes</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-white/70">{session.planNotes}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg)/35">Plan notes</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-(--ws-fg-70)">{session.planNotes}</p>
             </div>
           ) : null}
           {session.contentBlocks.length === 0 ? (
-            <div className={cn(glassInsetClass, "p-5 text-sm text-white/55")}>
+            <div className={cn(glassInsetClass, "p-5 text-sm text-(--ws-fg)/55")}>
               No content blocks have been added.
             </div>
           ) : (
@@ -398,12 +398,12 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
                 <div key={block.id} className={cn(glassInsetClass, "p-4")}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-white">{block.title}</p>
-                      <p className="mt-1 text-xs text-white/40">{humanize(block.type)}</p>
+                      <p className="font-medium text-(--ws-fg)">{block.title}</p>
+                      <p className="mt-1 text-xs text-(--ws-fg-40)">{humanize(block.type)}</p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-2">
                       {block.estimatedMinutes ? (
-                        <Badge variant="secondary" className="border-white/10 bg-white/5 text-white/55">
+                        <Badge variant="secondary" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/55">
                           {block.estimatedMinutes} min
                         </Badge>
                       ) : null}
@@ -411,8 +411,8 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
                         <Badge
                           variant="secondary"
                           className={cn(
-                            "border-white/10 bg-white/5",
-                            block.teacherReviewed ? "text-emerald-200" : "text-amber-200",
+                            "border-(--ws-line) bg-(--ws-fill)",
+                            block.teacherReviewed ? "text-(--ws-emerald)" : "text-(--ws-amber)",
                           )}
                         >
                           {block.teacherReviewed ? "AI reviewed" : "AI needs review"}
@@ -429,11 +429,11 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
         <section className={cn(glassPanelClass, "p-5 sm:p-6")}>
           <div className={glassPanelTopShineClass} />
           <div className="mb-4 flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-200" />
-            <h3 className="text-base font-semibold text-white">Assessment outline</h3>
+            <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
+            <h3 className="text-base font-semibold text-(--ws-fg)">Assessment outline</h3>
           </div>
           {session.assessmentItems.length === 0 ? (
-            <div className={cn(glassInsetClass, "p-5 text-sm text-white/55")}>
+            <div className={cn(glassInsetClass, "p-5 text-sm text-(--ws-fg)/55")}>
               No assessment items have been added.
             </div>
           ) : (
@@ -442,17 +442,17 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
                 <div key={item.id} className={cn(glassInsetClass, "p-4")}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-white">{item.title}</p>
-                      <p className="mt-1 text-xs text-white/40">{humanize(item.type)}</p>
+                      <p className="font-medium text-(--ws-fg)">{item.title}</p>
+                      <p className="mt-1 text-xs text-(--ws-fg-40)">{humanize(item.type)}</p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-2">
                       {item.estimatedMinutes ? (
-                        <Badge variant="secondary" className="border-white/10 bg-white/5 text-white/55">
+                        <Badge variant="secondary" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/55">
                           {item.estimatedMinutes} min
                         </Badge>
                       ) : null}
                       {item.aiGenerated ? (
-                        <Badge variant="secondary" className="border-white/10 bg-white/5 text-cyan-200">
+                        <Badge variant="secondary" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-cyan)">
                           AI drafted
                         </Badge>
                       ) : null}
@@ -469,8 +469,8 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
         <section className={cn(glassPanelClass, "p-5 sm:p-6")}>
           <div className={glassPanelTopShineClass} />
           <div className="mb-4 flex items-center gap-2">
-            <UsersRound className="h-5 w-5 text-cyan-200" />
-            <h3 className="text-base font-semibold text-white">Week plan context</h3>
+            <UsersRound className="h-5 w-5 text-(--ws-cyan)" />
+            <h3 className="text-base font-semibold text-(--ws-fg)">Week plan context</h3>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <DetailRow label="Plan" value={session.weekPlan.title} />
@@ -486,7 +486,7 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
         </section>
       ) : null}
 
-      <p className="flex items-center gap-2 text-xs text-white/35">
+      <p className="flex items-center gap-2 text-xs text-(--ws-fg)/35">
         <UserRound className="h-3.5 w-3.5" />
         Admin view is read-only. Teaching, publishing, and content edits remain in teacher workflows.
       </p>

@@ -79,19 +79,19 @@ export function LibraryCopyLabelButton({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 px-2 text-white/70 hover:text-white"
+          className="h-8 px-2 text-(--ws-fg-70) hover:text-(--ws-fg)"
           title="QR & barcode"
         >
           <QrCode className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="border-white/10 bg-slate-900 text-white sm:max-w-md">
+      <DialogContent className="border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg) sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Copy labels · {copy.copyCode}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 text-sm">
           {needsGenerate && canManage ? (
-            <p className="text-white/60">
+            <p className="text-(--ws-fg-60)">
               Generate a barcode token and QR payload. Librarians can also find this copy by pasting
               either value in circulation lookup.
             </p>
@@ -101,7 +101,7 @@ export function LibraryCopyLabelButton({
               type="button"
               size="sm"
               variant="secondary"
-              className="bg-white/15 text-white"
+              className="bg-(--ws-fill-strong) text-(--ws-fg)"
               disabled={generateCopyCodes.isPending}
               onClick={() => void generate()}
             >
@@ -113,12 +113,12 @@ export function LibraryCopyLabelButton({
           ) : null}
           <dl className="grid gap-2 text-xs">
             <div>
-              <dt className="text-white/45">Barcode / keyboard wedge</dt>
-              <dd className="font-mono text-white/90">{copy.barcode || "—"}</dd>
+              <dt className="text-(--ws-fg)/45">Barcode / keyboard wedge</dt>
+              <dd className="font-mono text-(--ws-fg-90)">{copy.barcode || "—"}</dd>
             </div>
             <div>
-              <dt className="text-white/45">QR payload</dt>
-              <dd className="break-all font-mono text-white/90">{copy.qrCode || encodePayload}</dd>
+              <dt className="text-(--ws-fg)/45">QR payload</dt>
+              <dd className="break-all font-mono text-(--ws-fg-90)">{copy.qrCode || encodePayload}</dd>
             </div>
           </dl>
           <div className="flex justify-center rounded-lg bg-white p-3">

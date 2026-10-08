@@ -134,7 +134,7 @@ export function AdminLearnAccountsClient() {
   }
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Learn accounts"
@@ -151,7 +151,7 @@ export function AdminLearnAccountsClient() {
 
         {credentialResult ? (
           <GlassPanel className="p-5" glow="teal">
-            <p className="font-semibold text-white">One-time credential result</p>
+            <p className="font-semibold text-(--ws-fg)">One-time credential result</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <Info label="Student" value={credentialResult.studentName} />
               <Info label="Username" value={credentialResult.username} />
@@ -160,7 +160,7 @@ export function AdminLearnAccountsClient() {
                 value={credentialResult.temporaryPassword || "Not resent"}
               />
             </div>
-            <p className="mt-3 text-sm text-white/55">
+            <p className="mt-3 text-sm text-(--ws-fg-50)">
               Guardians notified: {credentialResult.guardiansNotified}. Temporary passwords are
               shown only once and are never stored in plain text.
             </p>
@@ -169,7 +169,7 @@ export function AdminLearnAccountsClient() {
 
         <GlassPanel className="p-6" glow="both">
           {loading ? (
-            <p className="flex items-center gap-2 text-sm text-white/55">
+            <p className="flex items-center gap-2 text-sm text-(--ws-fg-50)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading Learn accounts...
             </p>
@@ -179,8 +179,8 @@ export function AdminLearnAccountsClient() {
                 <div key={account.id} className={cn(glassInsetClass, "p-4")}>
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div>
-                      <p className="font-semibold text-white">{account.studentName}</p>
-                      <p className="mt-1 text-sm text-white/50">
+                      <p className="font-semibold text-(--ws-fg)">{account.studentName}</p>
+                      <p className="mt-1 text-sm text-(--ws-fg-50)">
                         {[account.gradeName, account.classGroupName, account.admissionNo]
                           .filter(Boolean)
                           .join(" - ")}
@@ -210,7 +210,7 @@ export function AdminLearnAccountsClient() {
                         variant="outline"
                         disabled={workingId === account.id}
                         onClick={() => postAction(account.id, "resend-credentials")}
-                        className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-50"
+                        className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) disabled:opacity-50"
                       >
                         <Send className="mr-2 h-4 w-4" />
                         Resend
@@ -221,7 +221,7 @@ export function AdminLearnAccountsClient() {
                           variant="outline"
                           disabled={workingId === account.id}
                           onClick={() => updateStatus(account, "enable")}
-                          className="rounded-xl border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:opacity-50"
+                          className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) disabled:opacity-50"
                         >
                           <Unlock className="mr-2 h-4 w-4" />
                           Enable
@@ -244,7 +244,7 @@ export function AdminLearnAccountsClient() {
               ))}
             </div>
           ) : (
-            <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/55">
+            <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-50)">
               No Learn accounts have been created yet.
             </p>
           )}
@@ -258,8 +258,8 @@ export function AdminLearnAccountsClient() {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/35">{label}</p>
-      <p className="mt-1 capitalize text-white/80">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-fg-40)">{label}</p>
+      <p className="mt-1 capitalize text-(--ws-fg-80)">{value}</p>
     </div>
   );
 }

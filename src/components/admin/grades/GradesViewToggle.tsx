@@ -18,15 +18,15 @@ export function GradesViewToggle({
   const isCards = value === "cards";
 
   return (
-    <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 p-1 text-xs">
+    <div className="inline-flex items-center rounded-full border border-(--ws-line) bg-(--ws-fill) p-1 text-xs">
       <button
         type="button"
         onClick={() => onChange("cards")}
         className={cn(
           "inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-medium transition",
           isCards
-            ? "bg-white/10 text-white shadow-sm shadow-black/30"
-            : "text-white/60 hover:text-white"
+            ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-sm shadow-black/30"
+            : "text-(--ws-fg-60) hover:text-(--ws-fg)"
         )}
       >
         <LayoutGrid className="h-3.5 w-3.5" />
@@ -38,8 +38,8 @@ export function GradesViewToggle({
         className={cn(
           "inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-medium transition",
           !isCards
-            ? "bg-white/10 text-white shadow-sm shadow-black/30"
-            : "text-white/60 hover:text-white"
+            ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-sm shadow-black/30"
+            : "text-(--ws-fg-60) hover:text-(--ws-fg)"
         )}
       >
         <Table2 className="h-3.5 w-3.5" />

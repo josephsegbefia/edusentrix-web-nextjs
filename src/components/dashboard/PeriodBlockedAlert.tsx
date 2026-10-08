@@ -104,7 +104,7 @@ export function PeriodBlockedAlert({ operation, className }: BlockedAlertProps) 
       <AlertTitle
         className={cn(
           "font-semibold",
-          isBlocked ? "text-red-100" : "text-amber-100"
+          isBlocked ? "text-(--ws-rose)" : "text-(--ws-amber)"
         )}
       >
         {isBlocked
@@ -115,7 +115,7 @@ export function PeriodBlockedAlert({ operation, className }: BlockedAlertProps) 
         <p
           className={cn(
             "text-sm",
-            isBlocked ? "text-red-100/80" : "text-amber-100/80"
+            isBlocked ? "text-(--ws-rose)/80" : "text-(--ws-amber)/80"
           )}
         >
           {message}
@@ -126,7 +126,7 @@ export function PeriodBlockedAlert({ operation, className }: BlockedAlertProps) 
           className={cn(
             "gap-1",
             isBlocked
-              ? "bg-red-500 hover:bg-red-600 text-white"
+              ? "bg-red-500 hover:bg-red-600 text-(--ws-fg)"
               : "bg-amber-500 hover:bg-amber-600 text-black"
           )}
         >

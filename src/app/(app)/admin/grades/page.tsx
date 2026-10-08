@@ -28,6 +28,7 @@ import { GradesCommandPalette } from "@/components/admin/grades/GradesCommandPal
 import { GradesFiltersPanel, type GradesFilters } from "@/components/admin/grades/GradesFiltersPanel";
 import { cn } from "@/lib/utils";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 function getInitialView(sp: URLSearchParams): GradesViewMode {
   const v = sp.get("view");
@@ -219,9 +220,9 @@ export default function GradesPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <WorkspaceScope className="space-y-6 sm:space-y-8">
       {/* Premium Header - blue/indigo theme */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from)/90 via-(--ws-panel-via)/95 to-black p-5 shadow-[var(--ws-shadow)] sm:rounded-3xl sm:p-8">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-blue-500/20 via-indigo-500/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -231,26 +232,26 @@ export default function GradesPage() {
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <div className="relative z-10 flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-blue-500/20 to-indigo-500/20 shadow-lg shadow-blue-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-blue-500/20 to-indigo-500/20 shadow-lg shadow-blue-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
                 <GraduationCap className="h-5 w-5 text-blue-300 sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">
                   Grades
                 </h1>
-                <p className="text-xs text-white/60 sm:text-sm">
+                <p className="text-xs text-(--ws-fg-60) sm:text-sm">
                   Grades contain classes
                 </p>
               </div>
             </div>
-            <p className="hidden max-w-lg text-sm leading-relaxed text-white/50 sm:block">
+            <p className="hidden max-w-lg text-sm leading-relaxed text-(--ws-fg-50) sm:block">
               Manage grade levels and their classes. Each grade groups classes
               together. Navigate to a grade to add classes and assign subjects.
             </p>
@@ -258,18 +259,18 @@ export default function GradesPage() {
         </div>
 
         {/* Keyboard shortcuts hint */}
-        <div className="relative z-10 mt-4 hidden flex-wrap items-center gap-3 border-t border-white/10 pt-4 sm:mt-6 sm:flex">
-          <span className="text-[11px] uppercase tracking-wider text-white/40">
+        <div className="relative z-10 mt-4 hidden flex-wrap items-center gap-3 border-t border-(--ws-line) pt-4 sm:mt-6 sm:flex">
+          <span className="text-[11px] uppercase tracking-wider text-(--ws-fg-40)">
             Shortcuts
           </span>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-60)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               /
             </kbd>
             <span>Focus search</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-60)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               <Command className="inline h-2.5 w-2.5" />K
             </kbd>
             <span>Command palette</span>
@@ -281,30 +282,30 @@ export default function GradesPage() {
       <GradesQuickStatsSection />
 
       {/* Grades directory shell */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl sm:rounded-2xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-3 sm:gap-4 sm:pb-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill) shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
                   <Sparkles className="h-4 w-4 text-blue-300 sm:h-5 sm:w-5" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-blue-400 sm:h-3 sm:w-3" />
               </div>
               <div className="space-y-0.5">
-                <CardTitle className="text-base font-semibold tracking-tight text-white sm:text-lg">
+                <CardTitle className="text-base font-semibold tracking-tight text-(--ws-fg) sm:text-lg">
                   Grade Directory
                 </CardTitle>
-                <p className="text-[11px] text-white/50 sm:text-xs">
+                <p className="text-[11px] text-(--ws-fg-50) sm:text-xs">
                   Search, filter, and manage grades
                 </p>
               </div>
@@ -314,7 +315,7 @@ export default function GradesPage() {
                 {totalFiltered} total
               </span>
               {activeFilterCount > 0 && (
-                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-300">
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-amber)">
                   {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
                 </span>
               )}
@@ -362,23 +363,23 @@ export default function GradesPage() {
       </Card>
 
       {/* Data summary shell */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl sm:rounded-2xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-3 sm:pb-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-60)">
                 Directory Results
               </CardTitle>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-(--ws-fg-80)">
                 {isLoading
                   ? "Loading..."
                   : `${totalFiltered} grades found`}
@@ -390,7 +391,7 @@ export default function GradesPage() {
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
                     ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
-                    : "border-white/10 bg-white/5 text-white/60"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                 )}
               >
                 {viewMode === "cards" ? "Cards" : "Table"} view
@@ -409,10 +410,10 @@ export default function GradesPage() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-sm font-medium text-(--ws-fg-80)">
                   Loading grades...
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-50)">
                   Fetching your grade directory
                 </p>
               </div>
@@ -442,15 +443,15 @@ export default function GradesPage() {
           ) : paginatedGrades.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-                  <GraduationCap className="h-10 w-10 text-white/30" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill)">
+                  <GraduationCap className="h-10 w-10 text-(--ws-fg-40)" />
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-white/80">
+                <p className="text-base font-medium text-(--ws-fg-80)">
                   No grades found
                 </p>
-                <p className="mt-1 max-w-xs text-sm text-white/50">
+                <p className="mt-1 max-w-xs text-sm text-(--ws-fg-50)">
                   {search || activeFilterCount > 0
                     ? "Try adjusting your search or filters to find what you're looking for"
                     : "Grades are typically configured in curriculum settings"}
@@ -459,15 +460,15 @@ export default function GradesPage() {
             </div>
           ) : (
             <div className="space-y-4 sm:space-y-5">
-              <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-2 text-xs text-white/70 sm:text-sm">
+              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-xs text-(--ws-fg-70) sm:text-sm">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-[9px] font-bold text-blue-300 sm:h-6 sm:w-6 sm:text-[10px]">
                     {paginatedGrades.length}
                   </span>
                   <span>
                     grade{paginatedGrades.length === 1 ? "" : "s"} on page{" "}
-                    <span className="font-medium text-white">{page}</span> of{" "}
-                    <span className="font-medium text-white">{totalPages}</span>
+                    <span className="font-medium text-(--ws-fg)">{page}</span> of{" "}
+                    <span className="font-medium text-(--ws-fg)">{totalPages}</span>
                   </span>
                 </div>
               </div>
@@ -529,6 +530,6 @@ export default function GradesPage() {
           }
         }}
       />
-    </div>
+    </WorkspaceScope>
   );
 }

@@ -171,7 +171,7 @@ export function ManageGuardiansContent({
                   variant="outline"
                   onClick={() => setViewMode("link-existing")}
                   disabled={isLoading}
-                  className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="gap-2 border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Link2 className="h-4 w-4" />
                   Link Existing Parent
@@ -190,7 +190,7 @@ export function ManageGuardiansContent({
 
             {loadingGuardians ? (
               <div className="flex items-center justify-center py-12">
-                <div className="text-sm text-white/50">Loading...</div>
+                <div className="text-sm text-(--ws-fg-50)">Loading...</div>
               </div>
             ) : (
               <GuardianList

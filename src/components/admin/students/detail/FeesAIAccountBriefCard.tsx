@@ -18,12 +18,12 @@ import { toast } from "sonner";
 
 function riskBadgeClass(risk: "low" | "medium" | "high") {
   if (risk === "high") {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+    return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
   }
   if (risk === "medium") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+    return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
   }
-  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
 }
 
 function formatDateTime(value: string | null) {
@@ -78,23 +78,23 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
   };
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+    <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-fuchsia-500/10 via-transparent to-transparent"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
         aria-hidden="true"
       />
       <CardHeader className="relative z-10 space-y-3 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
               <Sparkles className="h-4 w-4 text-fuchsia-300" />
               AI Account Brief
             </CardTitle>
-            <p className="mt-1 text-xs text-white/55">
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               Snapshot summary for this student&apos;s fees account. Cached in DB to
               reduce AI usage and cost.
             </p>
@@ -110,7 +110,7 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
               !canGenerate
             }
             title={canGenerate ? "Regenerate AI brief" : budget?.reason || ""}
-            className="h-8 gap-1 border-white/15 bg-white/5 text-xs text-white hover:bg-white/10"
+            className="h-8 gap-1 border-(--ws-line-strong) bg-(--ws-fill) text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             <RefreshCw
               className={`h-3.5 w-3.5 ${
@@ -124,11 +124,11 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
 
       <CardContent className="relative z-10 space-y-3">
         {accountBrief.isLoading ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-4 text-xs text-white/60">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-4 text-xs text-(--ws-fg-60)">
             Loading account brief…
           </div>
         ) : accountBrief.isError || !data ? (
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-4 text-xs text-rose-200">
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-4 text-xs text-(--ws-rose)">
             Failed to load AI account brief.
           </div>
         ) : (
@@ -142,33 +142,33 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
               </Badge>
               <Badge
                 variant="outline"
-                className="border-white/15 bg-white/5 text-white/75"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-70)"
               >
                 Source: {data.source === "ai" ? "AI" : "Rule-based"}
               </Badge>
               {data.cacheStatus !== "fresh" ? (
                 <Badge
                   variant="outline"
-                  className="border-amber-500/30 bg-amber-500/10 text-amber-200"
+                  className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
                 >
                   {data.cacheStatus === "stale" ? "Cache stale" : "No cache yet"}
                 </Badge>
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-              <h4 className="text-sm font-semibold text-white">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+              <h4 className="text-sm font-semibold text-(--ws-fg)">
                 {data.brief.headline}
               </h4>
-              <p className="mt-1 text-xs text-white/70">{data.brief.overview}</p>
+              <p className="mt-1 text-xs text-(--ws-fg-70)">{data.brief.overview}</p>
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/55">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                   Key Points
                 </div>
-                <ul className="mt-2 space-y-1 text-xs text-white/75">
+                <ul className="mt-2 space-y-1 text-xs text-(--ws-fg-70)">
                   {data.brief.keyPoints.length ? (
                     data.brief.keyPoints.map((point, index) => (
                       <li key={`${index}-${point}`}>• {point}</li>
@@ -178,11 +178,11 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
                   )}
                 </ul>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/55">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                   Recommended Actions
                 </div>
-                <ul className="mt-2 space-y-1 text-xs text-white/75">
+                <ul className="mt-2 space-y-1 text-xs text-(--ws-fg-70)">
                   {data.brief.recommendedActions.length ? (
                     data.brief.recommendedActions.map((action, index) => (
                       <li key={`${index}-${action}`}>• {action}</li>
@@ -194,7 +194,7 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/60">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-[11px] text-(--ws-fg-60)">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="inline-flex items-center gap-1">
                   <Clock3 className="h-3 w-3" />
@@ -209,7 +209,7 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
         )}
 
         {budget && !budget.canGenerate ? (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-(--ws-amber)">
             <div className="mb-1 inline-flex items-center gap-1 font-medium">
               <AlertCircle className="h-3.5 w-3.5" />
               AI generation paused

@@ -217,7 +217,7 @@ export default function RecordPaymentModal({
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {STEPS.length}
         </div>
@@ -226,7 +226,7 @@ export default function RecordPaymentModal({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -258,7 +258,7 @@ export default function RecordPaymentModal({
                   control={control}
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="border border-white/10 bg-white/5 text-white">
+                      <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                         <SelectValue placeholder="Select bill" />
                       </SelectTrigger>
                       <SelectContent>
@@ -276,7 +276,7 @@ export default function RecordPaymentModal({
                   )}
                 />
                 {errors.invoiceId && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.invoiceId.message}
                   </div>
                 )}
@@ -286,13 +286,13 @@ export default function RecordPaymentModal({
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2"
+                  className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                       Total Outstanding
                     </span>
-                    <span className="text-lg font-bold text-white">
+                    <span className="text-lg font-bold text-(--ws-fg)">
                       {formatMoney(selectedInvoice.totalOutstandingMinor)}
                     </span>
                   </div>
@@ -312,10 +312,10 @@ export default function RecordPaymentModal({
                     type="number"
                     step="0.01"
                     {...register("amount", { valueAsNumber: true })}
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.amount && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.amount.message}
                     </div>
                   )}
@@ -331,7 +331,7 @@ export default function RecordPaymentModal({
                     id="paymentDate"
                     type="date"
                     {...register("paymentDate")}
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -340,9 +340,9 @@ export default function RecordPaymentModal({
                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                   Payment Method *
                 </Label>
-                <p className="text-[11px] leading-snug text-white/45">
+                <p className="text-[11px] leading-snug text-(--ws-fg)/45">
                   Choose how the family paid.{" "}
-                  <span className="text-white/55">
+                  <span className="text-(--ws-fg)/55">
                     &quot;Mobile money&quot; is a direct wallet transfer. &quot;Card&quot; is when they
                     paid through your online checkout (card, USSD, or mobile money).
                   </span>
@@ -363,7 +363,7 @@ export default function RecordPaymentModal({
                             className={`flex flex-1 cursor-pointer flex-col items-stretch rounded-lg border px-3 py-3 text-sm font-medium transition-all ${
                               selected
                                 ? "border-brand bg-brand/20 text-brand"
-                                : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white/90"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-90)"
                             }`}
                           >
                             <input
@@ -377,7 +377,7 @@ export default function RecordPaymentModal({
                             {copy.subtitle ? (
                               <span
                                 className={`mt-1 text-center text-[10px] font-normal leading-snug ${
-                                  selected ? "text-brand/80" : "text-white/40"
+                                  selected ? "text-brand/80" : "text-(--ws-fg-40)"
                                 }`}
                               >
                                 {copy.subtitle}
@@ -390,7 +390,7 @@ export default function RecordPaymentModal({
                   )}
                 />
                 {errors.paymentMethod && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.paymentMethod.message}
                   </div>
                 )}
@@ -412,7 +412,7 @@ export default function RecordPaymentModal({
                     size="sm"
                     onClick={handleAutoAllocate}
                     disabled={!selectedInvoice || amount <= 0}
-                    className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     Auto Allocate
                   </Button>
@@ -422,7 +422,7 @@ export default function RecordPaymentModal({
                     size="sm"
                     onClick={handleAddAllocation}
                     disabled={!selectedInvoice}
-                    className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add
@@ -431,34 +431,34 @@ export default function RecordPaymentModal({
               </div>
 
               {selectedInvoice && (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white/80">
+                    <span className="text-sm font-medium text-(--ws-fg-80)">
                       Payment Amount
                     </span>
-                    <span className="text-lg font-bold text-white">
+                    <span className="text-lg font-bold text-(--ws-fg)">
                       {formatCurrencyFromMajor(amount)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white/80">
+                    <span className="text-sm font-medium text-(--ws-fg-80)">
                       Total Allocated
                     </span>
-                    <span className="text-lg font-bold text-white">
+                    <span className="text-lg font-bold text-(--ws-fg)">
                       {formatCurrencyFromMajor(totalAllocated)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                    <span className="text-sm font-medium text-white/80">
+                  <div className="flex items-center justify-between pt-2 border-t border-(--ws-line)">
+                    <span className="text-sm font-medium text-(--ws-fg-80)">
                       Remaining
                     </span>
                     <span
                       className={`text-lg font-bold ${
                         Math.abs(remainingAmount) < 0.01
-                          ? "text-emerald-300"
+                          ? "text-(--ws-emerald)"
                           : remainingAmount > 0
                           ? "text-orange-300"
-                          : "text-rose-300"
+                          : "text-(--ws-rose)"
                       }`}
                     >
                       {formatCurrencyFromMajor(remainingAmount)}
@@ -481,10 +481,10 @@ export default function RecordPaymentModal({
                       key={field.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                      className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-white/80">
+                        <span className="text-sm font-medium text-(--ws-fg-80)">
                           Allocation {index + 1}
                         </span>
                         <Button
@@ -492,7 +492,7 @@ export default function RecordPaymentModal({
                           variant="ghost"
                           size="sm"
                           onClick={() => remove(index)}
-                          className="text-rose-300 hover:text-rose-200"
+                          className="text-(--ws-rose) hover:text-(--ws-rose)"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -507,7 +507,7 @@ export default function RecordPaymentModal({
                           control={control}
                           render={({ field }) => (
                             <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger className="border border-white/10 bg-white/5 text-white">
+                              <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                                 <SelectValue placeholder="Select line item" />
                               </SelectTrigger>
                               <SelectContent>
@@ -524,7 +524,7 @@ export default function RecordPaymentModal({
                           )}
                         />
                         {errors.allocations?.[index]?.invoiceLineItemId && (
-                          <div className="text-xs text-rose-300">
+                          <div className="text-xs text-(--ws-rose)">
                             {errors.allocations[index]?.invoiceLineItemId?.message}
                           </div>
                         )}
@@ -541,10 +541,10 @@ export default function RecordPaymentModal({
                             valueAsNumber: true,
                           })}
                           max={maxAmount}
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.allocations?.[index]?.amount && (
-                          <div className="text-xs text-rose-300">
+                          <div className="text-xs text-(--ws-rose)">
                             {errors.allocations[index]?.amount?.message}
                           </div>
                         )}
@@ -557,7 +557,7 @@ export default function RecordPaymentModal({
                         <Input
                           {...register(`allocations.${index}.notes` as const)}
                           placeholder="Allocation notes..."
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                       </div>
                     </motion.div>
@@ -566,7 +566,7 @@ export default function RecordPaymentModal({
               </div>
 
               {errors.allocations && (
-                <div className="text-xs text-rose-300">
+                <div className="text-xs text-(--ws-rose)">
                   {errors.allocations.message || "Please fix allocation errors"}
                 </div>
               )}
@@ -581,39 +581,39 @@ export default function RecordPaymentModal({
               </h2>
 
               <div className="space-y-4">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Bill
                   </p>
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-(--ws-fg)">
                     {selectedInvoice?.invoiceNumber}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Payment Amount
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-(--ws-fg)">
                     {formatCurrencyFromMajor(amount)}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Payment Method
                   </p>
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-(--ws-fg)">
                     {PAYMENT_METHOD_UI[paymentMethod].title}
                   </p>
                   {PAYMENT_METHOD_UI[paymentMethod].subtitle ? (
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-(--ws-fg-50)">
                       {PAYMENT_METHOD_UI[paymentMethod].subtitle}
                     </p>
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted mb-2">
                     Allocations
                   </p>
@@ -627,10 +627,10 @@ export default function RecordPaymentModal({
                           key={index}
                           className="flex items-center justify-between text-sm"
                         >
-                          <span className="text-white/80">
+                          <span className="text-(--ws-fg-80)">
                             {lineItem?.name || "Unknown"}
                           </span>
-                          <span className="text-white font-medium">
+                          <span className="text-(--ws-fg) font-medium">
                             {formatCurrencyFromMajor(allocation.amount)}
                           </span>
                         </div>
@@ -652,7 +652,7 @@ export default function RecordPaymentModal({
                     id="receiptNumber"
                     {...register("receiptNumber")}
                     placeholder="e.g., RCP-2025-001"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
                 <div className="space-y-2">
@@ -666,7 +666,7 @@ export default function RecordPaymentModal({
                     id="notes"
                     {...register("notes")}
                     placeholder="Additional notes..."
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -676,13 +676,13 @@ export default function RecordPaymentModal({
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+      <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
         <Button
           type="button"
           variant="ghost"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isSubmitting}
-          className="text-white/80 hover:text-white"
+          className="text-(--ws-fg-80) hover:text-(--ws-fg)"
         >
           {isFirstStep ? (
             <>
@@ -701,7 +701,7 @@ export default function RecordPaymentModal({
           <Button
             type="submit"
             disabled={isSubmitting || isLoading || Math.abs(remainingAmount) >= 0.01}
-            className="bg-brand hover:bg-brand/90 text-white"
+            className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
           >
             <Check className="h-4 w-4 mr-2" />
             Record Payment
@@ -710,7 +710,7 @@ export default function RecordPaymentModal({
           <Button
             type="button"
             onClick={handleNext}
-            className="bg-brand hover:bg-brand/90 text-white"
+            className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
           >
             Next
             <ChevronRight className="h-4 w-4 ml-2" />

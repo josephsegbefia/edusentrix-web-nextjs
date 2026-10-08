@@ -18,6 +18,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { toast } from "sonner";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,7 +59,7 @@ type OrderRow = {
 };
 
 const glassPanel =
-  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+  "relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl";
 
 function PanelChrome({ corner = "top" }: { corner?: "top" | "bottom" }) {
   return (
@@ -73,7 +74,7 @@ function PanelChrome({ corner = "top" }: { corner?: "top" | "bottom" }) {
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
         aria-hidden="true"
       />
     </>
@@ -106,14 +107,14 @@ function StatCard({
       <CardContent className="relative z-10 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
-            <div className="mt-2 text-3xl font-semibold text-white">{value}</div>
+            <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-40)">{label}</p>
+            <div className="mt-2 text-3xl font-semibold text-(--ws-fg)">{value}</div>
           </div>
           <div className={cn("rounded-xl border p-2", tones[tone])}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
-        <p className="mt-3 text-sm leading-5 text-white/50">{helper}</p>
+        <p className="mt-3 text-sm leading-5 text-(--ws-fg-50)">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -123,7 +124,7 @@ function statusTone(status: string) {
   if (status === "paid" || status === "fulfilled") return "border-emerald-300/25 text-emerald-100 bg-emerald-400/10";
   if (status === "pending" || status === "awaiting_payment") return "border-amber-300/25 text-amber-100 bg-amber-400/10";
   if (status === "cancelled" || status === "failed") return "border-rose-300/25 text-rose-100 bg-rose-400/10";
-  return "border-white/20 text-white/75 bg-white/5";
+  return "border-(--ws-line-strong) text-(--ws-fg)/75 bg-(--ws-fill)";
 }
 
 export default function AdminSchoolStorePage() {
@@ -218,7 +219,7 @@ export default function AdminSchoolStorePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 text-white/60">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-panel-to)/80 text-(--ws-fg-60)">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           Loading store…
@@ -242,8 +243,9 @@ export default function AdminSchoolStorePage() {
   });
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6 sm:space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-8">
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl"
           aria-hidden="true"
@@ -253,7 +255,7 @@ export default function AdminSchoolStorePage() {
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -262,22 +264,22 @@ export default function AdminSchoolStorePage() {
               <Store className="h-6 w-6 text-cyan-200" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-white/55">Commerce</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              <p className="text-sm text-(--ws-fg-50)">Commerce</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">
                 School store
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--ws-fg-50)">
                 Publish supplies for parents, track purchases, and keep store revenue moving through
                 the existing Paystack flow.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge className="border border-white/10 bg-white/5 px-3 py-1.5 text-white/70">
+            <Badge className="border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-(--ws-fg-70)">
               <BadgeCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-300" />
               {activeProducts} active
             </Badge>
-            <Badge className="border border-white/10 bg-white/5 px-3 py-1.5 text-white/70">
+            <Badge className="border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-(--ws-fg-70)">
               <ReceiptText className="mr-1.5 h-3.5 w-3.5 text-cyan-200" />
               {orders.length} orders
             </Badge>
@@ -318,14 +320,14 @@ export default function AdminSchoolStorePage() {
 
       <Card className={glassPanel}>
         <PanelChrome />
-        <CardHeader className="relative z-10 border-b border-white/5">
+        <CardHeader className="relative z-10 border-b border-(--ws-line)">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-base text-white">
+              <CardTitle className="flex items-center gap-2 text-base text-(--ws-fg)">
                 <PackagePlus className="h-4 w-4 text-cyan-200" />
                 Add product
               </CardTitle>
-              <p className="mt-1 text-sm text-white/50">
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Create a parent-facing item with price, description, and optional image.
               </p>
             </div>
@@ -338,27 +340,27 @@ export default function AdminSchoolStorePage() {
         <CardContent className="relative z-10 p-5">
           <form onSubmit={addProduct} className="grid gap-4 lg:grid-cols-[1fr_1fr_320px]">
             <div className="space-y-2">
-              <Label className="text-white/80">Name</Label>
+              <Label className="text-(--ws-fg-80)">Name</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-11 border-white/10 bg-black/30 text-white placeholder:text-white/35"
+                className="h-11 border-(--ws-line) bg-black/30 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 placeholder="e.g. Exercise books (pack)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Price (GHS)</Label>
+              <Label className="text-(--ws-fg-80)">Price (GHS)</Label>
               <Input
                 value={priceGhs}
                 onChange={(e) => setPriceGhs(e.target.value)}
-                className="h-11 border-white/10 bg-black/30 text-white placeholder:text-white/35"
+                className="h-11 border-(--ws-line) bg-black/30 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 placeholder="12.00"
                 inputMode="decimal"
               />
             </div>
             <div className="space-y-2 lg:row-span-3">
-              <Label className="text-white/80">Photo</Label>
-              <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+              <Label className="text-(--ws-fg-80)">Photo</Label>
+              <div className="rounded-xl border border-(--ws-line) bg-black/25 p-3">
                 {schoolId ? (
                   <>
                     <ImageUploader
@@ -375,18 +377,18 @@ export default function AdminSchoolStorePage() {
                     ) : null}
                   </>
                 ) : (
-                  <div className="grid min-h-32 place-items-center rounded-lg border border-dashed border-white/10 text-center text-sm text-white/45">
+                  <div className="grid min-h-32 place-items-center rounded-lg border border-dashed border-(--ws-line) text-center text-sm text-(--ws-fg-40)">
                     School profile is still loading.
                   </div>
                 )}
               </div>
             </div>
             <div className="space-y-2 lg:col-span-2">
-              <Label className="text-white/80">Description (optional)</Label>
+              <Label className="text-(--ws-fg-80)">Description (optional)</Label>
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="h-11 border-white/10 bg-black/30 text-white placeholder:text-white/35"
+                className="h-11 border-(--ws-line) bg-black/30 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 placeholder="Short parent-facing note"
               />
             </div>
@@ -394,7 +396,7 @@ export default function AdminSchoolStorePage() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-11 bg-linear-to-r from-teal-500 to-cyan-600 px-5 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+                className="h-11 bg-linear-to-r from-teal-500 to-cyan-600 px-5 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
               >
                 {saving ? (
                   <>
@@ -415,20 +417,20 @@ export default function AdminSchoolStorePage() {
 
       <Card className={glassPanel}>
         <PanelChrome corner="bottom" />
-        <CardHeader className="relative z-10 border-b border-white/5">
+        <CardHeader className="relative z-10 border-b border-(--ws-line)">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-base text-white">Catalog</CardTitle>
-              <p className="mt-1 text-sm text-white/50">
+              <CardTitle className="text-base text-(--ws-fg)">Catalog</CardTitle>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Toggle availability without removing product history.
               </p>
             </div>
             <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-white/35" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-(--ws-fg-40)" />
               <Input
                 value={catalogSearch}
                 onChange={(event) => setCatalogSearch(event.target.value)}
-                className="h-10 border-white/10 bg-black/30 pl-9 text-white placeholder:text-white/35"
+                className="h-10 border-(--ws-line) bg-black/30 pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 placeholder="Search catalog..."
               />
             </div>
@@ -436,12 +438,12 @@ export default function AdminSchoolStorePage() {
         </CardHeader>
         <CardContent className="relative z-10 p-5">
           {filteredProducts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
-              <ShoppingBag className="mx-auto h-9 w-9 text-white/30" />
-              <p className="mt-3 font-semibold text-white">
+            <div className="rounded-2xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) p-8 text-center">
+              <ShoppingBag className="mx-auto h-9 w-9 text-(--ws-fg-40)" />
+              <p className="mt-3 font-semibold text-(--ws-fg)">
                 {products.length === 0 ? "No products yet" : "No matching products"}
               </p>
-              <p className="mx-auto mt-1 max-w-md text-sm text-white/50">
+              <p className="mx-auto mt-1 max-w-md text-sm text-(--ws-fg-50)">
                 {products.length === 0
                   ? "Add the first product above to make it available for parent checkout."
                   : "Adjust the search term to find another catalog item."}
@@ -452,10 +454,10 @@ export default function AdminSchoolStorePage() {
               {filteredProducts.map((p) => (
                 <li
                   key={p.id}
-                  className="group rounded-xl border border-white/10 bg-black/25 p-3 transition-colors hover:border-cyan-400/25 hover:bg-black/35"
+                  className="group rounded-xl border border-(--ws-line) bg-black/25 p-3 transition-colors hover:border-cyan-400/25 hover:bg-black/35"
                 >
                   <div className="flex gap-3">
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill)">
                       {p.imageUrl ? (
                         <Image
                           src={p.imageUrl}
@@ -466,14 +468,14 @@ export default function AdminSchoolStorePage() {
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-white/25" />
+                          <ImageIcon className="h-6 w-6 text-(--ws-fg)/25" />
                         </div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-white">{p.name}</p>
+                          <p className="truncate font-medium text-(--ws-fg)">{p.name}</p>
                           <p className="mt-1 text-sm font-semibold text-cyan-200">
                             {formatMoney(p.priceMinor)}
                           </p>
@@ -481,11 +483,11 @@ export default function AdminSchoolStorePage() {
                         <Switch checked={p.isActive} onCheckedChange={(v) => void toggleActive(p, v)} />
                       </div>
                       {p.description ? (
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/50">
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-(--ws-fg-50)">
                           {p.description}
                         </p>
                       ) : (
-                        <p className="mt-2 text-xs leading-5 text-white/35">No description added.</p>
+                        <p className="mt-2 text-xs leading-5 text-(--ws-fg-40)">No description added.</p>
                       )}
                       <div className="mt-3">
                         <Badge
@@ -494,7 +496,7 @@ export default function AdminSchoolStorePage() {
                             "border text-[10px]",
                             p.isActive
                               ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-100"
-                              : "border-white/15 bg-white/5 text-white/50"
+                              : "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-50)"
                           )}
                         >
                           {p.isActive ? "Visible to parents" : "Hidden"}
@@ -511,45 +513,45 @@ export default function AdminSchoolStorePage() {
 
       <Card className={glassPanel}>
         <PanelChrome />
-        <CardHeader className="relative z-10 border-b border-white/5">
-          <CardTitle className="flex items-center gap-2 text-base text-white">
+        <CardHeader className="relative z-10 border-b border-(--ws-line)">
+          <CardTitle className="flex items-center gap-2 text-base text-(--ws-fg)">
             <ReceiptText className="h-4 w-4 text-cyan-200" />
             Orders
           </CardTitle>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-(--ws-fg-50)">
             Recent parent purchases and checkout status.
           </p>
         </CardHeader>
         <CardContent className="relative z-10 overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-white/70">When</TableHead>
-                <TableHead className="text-white/70">Parent</TableHead>
-                <TableHead className="text-white/70">Student</TableHead>
-                <TableHead className="text-white/70">Status</TableHead>
-                <TableHead className="text-white/70">Total</TableHead>
+              <TableRow className="border-(--ws-line) hover:bg-transparent">
+                <TableHead className="text-(--ws-fg-70)">When</TableHead>
+                <TableHead className="text-(--ws-fg-70)">Parent</TableHead>
+                <TableHead className="text-(--ws-fg-70)">Student</TableHead>
+                <TableHead className="text-(--ws-fg-70)">Status</TableHead>
+                <TableHead className="text-(--ws-fg-70)">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
-                <TableRow className="border-white/10">
-                  <TableCell colSpan={5} className="py-8 text-center text-white/50">
+                <TableRow className="border-(--ws-line)">
+                  <TableCell colSpan={5} className="py-8 text-center text-(--ws-fg-50)">
                     No orders yet. Parent purchases will appear here.
                   </TableCell>
                 </TableRow>
               ) : (
                 orders.map((o) => (
-                  <TableRow key={o.id} className="border-white/10 hover:bg-white/5">
-                    <TableCell className="text-white/80 text-sm">
+                  <TableRow key={o.id} className="border-(--ws-line) hover:bg-(--ws-fill)">
+                    <TableCell className="text-(--ws-fg-80) text-sm">
                       {o.paidAt
                         ? new Date(o.paidAt).toLocaleString()
                         : o.createdAt
                           ? new Date(o.createdAt).toLocaleString()
                           : "—"}
                     </TableCell>
-                    <TableCell className="text-white text-sm">{o.parentLabel}</TableCell>
-                    <TableCell className="text-white text-sm">{o.studentLabel}</TableCell>
+                    <TableCell className="text-(--ws-fg) text-sm">{o.parentLabel}</TableCell>
+                    <TableCell className="text-(--ws-fg) text-sm">{o.studentLabel}</TableCell>
                     <TableCell className="text-sm capitalize">
                       <Badge variant="outline" className={cn("border text-[10px]", statusTone(o.status))}>
                         {o.status.replace("_", " ")}
@@ -566,5 +568,6 @@ export default function AdminSchoolStorePage() {
         </CardContent>
       </Card>
     </div>
+    </WorkspaceScope>
   );
 }

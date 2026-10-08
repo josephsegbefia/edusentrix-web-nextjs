@@ -547,7 +547,7 @@ export default function BulkCreateInvoiceModal({
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {STEPS.length}
         </div>
@@ -556,7 +556,7 @@ export default function BulkCreateInvoiceModal({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -591,7 +591,7 @@ export default function BulkCreateInvoiceModal({
                         variant="ghost"
                         size="sm"
                         onClick={() => setValue("academicPeriodId", "")}
-                        className="text-xs text-white/60 hover:text-white h-auto py-1"
+                        className="text-xs text-(--ws-fg-60) hover:text-(--ws-fg) h-auto py-1"
                       >
                         Clear
                       </Button>
@@ -612,7 +612,7 @@ export default function BulkCreateInvoiceModal({
                           {/* Current Period Card - Show only if not a past period is selected */}
                           {currentPeriod && !isPastPeriodSelected && (
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium text-white/60">
+                              <Label className="text-xs font-medium text-(--ws-fg-60)">
                                 Current Period
                               </Label>
                               <motion.button
@@ -623,7 +623,7 @@ export default function BulkCreateInvoiceModal({
                                 className={`w-full rounded-lg border-2 px-4 py-2 h-10 text-sm font-medium transition-all text-left flex items-center justify-between ${
                                   isCurrentPeriodSelected
                                     ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                                    : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                                 }`}
                               >
                                 <div className="flex-1 min-w-0">
@@ -648,7 +648,7 @@ export default function BulkCreateInvoiceModal({
                           {/* Past Periods Dropdown - Show only if current period is not selected */}
                           {pastPeriods.length > 0 && !isCurrentPeriodSelected && (
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium text-white/60">
+                              <Label className="text-xs font-medium text-(--ws-fg-60)">
                                 {currentPeriod ? "Past Periods" : "Select Period"}
                               </Label>
                               <DropdownMenu>
@@ -656,8 +656,8 @@ export default function BulkCreateInvoiceModal({
                                   <Button
                                     variant="outline"
                                     className={cn(
-                                      "w-full justify-between border border-white/10 bg-white/5 text-white",
-                                      "hover:bg-white/10 hover:border-white/20",
+                                      "w-full justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)",
+                                      "hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)",
                                       "h-10"
                                     )}
                                   >
@@ -688,7 +688,7 @@ export default function BulkCreateInvoiceModal({
                                       className={cn(
                                         premiumMenuItem,
                                         field.value === period._id &&
-                                          "bg-white/10"
+                                          "bg-(--ws-fill-strong)"
                                       )}
                                     >
                                       <div className="flex items-center justify-between w-full">
@@ -733,7 +733,7 @@ export default function BulkCreateInvoiceModal({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => field.onChange("")}
-                                  className="h-6 w-6 p-0 text-white/60 hover:text-white"
+                                  className="h-6 w-6 p-0 text-(--ws-fg-60) hover:text-(--ws-fg)"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -744,7 +744,7 @@ export default function BulkCreateInvoiceModal({
                           {!currentPeriod &&
                             pastPeriods.length === 0 &&
                             periods.length === 0 && (
-                              <p className="text-xs text-white/50 py-4 text-center">
+                              <p className="text-xs text-(--ws-fg-50) py-4 text-center">
                                 No academic periods available. Please create
                                 periods first.
                               </p>
@@ -754,7 +754,7 @@ export default function BulkCreateInvoiceModal({
                     }}
                   />
                   {errors.academicPeriodId && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.academicPeriodId.message}
                     </div>
                   )}
@@ -766,7 +766,7 @@ export default function BulkCreateInvoiceModal({
                   <Input
                     type="date"
                     {...register("dueDate")}
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand h-10"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand h-10"
                   />
                 </div>
               </div>
@@ -775,7 +775,7 @@ export default function BulkCreateInvoiceModal({
               {(selectedStudentIds.size > 0 ||
                 selectedGradeIds.size > 0 ||
                 selectedClassGroupIds.size > 0) && (
-                <div className="space-y-3 rounded-lg border border-white/10 bg-white/5 p-4">
+                <div className="space-y-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Selected ({selectedStudentIds.size} students,{" "}
                     {selectedGradeIds.size} grades, {selectedClassGroupIds.size}{" "}
@@ -785,7 +785,7 @@ export default function BulkCreateInvoiceModal({
                   {/* Selected Grades */}
                   {selectedGradeIds.size > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-white/60">
+                      <p className="text-xs font-medium text-(--ws-fg-60)">
                         Grades:
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -818,7 +818,7 @@ export default function BulkCreateInvoiceModal({
                   {/* Selected Class Groups */}
                   {selectedClassGroupIds.size > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-white/60">
+                      <p className="text-xs font-medium text-(--ws-fg-60)">
                         Class Groups:
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -875,7 +875,7 @@ export default function BulkCreateInvoiceModal({
                   {/* Selected Students Preview */}
                   {selectedStudentIds.size > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-white/60">
+                      <p className="text-xs font-medium text-(--ws-fg-60)">
                         Students ({selectedStudentIds.size}):
                       </p>
                       <div className="max-h-32 overflow-y-auto space-y-1">
@@ -888,7 +888,7 @@ export default function BulkCreateInvoiceModal({
                             return student ? (
                               <div
                                 key={studentId}
-                                className="flex items-center gap-2 rounded-md bg-white/5 px-2 py-1"
+                                className="flex items-center gap-2 rounded-md bg-(--ws-fill) px-2 py-1"
                               >
                                 <StudentAvatarStatus
                                   fullName={student.fullName}
@@ -897,11 +897,11 @@ export default function BulkCreateInvoiceModal({
                                   size="sm"
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-white/80 truncate">
+                                  <p className="text-xs text-(--ws-fg-80) truncate">
                                     {student.fullName}
                                   </p>
                                   {student.admissionNumber && (
-                                    <p className="text-xs text-white/50">
+                                    <p className="text-xs text-(--ws-fg-50)">
                                       {student.admissionNumber}
                                     </p>
                                   )}
@@ -909,7 +909,7 @@ export default function BulkCreateInvoiceModal({
                                 <button
                                   type="button"
                                   onClick={() => toggleStudent(studentId)}
-                                  className="text-white/60 hover:text-white"
+                                  className="text-(--ws-fg-60) hover:text-(--ws-fg)"
                                 >
                                   <X className="h-3 w-3" />
                                 </button>
@@ -917,7 +917,7 @@ export default function BulkCreateInvoiceModal({
                             ) : null;
                           })}
                         {selectedStudentIds.size > 10 && (
-                          <p className="text-xs text-white/50 text-center py-1">
+                          <p className="text-xs text-(--ws-fg-50) text-center py-1">
                             +{selectedStudentIds.size - 10} more students
                           </p>
                         )}
@@ -933,19 +933,19 @@ export default function BulkCreateInvoiceModal({
                   Search Students, Grades & Class Groups *
                 </Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-(--ws-fg-40)" />
                   <Input
                     type="text"
                     placeholder="Search by student name, admission number, grade name, or class group name..."
                     value={unifiedSearchQuery}
                     onChange={(e) => setUnifiedSearchQuery(e.target.value)}
-                    className="pl-10 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="pl-10 border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
                 {/* Search Results */}
                 {searchLoading && (
-                  <div className="text-xs text-white/50 py-4 text-center">
+                  <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                     Searching...
                   </div>
                 )}
@@ -954,11 +954,11 @@ export default function BulkCreateInvoiceModal({
                   (searchResults.students.length > 0 ||
                     searchResults.grades.length > 0 ||
                     searchResults.classGroups.length > 0) && (
-                    <div className="max-h-96 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-3 space-y-4">
+                    <div className="max-h-96 overflow-y-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 space-y-4">
                       {/* Grades Results */}
                       {searchResults.grades.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                          <p className="text-xs font-semibold text-(--ws-fg-60) uppercase tracking-wider">
                             Grades
                           </p>
                           {searchResults.grades.map((grade: any) => (
@@ -971,11 +971,11 @@ export default function BulkCreateInvoiceModal({
                               className={`w-full rounded-md p-2.5 text-left transition-colors ${
                                 selectedGradeIds.has(grade._id)
                                   ? "bg-brand/20 border border-brand/30"
-                                  : "hover:bg-white/5 border border-transparent"
+                                  : "hover:bg-(--ws-fill) border border-transparent"
                               }`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-white/80">
+                                <span className="text-sm text-(--ws-fg-80)">
                                   {grade.name}
                                 </span>
                                 {selectedGradeIds.has(grade._id) && (
@@ -990,7 +990,7 @@ export default function BulkCreateInvoiceModal({
                       {/* Class Groups Results */}
                       {searchResults.classGroups.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                          <p className="text-xs font-semibold text-(--ws-fg-60) uppercase tracking-wider">
                             Class Groups
                           </p>
                           {searchResults.classGroups.map((classGroup: any) => (
@@ -1003,11 +1003,11 @@ export default function BulkCreateInvoiceModal({
                               className={`w-full rounded-md p-2.5 text-left transition-colors ${
                                 selectedClassGroupIds.has(classGroup._id)
                                   ? "bg-brand/20 border border-brand/30"
-                                  : "hover:bg-white/5 border border-transparent"
+                                  : "hover:bg-(--ws-fill) border border-transparent"
                               }`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-white/80">
+                                <span className="text-sm text-(--ws-fg-80)">
                                   {classGroup.name}
                                 </span>
                                 {selectedClassGroupIds.has(classGroup._id) && (
@@ -1022,7 +1022,7 @@ export default function BulkCreateInvoiceModal({
                       {/* Students Results */}
                       {searchResults.students.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                          <p className="text-xs font-semibold text-(--ws-fg-60) uppercase tracking-wider">
                             Students
                           </p>
                           {searchResults.students.map((student: any) => (
@@ -1035,7 +1035,7 @@ export default function BulkCreateInvoiceModal({
                               className={`w-full rounded-md p-2.5 text-left transition-colors ${
                                 selectedStudentIds.has(student.id)
                                   ? "bg-brand/20 border border-brand/30"
-                                  : "hover:bg-white/5 border border-transparent"
+                                  : "hover:bg-(--ws-fill) border border-transparent"
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -1046,10 +1046,10 @@ export default function BulkCreateInvoiceModal({
                                   size="sm"
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm text-white/80 truncate">
+                                  <p className="text-sm text-(--ws-fg-80) truncate">
                                     {student.fullName}
                                   </p>
-                                  <div className="flex items-center gap-2 text-xs text-white/50">
+                                  <div className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
                                     {student.admissionNumber && (
                                       <span>Adm. No: {student.admissionNumber}</span>
                                     )}
@@ -1077,20 +1077,20 @@ export default function BulkCreateInvoiceModal({
                   searchResults.students.length === 0 &&
                   searchResults.grades.length === 0 &&
                   searchResults.classGroups.length === 0 && (
-                    <p className="text-xs text-white/50 text-center py-4">
+                    <p className="text-xs text-(--ws-fg-50) text-center py-4">
                       No results found
                     </p>
                   )}
 
                 {!searchLoading &&
                   unifiedSearchQuery.trim().length === 0 && (
-                    <p className="text-xs text-white/50 text-center py-4">
+                    <p className="text-xs text-(--ws-fg-50) text-center py-4">
                       Start typing to search for students, grades, or class groups
                     </p>
                   )}
 
                 {errors.studentIds && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.studentIds.message}
                   </div>
                 )}
@@ -1110,7 +1110,7 @@ export default function BulkCreateInvoiceModal({
                   variant="outline"
                   size="sm"
                   onClick={handleAddLineItem}
-                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
@@ -1123,10 +1123,10 @@ export default function BulkCreateInvoiceModal({
                     key={field.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-white/80">
+                      <span className="text-sm font-medium text-(--ws-fg-80)">
                         Line Item {index + 1}
                       </span>
                       {fields.length > 1 && (
@@ -1135,7 +1135,7 @@ export default function BulkCreateInvoiceModal({
                           variant="ghost"
                           size="sm"
                           onClick={() => remove(index)}
-                          className="text-rose-300 hover:text-rose-200"
+                          className="text-(--ws-rose) hover:text-(--ws-rose)"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -1160,8 +1160,8 @@ export default function BulkCreateInvoiceModal({
                                   <Button
                                     variant="outline"
                                     className={cn(
-                                      "w-full justify-between border border-white/10 bg-white/5 text-white",
-                                      "hover:bg-white/10 hover:border-white/20"
+                                      "w-full justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)",
+                                      "hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                                     )}
                                   >
                                     <span>
@@ -1182,7 +1182,7 @@ export default function BulkCreateInvoiceModal({
                                     }
                                     className={cn(
                                       premiumMenuItem,
-                                      !field.value && "bg-white/10"
+                                      !field.value && "bg-(--ws-fill-strong)"
                                     )}
                                   >
                                     <div className="flex items-center justify-between w-full">
@@ -1209,7 +1209,7 @@ export default function BulkCreateInvoiceModal({
                                         className={cn(
                                           premiumMenuItem,
                                           field.value === structure._id &&
-                                            "bg-white/10"
+                                            "bg-(--ws-fill-strong)"
                                         )}
                                       >
                                         <div className="flex w-full items-center justify-between gap-3">
@@ -1240,10 +1240,10 @@ export default function BulkCreateInvoiceModal({
                         <Input
                           {...register(`lineItems.${index}.name` as const)}
                           placeholder="e.g., Tuition Fee"
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.lineItems?.[index]?.name && (
-                          <div className="text-xs text-rose-300">
+                          <div className="text-xs text-(--ws-rose)">
                             {errors.lineItems[index]?.name?.message}
                           </div>
                         )}
@@ -1257,7 +1257,7 @@ export default function BulkCreateInvoiceModal({
                       <Input
                         {...register(`lineItems.${index}.description` as const)}
                         placeholder="Optional description..."
-                        className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
@@ -1272,10 +1272,10 @@ export default function BulkCreateInvoiceModal({
                           {...register(`lineItems.${index}.amount` as const, {
                             valueAsNumber: true,
                           })}
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.lineItems?.[index]?.amount && (
-                          <div className="text-xs text-rose-300">
+                          <div className="text-xs text-(--ws-rose)">
                             {errors.lineItems[index]?.amount?.message}
                           </div>
                         )}
@@ -1292,9 +1292,9 @@ export default function BulkCreateInvoiceModal({
                                 onChange={(e) =>
                                   field.onChange(e.target.checked)
                                 }
-                                className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                                className="h-4 w-4 rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand cursor-pointer"
                               />
-                              <span className="text-sm text-white/80">
+                              <span className="text-sm text-(--ws-fg-80)">
                                 Allow Installments
                               </span>
                             </label>
@@ -1324,17 +1324,17 @@ export default function BulkCreateInvoiceModal({
               </div>
 
               {errors.lineItems && (
-                <div className="text-xs text-rose-300">
+                <div className="text-xs text-(--ws-rose)">
                   {errors.lineItems.message || "Please fix line item errors"}
                 </div>
               )}
 
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-(--ws-line)">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white/80">
+                  <span className="text-sm font-semibold text-(--ws-fg-80)">
                     Total Amount per Bill:
                   </span>
-                  <span className="text-lg font-bold text-white">
+                  <span className="text-lg font-bold text-(--ws-fg)">
                     {formatMoney(toMinorUnits(totalAmount))}
                   </span>
                 </div>
@@ -1350,11 +1350,11 @@ export default function BulkCreateInvoiceModal({
               </h2>
 
               <div className="space-y-4">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Academic Period
                   </p>
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-(--ws-fg)">
                     {
                       periods.find((p: any) => p._id === academicPeriodId)
                         ?.yearLabel
@@ -1364,25 +1364,25 @@ export default function BulkCreateInvoiceModal({
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Number of Bills
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-(--ws-fg)">
                     {totalInvoices} bill{totalInvoices !== 1 ? "s" : ""}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Total Amount per Bill
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-(--ws-fg)">
                     {formatMoney(toMinorUnits(totalAmount))}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted mb-2">
                     Selected Students ({selectedStudentIds.size})
                   </p>
@@ -1396,7 +1396,7 @@ export default function BulkCreateInvoiceModal({
                         return student ? (
                           <div
                             key={id}
-                            className="flex items-center gap-2 text-xs text-white/80"
+                            className="flex items-center gap-2 text-xs text-(--ws-fg-80)"
                           >
                             <StudentAvatarStatus
                               fullName={student.fullName}
@@ -1411,13 +1411,13 @@ export default function BulkCreateInvoiceModal({
                             </span>
                           </div>
                         ) : (
-                          <div key={id} className="text-xs text-white/50">
+                          <div key={id} className="text-xs text-(--ws-fg-50)">
                             Student ID: {id}
                           </div>
                         );
                       })}
                     {selectedStudentIds.size > 20 && (
-                      <p className="text-xs text-white/50 text-center py-1">
+                      <p className="text-xs text-(--ws-fg-50) text-center py-1">
                         +{selectedStudentIds.size - 20} more students
                       </p>
                     )}
@@ -1436,7 +1436,7 @@ export default function BulkCreateInvoiceModal({
                   id="notes"
                   {...register("notes")}
                   placeholder="Additional notes..."
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -1451,7 +1451,7 @@ export default function BulkCreateInvoiceModal({
                   id="terms"
                   {...register("terms")}
                   placeholder="Payment terms..."
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               </div>
             </section>
@@ -1460,13 +1460,13 @@ export default function BulkCreateInvoiceModal({
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+      <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
         <Button
           type="button"
           variant="ghost"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isSubmitting}
-          className="text-white/80 hover:text-white"
+          className="text-(--ws-fg-80) hover:text-(--ws-fg)"
         >
           {isFirstStep ? (
             <>
@@ -1485,7 +1485,7 @@ export default function BulkCreateInvoiceModal({
           <Button
             type="submit"
             disabled={isSubmitting || isLoading || totalInvoices === 0}
-            className="bg-brand hover:bg-brand/90 text-white"
+            className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
           >
             <Check className="h-4 w-4 mr-2" />
             Create {totalInvoices} Bill{totalInvoices !== 1 ? "s" : ""}
@@ -1494,7 +1494,7 @@ export default function BulkCreateInvoiceModal({
           <Button
             type="button"
             onClick={handleNext}
-            className="bg-brand hover:bg-brand/90 text-white"
+            className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
           >
             Next
             <ChevronRight className="h-4 w-4 ml-2" />
@@ -1506,13 +1506,13 @@ export default function BulkCreateInvoiceModal({
       <Dialog open={excludeModalOpen} onOpenChange={setExcludeModalOpen}>
         <DialogContent
           overlayClassName="z-[80]"
-          className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col bg-card border-white/10 z-[80]"
+          className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col bg-card border-(--ws-line) z-[80]"
         >
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-(--ws-fg)">
               Exclude Students from Class Group
             </DialogTitle>
-            <p className="text-sm text-white/60 mt-2">
+            <p className="text-sm text-(--ws-fg-60) mt-2">
               Select students to exclude from this class group selection. These
               students will be removed from bill creation.
             </p>
@@ -1521,13 +1521,13 @@ export default function BulkCreateInvoiceModal({
             <div className="flex-1 overflow-hidden flex flex-col space-y-4">
               {excludeModalLoading ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <p className="text-white/60">Loading students...</p>
+                  <p className="text-(--ws-fg-60)">Loading students...</p>
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                   {classGroupStudents.get(excludeModalClassGroupId)?.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
-                      <p className="text-white/60">No students found in this class group</p>
+                      <p className="text-(--ws-fg-60)">No students found in this class group</p>
                     </div>
                   ) : (
                     classGroupStudents
@@ -1544,7 +1544,7 @@ export default function BulkCreateInvoiceModal({
                         className={`w-full rounded-md p-3 text-left transition-colors ${
                           !isSelected
                             ? "bg-rose-500/20 border border-rose-500/30"
-                            : "bg-white/5 border border-transparent hover:bg-white/10"
+                            : "bg-(--ws-fill) border border-transparent hover:bg-(--ws-fill-strong)"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -1555,10 +1555,10 @@ export default function BulkCreateInvoiceModal({
                             size="sm"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white/80 truncate">
+                            <p className="text-sm text-(--ws-fg-80) truncate">
                               {student.fullName}
                             </p>
-                            <div className="flex items-center gap-2 text-xs text-white/50">
+                            <div className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
                               {student.admissionNumber && (
                                 <span>Adm. No: {student.admissionNumber}</span>
                               )}
@@ -1583,8 +1583,8 @@ export default function BulkCreateInvoiceModal({
                   )}
                 </div>
               )}
-              <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                <p className="text-sm text-white/60">
+              <div className="flex items-center justify-between pt-4 border-t border-(--ws-line)">
+                <p className="text-sm text-(--ws-fg-60)">
                   {
                     classGroupStudents
                       .get(excludeModalClassGroupId)
@@ -1603,7 +1603,7 @@ export default function BulkCreateInvoiceModal({
                 <Button
                   type="button"
                   onClick={() => setExcludeModalOpen(false)}
-                  className="bg-brand hover:bg-brand/90 text-white"
+                  className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
                 >
                   Done
                 </Button>

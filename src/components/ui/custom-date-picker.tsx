@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkspacePortalClass } from "@/components/theme/workspace-scope";
 import { Button } from "@/components/ui/button";
 import { isSameDay } from "date-fns/isSameDay";
 
@@ -64,6 +65,7 @@ export function CustomDatePicker({
   const [animationDirection, setAnimationDirection] = useState<"left" | "right">("right");
   const [mounted, setMounted] = useState(false);
   const themed = surface === "theme";
+  const portalClass = useWorkspacePortalClass();
 
   // Handle client-side mounting for portal
   useEffect(() => {
@@ -290,6 +292,7 @@ export function CustomDatePicker({
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 className={cn(
                   "pointer-events-auto fixed left-1/2 top-1/2 z-[9999] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-5 shadow-2xl",
+                  portalClass,
                   themed
                     ? "border-(--m-border) bg-(--m-glass-strong) text-(--m-fg)"
                     : "border-white/10 bg-card"
@@ -519,6 +522,7 @@ interface DateRangePickerProps {
   endLabel?: string;
   disabled?: boolean;
   className?: string;
+  surface?: "dark" | "theme";
 }
 
 export function DateRangePicker({
@@ -530,10 +534,12 @@ export function DateRangePicker({
   endLabel = "End Date",
   disabled = false,
   className,
+  surface = "dark",
 }: DateRangePickerProps) {
   return (
     <div className={cn("grid gap-4 sm:grid-cols-2", className)}>
       <CustomDatePicker
+        surface={surface}
         value={startDate}
         onChange={onStartDateChange}
         label={startLabel}
@@ -542,6 +548,7 @@ export function DateRangePicker({
         disabled={disabled}
       />
       <CustomDatePicker
+        surface={surface}
         value={endDate}
         onChange={onEndDateChange}
         label={endLabel}

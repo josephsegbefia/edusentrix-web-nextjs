@@ -42,13 +42,13 @@ function getActivityColors(type: string) {
     enrollment: {
       bg: "bg-cyan-500/10",
       border: "border-cyan-500/30",
-      text: "text-cyan-300",
+      text: "text-(--ws-cyan)",
       gradient: "from-cyan-500 to-teal-500",
     },
     payment: {
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/30",
-      text: "text-emerald-300",
+      text: "text-(--ws-emerald)",
       gradient: "from-emerald-500 to-emerald-600",
     },
     incident: {
@@ -60,13 +60,13 @@ function getActivityColors(type: string) {
     document: {
       bg: "bg-violet-500/10",
       border: "border-violet-500/30",
-      text: "text-violet-300",
+      text: "text-(--ws-violet)",
       gradient: "from-violet-500 to-violet-600",
     },
     default: {
       bg: "bg-teal-500/10",
       border: "border-teal-500/30",
-      text: "text-teal-300",
+      text: "text-(--ws-teal)",
       gradient: "from-teal-500 to-cyan-500",
     },
   };
@@ -94,56 +94,56 @@ export function StudentActivityLogTab({ student }: Props) {
   return (
     <div className="space-y-6">
       {/* Premium Stat Card */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-teal-500/15 via-cyan-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
         <CardContent className="relative z-10 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                 Total Activities
               </div>
-              <div className="mt-1 text-2xl font-bold text-white">
+              <div className="mt-1 text-2xl font-bold text-(--ws-fg)">
                 {activityCount}
               </div>
-              <p className="text-[10px] text-white/50">
+              <p className="text-[10px] text-(--ws-fg-50)">
                 {activityCount === 1 ? "event" : "events"} recorded
               </p>
             </div>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/30 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
-              <ActivityIcon className="h-5 w-5 text-teal-300" />
+              <ActivityIcon className="h-5 w-5 text-(--ws-teal)" />
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Activity Log */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-teal-500/15 via-cyan-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
-              <ActivityIcon className="h-5 w-5 text-teal-300" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
+              <ActivityIcon className="h-5 w-5 text-(--ws-teal)" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Activity Log
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {activityCount} {activityCount === 1 ? "event" : "events"}
               </p>
             </div>
@@ -152,16 +152,16 @@ export function StudentActivityLogTab({ student }: Props) {
 
         <CardContent className="relative z-10">
           {recentActivity.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20">
-                  <ActivityIcon className="h-7 w-7 text-teal-300" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-teal-500/20 to-cyan-500/20">
+                  <ActivityIcon className="h-7 w-7 text-(--ws-teal)" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-white">
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     No activity logged yet
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-50)">
                     As admins and teachers make changes (enrolment, class
                     assignments, payments, incidents), those actions will appear
                     here.
@@ -175,11 +175,11 @@ export function StudentActivityLogTab({ student }: Props) {
                 <div key={date} className="space-y-3">
                   {/* Date Header */}
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-white/10" />
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+                    <div className="h-px flex-1 bg-(--ws-fill-strong)" />
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                       {date}
                     </span>
-                    <div className="h-px flex-1 bg-white/10" />
+                    <div className="h-px flex-1 bg-(--ws-fill-strong)" />
                   </div>
 
                   {/* Activities for this date */}
@@ -191,7 +191,7 @@ export function StudentActivityLogTab({ student }: Props) {
                       return (
                         <div
                           key={item.id}
-                          className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-4 transition-all duration-200 hover:border-teal-500/30 hover:bg-white/5"
+                          className="group relative overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all duration-200 hover:border-teal-500/30 hover:bg-(--ws-fill)"
                         >
                           {/* Accent bar */}
                           <div
@@ -216,7 +216,7 @@ export function StudentActivityLogTab({ student }: Props) {
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-white">
+                                  <p className="text-sm font-semibold text-(--ws-fg)">
                                     {item.description}
                                   </p>
                                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -231,7 +231,7 @@ export function StudentActivityLogTab({ student }: Props) {
                                     >
                                       {item.type}
                                     </Badge>
-                                    <div className="flex flex-col gap-0.5 text-[10px] text-white/50">
+                                    <div className="flex flex-col gap-0.5 text-[10px] text-(--ws-fg-50)">
                                       <div className="flex items-center gap-1.5">
                                         <User className="h-3 w-3 shrink-0" />
                                         <span>
@@ -248,7 +248,7 @@ export function StudentActivityLogTab({ student }: Props) {
                                         </span>
                                       </div>
                                       {formatActivityDelegateStaffSummary(item.metadata) ? (
-                                        <span className="pl-4 text-white/40">
+                                        <span className="pl-4 text-(--ws-fg-40)">
                                           Staff:{" "}
                                           {formatActivityDelegateStaffSummary(item.metadata)}
                                         </span>
@@ -256,7 +256,7 @@ export function StudentActivityLogTab({ student }: Props) {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="flex shrink-0 items-center gap-1.5 text-[10px] text-white/50">
+                                <div className="flex shrink-0 items-center gap-1.5 text-[10px] text-(--ws-fg-50)">
                                   <Clock className="h-3 w-3" />
                                   <span className="whitespace-nowrap">
                                     {new Date(

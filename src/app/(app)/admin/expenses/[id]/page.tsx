@@ -54,6 +54,7 @@ import {
   ExpensePaymentMethod,
 } from "@/hooks/admin/useExpenses";
 import { CreateExpenseModal } from "@/components/modals/CreateExpenseModal";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { formatCurrency } from "@/lib/fees/money";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -213,29 +214,29 @@ function ExpenseTimeline({ expense }: { expense: ExpenseDTO }) {
                   ? "bg-emerald-500"
                   : event.status === "current"
                   ? "bg-amber-500 animate-pulse"
-                  : "bg-white/20"
+                  : "bg-(--ws-fill-strong)"
               }`}
             />
             {idx < events.length - 1 && (
-              <div className="flex-1 w-px bg-white/10 my-1" />
+              <div className="flex-1 w-px bg-(--ws-fill-strong) my-1" />
             )}
           </div>
           <div className="flex-1 pb-4">
             <p
               className={`font-medium ${
-                event.status === "upcoming" ? "text-white/40" : "text-white"
+                event.status === "upcoming" ? "text-(--ws-fg-40)" : "text-(--ws-fg)"
               }`}
             >
               {event.label}
             </p>
             {event.date && (
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {format(new Date(event.date), "MMM d, yyyy 'at' h:mm a")}
                 {event.user && ` by ${event.user.name}`}
               </p>
             )}
             {event.detail && (
-              <p className="mt-1 text-xs text-white/40 italic">
+              <p className="mt-1 text-xs text-(--ws-fg-40) italic">
                 &quot;{event.detail}&quot;
               </p>
             )}
@@ -355,6 +356,7 @@ export default function ExpenseDetailPage() {
 
   if (isLoading) {
     return (
+      <WorkspaceScope>
       <div className="min-h-screen p-6 md:p-8">
         <Skeleton className="h-8 w-48 mb-6" />
         <div className="grid gap-6 lg:grid-cols-3">
@@ -365,15 +367,17 @@ export default function ExpenseDetailPage() {
           <Skeleton className="h-96 rounded-2xl" />
         </div>
       </div>
+      </WorkspaceScope>
     );
   }
 
   if (!expense) {
     return (
+      <WorkspaceScope>
       <div className="min-h-screen p-6 md:p-8">
         <div className="text-center py-12">
-          <Receipt className="mx-auto h-12 w-12 text-white/30" />
-          <h2 className="mt-4 text-lg font-medium text-white">Expense not found</h2>
+          <Receipt className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+          <h2 className="mt-4 text-lg font-medium text-(--ws-fg)">Expense not found</h2>
           <Button
             variant="outline"
             className="mt-4"
@@ -384,6 +388,7 @@ export default function ExpenseDetailPage() {
           </Button>
         </div>
       </div>
+      </WorkspaceScope>
     );
   }
 
@@ -411,6 +416,7 @@ export default function ExpenseDetailPage() {
   ];
 
   return (
+    <WorkspaceScope>
     <div className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
@@ -424,12 +430,12 @@ export default function ExpenseDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white md:text-2xl">
+            <h1 className="text-xl font-bold text-(--ws-fg) md:text-2xl">
               {expense.title}
             </h1>
-            <span className="text-sm text-white/40">{expense.expenseNumber}</span>
+            <span className="text-sm text-(--ws-fg-40)">{expense.expenseNumber}</span>
           </div>
-          <p className="mt-1 text-sm text-white/50">
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             Created {format(new Date(expense.createdAt), "MMM d, yyyy")}
           </p>
         </div>
@@ -437,7 +443,7 @@ export default function ExpenseDetailPage() {
           <Button
             variant="outline"
             onClick={() => setEditModalOpen(true)}
-            className="border-white/10 bg-white/5 hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
           >
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -449,7 +455,7 @@ export default function ExpenseDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Status and Amount Card */}
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -457,15 +463,15 @@ export default function ExpenseDetailPage() {
                     <span className={statusConfig.color}>{statusConfig.icon}</span>
                   </div>
                   <div>
-                    <p className="text-sm text-white/50">Status</p>
+                    <p className="text-sm text-(--ws-fg-50)">Status</p>
                     <p className={`text-lg font-semibold ${statusConfig.color}`}>
                       {statusConfig.label}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-white/50">Amount</p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-sm text-(--ws-fg-50)">Amount</p>
+                  <p className="text-2xl font-bold text-(--ws-fg)">
                     {formatCurrency(expense.amountMinor, { currency: expense.currency })}
                   </p>
                 </div>
@@ -523,7 +529,7 @@ export default function ExpenseDetailPage() {
                   <Button
                     variant="outline"
                     onClick={() => setCancelModalOpen(true)}
-                    className="border-white/10 bg-white/5 hover:bg-white/10"
+                    className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
                   >
                     <Ban className="mr-2 h-4 w-4" />
                     Cancel
@@ -534,36 +540,36 @@ export default function ExpenseDetailPage() {
           </Card>
 
           {/* Details Card */}
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-            <CardHeader className="border-b border-white/5">
-              <CardTitle className="text-lg text-white">Details</CardTitle>
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line)">
+              <CardTitle className="text-lg text-(--ws-fg)">Details</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* Category */}
                 <div className="flex items-start gap-3">
-                  <Tag className="h-5 w-5 text-white/40 mt-0.5" />
+                  <Tag className="h-5 w-5 text-(--ws-fg-40) mt-0.5" />
                   <div>
-                    <p className="text-xs text-white/40">Category</p>
-                    <p className="text-white">{category?.name || "Unknown"}</p>
+                    <p className="text-xs text-(--ws-fg-40)">Category</p>
+                    <p className="text-(--ws-fg)">{category?.name || "Unknown"}</p>
                   </div>
                 </div>
 
                 {/* Vendor */}
                 <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-white/40 mt-0.5" />
+                  <Building2 className="h-5 w-5 text-(--ws-fg-40) mt-0.5" />
                   <div>
-                    <p className="text-xs text-white/40">Vendor</p>
-                    <p className="text-white">{vendor?.name || "No vendor"}</p>
+                    <p className="text-xs text-(--ws-fg-40)">Vendor</p>
+                    <p className="text-(--ws-fg)">{vendor?.name || "No vendor"}</p>
                   </div>
                 </div>
 
                 {/* Date */}
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-white/40 mt-0.5" />
+                  <Calendar className="h-5 w-5 text-(--ws-fg-40) mt-0.5" />
                   <div>
-                    <p className="text-xs text-white/40">Expense Date</p>
-                    <p className="text-white">
+                    <p className="text-xs text-(--ws-fg-40)">Expense Date</p>
+                    <p className="text-(--ws-fg)">
                       {format(new Date(expense.expenseDate), "MMMM d, yyyy")}
                     </p>
                   </div>
@@ -572,10 +578,10 @@ export default function ExpenseDetailPage() {
                 {/* Cost Center */}
                 {expense.costCenter && (
                   <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-white/40 mt-0.5" />
+                    <FileText className="h-5 w-5 text-(--ws-fg-40) mt-0.5" />
                     <div>
-                      <p className="text-xs text-white/40">Cost Center</p>
-                      <p className="text-white capitalize">
+                      <p className="text-xs text-(--ws-fg-40)">Cost Center</p>
+                      <p className="text-(--ws-fg) capitalize">
                         {expense.costCenter.replace("_", " ")}
                       </p>
                     </div>
@@ -585,10 +591,10 @@ export default function ExpenseDetailPage() {
                 {/* Payment Method (if paid) */}
                 {expense.paymentMethod && (
                   <div className="flex items-start gap-3">
-                    <CreditCard className="h-5 w-5 text-white/40 mt-0.5" />
+                    <CreditCard className="h-5 w-5 text-(--ws-fg-40) mt-0.5" />
                     <div>
-                      <p className="text-xs text-white/40">Payment Method</p>
-                      <p className="text-white capitalize">
+                      <p className="text-xs text-(--ws-fg-40)">Payment Method</p>
+                      <p className="text-(--ws-fg) capitalize">
                         {expense.paymentMethod.replace("_", " ")}
                       </p>
                     </div>
@@ -598,10 +604,10 @@ export default function ExpenseDetailPage() {
                 {/* Payment Reference */}
                 {expense.paymentReference && (
                   <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-white/40 mt-0.5" />
+                    <FileText className="h-5 w-5 text-(--ws-fg-40) mt-0.5" />
                     <div>
-                      <p className="text-xs text-white/40">Reference</p>
-                      <p className="text-white">{expense.paymentReference}</p>
+                      <p className="text-xs text-(--ws-fg-40)">Reference</p>
+                      <p className="text-(--ws-fg)">{expense.paymentReference}</p>
                     </div>
                   </div>
                 )}
@@ -610,10 +616,10 @@ export default function ExpenseDetailPage() {
               {/* Description */}
               {expense.description && (
                 <>
-                  <Separator className="bg-white/5" />
+                  <Separator className="bg-(--ws-fill)" />
                   <div>
-                    <p className="text-xs text-white/40 mb-2">Description</p>
-                    <p className="text-white/80 text-sm">{expense.description}</p>
+                    <p className="text-xs text-(--ws-fg-40) mb-2">Description</p>
+                    <p className="text-(--ws-fg-80) text-sm">{expense.description}</p>
                   </div>
                 </>
               )}
@@ -621,10 +627,10 @@ export default function ExpenseDetailPage() {
               {/* Notes */}
               {expense.notes && (
                 <>
-                  <Separator className="bg-white/5" />
+                  <Separator className="bg-(--ws-fill)" />
                   <div>
-                    <p className="text-xs text-white/40 mb-2">Internal Notes</p>
-                    <p className="text-white/60 text-sm italic">{expense.notes}</p>
+                    <p className="text-xs text-(--ws-fg-40) mb-2">Internal Notes</p>
+                    <p className="text-(--ws-fg-60) text-sm italic">{expense.notes}</p>
                   </div>
                 </>
               )}
@@ -633,9 +639,9 @@ export default function ExpenseDetailPage() {
 
           {/* Receipts Card */}
           {expense.receipts && expense.receipts.length > 0 && (
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5">
-                <CardTitle className="text-lg text-white">
+            <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+              <CardHeader className="border-b border-(--ws-line)">
+                <CardTitle className="text-lg text-(--ws-fg)">
                   Receipts ({expense.receipts.length})
                 </CardTitle>
               </CardHeader>
@@ -647,22 +653,22 @@ export default function ExpenseDetailPage() {
                       href={receipt.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                      className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill-strong)"
                     >
                       {receipt.type === "image" ? (
-                        <ImageIcon className="h-8 w-8 text-white/40" />
+                        <ImageIcon className="h-8 w-8 text-(--ws-fg-40)" />
                       ) : (
-                        <File className="h-8 w-8 text-white/40" />
+                        <File className="h-8 w-8 text-(--ws-fg-40)" />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">
+                        <p className="text-sm text-(--ws-fg) truncate">
                           {receipt.name || `Receipt ${idx + 1}`}
                         </p>
-                        <p className="text-xs text-white/40">
+                        <p className="text-xs text-(--ws-fg-40)">
                           {format(new Date(receipt.uploadedAt), "MMM d, yyyy")}
                         </p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-white/40" />
+                      <ExternalLink className="h-4 w-4 text-(--ws-fg-40)" />
                     </a>
                   ))}
                 </div>
@@ -673,9 +679,9 @@ export default function ExpenseDetailPage() {
 
         {/* Sidebar - Timeline */}
         <div>
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 sticky top-24">
-            <CardHeader className="border-b border-white/5">
-              <CardTitle className="text-lg text-white">Timeline</CardTitle>
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) sticky top-24">
+            <CardHeader className="border-b border-(--ws-line)">
+              <CardTitle className="text-lg text-(--ws-fg)">Timeline</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <ExpenseTimeline expense={expense} />
@@ -684,11 +690,11 @@ export default function ExpenseDetailPage() {
 
           {/* Ledger Link (if paid) */}
           {expense.financialTransactionId && (
-            <Card className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+            <Card className="mt-4 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
               <CardContent className="p-4">
                 <Link
                   href={`/admin/finance/transactions/${expense.financialTransactionId}`}
-                  className="flex items-center gap-3 text-white/80 hover:text-white transition-colors"
+                  className="flex items-center gap-3 text-(--ws-fg-80) hover:text-(--ws-fg) transition-colors"
                 >
                   <DollarSign className="h-5 w-5" />
                   <span className="text-sm">View Ledger Entry</span>
@@ -717,19 +723,19 @@ export default function ExpenseDetailPage() {
       >
         <div className="space-y-4 p-1">
           <div className="space-y-2">
-            <Label className="text-white/80">Rejection Reason</Label>
+            <Label className="text-(--ws-fg-80)">Rejection Reason</Label>
             <Textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Why is this expense being rejected?"
-              className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+              className="min-h-[100px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-(--ws-line)">
             <Button
               variant="outline"
               onClick={() => setRejectModalOpen(false)}
-              className="border-white/10 bg-white/5"
+              className="border-(--ws-line) bg-(--ws-fill)"
             >
               Cancel
             </Button>
@@ -756,19 +762,19 @@ export default function ExpenseDetailPage() {
       >
         <div className="space-y-4 p-1">
           <div className="space-y-2">
-            <Label className="text-white/80">Cancellation Reason</Label>
+            <Label className="text-(--ws-fg-80)">Cancellation Reason</Label>
             <Textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="Why is this expense being cancelled?"
-              className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+              className="min-h-[100px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-(--ws-line)">
             <Button
               variant="outline"
               onClick={() => setCancelModalOpen(false)}
-              className="border-white/10 bg-white/5"
+              className="border-(--ws-line) bg-(--ws-fill)"
             >
               Back
             </Button>
@@ -795,7 +801,7 @@ export default function ExpenseDetailPage() {
       >
         <div className="space-y-4 p-1">
           <div className="space-y-2">
-            <Label className="text-white/80">Payment Method</Label>
+            <Label className="text-(--ws-fg-80)">Payment Method</Label>
             <PremiumSelect value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as ExpensePaymentMethod)}>
               <PremiumSelectTrigger>
                 <PremiumSelectValue />
@@ -811,12 +817,12 @@ export default function ExpenseDetailPage() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white/80">Payment Reference (Optional)</Label>
+            <Label className="text-(--ws-fg-80)">Payment Reference (Optional)</Label>
             <Input
               value={paymentReference}
               onChange={(e) => setPaymentReference(e.target.value)}
               placeholder="e.g., Cheque number, transfer reference"
-              className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
             />
           </div>
 
@@ -827,11 +833,11 @@ export default function ExpenseDetailPage() {
             </p>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex justify-end gap-3 pt-4 border-t border-(--ws-line)">
             <Button
               variant="outline"
               onClick={() => setPayModalOpen(false)}
-              className="border-white/10 bg-white/5"
+              className="border-(--ws-line) bg-(--ws-fill)"
             >
               Cancel
             </Button>
@@ -849,5 +855,6 @@ export default function ExpenseDetailPage() {
         </div>
       </ResponsiveModal>
     </div>
+    </WorkspaceScope>
   );
 }

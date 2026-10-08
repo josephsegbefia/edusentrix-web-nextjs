@@ -133,19 +133,19 @@ export function SubjectPerformanceOverTime({
 
   if (!subjectHistory || Object.keys(subjectHistory).length === 0) {
     return (
-      <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
               <BookOpen className="h-4 w-4 text-primary-200" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Subject Performance Over Time
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
+          <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) px-4 py-8 text-center">
             <p className="text-[11px] text-muted-foreground/90">
               No historical data available
             </p>
@@ -156,14 +156,14 @@ export function SubjectPerformanceOverTime({
   }
 
   return (
-    <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
               <BookOpen className="h-4 w-4 text-primary-200" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Subject Performance Over Time
             </CardTitle>
           </div>
@@ -210,7 +210,7 @@ export function SubjectPerformanceOverTime({
       </CardHeader>
       <CardContent>
         {chartData.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
+          <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) px-4 py-8 text-center">
             <p className="text-[11px] text-muted-foreground/90">
               {selectedSubject
                 ? `No data available for ${selectedSubject.subjectName}`
@@ -220,9 +220,9 @@ export function SubjectPerformanceOverTime({
         ) : (
           <>
             {selectedSubject && (
-              <div className="mb-4 flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+              <div className="mb-4 flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                 <div>
-                  <p className="text-xs font-medium text-white">
+                  <p className="text-xs font-medium text-(--ws-fg)">
                     {selectedSubject.subjectName}
                   </p>
                   {selectedSubject.shortCode ? (
@@ -231,22 +231,22 @@ export function SubjectPerformanceOverTime({
                     </p>
                   ) : null}
                   {selectedSubject.sourceLabel ? (
-                    <p className="text-[10px] text-white/45">{selectedSubject.sourceLabel}</p>
+                    <p className="text-[10px] text-(--ws-fg-40)">{selectedSubject.sourceLabel}</p>
                   ) : null}
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-muted-foreground">Current score</p>
-                  <p className="text-sm font-bold text-white">
+                  <p className="text-sm font-bold text-(--ws-fg)">
                     {selectedSubject.score.toFixed(1)}%
                   </p>
                   {selectedSubject.gradeLabel ? (
-                    <p className="text-[10px] text-white/45">Grade {selectedSubject.gradeLabel}</p>
+                    <p className="text-[10px] text-(--ws-fg-40)">Grade {selectedSubject.gradeLabel}</p>
                   ) : null}
                 </div>
               </div>
             )}
             {showSourceLegend ? (
-              <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-white/55">
+              <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-(--ws-fg-50)">
                 <span className="inline-flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                   Official
@@ -294,12 +294,12 @@ export function SubjectPerformanceOverTime({
                       sourceLabel?: string;
                     };
                     return (
-                      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
-                        <p className="text-xs font-medium text-white mb-1">
+                      <div className="rounded-lg border border-(--ws-line-strong) bg-(--ws-popover) px-3 py-2 shadow-lg">
+                        <p className="text-xs font-medium text-(--ws-fg) mb-1">
                           {data.fullLabel}
                         </p>
                         {data.sourceLabel ? (
-                          <p className="mb-1 text-[10px] uppercase tracking-wide text-white/45">
+                          <p className="mb-1 text-[10px] uppercase tracking-wide text-(--ws-fg-40)">
                             {data.sourceLabel}
                           </p>
                         ) : null}

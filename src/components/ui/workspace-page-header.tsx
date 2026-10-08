@@ -133,18 +133,18 @@ export function WorkspacePageHeader({
         <div className="flex items-start gap-4">
           {Icon ? (
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-teal-400/30 bg-linear-to-br from-teal-500/20 to-cyan-500/15 shadow-inner shadow-white/5">
-              <Icon className="h-6 w-6 text-teal-200" />
+              <Icon className="h-6 w-6 text-(--ws-teal)" />
             </div>
           ) : null}
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="bg-linear-to-r from-teal-200 via-cyan-200 to-sky-300 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-3xl">
+              <h1 className="bg-linear-to-r from-(--ws-title-from) via-(--ws-title-via) to-(--ws-title-to) bg-clip-text text-2xl font-extrabold tracking-tight text-transparent sm:text-3xl">
                 {title}
               </h1>
               {badge}
             </div>
             {subtitle ? (
-              <p className="max-w-2xl text-sm leading-relaxed text-white/60">{subtitle}</p>
+              <p className="max-w-2xl text-sm leading-relaxed text-(--ws-fg-60)">{subtitle}</p>
             ) : null}
           </div>
         </div>

@@ -194,17 +194,17 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f0f14] p-6 shadow-2xl"
+          className="relative w-full max-w-2xl rounded-2xl border border-(--ws-line) bg-[#0f0f14] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">Create Fundraising Campaign</h2>
+            <h2 className="text-xl font-bold text-(--ws-fg)">Create Fundraising Campaign</h2>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -215,30 +215,30 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
             {/* Basic Info */}
             <div className="space-y-4">
               <div>
-                <Label className="text-white">Campaign Title *</Label>
+                <Label className="text-(--ws-fg)">Campaign Title *</Label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter campaign title..."
-                  className="mt-1 border-white/10 bg-white/5 text-white"
+                  className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div>
-                <Label className="text-white/70">Short Summary</Label>
+                <Label className="text-(--ws-fg-70)">Short Summary</Label>
                 <Input
                   value={summary}
                   onChange={(e) => setSummary(e.target.value)}
                   placeholder="Brief summary (shown in listings)..."
-                  className="mt-1 border-white/10 bg-white/5 text-white"
+                  className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div>
-                <Label className="text-white/70">Full Description</Label>
+                <Label className="text-(--ws-fg-70)">Full Description</Label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detailed description of your campaign..."
-                  className="mt-1 min-h-[100px] border-white/10 bg-white/5 text-white"
+                  className="mt-1 min-h-[100px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
             </div>
@@ -246,7 +246,7 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
             {/* Category & Audience */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label className="text-white/70">Category</Label>
+                <Label className="text-(--ws-fg-70)">Category</Label>
                 <PremiumSelect value={category} onValueChange={(v) => setCategory(v as CampaignCategory)}>
                   <PremiumSelectTrigger className="mt-1">
                     <PremiumSelectValue />
@@ -261,7 +261,7 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
                 </PremiumSelect>
               </div>
               <div>
-                <Label className="text-white/70">Audience</Label>
+                <Label className="text-(--ws-fg-70)">Audience</Label>
                 <PremiumSelect value={audienceScope} onValueChange={(v) => setAudienceScope(v as CampaignAudienceScope)}>
                   <PremiumSelectTrigger className="mt-1">
                     <PremiumSelectValue />
@@ -280,7 +280,7 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
             {/* Goal & Currency */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label className="text-white">Goal Amount *</Label>
+                <Label className="text-(--ws-fg)">Goal Amount *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -288,11 +288,11 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
                   value={goalAmount}
                   onChange={(e) => setGoalAmount(e.target.value)}
                   placeholder="e.g., 5000.00"
-                  className="mt-1 border-white/10 bg-white/5 text-white"
+                  className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div>
-                <Label className="text-white/70">Currency</Label>
+                <Label className="text-(--ws-fg-70)">Currency</Label>
                 <PremiumSelect value={currency} onValueChange={setCurrency}>
                   <PremiumSelectTrigger className="mt-1">
                     <PremiumSelectValue />
@@ -310,7 +310,7 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
 
             {/* Visibility Settings */}
             <div>
-              <Label className="text-white/70">Donor Visibility</Label>
+              <Label className="text-(--ws-fg-70)">Donor Visibility</Label>
               <PremiumSelect value={donorVisibility} onValueChange={(v) => setDonorVisibility(v as DonorVisibility)}>
                 <PremiumSelectTrigger className="mt-1">
                   <PremiumSelectValue />
@@ -326,24 +326,24 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
             <div className="flex flex-wrap gap-6">
               <div className="flex items-center gap-2">
                 <Switch checked={allowAnonymous} onCheckedChange={setAllowAnonymous} />
-                <Label className="text-sm text-white/60">Allow anonymous donations</Label>
+                <Label className="text-sm text-(--ws-fg-60)">Allow anonymous donations</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={enablePublicShare} onCheckedChange={setEnablePublicShare} />
-                <Label className="text-sm text-white/60">Enable public sharing link</Label>
+                <Label className="text-sm text-(--ws-fg-60)">Enable public sharing link</Label>
               </div>
             </div>
 
             {/* Milestones */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <Label className="text-white/70">Milestones (Optional)</Label>
+                <Label className="text-(--ws-fg-70)">Milestones (Optional)</Label>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addMilestone}
-                  className="gap-1 border-white/10 text-white/60"
+                  className="gap-1 border-(--ws-line) text-(--ws-fg-60)"
                 >
                   <Plus className="h-4 w-4" />
                   Add Milestone
@@ -357,7 +357,7 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
                         value={m.label}
                         onChange={(e) => updateMilestone(m.id, "label", e.target.value)}
                         placeholder={`Milestone ${index + 1} name`}
-                        className="flex-1 border-white/10 bg-white/5 text-white"
+                        className="flex-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
                       <Input
                         type="number"
@@ -366,14 +366,14 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
                         value={m.amount}
                         onChange={(e) => updateMilestone(m.id, "amount", e.target.value)}
                         placeholder="Amount"
-                        className="w-32 border-white/10 bg-white/5 text-white"
+                        className="w-32 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => removeMilestone(m.id)}
-                        className="h-8 w-8 text-white/40 hover:text-rose-400"
+                        className="h-8 w-8 text-(--ws-fg-40) hover:text-rose-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -389,7 +389,7 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 text-white/60"
+                className="border-(--ws-line) text-(--ws-fg-60)"
               >
                 Cancel
               </Button>

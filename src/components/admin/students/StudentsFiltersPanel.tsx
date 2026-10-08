@@ -31,7 +31,7 @@ function FilterField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[11px] font-medium uppercase tracking-wider text-white/40">
+      <label className="text-[11px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
         {label}
       </label>
       {children}
@@ -98,15 +98,15 @@ export function StudentsFiltersPanel({
     <div
       className={cn(
         "animate-in slide-in-from-top-2 fade-in-0 duration-200",
-        "rounded-xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950/95 to-black/95 p-5 shadow-xl shadow-black/20 backdrop-blur-xl"
+        "rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur-xl"
       )}
     >
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-white">Advanced Filters</h3>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Advanced Filters</h3>
           {activeFilterCount > 0 && (
-            <span className="rounded-full bg-teal-500/20 px-2 py-0.5 text-[10px] font-medium text-teal-300">
+            <span className="rounded-full bg-teal-500/20 px-2 py-0.5 text-[10px] font-medium text-(--ws-teal)">
               {activeFilterCount} active
             </span>
           )}
@@ -114,7 +114,7 @@ export function StudentsFiltersPanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg p-1.5 text-white/40 hover:bg-white/10 hover:text-white"
+          className="rounded-lg p-1.5 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
         >
           <X className="h-4 w-4" />
         </button>
@@ -202,6 +202,7 @@ export function StudentsFiltersPanel({
             onChange={(d) => updateDate("enrollmentFrom", d)}
             placeholder="Select start date"
             maxDate={enrollmentToDate || undefined}
+            surface="theme"
           />
         </FilterField>
 
@@ -212,18 +213,19 @@ export function StudentsFiltersPanel({
             onChange={(d) => updateDate("enrollmentTo", d)}
             placeholder="Select end date"
             minDate={enrollmentFromDate || undefined}
+            surface="theme"
           />
         </FilterField>
       </div>
 
       {/* Footer */}
-      <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-5 flex flex-col gap-2 border-t border-(--ws-line) pt-4 sm:flex-row sm:items-center sm:justify-between">
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={handleReset}
-          className="gap-2 text-xs text-white/50 hover:text-white"
+          className="gap-2 text-xs text-(--ws-fg-50) hover:text-(--ws-fg)"
         >
           <RotateCcw className="h-3 w-3" />
           Reset all
@@ -234,7 +236,7 @@ export function StudentsFiltersPanel({
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
           >
             Cancel
           </Button>

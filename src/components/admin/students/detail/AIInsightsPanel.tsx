@@ -75,8 +75,8 @@ export function AIInsightsPanel({
   const isStale = data?.isStale ?? false;
 
   const riskColors = {
-    low: "bg-emerald-500/20 text-emerald-200 border-emerald-400/40",
-    medium: "bg-amber-500/20 text-amber-200 border-amber-400/40",
+    low: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-400/40",
+    medium: "bg-amber-500/20 text-(--ws-amber) border-amber-400/40",
     high: "bg-red-500/20 text-red-200 border-red-400/40",
   };
 
@@ -91,7 +91,7 @@ export function AIInsightsPanel({
     !isError;
 
   return (
-    <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -99,10 +99,10 @@ export function AIInsightsPanel({
               <LeoIcon className="h-4 w-4 text-primary-200" />
             </div>
             <div>
-              <CardTitle className="text-sm font-semibold text-white/80">
+              <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
                 Leo Insights & Recommendations
               </CardTitle>
-              <p className="text-[10px] text-white/45">
+              <p className="text-[10px] text-(--ws-fg-40)">
                 {MODE_LABELS[resolvedMode]} mode · profile components, attendance &amp;
                 evidence
               </p>
@@ -126,8 +126,8 @@ export function AIInsightsPanel({
       {isExpanded && (
         <CardContent className="space-y-4">
           {!canGenerate ? (
-            <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-6 text-center">
-              <p className="text-sm text-white/60">
+            <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) px-4 py-6 text-center">
+              <p className="text-sm text-(--ws-fg-60)">
                 Leo needs graded subject results or report data for this period before
                 generating insights.
               </p>
@@ -135,8 +135,8 @@ export function AIInsightsPanel({
           ) : null}
 
           {canGenerate && generatedAt && insights && (
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-              <span className="flex items-center gap-1.5 text-xs text-white/50">
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+              <span className="flex items-center gap-1.5 text-xs text-(--ws-fg-50)">
                 <Clock className="h-3.5 w-3.5" />
                 Generated {formatRelativeTime(generatedAt)}
               </span>
@@ -169,7 +169,7 @@ export function AIInsightsPanel({
                   <LeoIcon className="h-6 w-6 text-primary-200" />
                 </div>
               </div>
-              <p className="text-sm text-white/70 mb-4">
+              <p className="text-sm text-(--ws-fg-70) mb-4">
                 Get AI-powered insights and recommendations for this student&apos;s academic performance.
               </p>
               <Button
@@ -247,7 +247,7 @@ export function AIInsightsPanel({
 
               {/* Summary */}
               <div>
-                <p className="text-sm text-white/90 leading-relaxed">
+                <p className="text-sm text-(--ws-fg-90) leading-relaxed">
                   {insights.summary}
                 </p>
               </div>
@@ -257,7 +257,7 @@ export function AIInsightsPanel({
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    <h4 className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-90) uppercase tracking-wide">
                       Strengths
                     </h4>
                   </div>
@@ -268,14 +268,14 @@ export function AIInsightsPanel({
                         className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2"
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium text-emerald-200">
+                          <span className="text-xs font-medium text-(--ws-emerald)">
                             {strength.subject}
                           </span>
-                          <span className="text-xs text-emerald-100">
+                          <span className="text-xs text-(--ws-emerald)">
                             {strength.score}%
                           </span>
                         </div>
-                        <p className="text-[11px] text-emerald-100/80">
+                        <p className="text-[11px] text-(--ws-emerald)/80">
                           {strength.reason}
                         </p>
                       </div>
@@ -289,7 +289,7 @@ export function AIInsightsPanel({
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <XCircle className="h-4 w-4 text-red-400" />
-                    <h4 className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-90) uppercase tracking-wide">
                       Areas for Improvement
                     </h4>
                   </div>
@@ -310,12 +310,12 @@ export function AIInsightsPanel({
                             {weakness.trend === "declining" && (
                               <TrendingDown className="h-3 w-3 text-red-400" />
                             )}
-                            <span className="text-xs text-red-100">
+                            <span className="text-xs text-(--ws-rose)">
                               {weakness.score}%
                             </span>
                           </div>
                         </div>
-                        <p className="text-[11px] text-red-100/80">
+                        <p className="text-[11px] text-(--ws-rose)/80">
                           {weakness.reason}
                         </p>
                       </div>
@@ -329,12 +329,12 @@ export function AIInsightsPanel({
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <AlertTriangle className="h-4 w-4 text-amber-400" />
-                    <h4 className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-90) uppercase tracking-wide">
                       Recommended Actions
                     </h4>
                   </div>
                   {/* Tabs */}
-                  <div className="flex gap-2 mb-3 border-b border-white/10">
+                  <div className="flex gap-2 mb-3 border-b border-(--ws-line)">
                     {(["student", "parent", "teacher"] as const).map((tab) => (
                       <button
                         key={tab}
@@ -343,7 +343,7 @@ export function AIInsightsPanel({
                           "px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-[1px]",
                           activeTab === tab
                             ? "border-primary text-primary"
-                            : "border-transparent text-muted-foreground hover:text-white/70"
+                            : "border-transparent text-muted-foreground hover:text-(--ws-fg-70)"
                         )}
                       >
                         {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -355,7 +355,7 @@ export function AIInsightsPanel({
                     {insights.suggestedActions[activeTab]?.map((action, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-2 text-sm text-white/80"
+                        className="flex items-start gap-2 text-sm text-(--ws-fg-80)"
                       >
                         <span className="text-primary mt-0.5">•</span>
                         <span>{action}</span>
@@ -369,7 +369,7 @@ export function AIInsightsPanel({
               {insights.prioritySubjects &&
                 insights.prioritySubjects.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-white/90 uppercase tracking-wide mb-2">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-90) uppercase tracking-wide mb-2">
                       Priority Focus Areas
                     </h4>
                     <div className="flex flex-wrap gap-2">
@@ -387,13 +387,13 @@ export function AIInsightsPanel({
 
               {/* Additional Insights */}
               {insights.insights && (
-                <div className="rounded-lg border border-white/10 bg-black/30 p-3 space-y-2">
-                  <h4 className="text-xs font-semibold text-white/90 uppercase tracking-wide">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 space-y-2">
+                  <h4 className="text-xs font-semibold text-(--ws-fg-90) uppercase tracking-wide">
                     Additional Insights
                   </h4>
                   {insights.insights.overallTrend && (
                     <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-white/80">
+                      <span className="font-medium text-(--ws-fg-80)">
                         Overall Trend:{" "}
                       </span>
                       {insights.insights.overallTrend}
@@ -401,7 +401,7 @@ export function AIInsightsPanel({
                   )}
                   {insights.insights.examVsCA && (
                     <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-white/80">
+                      <span className="font-medium text-(--ws-fg-80)">
                         CA vs Exam:{" "}
                       </span>
                       {insights.insights.examVsCA}
@@ -409,7 +409,7 @@ export function AIInsightsPanel({
                   )}
                   {insights.insights.classComparison && (
                     <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-white/80">
+                      <span className="font-medium text-(--ws-fg-80)">
                         Class Comparison:{" "}
                       </span>
                       {insights.insights.classComparison}

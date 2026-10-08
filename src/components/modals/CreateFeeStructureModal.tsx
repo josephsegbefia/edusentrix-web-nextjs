@@ -158,7 +158,7 @@ export default function CreateFeeStructureModal(props: Props) {
                 id="name"
                 {...register("name")}
                 placeholder="e.g., Tuition Fee"
-                className="border border-white/10 bg-white/5 text-white placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand"
+                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand"
               />
               {errors.name && (
                 <div className="text-xs text-rose-300">{errors.name.message}</div>
@@ -181,9 +181,9 @@ export default function CreateFeeStructureModal(props: Props) {
                   codeField.onChange(e);
                 }}
                 placeholder={mode === "create" ? "From fee name" : "e.g., TUITION"}
-                className="border border-white/10 bg-white/5 text-white placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand uppercase"
+                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand uppercase"
               />
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-40)">
                 {mode === "create" ? (
                   <>
                     We build this from the fee name (up to 20 characters: words separated by
@@ -217,7 +217,7 @@ export default function CreateFeeStructureModal(props: Props) {
                         className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all md:px-4 md:py-3 ${
                           field.value === cat
                             ? "border-brand bg-brand/20 text-brand"
-                            : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                         }`}
                       >
                         <input
@@ -250,7 +250,7 @@ export default function CreateFeeStructureModal(props: Props) {
               id="description"
               {...register("description")}
               placeholder="Optional notes for staff…"
-              className="border border-white/10 bg-white/5 text-white placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand"
             />
             {errors.description && (
               <div className="text-xs text-rose-300">{errors.description.message}</div>
@@ -258,14 +258,14 @@ export default function CreateFeeStructureModal(props: Props) {
           </div>
         </section>
 
-        <div className="h-px bg-white/10" />
+        <div className="h-px bg-(--ws-fill-strong)" />
 
         <section className="space-y-5">
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Amount & installments
             </h2>
-            <p className="mt-1 text-sm text-white/55">
+            <p className="mt-1 text-sm text-(--ws-fg-50)">
               Default amount is used when issuing bills; you can still override per bill.
             </p>
           </div>
@@ -274,7 +274,7 @@ export default function CreateFeeStructureModal(props: Props) {
             <div className="space-y-2">
               <Label
                 htmlFor="defaultAmount"
-                className="text-xs font-medium uppercase tracking-[0.2em] text-white/80"
+                className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-80)"
               >
                 Default amount (GHS)
               </Label>
@@ -285,12 +285,12 @@ export default function CreateFeeStructureModal(props: Props) {
                 inputMode="decimal"
                 {...register("defaultAmount")}
                 placeholder="0.00"
-                className="border border-white/15 bg-white/10 text-lg font-semibold text-white placeholder:text-white/40 focus:border-brand focus:ring-1 focus:ring-brand"
+                className="border border-(--ws-line-strong) bg-(--ws-fill-strong) text-lg font-semibold text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:border-brand focus:ring-1 focus:ring-brand"
               />
               {errors.defaultAmount && (
                 <div className="text-xs text-rose-300">{errors.defaultAmount.message}</div>
               )}
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Leave empty if this template does not imply a fixed price.
               </p>
             </div>
@@ -306,9 +306,9 @@ export default function CreateFeeStructureModal(props: Props) {
                     type="checkbox"
                     checked={field.value}
                     onChange={(e) => field.onChange(e.target.checked)}
-                    className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 accent-brand"
+                    className="h-4 w-4 cursor-pointer rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand"
                   />
-                  <span className="text-sm text-white/80">Allow installments</span>
+                  <span className="text-sm text-(--ws-fg-80)">Allow installments</span>
                 </label>
               )}
             />
@@ -334,14 +334,14 @@ export default function CreateFeeStructureModal(props: Props) {
                   inputMode="numeric"
                   {...register("maxInstallments")}
                   placeholder="e.g., 3"
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted-foreground focus:border-brand focus:ring-1 focus:ring-brand"
                 />
                 {errors.maxInstallments && (
                   <div className="text-xs text-rose-300">
                     {errors.maxInstallments.message}
                   </div>
                 )}
-                <p className="text-xs text-white/50">Between 2 and 12 when installments are on.</p>
+                <p className="text-xs text-(--ws-fg-50)">Between 2 and 12 when installments are on.</p>
               </motion.div>
             )}
           </div>
@@ -351,14 +351,14 @@ export default function CreateFeeStructureModal(props: Props) {
               name="isActive"
               control={control}
               render={({ field }) => (
-                <label className="flex cursor-pointer items-center gap-3 border-t border-white/10 pt-4">
+                <label className="flex cursor-pointer items-center gap-3 border-t border-(--ws-line) pt-4">
                   <input
                     type="checkbox"
                     checked={field.value}
                     onChange={(e) => field.onChange(e.target.checked)}
-                    className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 accent-brand"
+                    className="h-4 w-4 cursor-pointer rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand"
                   />
-                  <span className="text-sm text-white/80">Structure is active</span>
+                  <span className="text-sm text-(--ws-fg-80)">Structure is active</span>
                 </label>
               )}
             />
@@ -366,13 +366,13 @@ export default function CreateFeeStructureModal(props: Props) {
         </section>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-6">
+      <div className="flex items-center justify-between gap-3 border-t border-(--ws-line) pt-6">
         <Button
           type="button"
           variant="ghost"
           onClick={onClose}
           disabled={isSubmitting}
-          className="text-white/80 hover:text-white"
+          className="text-(--ws-fg-80) hover:text-(--ws-fg)"
         >
           <X className="mr-2 h-4 w-4" />
           Cancel
@@ -381,7 +381,7 @@ export default function CreateFeeStructureModal(props: Props) {
         <Button
           type="submit"
           disabled={isSubmitting || isLoading}
-          className="bg-brand text-white hover:bg-brand/90"
+          className="bg-brand text-(--ws-fg) hover:bg-brand/90"
         >
           <Check className="mr-2 h-4 w-4" />
           {submitLabel}

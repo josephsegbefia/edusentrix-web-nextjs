@@ -93,7 +93,7 @@ export function LibraryScanCameraPane({
             type="button"
             size="sm"
             variant="outline"
-            className="border-white/20 text-white"
+            className="border-(--ws-line-strong) text-(--ws-fg)"
             onClick={() => void start()}
             disabled={disabled}
           >
@@ -105,7 +105,7 @@ export function LibraryScanCameraPane({
             type="button"
             size="sm"
             variant="secondary"
-            className="bg-white/15 text-white"
+            className="bg-(--ws-fill-strong) text-(--ws-fg)"
             onClick={stop}
           >
             <CameraOff className="mr-2 h-4 w-4" />
@@ -115,11 +115,11 @@ export function LibraryScanCameraPane({
       </div>
       <video
         ref={videoRef}
-        className="max-h-56 w-full rounded-lg border border-white/15 bg-black/40 object-contain"
+        className="max-h-56 w-full rounded-lg border border-(--ws-line-strong) bg-black/40 object-contain"
         muted
         playsInline
       />
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-(--ws-fg)/45">
         Point at a barcode or QR code. If your browser does not support BarcodeDetector, use the field
         above or a USB wedge scanner.
       </p>

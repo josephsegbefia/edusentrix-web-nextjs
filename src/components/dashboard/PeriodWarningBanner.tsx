@@ -63,8 +63,8 @@ const warningConfig: Record<
     bgGradient: "from-amber-500/15 via-amber-500/5 to-transparent",
     borderColor: "border-amber-400/40",
     iconBg: "bg-amber-500/20 border border-amber-400/30",
-    iconColor: "text-amber-300",
-    textColor: "text-amber-100",
+    iconColor: "text-(--ws-amber)",
+    textColor: "text-(--ws-amber)",
     accentColor: "bg-amber-400/80",
     Icon: Clock,
     dismissable: true,
@@ -83,8 +83,8 @@ const warningConfig: Record<
     bgGradient: "from-red-500/15 via-red-500/5 to-transparent",
     borderColor: "border-red-400/40",
     iconBg: "bg-red-500/20 border border-red-400/30",
-    iconColor: "text-red-300",
-    textColor: "text-red-100",
+    iconColor: "text-(--ws-rose)",
+    textColor: "text-(--ws-rose)",
     accentColor: "bg-red-400/80",
     Icon: AlertCircle,
     dismissable: false,
@@ -243,9 +243,9 @@ export function PeriodWarningBanner({
                 </span>
               )}
             </div>
-            <p className="text-sm text-white/80">{message}</p>
+            <p className="text-sm text-(--ws-fg-80)">{message}</p>
             {subtitle && (
-              <p className="text-xs text-white/60 mt-1">{subtitle}</p>
+              <p className="text-xs text-(--ws-fg-60) mt-1">{subtitle}</p>
             )}
           </div>
 
@@ -257,9 +257,9 @@ export function PeriodWarningBanner({
               className={cn(
                 "gap-1.5 text-xs font-medium",
                 warningLevel === "critical"
-                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  ? "bg-red-500 hover:bg-red-600 text-(--ws-fg)"
                   : warningLevel === "urgent"
-                  ? "bg-orange-500 hover:bg-orange-600 text-white"
+                  ? "bg-orange-500 hover:bg-orange-600 text-(--ws-fg)"
                   : "bg-brand hover:bg-brand/90 text-black"
               )}
               size="sm"
@@ -274,7 +274,7 @@ export function PeriodWarningBanner({
                 variant="ghost"
                 size="icon"
                 onClick={() => setDismissed(true)}
-                className="h-8 w-8 text-white/50 hover:text-white/80 hover:bg-white/10"
+                className="h-8 w-8 text-(--ws-fg-50) hover:text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -284,8 +284,8 @@ export function PeriodWarningBanner({
 
         {/* Blocked operations indicator */}
         {(status === "expired" || status === "no_period") && (
-          <div className="border-t border-white/10 px-4 py-2 bg-black/20">
-            <div className="flex items-center gap-4 text-xs text-white/60">
+          <div className="border-t border-(--ws-line) px-4 py-2 bg-(--ws-fill)">
+            <div className="flex items-center gap-4 text-xs text-(--ws-fg-60)">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-red-400" />
                 Invoices blocked
@@ -304,8 +304,8 @@ export function PeriodWarningBanner({
 
         {/* Grace period indicator */}
         {status === "grace_period" && (
-          <div className="border-t border-white/10 px-4 py-2 bg-black/20">
-            <div className="flex items-center gap-4 text-xs text-white/60">
+          <div className="border-t border-(--ws-line) px-4 py-2 bg-(--ws-fill)">
+            <div className="flex items-center gap-4 text-xs text-(--ws-fg-60)">
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-amber-400" />
                 Grace period: {7 - (daysSinceExpiry || 0)} days remaining

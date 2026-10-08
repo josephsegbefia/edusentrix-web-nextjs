@@ -44,15 +44,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 const glassPanel =
-  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+  "relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl";
 
 function formatPeriodLabels(row: AdminSchemeQueueRow) {
   const ay = row.academicYear?.name;
@@ -215,25 +216,26 @@ export default function AdminSchemesPage() {
   });
 
   return (
+    <WorkspaceScope>
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
       {confirmationDialog}
       {linkedNotesDialog}
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-8">
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs font-medium text-(--ws-fg-70)">
               <ClipboardCheck className="h-3.5 w-3.5 text-blue-200" />
               Academic quality control
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg) sm:text-3xl">
               Schemes of Learning
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-(--ws-fg-60)">
               Review imported schemes before they become the lesson-planning backbone. Each scheme
               must be tied to the right grade, subject, and academic period before activation.
             </p>
             {isNaCCASchool ? (
-              <Button asChild className="mt-4 bg-blue-500 text-white hover:bg-blue-400">
+              <Button asChild className="mt-4 bg-blue-500 text-(--ws-fg) hover:bg-blue-400">
                 <Link href="/admin/schemes/import">
                   <FileUp className="mr-2 h-4 w-4" />
                   Import Scheme
@@ -256,10 +258,10 @@ export default function AdminSchemesPage() {
               { icon: ClipboardCheck, label: "Review", text: "Check context and rows" },
               { icon: Route, label: "Use", text: "Lesson Notes and coverage" },
             ].map((step) => (
-              <div key={step.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+              <div key={step.label} className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <step.icon className="h-4 w-4 text-blue-200" />
-                <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
-                <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
+                <p className="mt-2 text-sm font-medium text-(--ws-fg)">{step.label}</p>
+                <p className="mt-0.5 text-xs text-(--ws-fg-40)">{step.text}</p>
               </div>
             ))}
           </div>
@@ -267,14 +269,14 @@ export default function AdminSchemesPage() {
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-blue-300/20 bg-blue-500/10 p-2">
               <Sparkles className="h-5 w-5 text-blue-100" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">What admins do here</h2>
-              <p className="mt-1 text-sm leading-6 text-white/55">
+              <h2 className="text-sm font-semibold text-(--ws-fg)">What admins do here</h2>
+              <p className="mt-1 text-sm leading-6 text-(--ws-fg-50)">
                 Confirm the imported rows match the official Scheme of Learning, check the grade,
                 subject, and period context, then activate the scheme teachers should use for
                 lesson-note planning.
@@ -282,9 +284,9 @@ export default function AdminSchemesPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+            <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
               {importCount} imported in this view
             </Badge>
             {incompleteContextCount > 0 ? (
@@ -297,7 +299,7 @@ export default function AdminSchemesPage() {
               </Badge>
             )}
           </div>
-          <p className="mt-3 text-xs leading-5 text-white/45">
+          <p className="mt-3 text-xs leading-5 text-(--ws-fg-40)">
             Leo can help admins extract rows during import. Admin review is still the final gate
             before Lesson Notes use the scheme.
           </p>
@@ -306,30 +308,30 @@ export default function AdminSchemesPage() {
 
       <div className="w-full">
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg text-white">
+                <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
                   <Filter className="h-5 w-5 text-blue-200" />
                   Filters
                 </CardTitle>
-                <Badge variant="outline" className="w-fit border-white/15 bg-white/5 text-white/60">
+                <Badge variant="outline" className="w-fit border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                   {pagination?.total ?? 0} schemes
                 </Badge>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Search</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Search</Label>
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Title…"
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Period</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Period</Label>
                   <PremiumSelect value={periodId} onValueChange={setPeriodId}>
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Any period" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -343,9 +345,9 @@ export default function AdminSchemesPage() {
                   </PremiumSelect>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Grade</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Grade</Label>
                   <PremiumSelect value={gradeId} onValueChange={setGradeId}>
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Any grade" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -359,9 +361,9 @@ export default function AdminSchemesPage() {
                   </PremiumSelect>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Class group</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Class group</Label>
                   <PremiumSelect value={classGroupId} onValueChange={setClassGroupId}>
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Any class" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -375,9 +377,9 @@ export default function AdminSchemesPage() {
                   </PremiumSelect>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Subject</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Subject</Label>
                   <PremiumSelect value={subjectId} onValueChange={setSubjectId}>
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Any subject" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -391,9 +393,9 @@ export default function AdminSchemesPage() {
                   </PremiumSelect>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Teacher</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Teacher</Label>
                   <PremiumSelect value={teacherId} onValueChange={setTeacherId}>
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Any teacher" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -407,9 +409,9 @@ export default function AdminSchemesPage() {
                   </PremiumSelect>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wide text-white/45">Framework</Label>
+                  <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Framework</Label>
                   <PremiumSelect value={curriculumId} onValueChange={setCurriculumId}>
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Any framework" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -430,14 +432,14 @@ export default function AdminSchemesPage() {
               ) : null}
 
               {isLoading ? (
-                <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-white/55">
+                <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-(--ws-fg-50)">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-200" />
                   <p className="text-sm">Loading schemes…</p>
                 </div>
               ) : rows.length === 0 ? (
                 <div className="p-10 text-center">
-                  <p className="text-base font-medium text-white">No Schemes of Learning found</p>
-                  <p className="mt-2 text-sm text-white/50">
+                  <p className="text-base font-medium text-(--ws-fg)">No Schemes of Learning found</p>
+                  <p className="mt-2 text-sm text-(--ws-fg-50)">
                     Import a scheme or adjust the filters.
                   </p>
                 </div>
@@ -445,30 +447,30 @@ export default function AdminSchemesPage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-white/10 bg-white/5 hover:bg-white/5">
-                        <TableHead className="text-white/55">Scheme of Learning</TableHead>
-                        <TableHead className="text-white/55">Source</TableHead>
-                        <TableHead className="text-white/55">Subject</TableHead>
-                        <TableHead className="text-white/55">Grade / Class</TableHead>
-                        <TableHead className="text-white/55">Year / Term</TableHead>
-                        <TableHead className="text-white/55">Teacher</TableHead>
-                        <TableHead className="text-white/55 text-right">Items</TableHead>
-                        <TableHead className="text-white/55">Status</TableHead>
-                        <TableHead className="text-white/55">Submitted</TableHead>
-                        <TableHead className="text-white/55">Updated</TableHead>
-                        <TableHead className="text-right text-white/55">Actions</TableHead>
+                      <TableRow className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill)">
+                        <TableHead className="text-(--ws-fg-50)">Scheme of Learning</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Source</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Subject</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Grade / Class</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Year / Term</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Teacher</TableHead>
+                        <TableHead className="text-(--ws-fg-50) text-right">Items</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Status</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Submitted</TableHead>
+                        <TableHead className="text-(--ws-fg-50)">Updated</TableHead>
+                        <TableHead className="text-right text-(--ws-fg-50)">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {rows.map((row) => (
                         <TableRow
                           key={row.id}
-                          className="border-white/5 transition-colors hover:bg-white/[0.03]"
+                          className="border-(--ws-line) transition-colors hover:bg-(--ws-fill)"
                         >
                           <TableCell className="max-w-[240px]">
                             <Link
                               href={`/admin/schemes/${row.id}`}
-                              className="font-medium text-white hover:text-blue-200"
+                              className="font-medium text-(--ws-fg) hover:text-blue-200"
                             >
                               {row.title}
                             </Link>
@@ -482,82 +484,82 @@ export default function AdminSchemesPage() {
                           <TableCell>
                             <Badge
                               variant="outline"
-                              className="whitespace-nowrap border-white/15 bg-white/5 text-xs text-white/65"
+                              className="whitespace-nowrap border-(--ws-line-strong) bg-(--ws-fill) text-xs text-(--ws-fg-60)"
                             >
                               {sourceTypeLabel(row.sourceType)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-white/75">
+                          <TableCell className="text-(--ws-fg)/75">
                             {row.subject?.name ?? "—"}
                           </TableCell>
-                          <TableCell className="text-sm text-white/65">
+                          <TableCell className="text-sm text-(--ws-fg-60)">
                             <span>{row.grade?.name ?? "—"}</span>
                             {row.classGroup ? (
-                              <span className="text-white/45"> · {row.classGroup.name}</span>
+                              <span className="text-(--ws-fg-40)"> · {row.classGroup.name}</span>
                             ) : null}
                           </TableCell>
-                          <TableCell className="max-w-[200px] text-sm text-white/65">
+                          <TableCell className="max-w-[200px] text-sm text-(--ws-fg-60)">
                             {formatPeriodLabels(row)}
                           </TableCell>
-                          <TableCell className="text-sm text-white/65">
+                          <TableCell className="text-sm text-(--ws-fg-60)">
                             {row.ownerTeacher?.name ?? "—"}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums text-white/75">
+                          <TableCell className="text-right tabular-nums text-(--ws-fg)/75">
                             {row.itemCount}
                           </TableCell>
                           <TableCell>
                             <SchemeStatusBadge status={row.status as SchemeStatus} />
                           </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-white/55">
+                          <TableCell className="whitespace-nowrap text-sm text-(--ws-fg-50)">
                             {row.submittedAt
                               ? new Date(row.submittedAt).toLocaleString()
                               : "—"}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-white/55">
+                          <TableCell className="whitespace-nowrap text-sm text-(--ws-fg-50)">
                             {new Date(row.updatedAt).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+                            <PremiumDropdownMenu>
+                              <PremiumDropdownMenuTrigger asChild>
                                 <Button
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-white/10 bg-white/5 text-white/80"
+                                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80)"
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="border-white/10 bg-slate-950 text-white">
-                                <DropdownMenuItem asChild className="focus:bg-white/10">
+                              </PremiumDropdownMenuTrigger>
+                              <PremiumDropdownMenuContent align="end">
+                                <PremiumDropdownMenuItem asChild>
                                   <Link href={`/admin/schemes/${row.id}`}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View / Review
                                   </Link>
-                                </DropdownMenuItem>
+                                </PremiumDropdownMenuItem>
                                 {adminCanDeleteSchemeStatus(row.status) ? (
                                   <>
-                                    <DropdownMenuSeparator className="bg-white/10" />
-                                    <DropdownMenuItem
-                                      className="text-rose-300 focus:bg-rose-500/15 focus:text-rose-200"
+                                    <PremiumDropdownMenuSeparator />
+                                    <PremiumDropdownMenuItem
+                                      variant="destructive"
                                       onClick={() =>
                                         void requestDelete({ id: row.id, title: row.title })
                                       }
                                     >
                                       <Trash2 className="mr-2 h-4 w-4" />
                                       Delete scheme
-                                    </DropdownMenuItem>
+                                    </PremiumDropdownMenuItem>
                                   </>
                                 ) : row.status === "active" ? (
                                   <>
-                                    <DropdownMenuSeparator className="bg-white/10" />
-                                    <DropdownMenuItem disabled className="text-xs text-white/45">
+                                    <PremiumDropdownMenuSeparator />
+                                    <PremiumDropdownMenuItem disabled className="text-xs text-(--ws-fg-40)">
                                       Archive active schemes before deleting
-                                    </DropdownMenuItem>
+                                    </PremiumDropdownMenuItem>
                                   </>
                                 ) : null}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              </PremiumDropdownMenuContent>
+                            </PremiumDropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -567,8 +569,8 @@ export default function AdminSchemesPage() {
               )}
 
               {pagination && pagination.totalPages > 1 ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
-                  <p className="text-xs text-white/45">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--ws-line) px-4 py-3">
+                  <p className="text-xs text-(--ws-fg-40)">
                     Page {pagination.page} of {pagination.totalPages}
                   </p>
                   <div className="flex gap-2">
@@ -578,7 +580,7 @@ export default function AdminSchemesPage() {
                       size="sm"
                       disabled={page <= 1 || isLoading}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="border-white/10 bg-white/5 text-white/80"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80)"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -588,7 +590,7 @@ export default function AdminSchemesPage() {
                       size="sm"
                       disabled={page >= pagination.totalPages || isLoading}
                       onClick={() => setPage((p) => p + 1)}
-                      className="border-white/10 bg-white/5 text-white/80"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80)"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -600,5 +602,6 @@ export default function AdminSchemesPage() {
       </div>
 
     </div>
+    </WorkspaceScope>
   );
 }

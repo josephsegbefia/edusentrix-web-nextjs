@@ -112,16 +112,16 @@ export function StudentsTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/10">
+    <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
       <table className="min-w-full border-collapse text-xs md:text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-white/5 text-xs text-muted-foreground">
+          <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-xs text-muted-foreground">
             <th className="w-8 px-3 py-2 text-left align-middle">
               <Checkbox
                 checked={allVisibleSelected}
                 onCheckedChange={handleHeaderCheckboxChange}
                 className={cn(
-                  "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                  "h-4 w-4 border-(--ws-line-strong) bg-slate-900/80 data-[state=checked]:bg-primary"
                 )}
                 aria-label="Select all visible students"
                 indeterminate={someVisibleSelected}
@@ -210,8 +210,8 @@ export function StudentsTable({
                 key={student.id}
                 onClick={() => onView?.(student.id)}
                 className={cn(
-                  "border-b border-white/5 transition-colors",
-                  "hover:bg-white/5",
+                  "border-b border-(--ws-line) transition-colors",
+                  "hover:bg-(--ws-fill)",
                   isSelected && "bg-primary/10"
                 )}
               >
@@ -222,7 +222,7 @@ export function StudentsTable({
                       // do not let row click fire
                       onToggleRow(student.id);
                     }}
-                    className="h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                    className="h-4 w-4 border-(--ws-line-strong) bg-slate-900/80 data-[state=checked]:bg-primary"
                     aria-label={`Select ${student.fullName}`}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -236,19 +236,19 @@ export function StudentsTable({
                       size="sm"
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-white">
+                      <p className="truncate text-xs font-medium text-(--ws-fg)">
                         {student.fullName}
                       </p>
-                      <p className="truncate text-[11px] text-white/60">
+                      <p className="truncate text-[11px] text-(--ws-fg-60)">
                         {classLabel}
                       </p>
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/70">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-70)">
                   {student.admissionNumber ?? "—"}
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {classLabel}
                 </td>
                 <td className="px-3 py-2 align-middle">
@@ -268,19 +268,19 @@ export function StudentsTable({
                     className={cn(
                       "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
                       student.status === "active" &&
-                        "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40",
+                        "bg-emerald-500/15 text-(--ws-emerald) border border-emerald-400/40",
                       student.status === "inactive" &&
-                        "bg-slate-500/20 text-slate-100 border border-slate-400/40",
+                        "bg-(--ws-fill-strong) text-(--ws-fg-70) border border-(--ws-line)",
                       student.status === "withdrawn" &&
-                        "bg-red-500/15 text-red-100 border border-red-400/40",
+                        "bg-red-500/15 text-(--ws-rose) border border-red-400/40",
                       student.status === "graduated" &&
-                        "bg-violet-500/15 text-violet-100 border border-violet-400/40"
+                        "bg-violet-500/15 text-(--ws-violet) border border-violet-400/40"
                     )}
                   >
                     {statusLabel(student.status)}
                   </span>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-80)">
                   {enrolLabel}
                 </td>
                 <td className="px-3 py-2 align-middle text-right">

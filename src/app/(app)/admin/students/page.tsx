@@ -38,6 +38,7 @@ import { StudentsFiltersPanel } from "@/components/admin/students/StudentsFilter
 import { StudentsImportModal } from "@/components/admin/students/StudentsImportModal";
 import { useExportStudents } from "@/hooks/admin/useExportStudents";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import CreateStudentModal from "@/components/modals/CreateStudentModal";
@@ -401,9 +402,9 @@ export default function StudentsPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <WorkspaceScope className="space-y-6 sm:space-y-8">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:rounded-3xl sm:p-8">
         {/* Background decorations */}
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-teal-500/20 via-cyan-500/10 to-transparent blur-3xl"
@@ -414,26 +415,26 @@ export default function StudentsPage() {
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <div className="relative z-10 flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-lg shadow-teal-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
-                <GraduationCap className="h-5 w-5 text-teal-300 sm:h-6 sm:w-6" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-lg shadow-teal-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
+                <GraduationCap className="h-5 w-5 text-(--ws-teal) sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">
                   Students
                 </h1>
-                <p className="text-xs text-white/60 sm:text-sm">
+                <p className="text-xs text-(--ws-fg-60) sm:text-sm">
                   Enrollment & academic records
                 </p>
               </div>
             </div>
-            <p className="hidden max-w-lg text-sm leading-relaxed text-white/50 sm:block">
+            <p className="hidden max-w-lg text-sm leading-relaxed text-(--ws-fg-50) sm:block">
               Manage enrollment, class assignments, and academic records. Track
               performance, fees, and student progress across your school.
             </p>
@@ -444,7 +445,7 @@ export default function StudentsPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="group gap-2 border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+              className="group gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               onClick={() => setImportOpen(true)}
             >
               <Upload className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
@@ -464,18 +465,18 @@ export default function StudentsPage() {
         </div>
 
         {/* Keyboard shortcuts hint */}
-        <div className="relative z-10 mt-4 hidden flex-wrap items-center gap-3 border-t border-white/10 pt-4 sm:mt-6 sm:flex">
-          <span className="text-[11px] uppercase tracking-wider text-white/40">
+        <div className="relative z-10 mt-4 hidden flex-wrap items-center gap-3 border-t border-(--ws-line) pt-4 sm:mt-6 sm:flex">
+          <span className="text-[11px] uppercase tracking-wider text-(--ws-fg-40)">
             Shortcuts
           </span>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-60)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               /
             </kbd>
             <span>Focus search</span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-60)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               <Command className="inline h-2.5 w-2.5" />K
             </kbd>
             <span>Command palette</span>
@@ -487,41 +488,41 @@ export default function StudentsPage() {
       <StudentsQuickStatsSection />
 
       {/* Student directory shell */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl sm:rounded-2xl">
         {/* Decorative elements */}
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-teal-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-3 sm:gap-4 sm:pb-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
-                  <Sparkles className="h-4 w-4 text-teal-300 sm:h-5 sm:w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill) shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
+                  <Sparkles className="h-4 w-4 text-(--ws-teal) sm:h-5 sm:w-5" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-emerald-400 sm:h-3 sm:w-3" />
+                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-(--ws-dot-ring) bg-emerald-400 sm:h-3 sm:w-3" />
               </div>
               <div className="space-y-0.5">
-                <CardTitle className="text-base font-semibold tracking-tight text-white sm:text-lg">
+                <CardTitle className="text-base font-semibold tracking-tight text-(--ws-fg) sm:text-lg">
                   Student Directory
                 </CardTitle>
-                <p className="text-[11px] text-white/50 sm:text-xs">
+                <p className="text-[11px] text-(--ws-fg-50) sm:text-xs">
                   Search, filter, and manage student records
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2.5 py-1 text-[10px] font-medium text-teal-300">
+              <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-teal)">
                 {pagination?.total ?? 0} total
               </span>
               {activeFilterCount > 0 && (
-                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-300">
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-amber)">
                   {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
                 </span>
               )}
@@ -544,13 +545,13 @@ export default function StudentsPage() {
           />
 
           {tab === "fee-defaulters" ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
                     Payment progress
                   </p>
-                  <p className="mt-1 text-xs text-white/45">
+                  <p className="mt-1 text-xs text-(--ws-fg-40)">
                     Split defaulters by whether any payment has been made.
                   </p>
                 </div>
@@ -577,9 +578,9 @@ export default function StudentsPage() {
                         )
                       }
                       className={cn(
-                        "h-8 rounded-xl border-white/10 bg-white/5 px-3 text-xs text-white/65 hover:bg-white/10 hover:text-white",
+                        "h-8 rounded-xl border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)",
                         active &&
-                          "border-teal-400/30 bg-teal-500/15 text-teal-100 shadow-sm shadow-teal-950/30"
+                          "border-teal-400/30 bg-teal-500/15 text-(--ws-teal) shadow-sm shadow-teal-950/30"
                       )}
                     >
                       {item.label}
@@ -601,24 +602,24 @@ export default function StudentsPage() {
       </Card>
 
       {/* Data summary shell – cards/table + pagination */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl sm:rounded-2xl">
         {/* Decorative elements */}
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-3 sm:pb-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-60)">
                 Directory Results
               </CardTitle>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-(--ws-fg-80)">
                 {isLoading
                   ? "Loading..."
                   : `${pagination?.total ?? 0} students found`}
@@ -629,13 +630,13 @@ export default function StudentsPage() {
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
-                    ? "border-teal-500/30 bg-teal-500/10 text-teal-300"
-                    : "border-white/10 bg-white/5 text-white/60"
+                    ? "border-teal-500/30 bg-teal-500/10 text-(--ws-teal)"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                 )}
               >
                 {viewMode === "cards" ? "Cards" : "Table"} view
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium capitalize text-white/60">
+              <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[10px] font-medium capitalize text-(--ws-fg-60)">
                 {tab === "all" ? "All students" : tab.replace("-", " ")}
               </span>
             </div>
@@ -652,10 +653,10 @@ export default function StudentsPage() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-sm font-medium text-(--ws-fg-80)">
                   Loading students...
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-50)">
                   Fetching your student directory
                 </p>
               </div>
@@ -666,17 +667,17 @@ export default function StudentsPage() {
                 <AlertCircle className="h-7 w-7 text-red-400" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-red-300">
+                <p className="text-sm font-medium text-(--ws-rose)">
                   Failed to load students
                 </p>
-                <p className="text-xs text-red-300/60">
+                <p className="text-xs text-(--ws-rose)/60">
                   Please try refreshing the page
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                className="border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
                 onClick={() => window.location.reload()}
               >
                 Retry
@@ -685,18 +686,18 @@ export default function StudentsPage() {
           ) : students.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-                  <GraduationCap className="h-10 w-10 text-white/30" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill)">
+                  <GraduationCap className="h-10 w-10 text-(--ws-fg-40)" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-teal-500">
-                  <Plus className="h-4 w-4 text-white" />
+                <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-(--ws-dot-ring) bg-teal-500">
+                  <Plus className="h-4 w-4 text-(--ws-fg)" />
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-white/80">
+                <p className="text-base font-medium text-(--ws-fg-80)">
                   No students found
                 </p>
-                <p className="mt-1 max-w-xs text-sm text-white/50">
+                <p className="mt-1 max-w-xs text-sm text-(--ws-fg-50)">
                   {search || activeFilterCount > 0
                     ? "Try adjusting your search or filters to find what you're looking for"
                     : "Get started by adding your first student to the directory"}
@@ -716,26 +717,26 @@ export default function StudentsPage() {
           ) : (
             <div className="space-y-4 sm:space-y-5">
               {/* Results summary bar */}
-              <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-2 text-xs text-white/70 sm:text-sm">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/20 text-[9px] font-bold text-teal-300 sm:h-6 sm:w-6 sm:text-[10px]">
+              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-xs text-(--ws-fg-70) sm:text-sm">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/20 text-[9px] font-bold text-(--ws-teal) sm:h-6 sm:w-6 sm:text-[10px]">
                     {students.length}
                   </span>
                   <span>
                     student{students.length === 1 ? "" : "s"} on page{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-(--ws-fg)">
                       {pagination.page}
                     </span>{" "}
                     of{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-(--ws-fg)">
                       {pagination.totalPages}
                     </span>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-white/50">
+                <div className="flex items-center gap-2 text-[11px] text-(--ws-fg-50)">
                   <span>
                     Total:{" "}
-                    <span className="font-medium text-white/70">
+                    <span className="font-medium text-(--ws-fg-70)">
                       {pagination.total}
                     </span>{" "}
                     records
@@ -898,6 +899,6 @@ export default function StudentsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
       />
-    </div>
+    </WorkspaceScope>
   );
 }

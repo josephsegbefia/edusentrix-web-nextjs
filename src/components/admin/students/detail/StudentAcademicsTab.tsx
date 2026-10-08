@@ -151,21 +151,21 @@ export function StudentAcademicsTab({ studentId }: Props) {
   if (!profile && (!needsLegacyAcademics || !legacyAcademics)) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 px-4 py-12 text-center">
             <div className="flex flex-col items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-teal-500/20">
-                <BookOpen className="h-7 w-7 text-cyan-300" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-teal-500/20">
+                <BookOpen className="h-7 w-7 text-(--ws-cyan)" />
               </div>
               <div className="space-y-1">
-                <p className="text-base font-semibold text-white">
+                <p className="text-base font-semibold text-(--ws-fg)">
                   Unable to load academic data
                 </p>
-                <p className="text-sm text-white/50">
+                <p className="text-sm text-(--ws-fg-50)">
                   Please try again later or contact support.
                 </p>
               </div>
@@ -283,26 +283,26 @@ export function StudentAcademicsTab({ studentId }: Props) {
       ) : null}
 
       {/* Main Academic Performance Card */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-cyan-500/15 via-teal-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <CardHeader className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-teal-500/20 shadow-inner shadow-white/5">
-              <GraduationCap className="h-5 w-5 text-cyan-300" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-teal-500/20 shadow-inner shadow-white/5">
+              <GraduationCap className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Academic Performance
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {periodLabel || "Current period"}
               </p>
             </div>
@@ -318,16 +318,16 @@ export function StudentAcademicsTab({ studentId }: Props) {
 
         <CardContent className="relative z-10 space-y-4">
           {!hasAcademicData ? (
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-teal-500/20">
-                  <BookOpen className="h-7 w-7 text-cyan-300" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-teal-500/20">
+                  <BookOpen className="h-7 w-7 text-(--ws-cyan)" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-white">
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     No graded academic records yet
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-50)">
                     Once teachers start recording scored assessments and term
                     results, they&apos;ll appear here as a full gradebook.
                     {schoolLevel === "SHS" ? (

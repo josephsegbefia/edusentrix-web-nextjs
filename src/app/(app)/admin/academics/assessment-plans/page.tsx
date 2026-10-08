@@ -41,11 +41,12 @@ import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useGradingPolicies } from "@/hooks/admin/useGradingPolicies";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-white/10 bg-white/5 text-white/70",
-  active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  archived: "border-white/10 bg-white/5 text-white/45",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
+  active: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
 };
 
 function formatStatus(status: string) {
@@ -87,17 +88,17 @@ function PlanRow({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-white">{plan.name}</h3>
+            <h3 className="text-base font-semibold text-(--ws-fg)">{plan.name}</h3>
             <Badge variant="outline" className={STATUS_STYLES[plan.status] ?? STATUS_STYLES.draft}>
               {formatStatus(plan.status)}
             </Badge>
           </div>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-(--ws-fg-60)">
             {periodLabel} · {gradeLabel} · {plan.appliesToClassGroupIds.length} class group
             {plan.appliesToClassGroupIds.length === 1 ? "" : "s"}
           </p>
-          <p className="mt-2 text-xs text-white/50">Policy: {policyName}</p>
-          <p className="mt-1 text-xs text-white/40">{ruleSummary || "No component rules configured"}</p>
+          <p className="mt-2 text-xs text-(--ws-fg-50)">Policy: {policyName}</p>
+          <p className="mt-1 text-xs text-(--ws-fg-40)">{ruleSummary || "No component rules configured"}</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -136,7 +137,7 @@ function PlanRow({
               type="button"
               size="sm"
               variant="outline"
-              className="border-rose-500/25 bg-rose-500/5 text-rose-100 hover:bg-rose-500/10"
+              className="border-rose-500/25 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
               onClick={onArchive}
               disabled={archiving}
             >
@@ -248,7 +249,7 @@ export default function AdminAssessmentPlansPage() {
   }
 
   return (
-    <>
+    <WorkspaceScope>
       {confirmationDialog}
       <WorkspacePageShell>
         <WorkspacePageHeader
@@ -267,16 +268,16 @@ export default function AdminAssessmentPlansPage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <GlassPanel className="p-4" glow="teal">
-            <p className="text-xs uppercase tracking-wide text-white/45">Plans</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{plans.length}</p>
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Plans</p>
+            <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{plans.length}</p>
           </GlassPanel>
           <GlassPanel className="p-4" glow="cyan">
-            <p className="text-xs uppercase tracking-wide text-white/45">Active</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{activeCount}</p>
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Active</p>
+            <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{activeCount}</p>
           </GlassPanel>
           <GlassPanel className="p-4">
-            <p className="text-xs uppercase tracking-wide text-white/45">Contribution modes</p>
-            <p className="mt-2 text-sm text-white/75">
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Contribution modes</p>
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               Teacher-selected and rule-based modes per score component
             </p>
           </GlassPanel>
@@ -285,8 +286,8 @@ export default function AdminAssessmentPlansPage() {
         <GlassPanel className="p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-white">Plan list</h2>
-              <p className="mt-1 text-sm text-white/55">
+              <h2 className="text-base font-semibold text-(--ws-fg)">Plan list</h2>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Link a grading policy to a grade and term, then define how each component collects marks.
               </p>
             </div>
@@ -331,13 +332,13 @@ export default function AdminAssessmentPlansPage() {
 
           <div className="mt-5">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16 text-white/60">
+              <div className="flex items-center justify-center py-16 text-(--ws-fg-60)">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Loading assessment plans…
               </div>
             ) : error ? (
               <div className={cn(glassInsetClass, "p-6 text-center")}>
-                <p className="text-sm text-rose-200">
+                <p className="text-sm text-(--ws-rose)">
                   {error instanceof Error ? error.message : "Failed to load assessment plans."}
                 </p>
                 <Button
@@ -352,11 +353,11 @@ export default function AdminAssessmentPlansPage() {
               </div>
             ) : plans.length === 0 ? (
               <div className={cn(glassInsetClass, "px-6 py-10 text-center")}>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                  <Sparkles className="h-5 w-5 text-cyan-200" />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+                  <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-white">No assessment plan yet</h3>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/60">
+                <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">No assessment plan yet</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-(--ws-fg-60)">
                   Create an assessment plan after you have an active grading policy. Plans define how
                   teacher marks contribute to report cards.
                 </p>
@@ -405,6 +406,6 @@ export default function AdminAssessmentPlansPage() {
         plan={selectedPlan}
         onCompleted={() => void refetch()}
       />
-    </>
+    </WorkspaceScope>
   );
 }

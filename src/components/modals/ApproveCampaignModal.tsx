@@ -56,7 +56,7 @@ export default function ApproveCampaignModal({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f14] p-6 shadow-2xl"
+          className="relative w-full max-w-md rounded-2xl border border-(--ws-line) bg-[#0f0f14] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -66,24 +66,24 @@ export default function ApproveCampaignModal({
                 <CheckCircle className="h-6 w-6 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Approve Campaign</h2>
-                <p className="text-sm text-white/50">Confirm approval</p>
+                <h2 className="text-lg font-bold text-(--ws-fg)">Approve Campaign</h2>
+                <p className="text-sm text-(--ws-fg-50)">Confirm approval</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Campaign Info */}
-          <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="font-medium text-white">&ldquo;{campaign.title}&rdquo;</p>
-            <div className="mt-3 flex items-center gap-4 text-sm text-white/50">
+          <div className="mb-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="font-medium text-(--ws-fg)">&ldquo;{campaign.title}&rdquo;</p>
+            <div className="mt-3 flex items-center gap-4 text-sm text-(--ws-fg-50)">
               <span className="flex items-center gap-1">
                 <Target className="h-4 w-4" />
                 Goal: {formatMoney(campaign.goalAmountMinor, campaign.currency)}
@@ -104,7 +104,7 @@ export default function ApproveCampaignModal({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-white/10 text-white/60"
+              className="border-(--ws-line) text-(--ws-fg-60)"
             >
               Cancel
             </Button>

@@ -84,7 +84,7 @@ function OptionInfoIcon({ text, label }: { text: string; label: string }) {
         <button
           type="button"
           aria-label={label}
-          className="shrink-0 rounded p-0.5 text-white/35 outline-none hover:bg-white/10 hover:text-white/75 focus-visible:ring-1 focus-visible:ring-brand"
+          className="shrink-0 rounded p-0.5 text-(--ws-fg-40) outline-none hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-70) focus-visible:ring-1 focus-visible:ring-brand"
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -96,7 +96,7 @@ function OptionInfoIcon({ text, label }: { text: string; label: string }) {
       <TooltipContent
         side="left"
         align="center"
-        className="z-400 max-w-xs border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-lg"
+        className="z-400 max-w-xs border border-(--ws-line) bg-(--ws-popover) px-3 py-2 text-xs leading-relaxed text-(--ws-fg-90) shadow-lg"
       >
         {text}
       </TooltipContent>
@@ -121,14 +121,14 @@ function SelectLabelRow({
           <button
             type="button"
             aria-label={`About: ${label}`}
-            className="shrink-0 rounded p-1 text-white/35 hover:bg-white/10 hover:text-white/75 focus-visible:ring-1 focus-visible:ring-brand"
+            className="shrink-0 rounded p-1 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-70) focus-visible:ring-1 focus-visible:ring-brand"
           >
             <Info className="h-4 w-4" strokeWidth={2} />
           </button>
         </TooltipTrigger>
         <TooltipContent
           side="left"
-          className="z-400 max-w-sm border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-lg"
+          className="z-400 max-w-sm border border-(--ws-line) bg-(--ws-popover) px-3 py-2 text-xs leading-relaxed text-(--ws-fg-90) shadow-lg"
         >
           {hint}
         </TooltipContent>
@@ -492,11 +492,11 @@ export function CreateClassGroupsModal({ onClose }: Props) {
   return (
     <TooltipProvider delayDuration={280}>
     <div className="flex max-h-full flex-col space-y-5">
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
+      <div className="flex flex-wrap items-center gap-2 border-b border-(--ws-line) pb-4">
         {STEP_META.map(({ step: s, label }, i) => (
           <React.Fragment key={s}>
             {i > 0 ? (
-              <span className="text-white/25" aria-hidden>
+              <span className="text-(--ws-fg-40)" aria-hidden>
                 /
               </span>
             ) : null}
@@ -506,8 +506,8 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 step === s
                   ? "bg-brand/20 text-brand ring-1 ring-brand/30"
                   : step > s
-                    ? "text-white/45"
-                    : "text-white/30"
+                    ? "text-(--ws-fg-40)"
+                    : "text-(--ws-fg-40)"
               )}
             >
               {s} {label}
@@ -519,7 +519,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
       {step === 1 && (
         <>
           <LeoCallout>
-            <p className="text-sm leading-relaxed text-white/85">
+            <p className="text-sm leading-relaxed text-(--ws-fg-80)">
               Hi, I&apos;m <span className="font-semibold text-violet-200">Leo</span>.
               We&apos;ll set up <strong>class groups</strong> (parallel streams) for
               your grades—like <em>KG1 A</em> / <em>KG1 B</em>, or themed names such
@@ -537,7 +537,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                     This controls the <strong>suffix</strong> for each parallel class
                     group (the part after the grade name, e.g. “A” or “Rose”).
                   </p>
-                  <p className="text-white/75">
+                  <p className="text-(--ws-fg-70)">
                     Hover or focus the ⓘ beside each choice in the menu for exactly
                     what gets created.
                   </p>
@@ -619,9 +619,9 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               onChange={(e) =>
                 setStreamsPerGrade(Number(e.target.value) || 1)
               }
-              className="border border-white/10 bg-white/5 text-white"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             />
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-(--ws-fg-40)">
               Newly selected grades start with this count. Adjust individual grades
               on step 2, or use &quot;Apply default to all&quot; there.
             </p>
@@ -643,7 +643,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 value={themedHint}
                 onChange={(e) => setThemedHint(e.target.value)}
                 placeholder="e.g. local flowers, moral virtues, colours…"
-                className="border border-white/10 bg-white/5 text-white"
+                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
           ) : null}
@@ -664,7 +664,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 value={customSuffixes}
                 onChange={(e) => setCustomSuffixes(e.target.value)}
                 placeholder="Rose, Sunflower, Lily"
-                className="border border-white/10 bg-white/5 text-white"
+                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
           ) : null}
@@ -674,7 +674,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
       {step === 2 && (
         <>
           <LeoCallout>
-            <p className="text-sm leading-relaxed text-white/85">
+            <p className="text-sm leading-relaxed text-(--ws-fg-80)">
               Pick which levels get class groups, and how many parallel streams each
               one needs — KG might use two streams while P6 uses four, all in one
               pass.
@@ -692,8 +692,8 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             }
           />
           {gradesLoading ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center gap-2 text-sm text-white/70">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
                 <Loader2 className="h-4 w-4 animate-spin text-brand" />
                 Loading grade levels…
               </div>
@@ -701,7 +701,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 {[0, 1, 2].map((row) => (
                   <div
                     key={row}
-                    className="h-12 animate-pulse rounded-lg border border-white/10 bg-white/5"
+                    className="h-12 animate-pulse rounded-lg border border-(--ws-line) bg-(--ws-fill)"
                   />
                 ))}
               </div>
@@ -735,7 +735,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4">
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/25 bg-amber-300/10">
-                  <Layers3 className="h-4 w-4 text-amber-100" />
+                  <Layers3 className="h-4 w-4 text-(--ws-amber)" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-amber-50">
@@ -764,7 +764,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                       onClick={() => void refetchGrades()}
                     >
                       <RefreshCw className="mr-2 h-4 w-4" />
@@ -782,7 +782,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   variant="outline"
                   size="sm"
                   onClick={selectAllGrades}
-                  className="border-white/10 bg-white/5 text-xs text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   Select all
                 </Button>
@@ -791,7 +791,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   variant="outline"
                   size="sm"
                   onClick={applyDefaultStreamsToAll}
-                  className="border-white/10 bg-white/5 text-xs text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   Apply {streamsPerGrade} to all
                 </Button>
@@ -800,19 +800,19 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 {grades.map((g) => (
                   <div
                     key={g._id}
-                    className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 bg-white/5 p-2"
+                    className="flex flex-wrap items-center gap-3 rounded-md border border-(--ws-line) bg-(--ws-fill) p-2"
                   >
                     <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
                       <input
                         type="checkbox"
                         checked={selectedGradeIdSet.has(String(g._id).trim())}
                         onChange={() => toggleGrade(g._id)}
-                        className="h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-white/5 accent-brand"
+                        className="h-4 w-4 shrink-0 cursor-pointer rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand"
                       />
-                      <span className="truncate text-sm text-white/80">{g.name}</span>
+                      <span className="truncate text-sm text-(--ws-fg-80)">{g.name}</span>
                     </label>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40">
+                      <span className="text-[10px] uppercase tracking-wider text-(--ws-fg-40)">
                         Streams
                       </span>
                       <Input
@@ -828,7 +828,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                             [g._id]: Math.min(26, Math.max(1, n)),
                           }));
                         }}
-                        className="h-9 w-16 border border-white/10 bg-white/5 text-center text-sm text-white disabled:opacity-40"
+                        className="h-9 w-16 border border-(--ws-line) bg-(--ws-fill) text-center text-sm text-(--ws-fg) disabled:opacity-40"
                       />
                     </div>
                   </div>
@@ -842,7 +842,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
       {step === 3 && draft && (
         <>
           <LeoCallout>
-            <p className="text-sm leading-relaxed text-white/85">{draft.leoSummary}</p>
+            <p className="text-sm leading-relaxed text-(--ws-fg-80)">{draft.leoSummary}</p>
           </LeoCallout>
 
           <div className="space-y-2">
@@ -857,24 +857,24 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 </p>
               }
             />
-            <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+            <div className="overflow-hidden rounded-lg border border-(--ws-line) bg-(--ws-fill)">
               <div className="max-h-72 overflow-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 z-1 bg-white/10 backdrop-blur-sm">
-                    <tr className="border-b border-white/10">
-                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                  <thead className="sticky top-0 z-1 bg-(--ws-fill-strong) backdrop-blur-sm">
+                    <tr className="border-b border-(--ws-line)">
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                         Grade
                       </th>
-                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                         #
                       </th>
-                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                         Pattern
                       </th>
-                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                         Custom
                       </th>
-                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                         Preview
                       </th>
                     </tr>
@@ -887,9 +887,9 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                       return (
                         <tr
                           key={gc.gradeId}
-                          className="border-b border-white/5 last:border-b-0 align-top"
+                          className="border-b border-(--ws-line) last:border-b-0 align-top"
                         >
-                          <td className="p-2 font-medium text-white">
+                          <td className="p-2 font-medium text-(--ws-fg)">
                             {gradeMap.get(gc.gradeId) ?? gc.gradeId}
                           </td>
                           <td className="p-2">
@@ -905,7 +905,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                                   strategy: adjustStrategyCount(row.strategy, n),
                                 }));
                               }}
-                              className="h-9 w-14 border border-white/10 bg-white/5 text-center text-xs text-white"
+                              className="h-9 w-14 border border-(--ws-line) bg-(--ws-fill) text-center text-xs text-(--ws-fg)"
                             />
                           </td>
                           <td className="p-2">
@@ -980,13 +980,13 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                                     ),
                                   }));
                                 }}
-                                className="h-9 border border-white/10 bg-white/5 text-xs text-white"
+                                className="h-9 border border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg)"
                               />
                             ) : (
-                              <span className="text-[10px] text-white/35">—</span>
+                              <span className="text-[10px] text-(--ws-fg-40)">—</span>
                             )}
                           </td>
-                          <td className="p-2 text-[11px] leading-snug text-white/65">
+                          <td className="p-2 text-[11px] leading-snug text-(--ws-fg-60)">
                             {previewLine(
                               gradeMap.get(gc.gradeId) ?? "",
                               gc.strategy
@@ -1001,7 +1001,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-lg border border-white/10 bg-black/15 p-3">
+          <div className="space-y-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
             <SelectLabelRow
               label="Capacity (optional)"
               hint={
@@ -1012,7 +1012,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                     a different cap for each exact name in the plan (or leave blank
                     for no limit on that group).
                   </p>
-                  <p className="text-white/75">
+                  <p className="text-(--ws-fg-70)">
                     Use the ⓘ in the menu for more detail. In per-group mode, you
                     can fill every row from the shared value with one click.
                   </p>
@@ -1066,7 +1066,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             </PremiumSelect>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-medium uppercase tracking-wider text-white/45">
+              <Label className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                 {capacityMode === "uniform"
                   ? "Capacity for all groups"
                   : "Default / fill value (optional)"}
@@ -1078,14 +1078,14 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   value={capacity}
                   onChange={(e) => setCapacity(e.target.value)}
                   placeholder="e.g. 35 — leave empty for no limit"
-                  className="min-w-40 flex-1 border border-white/10 bg-white/5 text-white"
+                  className="min-w-40 flex-1 border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
                 {capacityMode === "custom" ? (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-white/10 bg-white/5 text-xs text-white hover:bg-white/10"
+                    className="border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     onClick={() =>
                       setCapacityByClassName(
                         Object.fromEntries(
@@ -1104,15 +1104,15 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             </div>
 
             {capacityMode === "custom" ? (
-              <div className="overflow-hidden rounded-md border border-white/10 bg-white/5">
+              <div className="overflow-hidden rounded-md border border-(--ws-line) bg-(--ws-fill)">
                 <div className="max-h-52 overflow-auto">
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 z-1 bg-white/10 backdrop-blur-sm">
-                      <tr className="border-b border-white/10">
-                        <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                    <thead className="sticky top-0 z-1 bg-(--ws-fill-strong) backdrop-blur-sm">
+                      <tr className="border-b border-(--ws-line)">
+                        <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                           Class group
                         </th>
-                        <th className="w-28 p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                        <th className="w-28 p-2 text-left text-[10px] font-medium uppercase tracking-wider text-(--ws-fg)/55">
                           Capacity
                         </th>
                       </tr>
@@ -1121,9 +1121,9 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                       {reviewPlannedRows.map((r) => (
                         <tr
                           key={r.displayName}
-                          className="border-b border-white/5 last:border-b-0"
+                          className="border-b border-(--ws-line) last:border-b-0"
                         >
-                          <td className="p-2 text-xs text-white/80">
+                          <td className="p-2 text-xs text-(--ws-fg-80)">
                             {r.displayName}
                           </td>
                           <td className="p-2">
@@ -1138,7 +1138,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                                 }))
                               }
                               placeholder="—"
-                              className="h-8 border border-white/10 bg-white/5 text-xs text-white"
+                              className="h-8 border border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg)"
                             />
                           </td>
                         </tr>
@@ -1152,12 +1152,12 @@ export function CreateClassGroupsModal({ onClose }: Props) {
         </>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-4">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-(--ws-line) pt-4">
         <Button
           type="button"
           variant="outline"
           onClick={onClose}
-          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           Cancel
         </Button>
@@ -1166,7 +1166,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             type="button"
             variant="outline"
             onClick={() => setStep((s) => (s > 1 ? ((s - 1) as WizardStep) : s))}
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             Back
           </Button>
@@ -1177,7 +1177,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               type="button"
               variant="outline"
               onClick={() => setStep(2)}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               Adjust grades
             </Button>
@@ -1188,7 +1188,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 setDraft(null);
                 setStep(1);
               }}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               Start over
             </Button>

@@ -78,8 +78,8 @@ export function AdminReviewCommentComposer({
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
-      <div className="flex items-center gap-2 text-sm font-medium text-white">
+    <div className="space-y-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
+      <div className="flex items-center gap-2 text-sm font-medium text-(--ws-fg)">
         <MessageSquarePlus className="h-4 w-4 text-sky-300" />
         Add Review Comment
       </div>
@@ -109,7 +109,7 @@ export function AdminReviewCommentComposer({
                 type="button"
                 variant="outline"
                 onClick={clearHighlight}
-                className="w-fit border-white/15 bg-white/5 text-white/75 hover:bg-white/10 hover:text-white"
+                className="w-fit border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)/75 hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               >
                 <X className="mr-2 h-3.5 w-3.5" />
                 Clear selection
@@ -118,14 +118,14 @@ export function AdminReviewCommentComposer({
           </div>
         </div>
         {highlightedText ? (
-          <div className="mt-3 flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-lg border border-(--ws-line) bg-black/20 px-3 py-2 text-xs text-(--ws-fg)/75">
             <p>
               <span className="font-semibold text-sky-100">Highlighted:</span> {highlightedText}
             </p>
             <button
               type="button"
               onClick={clearHighlight}
-              className="shrink-0 rounded-md p-1 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-md p-1 text-(--ws-fg-40) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               aria-label="Clear highlighted selection"
             >
               <X className="h-3.5 w-3.5" />
@@ -135,11 +135,11 @@ export function AdminReviewCommentComposer({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-white/45">
+        <Label className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-40)">
           Comment Type
         </Label>
         <PremiumSelect value={commentType} onValueChange={(value) => setCommentType(value as LessonNoteReviewCommentType)}>
-          <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+          <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
             <PremiumSelectValue placeholder="Select comment type" />
           </PremiumSelectTrigger>
           <PremiumSelectContent>
@@ -153,14 +153,14 @@ export function AdminReviewCommentComposer({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-[0.18em] text-white/45">
+        <Label className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-40)">
           Comment
         </Label>
         <Textarea
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           placeholder={`Add a clear review note for ${section.label.toLowerCase()}...`}
-          className="min-h-28 border-white/10 bg-white/5 text-white placeholder:text-white/35"
+          className="min-h-28 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
         />
       </div>
 

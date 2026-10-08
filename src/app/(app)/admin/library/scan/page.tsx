@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ScanLine, Loader2 } from "lucide-react";
@@ -70,7 +71,8 @@ export default function AdminLibraryScanPage() {
   }, [code]);
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library" label="Library home" />
       <LibraryPageHeader
         icon={ScanLine}
@@ -79,7 +81,7 @@ export default function AdminLibraryScanPage() {
       />
 
       {!canRead ? (
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <p className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
           Your role does not include reading library loans.
         </p>
       ) : null}
@@ -87,7 +89,7 @@ export default function AdminLibraryScanPage() {
       {canRead ? (
         <section className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div className="space-y-2">
-            <Label className="text-white/80">Identifier</Label>
+            <Label className="text-(--ws-fg-80)">Identifier</Label>
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -95,14 +97,14 @@ export default function AdminLibraryScanPage() {
                 if (e.key === "Enter") void runLookup();
               }}
               placeholder="Copy code · barcode · EDU:…"
-              className="border-white/15 bg-white/[0.05] text-white"
+              className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               autoComplete="off"
               autoFocus
             />
           </div>
           <Button
             type="button"
-            className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25"
+            className="bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25"
             disabled={loading}
             onClick={() => void runLookup()}
           >
@@ -113,11 +115,11 @@ export default function AdminLibraryScanPage() {
           <LibraryScanCameraPane disabled={loading} onDetected={(v) => void runLookup(v)} />
 
           {lastTitle && lastBookId && lastCopyId ? (
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/80">
-              <p className="font-medium text-white">{lastTitle}</p>
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-80)">
+              <p className="font-medium text-(--ws-fg)">{lastTitle}</p>
               {copyStatus ? (
-                <p className="mt-1 text-xs text-white/50">
-                  Copy status: <span className="text-white/80">{copyStatus}</span>
+                <p className="mt-1 text-xs text-(--ws-fg-50)">
+                  Copy status: <span className="text-(--ws-fg-80)">{copyStatus}</span>
                 </p>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
@@ -125,7 +127,7 @@ export default function AdminLibraryScanPage() {
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="bg-white/10 text-white"
+                  className="bg-(--ws-fill-strong) text-(--ws-fg)"
                   onClick={() =>
                     router.push(
                       `/admin/library/circulation?bookId=${encodeURIComponent(lastBookId)}&copyId=${encodeURIComponent(lastCopyId)}`
@@ -134,7 +136,7 @@ export default function AdminLibraryScanPage() {
                 >
                   Open circulation
                 </Button>
-                <Button type="button" size="sm" variant="outline" className="border-white/20 text-white" asChild>
+                <Button type="button" size="sm" variant="outline" className="border-(--ws-line-strong) text-(--ws-fg)" asChild>
                   <Link href={`/admin/library/books/${lastBookId}`}>Book detail</Link>
                 </Button>
               </div>
@@ -143,5 +145,6 @@ export default function AdminLibraryScanPage() {
         </section>
       ) : null}
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }

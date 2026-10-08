@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -76,7 +77,7 @@ type FormOptions = {
 };
 
 const glassPanel =
-  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+  "relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl";
 
 function PanelChrome({ corner = "top" }: { corner?: "top" | "bottom" }) {
   return (
@@ -91,7 +92,7 @@ function PanelChrome({ corner = "top" }: { corner?: "top" | "bottom" }) {
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
         aria-hidden="true"
       />
     </>
@@ -124,14 +125,14 @@ function StatCard({
       <CardContent className="relative z-10 p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
-            <div className="mt-2 text-3xl font-semibold text-white">{value}</div>
+            <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-40)">{label}</p>
+            <div className="mt-2 text-3xl font-semibold text-(--ws-fg)">{value}</div>
           </div>
           <div className={cn("rounded-xl border p-2", tones[tone])}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
-        <p className="mt-3 text-sm leading-5 text-white/50">{helper}</p>
+        <p className="mt-3 text-sm leading-5 text-(--ws-fg-50)">{helper}</p>
       </CardContent>
     </Card>
   );
@@ -140,7 +141,7 @@ function StatCard({
 function statusTone(status: string) {
   if (status === "published") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
   if (status === "draft") return "border-amber-300/25 bg-amber-400/10 text-amber-100";
-  if (status === "archived") return "border-white/15 bg-white/5 text-white/55";
+  if (status === "archived") return "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-50)";
   return "border-cyan-300/20 bg-cyan-400/10 text-cyan-100";
 }
 
@@ -326,7 +327,7 @@ export default function AdminSupplyProgramsPage() {
 
   if (loading || !options) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 text-white/60">
+      <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-panel-to)/80 text-(--ws-fg-60)">
         <div className="flex items-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           Loading supply programs…
@@ -345,8 +346,9 @@ export default function AdminSupplyProgramsPage() {
   const requiredLines = lines.filter((line) => line.required).length;
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6 sm:space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-8">
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl"
           aria-hidden="true"
@@ -356,7 +358,7 @@ export default function AdminSupplyProgramsPage() {
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -365,11 +367,11 @@ export default function AdminSupplyProgramsPage() {
               <ClipboardList className="h-6 w-6 text-cyan-200" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-white/55">Store programs</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              <p className="text-sm text-(--ws-fg-50)">Store programs</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">
                 Supply programs
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--ws-fg-50)">
                 Build targeted supply lists by grade, class, or student, then connect each
                 requirement to store products and parent checkout.
               </p>
@@ -379,7 +381,7 @@ export default function AdminSupplyProgramsPage() {
             <Button
               type="button"
               onClick={() => setShowWizard(true)}
-              className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+              className="bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
             >
               <Wand2 className="mr-2 h-4 w-4" />
               New program wizard
@@ -387,7 +389,7 @@ export default function AdminSupplyProgramsPage() {
             <Button
               asChild
               variant="outline"
-              className="border-white/15 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10 hover:text-white"
+              className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <Link href="/admin/store">
                 <Store className="mr-2 h-4 w-4" />
@@ -447,11 +449,11 @@ export default function AdminSupplyProgramsPage() {
 
       <Card className={glassPanel}>
         <PanelChrome corner="bottom" />
-        <CardHeader className="relative z-10 border-b border-white/5">
+        <CardHeader className="relative z-10 border-b border-(--ws-line)">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-base text-white">Programs</CardTitle>
-              <p className="mt-1 text-sm text-white/50">
+              <CardTitle className="text-base text-(--ws-fg)">Programs</CardTitle>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Select a program to manage its product requirements.
               </p>
             </div>
@@ -459,7 +461,7 @@ export default function AdminSupplyProgramsPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="w-fit border-white/15 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10"
+              className="w-fit border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
               onClick={() => setShowWizard(true)}
             >
               <Wand2 className="mr-2 h-4 w-4" />
@@ -469,10 +471,10 @@ export default function AdminSupplyProgramsPage() {
         </CardHeader>
         <CardContent className="relative z-10 p-5">
           {programs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
-              <ClipboardList className="mx-auto h-9 w-9 text-white/30" />
-              <p className="mt-3 font-semibold text-white">No programs yet</p>
-              <p className="mx-auto mt-1 max-w-md text-sm text-white/50">
+            <div className="rounded-2xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) p-8 text-center">
+              <ClipboardList className="mx-auto h-9 w-9 text-(--ws-fg-40)" />
+              <p className="mt-3 font-semibold text-(--ws-fg)">No programs yet</p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-(--ws-fg-50)">
                 Use the wizard to create a targeted supply program draft.
               </p>
             </div>
@@ -485,14 +487,14 @@ export default function AdminSupplyProgramsPage() {
                     "rounded-xl border bg-black/25 p-4 transition-colors",
                     selectedId === p.id
                       ? "border-cyan-300/35 bg-cyan-400/10"
-                      : "border-white/10 hover:border-cyan-400/25 hover:bg-black/35"
+                      : "border-(--ws-line) hover:border-cyan-400/25 hover:bg-black/35"
                   )}
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <button
                         type="button"
-                        className="flex min-w-0 items-center gap-2 text-left font-medium text-white hover:text-cyan-200"
+                        className="flex min-w-0 items-center gap-2 text-left font-medium text-(--ws-fg) hover:text-cyan-200"
                         onClick={() =>
                           setSelectedId((cur) => (cur === p.id ? null : p.id))
                         }
@@ -500,7 +502,7 @@ export default function AdminSupplyProgramsPage() {
                         <span className="truncate">{p.name}</span>
                         <ChevronRight
                           className={cn(
-                            "h-4 w-4 shrink-0 text-white/35 transition-transform",
+                            "h-4 w-4 shrink-0 text-(--ws-fg-40) transition-transform",
                             selectedId === p.id && "rotate-90 text-cyan-200"
                           )}
                         />
@@ -509,11 +511,11 @@ export default function AdminSupplyProgramsPage() {
                         <Badge variant="outline" className={cn("border capitalize", statusTone(p.status))}>
                           {p.status}
                         </Badge>
-                        <Badge variant="outline" className="border-white/15 bg-white/5 capitalize text-white/65">
-                          <School className="mr-1.5 h-3.5 w-3.5 text-white/45" />
+                        <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) capitalize text-(--ws-fg-60)">
+                          <School className="mr-1.5 h-3.5 w-3.5 text-(--ws-fg-40)" />
                           {audienceLabel(p.audienceMode)}
                         </Badge>
-                        <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+                        <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                           {p.periodLabel || "No period"}
                         </Badge>
                       </div>
@@ -535,7 +537,7 @@ export default function AdminSupplyProgramsPage() {
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
+                            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                             onClick={() => void archiveProgram(p)}
                           >
                             Archive
@@ -562,14 +564,14 @@ export default function AdminSupplyProgramsPage() {
       {selectedId ? (
         <Card className={glassPanel}>
           <PanelChrome />
-          <CardHeader className="relative z-10 border-b border-white/5">
+          <CardHeader className="relative z-10 border-b border-(--ws-line)">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2 text-base text-white">
+                <CardTitle className="flex items-center gap-2 text-base text-(--ws-fg)">
                   <Boxes className="h-4 w-4 text-cyan-200" />
                   Lines & products
                 </CardTitle>
-                <p className="mt-1 text-sm text-white/50">
+                <p className="mt-1 text-sm text-(--ws-fg-50)">
                   {selectedProgram
                     ? `Managing ${selectedProgram.name}.`
                     : "Map each requirement to a store product."}
@@ -591,15 +593,15 @@ export default function AdminSupplyProgramsPage() {
           <CardContent className="relative z-10 space-y-6 p-5">
             <form
               onSubmit={addLine}
-              className="grid gap-4 rounded-xl border border-white/10 bg-black/25 p-4 md:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-4 rounded-xl border border-(--ws-line) bg-black/25 p-4 md:grid-cols-2 lg:grid-cols-4"
             >
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-white/80">Store product</Label>
+                <Label className="text-(--ws-fg-80)">Store product</Label>
                 <PremiumSelect
                   value={newLineProductId || undefined}
                   onValueChange={(v) => setNewLineProductId(v)}
                 >
-                  <PremiumSelectTrigger className="w-full border-white/10 bg-black/30 text-white">
+                  <PremiumSelectTrigger className="w-full border-(--ws-line) bg-black/30 text-(--ws-fg)">
                     <PremiumSelectValue placeholder="Select product" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -617,12 +619,12 @@ export default function AdminSupplyProgramsPage() {
                 </PremiumSelect>
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Subject (optional)</Label>
+                <Label className="text-(--ws-fg-80)">Subject (optional)</Label>
                 <PremiumSelect
                   value={newLineSubjectId || "__none__"}
                   onValueChange={(v) => setNewLineSubjectId(v === "__none__" ? "" : v)}
                 >
-                  <PremiumSelectTrigger className="w-full border-white/10 bg-black/30 text-white">
+                  <PremiumSelectTrigger className="w-full border-(--ws-line) bg-black/30 text-(--ws-fg)">
                     <PremiumSelectValue placeholder="None" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -636,27 +638,27 @@ export default function AdminSupplyProgramsPage() {
                 </PremiumSelect>
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Qty / student</Label>
+                <Label className="text-(--ws-fg-80)">Qty / student</Label>
                 <Input
                   value={newLineQty}
                   onChange={(e) => setNewLineQty(e.target.value)}
-                  className="border-white/10 bg-black/30 text-white"
+                  className="border-(--ws-line) bg-black/30 text-(--ws-fg)"
                   inputMode="numeric"
                 />
               </div>
               <div className="flex items-end gap-2 md:col-span-2 lg:col-span-4">
-                <label className="flex items-center gap-2 text-sm text-white/80">
+                <label className="flex items-center gap-2 text-sm text-(--ws-fg-80)">
                   <input
                     type="checkbox"
                     checked={newLineRequired}
                     onChange={(e) => setNewLineRequired(e.target.checked)}
-                    className="rounded border-white/20"
+                    className="rounded border-(--ws-line-strong)"
                   />
                   Required
                 </label>
                 <Button
                   type="submit"
-                  className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+                  className="bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add line
@@ -665,35 +667,35 @@ export default function AdminSupplyProgramsPage() {
             </form>
 
             {linesLoading ? (
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/50">
+              <div className="flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-50)">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading lines…
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-transparent">
-                    <TableHead className="text-white/70">Product</TableHead>
-                    <TableHead className="text-white/70">Subject</TableHead>
-                    <TableHead className="text-white/70">Qty</TableHead>
-                    <TableHead className="text-white/70">Req</TableHead>
-                    <TableHead className="text-white/70">Price</TableHead>
+                  <TableRow className="border-(--ws-line) hover:bg-transparent">
+                    <TableHead className="text-(--ws-fg-70)">Product</TableHead>
+                    <TableHead className="text-(--ws-fg-70)">Subject</TableHead>
+                    <TableHead className="text-(--ws-fg-70)">Qty</TableHead>
+                    <TableHead className="text-(--ws-fg-70)">Req</TableHead>
+                    <TableHead className="text-(--ws-fg-70)">Price</TableHead>
                     <TableHead className="w-[60px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {lines.length === 0 ? (
-                    <TableRow className="border-white/10">
-                      <TableCell colSpan={6} className="py-8 text-center text-white/50">
+                    <TableRow className="border-(--ws-line)">
+                      <TableCell colSpan={6} className="py-8 text-center text-(--ws-fg-50)">
                         No lines yet. Add a product requirement above.
                       </TableCell>
                     </TableRow>
                   ) : (
                     lines.map((ln) => (
-                      <TableRow key={ln.id} className="border-white/10">
-                        <TableCell className="text-white">
+                      <TableRow key={ln.id} className="border-(--ws-line)">
+                        <TableCell className="text-(--ws-fg)">
                           <div className="flex items-center gap-3">
-                            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-(--ws-line) bg-(--ws-fill)">
                               {ln.imageUrl ? (
                                 <Image
                                   src={ln.imageUrl}
@@ -704,30 +706,30 @@ export default function AdminSupplyProgramsPage() {
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center">
-                                  <BookOpen className="h-4 w-4 text-white/25" />
+                                  <BookOpen className="h-4 w-4 text-(--ws-fg)/25" />
                                 </div>
                               )}
                             </div>
                             <div>
                               <div className="font-medium">{ln.productName}</div>
                               {ln.notes ? (
-                                <div className="text-xs text-white/50">{ln.notes}</div>
+                                <div className="text-xs text-(--ws-fg-50)">{ln.notes}</div>
                               ) : null}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-white/70 text-sm">
+                        <TableCell className="text-(--ws-fg-70) text-sm">
                           {ln.subjectName || "—"}
                         </TableCell>
-                        <TableCell className="text-white/80">{ln.quantity}</TableCell>
-                        <TableCell className="text-white/80">
+                        <TableCell className="text-(--ws-fg-80)">{ln.quantity}</TableCell>
+                        <TableCell className="text-(--ws-fg-80)">
                           {ln.required ? (
                             <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
                               <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                               Yes
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/55">
+                            <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-50)">
                               Optional
                             </Badge>
                           )}
@@ -757,5 +759,6 @@ export default function AdminSupplyProgramsPage() {
       ) : null}
       {confirmationDialog}
     </div>
+    </WorkspaceScope>
   );
 }

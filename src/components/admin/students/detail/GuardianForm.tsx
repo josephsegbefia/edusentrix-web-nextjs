@@ -231,8 +231,8 @@ export function GuardianForm({
 
   if (!me?.schoolId) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-        <div className="text-sm text-white/60">School ID not available</div>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+        <div className="text-sm text-(--ws-fg-60)">School ID not available</div>
       </div>
     );
   }
@@ -250,7 +250,7 @@ export function GuardianForm({
     >
       {/* Step Indicator - Matching CreateStudentModal */}
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of {STEPS.length}
         </div>
         <div className="flex gap-1">
@@ -258,7 +258,7 @@ export function GuardianForm({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill)0"
               }`}
             />
           ))}
@@ -266,7 +266,7 @@ export function GuardianForm({
       </div>
 
       {submitError ? (
-        <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+        <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-(--ws-rose)">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{submitError}</span>
         </div>
@@ -300,10 +300,10 @@ export function GuardianForm({
                     id="firstName"
                     {...register("firstName")}
                     placeholder="John"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.firstName && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.firstName.message}
                     </div>
                   )}
@@ -319,10 +319,10 @@ export function GuardianForm({
                     id="lastName"
                     {...register("lastName")}
                     placeholder="Doe"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.lastName && (
-                    <div className="text-xs text-rose-300">
+                    <div className="text-xs text-(--ws-rose)">
                       {errors.lastName.message}
                     </div>
                   )}
@@ -342,10 +342,10 @@ export function GuardianForm({
                   type="email"
                   {...emailRegister}
                   placeholder="john.doe@example.com"
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
                 {errors.email && (
-                  <div className="text-xs text-rose-300">{errors.email.message}</div>
+                  <div className="text-xs text-(--ws-rose)">{errors.email.message}</div>
                 )}
               </div>
 
@@ -360,10 +360,10 @@ export function GuardianForm({
                 <GhanaPhoneInput
                   id="phone"
                   {...register("phone")}
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
                 {errors.phone && (
-                  <div className="text-xs text-rose-300">{errors.phone.message}</div>
+                  <div className="text-xs text-(--ws-rose)">{errors.phone.message}</div>
                 )}
               </div>
             </section>
@@ -384,7 +384,7 @@ export function GuardianForm({
                     transition={{ duration: 0.3 }}
                     className="relative"
                   >
-                    <div className="relative h-36 w-36 rounded-full border-4 border-white/10 bg-white/5 overflow-hidden shadow-lg">
+                    <div className="relative h-36 w-36 rounded-full border-4 border-(--ws-line) bg-(--ws-fill) overflow-hidden shadow-lg">
                       <AnimatePresence mode="wait">
                         {photoUrl ? (
                           <motion.div
@@ -423,7 +423,7 @@ export function GuardianForm({
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         onClick={handleRemovePhoto}
-                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-white/10 flex items-center justify-center text-white shadow-lg transition-colors cursor-pointer"
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-(--ws-line) flex items-center justify-center text-(--ws-fg) shadow-lg transition-colors cursor-pointer"
                       >
                         <X className="h-4 w-4" />
                       </motion.button>
@@ -448,7 +448,7 @@ export function GuardianForm({
                   </div>
                 </div>
                 {errors.photoUrl && (
-                  <div className="text-xs text-rose-300 text-center">
+                  <div className="text-xs text-(--ws-rose) text-center">
                     {errors.photoUrl.message}
                   </div>
                 )}
@@ -473,7 +473,7 @@ export function GuardianForm({
                           className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left cursor-pointer ${
                             field.value === option.value
                               ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                              : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                           }`}
                         >
                           {field.value === option.value && (
@@ -492,7 +492,7 @@ export function GuardianForm({
                   )}
                 />
                 {errors.relationship && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.relationship.message}
                   </div>
                 )}
@@ -515,7 +515,7 @@ export function GuardianForm({
                         className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left cursor-pointer ${
                           field.value === true
                             ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                            : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                         }`}
                       >
                         {field.value === true && (
@@ -531,7 +531,7 @@ export function GuardianForm({
                           <Star className="h-4 w-4" />
                           <span>Yes, Primary Contact</span>
                         </div>
-                        <div className="mt-1 text-xs text-white/60">
+                        <div className="mt-1 text-xs text-(--ws-fg-60)">
                           This guardian will be the primary contact
                         </div>
                       </motion.button>
@@ -543,7 +543,7 @@ export function GuardianForm({
                         className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left cursor-pointer ${
                           field.value === false
                             ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                            : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                         }`}
                       >
                         {field.value === false && (
@@ -559,7 +559,7 @@ export function GuardianForm({
                           <StarOff className="h-4 w-4" />
                           <span>No, Secondary Contact</span>
                         </div>
-                        <div className="mt-1 text-xs text-white/60">
+                        <div className="mt-1 text-xs text-(--ws-fg-60)">
                           This guardian is not the primary contact
                         </div>
                       </motion.button>
@@ -580,10 +580,10 @@ export function GuardianForm({
                   id="occupation"
                   {...register("occupation")}
                   placeholder="e.g., Teacher, Engineer, Doctor"
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
                 {errors.occupation && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.occupation.message}
                   </div>
                 )}
@@ -600,34 +600,34 @@ export function GuardianForm({
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                 Review Information
               </h2>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground/70">Name:</span>
-                    <p className="font-medium text-white/90">
+                    <p className="font-medium text-(--ws-fg-90)">
                       {firstName} {lastName}
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground/70">Email:</span>
-                    <p className="font-medium text-white/90">{watch("email")}</p>
+                    <p className="font-medium text-(--ws-fg-90)">{watch("email")}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground/70">Relationship:</span>
-                    <p className="font-medium text-white/90">
+                    <p className="font-medium text-(--ws-fg-90)">
                       {RELATIONSHIP_OPTIONS.find((r) => r.value === watch("relationship"))?.label}
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground/70">Primary Contact:</span>
-                    <p className="font-medium text-white/90">
+                    <p className="font-medium text-(--ws-fg-90)">
                       {watch("isPrimary") ? "Yes" : "No"}
                     </p>
                   </div>
                   {watch("occupation") && (
                     <div>
                       <span className="text-muted-foreground/70">Occupation:</span>
-                      <p className="font-medium text-white/90">{watch("occupation")}</p>
+                      <p className="font-medium text-(--ws-fg-90)">{watch("occupation")}</p>
                     </div>
                   )}
                 </div>
@@ -638,13 +638,13 @@ export function GuardianForm({
       </AnimatePresence>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+      <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
         <Button
           type="button"
           variant="outline"
           onClick={isFirstStep ? onCancel : handlePrevious}
           disabled={isSubmitting || isLoading}
-          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ChevronLeft className="h-4 w-4" />
           {isFirstStep ? "Cancel" : "Previous"}

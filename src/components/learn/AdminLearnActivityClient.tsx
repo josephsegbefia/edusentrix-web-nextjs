@@ -56,7 +56,7 @@ export function AdminLearnActivityClient() {
   }, []);
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Learn activity"
@@ -69,7 +69,7 @@ export function AdminLearnActivityClient() {
         {loading ? (
           <GlassPanel className="p-8 text-center" glow="cyan">
             <Loader2 className="mx-auto h-6 w-6 animate-spin text-teal-200" />
-            <p className="mt-3 text-sm text-white/55">Loading activity...</p>
+            <p className="mt-3 text-sm text-(--ws-fg-50)">Loading activity...</p>
           </GlassPanel>
         ) : data ? (
           <>
@@ -88,19 +88,19 @@ export function AdminLearnActivityClient() {
 
             <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
               <GlassPanel className="p-6" glow="both">
-                <h2 className="text-lg font-semibold text-white">Activity by type</h2>
+                <h2 className="text-lg font-semibold text-(--ws-fg)">Activity by type</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {data.events.length ? (
                     data.events.map((event) => (
                       <div key={event.eventType} className={cn(glassInsetClass, "p-4")}>
-                        <p className="text-2xl font-semibold text-white">
+                        <p className="text-2xl font-semibold text-(--ws-fg)">
                           {event.count.toLocaleString()}
                         </p>
-                        <p className="mt-1 text-sm text-white/50">{event.label}</p>
+                        <p className="mt-1 text-sm text-(--ws-fg-50)">{event.label}</p>
                       </div>
                     ))
                   ) : (
-                    <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/55">
+                    <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-50)">
                       No Learn activity has been recorded in the last {data.rangeDays} days.
                     </p>
                   )}
@@ -121,8 +121,8 @@ export function AdminLearnActivityClient() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <GlassPanel className="p-4" glow="cyan">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value.toLocaleString()}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--ws-fg-40)">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{value.toLocaleString()}</p>
     </GlassPanel>
   );
 }
@@ -136,17 +136,17 @@ function BreakdownPanel({
 }) {
   return (
     <GlassPanel className="p-6" glow="teal">
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <h2 className="text-lg font-semibold text-(--ws-fg)">{title}</h2>
       <div className="mt-4 space-y-3">
         {rows.length ? (
           rows.map((row) => (
             <div key={row.id} className={cn(glassInsetClass, "flex items-center justify-between gap-3 p-4")}>
-              <span className="font-medium text-white">{row.name}</span>
+              <span className="font-medium text-(--ws-fg)">{row.name}</span>
               <span className="text-sm font-semibold text-teal-100">{row.count.toLocaleString()}</span>
             </div>
           ))
         ) : (
-          <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/55">
+          <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-50)">
             No data in this breakdown yet.
           </p>
         )}

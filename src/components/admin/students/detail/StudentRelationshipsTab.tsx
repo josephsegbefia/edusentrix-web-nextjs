@@ -98,88 +98,88 @@ export function StudentRelationshipsTab({ student }: Props) {
     <div className="space-y-6">
       {/* Premium Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-cyan-500/15 via-teal-500/10 to-transparent blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                   Guardians
                 </div>
-                <div className="mt-1 text-2xl font-bold text-white">
+                <div className="mt-1 text-2xl font-bold text-(--ws-fg)">
                   {guardians.length}
                 </div>
-                <p className="text-[10px] text-white/50">
+                <p className="text-[10px] text-(--ws-fg-50)">
                   {guardians.filter((g) => g.isPrimary).length > 0
                     ? `${guardians.filter((g) => g.isPrimary).length} primary`
                     : "No primary guardian"}
                 </p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/30 bg-linear-to-br from-cyan-500/20 to-teal-500/20 shadow-inner shadow-white/5">
-                <Users className="h-5 w-5 text-cyan-300" />
+                <Users className="h-5 w-5 text-(--ws-cyan)" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-emerald-500/15 via-emerald-500/10 to-transparent blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                   Current Class
                 </div>
-                <div className="mt-1 text-lg font-bold text-white">
+                <div className="mt-1 text-lg font-bold text-(--ws-fg)">
                   {grade?.label ?? "--"}
                 </div>
-                <p className="text-[10px] text-white/50">
+                <p className="text-[10px] text-(--ws-fg-50)">
                   {classGroup?.label ?? "No class group"}
                 </p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/20 to-emerald-600/20 shadow-inner shadow-white/5">
-                <GraduationCap className="h-5 w-5 text-emerald-300" />
+                <GraduationCap className="h-5 w-5 text-(--ws-emerald)" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-violet-500/15 via-violet-500/10 to-transparent blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                   Documents
                 </div>
-                <div className="mt-1 text-2xl font-bold text-white">
+                <div className="mt-1 text-2xl font-bold text-(--ws-fg)">
                   {documents.length}
                 </div>
-                <p className="text-[10px] text-white/50">Files uploaded</p>
+                <p className="text-[10px] text-(--ws-fg-50)">Files uploaded</p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-linear-to-br from-violet-500/20 to-violet-600/20 shadow-inner shadow-white/5">
-                <FolderOpen className="h-5 w-5 text-violet-300" />
+                <FolderOpen className="h-5 w-5 text-(--ws-violet)" />
               </div>
             </div>
           </CardContent>
@@ -187,26 +187,26 @@ export function StudentRelationshipsTab({ student }: Props) {
       </div>
 
       {/* Parents & Guardians */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-teal-500/15 via-cyan-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
-              <Users className="h-5 w-5 text-teal-300" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
+              <Users className="h-5 w-5 text-(--ws-teal)" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Parents & Guardians
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {guardians.length} guardian{guardians.length !== 1 ? "s" : ""}{" "}
                 linked
               </p>
@@ -217,7 +217,7 @@ export function StudentRelationshipsTab({ student }: Props) {
             variant="outline"
             size="sm"
             onClick={() => setManageGuardiansOpen(true)}
-            className="gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20"
+            className="gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-(--ws-teal) hover:bg-teal-500/20"
           >
             <Users className="h-4 w-4" />
             Manage Guardians
@@ -226,16 +226,16 @@ export function StudentRelationshipsTab({ student }: Props) {
 
         <CardContent className="relative z-10 space-y-4">
           {guardians.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20">
-                  <Users className="h-7 w-7 text-teal-300" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-teal-500/20 to-cyan-500/20">
+                  <Users className="h-7 w-7 text-(--ws-teal)" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-white">
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     No guardians linked
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-50)">
                     Add parents or guardians to manage contact information and
                     relationships.
                   </p>
@@ -244,7 +244,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                   type="button"
                   variant="outline"
                   onClick={() => setManageGuardiansOpen(true)}
-                  className="mt-2 gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20"
+                  className="mt-2 gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-(--ws-teal) hover:bg-teal-500/20"
                 >
                   <Plus className="h-4 w-4" />
                   Add Guardian
@@ -257,7 +257,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                 <div
                   key={g.id}
                   className={cn(
-                    "group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-5 transition-all duration-200 hover:border-teal-500/30 hover:bg-white/5"
+                    "group relative overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5 transition-all duration-200 hover:border-teal-500/30 hover:bg-(--ws-fill)"
                   )}
                 >
                   {/* Accent bar */}
@@ -266,7 +266,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                       "absolute inset-y-0 left-0 w-1 bg-linear-to-b",
                       g.isPrimary
                         ? "from-teal-500 to-cyan-500"
-                        : "from-white/20 to-white/10"
+                        : "from-(--ws-fill-strong) to-(--ws-fill)"
                     )}
                     aria-hidden="true"
                   />
@@ -276,7 +276,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                     {/* Header: Avatar and Primary Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="relative">
-                        <Avatar className="h-14 w-14 border-2 border-white/20 shadow-lg ring-2 ring-slate-800/50">
+                        <Avatar className="h-14 w-14 border-2 border-(--ws-line-strong) shadow-lg ring-2 ring-slate-800/50">
                           {g.photoUrl ? (
                             <AvatarImage src={g.photoUrl} alt={g.fullName} />
                           ) : null}
@@ -286,13 +286,13 @@ export function StudentRelationshipsTab({ student }: Props) {
                         </Avatar>
                         {g.isPrimary && (
                           <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-900 bg-teal-500 shadow-lg">
-                            <Star className="h-3 w-3 fill-white text-white" />
+                            <Star className="h-3 w-3 fill-white text-(--ws-fg)" />
                           </div>
                         )}
                       </div>
 
                       {g.isPrimary && (
-                        <Badge className="border-teal-500/30 bg-teal-500/10 px-2 py-1 text-[10px] font-semibold text-teal-200 shadow-sm">
+                        <Badge className="border-teal-500/30 bg-teal-500/10 px-2 py-1 text-[10px] font-semibold text-(--ws-teal) shadow-sm">
                           Primary Contact
                         </Badge>
                       )}
@@ -301,7 +301,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                     {/* Name and Relationship */}
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-sm font-bold leading-tight text-white">
+                        <h3 className="text-sm font-bold leading-tight text-(--ws-fg)">
                           {g.fullName}
                         </h3>
                         {g.hasPlatformAccount === false && (
@@ -310,40 +310,40 @@ export function StudentRelationshipsTab({ student }: Props) {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="h-1 w-1 rounded-full bg-teal-500/60" />
-                        <span className="text-[11px] font-medium text-white/70">
+                        <span className="text-[11px] font-medium text-(--ws-fg-70)">
                           {getRelationshipLabel(g.relationship)}
                         </span>
                       </div>
                     </div>
 
                     {/* Contact Information */}
-                    <div className="space-y-2 border-t border-white/10 pt-3">
+                    <div className="space-y-2 border-t border-(--ws-line) pt-3">
                       {g.phone && (
                         <div className="flex items-center gap-2.5 text-[11px]">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                            <Phone className="h-3.5 w-3.5 text-white/60" />
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
+                            <Phone className="h-3.5 w-3.5 text-(--ws-fg-60)" />
                           </div>
-                          <span className="flex-1 truncate text-white/70">
+                          <span className="flex-1 truncate text-(--ws-fg-70)">
                             {g.phone}
                           </span>
                         </div>
                       )}
                       {g.email && (
                         <div className="flex items-center gap-2.5 text-[11px]">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                            <Mail className="h-3.5 w-3.5 text-white/60" />
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
+                            <Mail className="h-3.5 w-3.5 text-(--ws-fg-60)" />
                           </div>
-                          <span className="flex-1 truncate text-white/70">
+                          <span className="flex-1 truncate text-(--ws-fg-70)">
                             {g.email}
                           </span>
                         </div>
                       )}
                       {g.occupation && (
                         <div className="flex items-center gap-2.5 text-[11px]">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                            <Briefcase className="h-3.5 w-3.5 text-white/60" />
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
+                            <Briefcase className="h-3.5 w-3.5 text-(--ws-fg-60)" />
                           </div>
-                          <span className="flex-1 truncate text-white/70">
+                          <span className="flex-1 truncate text-(--ws-fg-70)">
                             {g.occupation}
                           </span>
                         </div>
@@ -358,40 +358,40 @@ export function StudentRelationshipsTab({ student }: Props) {
       </Card>
 
       {/* Class & Enrollment */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
           aria-hidden="true"
         />
 
         <CardHeader className="relative z-10 pb-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/20 to-emerald-600/20">
-              <School className="h-4 w-4 text-emerald-300" />
+              <School className="h-4 w-4 text-(--ws-emerald)" />
             </div>
-            <CardTitle className="text-base font-semibold text-white">
+            <CardTitle className="text-base font-semibold text-(--ws-fg)">
               Class & Enrollment
             </CardTitle>
           </div>
         </CardHeader>
 
         <CardContent className="relative z-10 space-y-4">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
             Current Placement
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {grade ? (
-              <Badge className="border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-200">
+              <Badge className="border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-(--ws-emerald)">
                 {grade.label}
               </Badge>
             ) : (
               <Badge
                 variant="outline"
-                className="border-white/20 bg-white/5 text-[11px] text-white/60"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-[11px] text-(--ws-fg-60)"
               >
                 No grade assigned
               </Badge>
@@ -399,14 +399,14 @@ export function StudentRelationshipsTab({ student }: Props) {
             {classGroup ? (
               <Badge
                 variant="outline"
-                className="border-white/20 bg-white/5 px-3 py-1 text-[11px] font-medium text-emerald-200"
+                className="border-(--ws-line-strong) bg-(--ws-fill) px-3 py-1 text-[11px] font-medium text-(--ws-emerald)"
               >
                 {classGroup.label}
               </Badge>
             ) : (
               <Badge
                 variant="outline"
-                className="border-white/20 bg-white/5 text-[11px] text-white/60"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-[11px] text-(--ws-fg-60)"
               >
                 No class group
               </Badge>
@@ -414,41 +414,41 @@ export function StudentRelationshipsTab({ student }: Props) {
           </div>
           {/* Promotion History */}
           {promotionHistory.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-white/10">
-              <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+            <div className="space-y-2 pt-2 border-t border-(--ws-line)">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-50)">
                 Promotion History
               </div>
               <div className="space-y-1.5">
                 {promotionHistory.slice(0, 5).map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/2 px-3 py-2"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                   >
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-3.5 w-3.5 text-indigo-400" />
-                      <span className="text-xs font-medium text-white/90">
+                      <span className="text-xs font-medium text-(--ws-fg-90)">
                         {item.cycleYearLabel}
                       </span>
                       <Badge
                         variant="outline"
                         className={cn(
                           "text-[10px] capitalize",
-                          item.finalOutcome === "promote" && "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
-                          item.finalOutcome === "repeat" && "border-amber-500/40 bg-amber-500/10 text-amber-200",
-                          item.finalOutcome === "graduate" && "border-violet-500/40 bg-violet-500/10 text-violet-200",
+                          item.finalOutcome === "promote" && "border-emerald-500/40 bg-emerald-500/10 text-(--ws-emerald)",
+                          item.finalOutcome === "repeat" && "border-amber-500/40 bg-amber-500/10 text-(--ws-amber)",
+                          item.finalOutcome === "graduate" && "border-violet-500/40 bg-violet-500/10 text-(--ws-violet)",
                           (item.finalOutcome === "hold" || !["promote", "repeat", "graduate"].includes(item.finalOutcome)) && "border-slate-500/40 bg-slate-500/10 text-slate-200"
                         )}
                       >
                         {item.finalOutcome}
                       </Badge>
                     </div>
-                    <span className="text-[10px] text-white/40">
+                    <span className="text-[10px] text-(--ws-fg-40)">
                       {item.isApplied ? "Applied" : "Pending"}
                     </span>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-white/40">
+              <p className="text-[10px] text-(--ws-fg-40)">
                 {promotionHistory.length} promotion record{promotionHistory.length !== 1 ? "s" : ""} on file
               </p>
             </div>
@@ -457,26 +457,26 @@ export function StudentRelationshipsTab({ student }: Props) {
       </Card>
 
       {/* Documents */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-violet-500/15 via-violet-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
           aria-hidden="true"
         />
 
         <CardHeader className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-linear-to-br from-violet-500/20 to-violet-600/20 shadow-inner shadow-white/5">
-              <FileText className="h-5 w-5 text-violet-300" />
+              <FileText className="h-5 w-5 text-(--ws-violet)" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Documents
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {documents.length} file{documents.length !== 1 ? "s" : ""}{" "}
                 uploaded
               </p>
@@ -487,7 +487,7 @@ export function StudentRelationshipsTab({ student }: Props) {
               type="button"
               variant="outline"
               size="sm"
-              className="gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
+              className="gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-(--ws-amber) hover:bg-amber-500/20"
               onClick={() => setRequestParentOpen(true)}
             >
               <Paperclip className="h-4 w-4" />
@@ -497,7 +497,7 @@ export function StudentRelationshipsTab({ student }: Props) {
               type="button"
               variant="outline"
               size="sm"
-              className="gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+              className="gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-(--ws-violet) hover:bg-violet-500/20"
               onClick={() => setUploadDocumentOpen(true)}
             >
               <FileText className="h-4 w-4" />
@@ -509,20 +509,20 @@ export function StudentRelationshipsTab({ student }: Props) {
         <CardContent className="relative z-10 space-y-3">
           {(student.parentDocumentRequests ?? []).length > 0 ? (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-amber-200/90">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-(--ws-amber)/90">
                 Parent document requests
               </p>
               <ul className="mt-2 space-y-1.5">
                 {(student.parentDocumentRequests ?? []).map((req) => (
                   <li
                     key={req.id}
-                    className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/85"
+                    className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-80)"
                   >
-                    <span className="font-medium text-white">{req.label}</span>
+                    <span className="font-medium text-(--ws-fg)">{req.label}</span>
                     {req.fulfilledAt ? (
-                      <span className="ml-2 text-emerald-300">· Received</span>
+                      <span className="ml-2 text-(--ws-emerald)">· Received</span>
                     ) : (
-                      <span className="ml-2 text-amber-200">
+                      <span className="ml-2 text-(--ws-amber)">
                         · Awaiting parent upload
                       </span>
                     )}
@@ -533,23 +533,23 @@ export function StudentRelationshipsTab({ student }: Props) {
           ) : null}
 
           {documents.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-violet-500/20 to-violet-600/20">
-                  <FolderOpen className="h-7 w-7 text-violet-300" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-violet-500/20 to-violet-600/20">
+                  <FolderOpen className="h-7 w-7 text-(--ws-violet)" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-white">
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     No documents uploaded
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-50)">
                     Upload report cards, medical forms and other files here.
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
-                  className="mt-2 gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                  className="mt-2 gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-(--ws-violet) hover:bg-violet-500/20"
                   onClick={() => setUploadDocumentOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
@@ -562,7 +562,7 @@ export function StudentRelationshipsTab({ student }: Props) {
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-4 transition-all duration-200 hover:border-violet-500/30 hover:bg-white/5"
+                  className="group relative overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all duration-200 hover:border-violet-500/30 hover:bg-(--ws-fill)"
                 >
                   {/* Accent bar */}
                   <div
@@ -573,23 +573,23 @@ export function StudentRelationshipsTab({ student }: Props) {
                   <div className="flex items-center justify-between gap-3 pl-3">
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/10">
-                        <FileText className="h-4 w-4 text-violet-300" />
+                        <FileText className="h-4 w-4 text-(--ws-violet)" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-white">
+                        <div className="truncate text-sm font-semibold text-(--ws-fg)">
                           {doc.name}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-white/50">
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-(--ws-fg-50)">
                           <Badge
                             variant="outline"
-                            className="border-white/20 bg-white/5 text-[9px]"
+                            className="border-(--ws-line-strong) bg-(--ws-fill) text-[9px]"
                           >
                             {doc.type}
                           </Badge>
                           {doc.source === "admissions" ? (
                             <Badge
                               variant="outline"
-                              className="border-emerald-500/30 bg-emerald-500/10 text-[9px] text-emerald-200"
+                              className="border-emerald-500/30 bg-emerald-500/10 text-[9px] text-(--ws-emerald)"
                             >
                               Admissions
                             </Badge>
@@ -605,7 +605,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                           {doc.recordOrigin === "parent_request" ? (
                             <Badge
                               variant="outline"
-                              className="border-amber-500/30 bg-amber-500/10 text-[9px] text-amber-200"
+                              className="border-amber-500/30 bg-amber-500/10 text-[9px] text-(--ws-amber)"
                             >
                               From parent
                             </Badge>
@@ -622,7 +622,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="shrink-0 gap-1.5 rounded-xl border-violet-500/30 bg-violet-500/10 text-xs text-violet-200 hover:bg-violet-500/20"
+                        className="shrink-0 gap-1.5 rounded-xl border-violet-500/30 bg-violet-500/10 text-xs text-(--ws-violet) hover:bg-violet-500/20"
                         asChild
                       >
                         <a
@@ -661,10 +661,10 @@ export function StudentRelationshipsTab({ student }: Props) {
       />
 
       <Dialog open={requestParentOpen} onOpenChange={setRequestParentOpen}>
-        <DialogContent className="border-white/10 bg-[#0e1420] text-white sm:max-w-md">
+        <DialogContent className="border-(--ws-line) bg-[#0e1420] text-(--ws-fg) sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Request a document from a parent</DialogTitle>
-            <DialogDescription className="text-white/55">
+            <DialogDescription className="text-(--ws-fg-50)">
               Sends the primary guardian (or first guardian with an email) a
               secure upload link. The file is attached to this student when
               submitted—same flow as admissions document requests.
@@ -672,25 +672,25 @@ export function StudentRelationshipsTab({ student }: Props) {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-white/70">Document name</Label>
+              <Label className="text-(--ws-fg-70)">Document name</Label>
               <Input
                 value={parentDocLabel}
                 onChange={(e) => setParentDocLabel(e.target.value)}
                 placeholder="e.g. Updated immunization record"
-                className="mt-1 border-white/10 bg-black/20 text-white"
+                className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div>
-              <Label className="text-white/70">Message (optional)</Label>
+              <Label className="text-(--ws-fg-70)">Message (optional)</Label>
               <Textarea
                 value={parentDocMessage}
                 onChange={(e) => setParentDocMessage(e.target.value)}
                 rows={3}
                 placeholder="Instructions for the family"
-                className="mt-1 border-white/10 bg-black/20 text-white"
+                className="mt-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-(--ws-fg-80)">
               <Checkbox
                 checked={sendParentRequestEmail}
                 onCheckedChange={(v) =>
@@ -704,7 +704,7 @@ export function StudentRelationshipsTab({ student }: Props) {
             <Button
               type="button"
               variant="outline"
-              className="border-white/15 bg-transparent text-white hover:bg-white/10"
+              className="border-(--ws-line-strong) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={() => setRequestParentOpen(false)}
             >
               Cancel
@@ -714,7 +714,7 @@ export function StudentRelationshipsTab({ student }: Props) {
               disabled={
                 !parentDocLabel.trim() || requestingParentDoc
               }
-              className="bg-amber-600 text-white hover:bg-amber-500"
+              className="bg-amber-600 text-(--ws-fg) hover:bg-amber-500"
               onClick={async () => {
                 setRequestingParentDoc(true);
                 try {

@@ -145,8 +145,8 @@ export function CreateCycleModal({
       className="sm:max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/3 p-3 text-xs text-white/65">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/30">
+        <div className="flex items-center gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3 text-xs text-(--ws-fg-60)">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
             <LeoIcon className="h-5 w-5" />
           </div>
           <p>
@@ -157,7 +157,7 @@ export function CreateCycleModal({
 
         {templates.length > 0 ? (
           <fieldset className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <Sparkles className="h-3 w-3" />
               Start from a template
             </Label>
@@ -173,18 +173,18 @@ export function CreateCycleModal({
                       "flex flex-col items-start gap-1 rounded-2xl border p-3 text-left transition",
                       selected
                         ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-50 ring-1 ring-cyan-400/30"
-                        : "border-white/10 bg-white/3 text-white/85 hover:bg-white/5"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/85 hover:bg-(--ws-fill)"
                     )}
                   >
                     <div className="flex w-full items-center justify-between gap-2">
                       <span className="text-sm font-semibold">{tpl.label}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[10px] text-white/60">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] text-(--ws-fg-60)">
                         <FileText className="h-3 w-3" />
                         {tpl.previewCounts.fields} fields ·{" "}
                         {tpl.previewCounts.documents} docs
                       </span>
                     </div>
-                    <p className="text-xs leading-snug text-white/60">
+                    <p className="text-xs leading-snug text-(--ws-fg-60)">
                       {tpl.description}
                     </p>
                   </button>
@@ -219,9 +219,9 @@ export function CreateCycleModal({
               required
               className={admissionsAdminFieldClass}
             />
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-(--ws-fg-40)">
               Forms a link like{" "}
-              <code className="rounded bg-black/30 px-1 py-0.5 text-[11px] text-white/65">
+              <code className="rounded bg-(--ws-fill) px-1 py-0.5 text-[11px] text-(--ws-fg-60)">
                 /apply/&lt;school&gt;/{slug || "your-slug"}
               </code>
             </p>
@@ -235,11 +235,12 @@ export function CreateCycleModal({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <CalendarRange className="h-3 w-3" />
               Accepts from
             </Label>
             <CustomDatePicker
+              surface="theme"
               value={acceptsFrom}
               onChange={setAcceptsFrom}
               placeholder="Pick a start date"
@@ -247,11 +248,12 @@ export function CreateCycleModal({
             />
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <CalendarRange className="h-3 w-3" />
               Closes (optional)
             </Label>
             <CustomDatePicker
+              surface="theme"
               value={acceptsUntil}
               onChange={setAcceptsUntil}
               placeholder="No close date"
@@ -260,11 +262,12 @@ export function CreateCycleModal({
             />
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <CalendarRange className="h-3 w-3" />
               Decision deadline
             </Label>
             <CustomDatePicker
+              surface="theme"
               value={decisionDueBy}
               onChange={setDecisionDueBy}
               placeholder="No deadline"
@@ -291,7 +294,7 @@ export function CreateCycleModal({
                   Not yet decided
                 </PremiumSelectItem>
                 {periods.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-white/55">
+                  <div className="px-3 py-2 text-sm text-(--ws-fg-50)">
                     No periods configured yet.
                   </div>
                 ) : (
@@ -303,25 +306,25 @@ export function CreateCycleModal({
                 )}
               </PremiumSelectContent>
             </PremiumSelect>
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-(--ws-fg-40)">
               Tell Leo which year accepted students will join.
             </p>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               Capacity controls
             </Label>
-            <label className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/3 p-3">
+            <label className="flex items-start gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
               <Checkbox
                 checked={waitlistEnabled}
                 onCheckedChange={(value) => setWaitlistEnabled(Boolean(value))}
                 className="mt-0.5"
               />
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-(--ws-fg)">
                   Enable waitlist
                 </p>
-                <p className="text-xs text-white/55">
+                <p className="text-xs text-(--ws-fg-50)">
                   Lets you invite waitlisted families when seats open up.
                 </p>
               </div>
@@ -331,16 +334,16 @@ export function CreateCycleModal({
 
         <div className="space-y-2">
           <Label className="flex items-center gap-1.5">
-            <GraduationCap className="h-3.5 w-3.5 text-white/55" />
+            <GraduationCap className="h-3.5 w-3.5 text-(--ws-fg-50)" />
             Intake grades (optional)
           </Label>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-(--ws-fg-40)">
             Pick the grades families can apply to. Leave empty to allow all
             active grades.
           </p>
           <div className="flex flex-wrap gap-2">
             {grades.length === 0 ? (
-              <span className="text-sm text-white/55">
+              <span className="text-sm text-(--ws-fg-50)">
                 No active grades configured yet.
               </span>
             ) : (
@@ -355,7 +358,7 @@ export function CreateCycleModal({
                       "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                       isOn
                         ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
-                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                     )}
                   >
                     {grade.name}
@@ -372,7 +375,7 @@ export function CreateCycleModal({
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-(--ws-line) pt-4">
           <Button
             type="button"
             variant="outline"

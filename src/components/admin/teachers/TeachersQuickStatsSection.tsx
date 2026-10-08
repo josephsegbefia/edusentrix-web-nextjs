@@ -47,24 +47,24 @@ const toneConfig: Record<
     border: "border-emerald-500/30",
     bg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
     iconBg: "from-emerald-500/20 to-emerald-600/20",
-    iconColor: "text-emerald-300",
-    valueColor: "text-emerald-100",
+    iconColor: "text-(--ws-emerald)",
+    valueColor: "text-(--ws-emerald)",
     glow: "bg-emerald-500/20",
   },
   rose: {
     border: "border-rose-500/30",
     bg: "from-rose-500/10 via-rose-500/5 to-transparent",
     iconBg: "from-rose-500/20 to-rose-600/20",
-    iconColor: "text-rose-300",
-    valueColor: "text-rose-100",
+    iconColor: "text-(--ws-rose)",
+    valueColor: "text-(--ws-rose)",
     glow: "bg-rose-500/20",
   },
   amber: {
     border: "border-amber-500/30",
     bg: "from-amber-500/10 via-amber-500/5 to-transparent",
     iconBg: "from-amber-500/20 to-amber-600/20",
-    iconColor: "text-amber-300",
-    valueColor: "text-amber-100",
+    iconColor: "text-(--ws-amber)",
+    valueColor: "text-(--ws-amber)",
     glow: "bg-amber-500/20",
   },
 };
@@ -120,13 +120,13 @@ function StatCard({
 
       {/* Top shine */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine-strong) to-transparent"
         aria-hidden="true"
       />
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
+          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-50)">
             {label}
           </p>
           <div className="flex items-baseline gap-2">
@@ -137,7 +137,7 @@ function StatCard({
               )}
             >
               {loading ? (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-white/10" />
+                <span className="inline-block h-8 w-12 animate-pulse rounded bg-(--ws-fill-strong)" />
               ) : (
                 displayValue.toLocaleString()
               )}
@@ -147,8 +147,8 @@ function StatCard({
                 className={cn(
                   "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                   trend.value >= 0
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : "bg-rose-500/20 text-rose-300"
+                    ? "bg-emerald-500/20 text-(--ws-emerald)"
+                    : "bg-rose-500/20 text-(--ws-rose)"
                 )}
               >
                 {trend.value >= 0 ? (
@@ -161,13 +161,13 @@ function StatCard({
             )}
           </div>
           {subtitle && (
-            <p className="text-[11px] text-white/40">{subtitle}</p>
+            <p className="text-[11px] text-(--ws-fg-40)">{subtitle}</p>
           )}
         </div>
 
         <div
           className={cn(
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br shadow-inner shadow-white/5 transition-transform duration-300 group-hover:scale-110",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-gradient-to-br shadow-inner shadow-white/5 transition-transform duration-300 group-hover:scale-110",
             config.iconBg
           )}
         >

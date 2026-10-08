@@ -73,7 +73,7 @@ export default function RejectPollModal({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0f0f14] p-6 shadow-2xl"
+          className="relative w-full max-w-md rounded-2xl border border-(--ws-line) bg-[#0f0f14] p-6 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -83,36 +83,36 @@ export default function RejectPollModal({
                 <XCircle className="h-6 w-6 text-rose-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Reject Poll</h2>
-                <p className="text-sm text-white/50">Provide feedback</p>
+                <h2 className="text-lg font-bold text-(--ws-fg)">Reject Poll</h2>
+                <p className="text-sm text-(--ws-fg-50)">Provide feedback</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-60) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
 
           {/* Poll Info */}
-          <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-white/70">Rejecting poll:</p>
-            <p className="mt-1 font-medium text-white">&ldquo;{pollTitle}&rdquo;</p>
+          <div className="mb-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="text-sm text-(--ws-fg-70)">Rejecting poll:</p>
+            <p className="mt-1 font-medium text-(--ws-fg)">&ldquo;{pollTitle}&rdquo;</p>
           </div>
 
           {/* Reason Input */}
           <div className="mb-6">
-            <Label className="text-white">Reason for Rejection *</Label>
+            <Label className="text-(--ws-fg)">Reason for Rejection *</Label>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Explain why this poll is being rejected..."
-              className="mt-2 min-h-[100px] border-white/10 bg-white/5 text-white"
+              className="mt-2 min-h-[100px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             />
-            <p className="mt-2 text-xs text-white/40">
+            <p className="mt-2 text-xs text-(--ws-fg-40)">
               This feedback will be shared with the poll creator.
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function RejectPollModal({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-white/10 text-white/60"
+              className="border-(--ws-line) text-(--ws-fg-60)"
             >
               Cancel
             </Button>

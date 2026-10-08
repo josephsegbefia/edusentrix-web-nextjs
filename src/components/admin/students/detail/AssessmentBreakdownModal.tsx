@@ -73,13 +73,13 @@ export function AssessmentBreakdownModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-white/10 bg-slate-950/95 backdrop-blur">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-(--ws-line) bg-(--ws-popover) backdrop-blur">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-white/90">
+          <DialogTitle className="text-lg font-semibold text-(--ws-fg-90)">
             {isLoading ? "Loading breakdown…" : `${title} breakdown`}
           </DialogTitle>
           {subtitle ? (
-            <p className="text-sm text-white/50">{subtitle}</p>
+            <p className="text-sm text-(--ws-fg-50)">{subtitle}</p>
           ) : null}
         </DialogHeader>
 

@@ -29,8 +29,8 @@ const REVIEWABLE_STATUSES = ["preview_ready", "review_in_progress"];
 const DECISION_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 
 const OUTCOME_COLORS: Record<string, string> = {
-  promote: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-  repeat: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  promote: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
+  repeat: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
   graduate: "bg-purple-500/20 text-purple-300 border-purple-500/30",
   hold: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
@@ -93,15 +93,15 @@ export function ReviewTab() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white">Review & overrides</h2>
-          <p className="mt-1 text-sm text-white/50">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Review & overrides</h2>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             Check and adjust promotion decisions before finalizing.
           </p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 py-12 text-center">
-          <Users className="mx-auto h-12 w-12 text-white/20" />
-          <p className="mt-4 text-white/60">No cycles ready for review</p>
-          <p className="mt-1 text-sm text-white/40">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) py-12 text-center">
+          <Users className="mx-auto h-12 w-12 text-(--ws-fg-40)" />
+          <p className="mt-4 text-(--ws-fg-60)">No cycles ready for review</p>
+          <p className="mt-1 text-sm text-(--ws-fg-40)">
             Run a preview first, then return here to review and override decisions
           </p>
         </div>
@@ -112,19 +112,19 @@ export function ReviewTab() {
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-white">Review & overrides</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Review & overrides</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">
           Check and adjust promotion decisions before finalizing.
         </p>
       </div>
       <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
-            <LeoIcon className="h-4 w-4 text-cyan-100" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong)">
+            <LeoIcon className="h-4 w-4 text-(--ws-cyan)" />
           </div>
           <div>
-            <p className="font-medium text-white">Leo review lens</p>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="font-medium text-(--ws-fg)">Leo review lens</p>
+            <p className="mt-1 text-sm text-(--ws-fg-60)">
               Focus first on holds, repeats, missing evidence, and placement conflicts. Promote
               decisions with clean evidence can usually move forward after spot checks.
             </p>
@@ -133,7 +133,7 @@ export function ReviewTab() {
       </div>
       <div className="flex flex-wrap items-end gap-4">
         <div className="space-y-1">
-          <label className="text-xs text-white/50">Cycle</label>
+          <label className="text-xs text-(--ws-fg-50)">Cycle</label>
           <PremiumSelect
             value={cycleId ?? ""}
             onValueChange={(v) => {
@@ -154,7 +154,7 @@ export function ReviewTab() {
           </PremiumSelect>
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-white/50">Outcome</label>
+          <label className="text-xs text-(--ws-fg-50)">Outcome</label>
           <PremiumSelect
             value={outcomeFilter || "all"}
             onValueChange={(v) => {
@@ -175,9 +175,9 @@ export function ReviewTab() {
           </PremiumSelect>
         </div>
         <div className="min-w-[280px] flex-1 space-y-1">
-          <label className="text-xs text-white/50">Search student</label>
+          <label className="text-xs text-(--ws-fg-50)">Search student</label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
             <Input
               placeholder="Search student..."
               value={search}
@@ -185,7 +185,7 @@ export function ReviewTab() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="h-9 w-full min-w-[280px] border-white/10 bg-white/5 pl-9 text-white md:min-w-[360px]"
+              className="h-9 w-full min-w-[280px] border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) md:min-w-[360px]"
             />
           </div>
         </div>
@@ -193,11 +193,11 @@ export function ReviewTab() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-white/40" />
+          <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
         </div>
       ) : decisions.length === 0 ? (
-        <div className="rounded-xl border border-white/10 bg-white/5 py-8 text-center">
-          <p className="text-white/60">No decisions match your filters</p>
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) py-8 text-center">
+          <p className="text-(--ws-fg-60)">No decisions match your filters</p>
           <Button
             variant="ghost"
             size="sm"
@@ -213,16 +213,16 @@ export function ReviewTab() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="overflow-x-auto rounded-xl border border-(--ws-line)">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5">
-                  <th className="px-4 py-3 text-left text-white/70">Student</th>
-                  <th className="px-4 py-3 text-left text-white/70">From</th>
-                  <th className="px-4 py-3 text-left text-white/70">Outcome</th>
-                  <th className="px-4 py-3 text-left text-white/70">Evidence</th>
-                  <th className="px-4 py-3 text-left text-white/70">Target</th>
-                  <th className="px-4 py-3 text-left text-white/70">Source</th>
+                <tr className="border-b border-(--ws-line) bg-(--ws-fill)">
+                  <th className="px-4 py-3 text-left text-(--ws-fg-70)">Student</th>
+                  <th className="px-4 py-3 text-left text-(--ws-fg-70)">From</th>
+                  <th className="px-4 py-3 text-left text-(--ws-fg-70)">Outcome</th>
+                  <th className="px-4 py-3 text-left text-(--ws-fg-70)">Evidence</th>
+                  <th className="px-4 py-3 text-left text-(--ws-fg-70)">Target</th>
+                  <th className="px-4 py-3 text-left text-(--ws-fg-70)">Source</th>
                   <th className="px-4 py-3 w-20" />
                 </tr>
               </thead>
@@ -230,15 +230,15 @@ export function ReviewTab() {
                 {decisions.map((d) => (
                   <tr
                     key={d.id}
-                    className="border-b border-white/5 hover:bg-white/5"
+                    className="border-b border-(--ws-line) hover:bg-(--ws-fill)"
                   >
                     <td className="px-4 py-3">
-                      <span className="font-medium text-white">{d.studentName}</span>
+                      <span className="font-medium text-(--ws-fg)">{d.studentName}</span>
                       {d.admissionNo && (
-                        <span className="ml-1 text-xs text-white/50">({d.admissionNo})</span>
+                        <span className="ml-1 text-xs text-(--ws-fg-50)">({d.admissionNo})</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-white/80">
+                    <td className="px-4 py-3 text-(--ws-fg-80)">
                       {d.fromGradeName} {d.fromClassGroupName}
                     </td>
                     <td className="px-4 py-3">
@@ -246,29 +246,29 @@ export function ReviewTab() {
                         variant="outline"
                         className={cn(
                           "text-xs",
-                          OUTCOME_COLORS[d.finalOutcome] ?? "bg-white/10"
+                          OUTCOME_COLORS[d.finalOutcome] ?? "bg-(--ws-fill-strong)"
                         )}
                       >
                         {d.finalOutcome}
                       </Badge>
                       {d.conflicts.length > 0 ? (
-                        <div className="mt-1 flex items-center gap-1 text-xs text-amber-200">
+                        <div className="mt-1 flex items-center gap-1 text-xs text-(--ws-amber)">
                           <AlertTriangle className="h-3 w-3" />
                           {d.conflicts.length} issue{d.conflicts.length === 1 ? "" : "s"}
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 text-xs text-white/55">
+                    <td className="px-4 py-3 text-xs text-(--ws-fg-50)">
                       <div>Avg: {formatMetric(d.evidence.overallAverage, "%")}</div>
                       <div>Attendance: {formatMetric(d.evidence.attendancePercent, "%")}</div>
                       <div>Fees: {formatMetric(d.evidence.feeOutstandingMinor)}</div>
                     </td>
-                    <td className="px-4 py-3 text-white/70">
+                    <td className="px-4 py-3 text-(--ws-fg-70)">
                       {d.targetGradeName && d.targetClassGroupName
                         ? `${d.targetGradeName} ${d.targetClassGroupName}`
                         : "—"}
                     </td>
-                    <td className="px-4 py-3 text-white/50 text-xs">
+                    <td className="px-4 py-3 text-(--ws-fg-50) text-xs">
                       {d.source}
                     </td>
                     <td className="px-4 py-3">

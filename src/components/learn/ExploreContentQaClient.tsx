@@ -113,7 +113,7 @@ function statusBadgeClass(status: string) {
   if (status === "teacher_review_required" || status === "reported") {
     return "bg-amber-400/20 text-amber-100";
   }
-  return "bg-white/10 text-white/70";
+  return "bg-(--ws-fill-strong) text-(--ws-fg-70)";
 }
 
 export function ExploreContentQaClient({
@@ -252,7 +252,7 @@ export function ExploreContentQaClient({
   const isLazy = dataSource === "lazy" || Boolean(items[0]?.safetyStatus);
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Explore with Leo — content review"
@@ -265,13 +265,13 @@ export function ExploreContentQaClient({
         {loading ? (
           <GlassPanel className="p-8 text-center" glow="cyan">
             <Loader2 className="mx-auto h-6 w-6 animate-spin text-teal-200" />
-            <p className="mt-3 text-sm text-white/55">Loading Explore missions...</p>
+            <p className="mt-3 text-sm text-(--ws-fg-50)">Loading Explore missions...</p>
           </GlassPanel>
         ) : (
           <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
             <GlassPanel className="p-4" glow="teal">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-white">Class missions</h2>
+                <h2 className="text-lg font-semibold text-(--ws-fg)">Class missions</h2>
                 <span className={cn("rounded-full px-2.5 py-1 text-xs", statusBadgeClass(isLazy ? "ready" : "legacy"))}>
                   {isLazy ? "Lazy AI" : "Legacy"}
                 </span>
@@ -292,13 +292,13 @@ export function ExploreContentQaClient({
                         onClick={() => setSelectedId(item.adventureId)}
                         className="w-full text-left"
                       >
-                      <p className="text-sm font-semibold text-white">{item.title}</p>
-                      <p className="mt-1 text-xs text-white/55">
+                      <p className="text-sm font-semibold text-(--ws-fg)">{item.title}</p>
+                      <p className="mt-1 text-xs text-(--ws-fg-50)">
                         {item.subjectName}
                         {item.classGroupName ? ` · ${item.classGroupName}` : ""}
                         {item.studentName ? ` · ${item.studentName}` : ""}
                       </p>
-                      <p className="mt-1 text-xs text-white/45">
+                      <p className="mt-1 text-xs text-(--ws-fg-40)">
                         Lesson: {item.sourceLessonTitle ?? item.sessionTitle ?? "—"}
                       </p>
                       {isLazy ? (
@@ -309,7 +309,7 @@ export function ExploreContentQaClient({
                           <span className={cn("rounded-full px-2 py-0.5 text-[10px]", statusBadgeClass(item.reviewStatus ?? ""))}>
                             Review: {item.reviewStatus ?? "—"}
                           </span>
-                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/65">
+                          <span className="rounded-full bg-(--ws-fill-strong) px-2 py-0.5 text-[10px] text-(--ws-fg-60)">
                             {item.studentsViewedCount ?? 0} viewed · {item.studentsCompletedCount ?? 0} done
                           </span>
                           {(item.reportsCount ?? 0) > 0 ? (
@@ -319,12 +319,12 @@ export function ExploreContentQaClient({
                           ) : null}
                         </div>
                       ) : (
-                        <p className="mt-1 text-xs text-white/45">
+                        <p className="mt-1 text-xs text-(--ws-fg-40)">
                           {item.generatedBy} · quiz{" "}
                           {item.quizSubmitted ? `${item.quizScorePercent ?? 0}%` : "not submitted"}
                         </p>
                       )}
-                      <p className="mt-1 text-[10px] text-white/35">
+                      <p className="mt-1 text-[10px] text-(--ws-fg-40)">
                         Generated {formatDate(item.generatedAt ?? item.updatedAt)}
                       </p>
                       </button>
@@ -342,7 +342,7 @@ export function ExploreContentQaClient({
                     </div>
                   ))
                 ) : (
-                  <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/55">
+                  <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-50)">
                     No Explore missions saved yet. Generate adventures from the mobile app or class lessons.
                   </p>
                 )}
@@ -358,16 +358,16 @@ export function ExploreContentQaClient({
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-lg font-semibold text-white">{detail.title}</h2>
-                      <p className="mt-1 text-sm text-white/60">
+                      <h2 className="text-lg font-semibold text-(--ws-fg)">{detail.title}</h2>
+                      <p className="mt-1 text-sm text-(--ws-fg-60)">
                         {detail.subjectName}
                         {detail.classGroupName ? ` · ${detail.classGroupName}` : ""}
                         {detail.studentName ? ` · ${detail.studentName}` : ""}
                       </p>
-                      <p className="mt-1 text-xs text-white/45">
+                      <p className="mt-1 text-xs text-(--ws-fg-40)">
                         Source lesson: {detail.sourceLessonTitle ?? detail.sessionTitle}
                       </p>
-                      <p className="mt-1 text-xs text-white/45">
+                      <p className="mt-1 text-xs text-(--ws-fg-40)">
                         Generated {formatDate(detail.generatedAt ?? detail.updatedAt)}
                       </p>
                     </div>
@@ -389,7 +389,7 @@ export function ExploreContentQaClient({
                           type="button"
                           disabled={!!actionLoading}
                           onClick={() => void runReviewAction("mark_reviewed")}
-                          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10 disabled:opacity-50"
+                          className="rounded-xl border border-(--ws-line-strong) bg-(--ws-fill) px-3 py-2 text-xs font-medium text-(--ws-fg) hover:bg-(--ws-fill-strong) disabled:opacity-50"
                         >
                           {actionLoading === "mark_reviewed" ? "Saving..." : "Mark reviewed"}
                         </button>
@@ -406,7 +406,7 @@ export function ExploreContentQaClient({
                           type="button"
                           disabled={!!actionLoading}
                           onClick={() => void runReviewAction("request_changes")}
-                          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white hover:bg-white/10 disabled:opacity-50"
+                          className="rounded-xl border border-(--ws-line-strong) bg-(--ws-fill) px-3 py-2 text-xs font-medium text-(--ws-fg) hover:bg-(--ws-fill-strong) disabled:opacity-50"
                         >
                           {actionLoading === "request_changes" ? "Saving..." : "Request changes"}
                         </button>
@@ -443,7 +443,7 @@ export function ExploreContentQaClient({
                     <Section title="Safety status">
                       <div className="space-y-2">
                         {detail.safetyChecks.map((check) => (
-                          <p key={check.name} className="text-xs text-white/70">
+                          <p key={check.name} className="text-xs text-(--ws-fg-70)">
                             {check.passed ? "✓" : "○"} {check.name} ({check.severity})
                             {check.note ? ` — ${check.note}` : ""}
                           </p>
@@ -461,7 +461,7 @@ export function ExploreContentQaClient({
 
                   {detail.content.deepDiveExplanation ? (
                     <Section title="Leo goes deeper">
-                      <p className="font-medium text-white">{detail.content.deepDiveExplanation.title}</p>
+                      <p className="font-medium text-(--ws-fg)">{detail.content.deepDiveExplanation.title}</p>
                       <p className="mt-2">{detail.content.deepDiveExplanation.deeperExplanation}</p>
                       <p className="mt-2 text-teal-100/85">
                         {detail.content.deepDiveExplanation.realWorldConnection}
@@ -476,7 +476,7 @@ export function ExploreContentQaClient({
                           <p key={row.misconception} className="text-sm">
                             <span className="text-amber-100">{row.misconception}</span>
                             <br />
-                            <span className="text-white/75">→ {row.leoCorrection}</span>
+                            <span className="text-(--ws-fg)/75">→ {row.leoCorrection}</span>
                           </p>
                         ))}
                       </div>
@@ -499,10 +499,10 @@ export function ExploreContentQaClient({
                     <div className="space-y-3">
                       {detail.content.endingQuiz.questions.map((question, index) => (
                         <div key={question.prompt} className={cn(glassInsetClass, "p-3")}>
-                          <p className="text-sm font-medium text-white">
+                          <p className="text-sm font-medium text-(--ws-fg)">
                             {index + 1}. {question.prompt}
                           </p>
-                          <ul className="mt-2 space-y-1 text-xs text-white/70">
+                          <ul className="mt-2 space-y-1 text-xs text-(--ws-fg-70)">
                             {question.options.map((option) => (
                               <li key={option.letter}>
                                 {option.letter}. {option.label}
@@ -520,7 +520,7 @@ export function ExploreContentQaClient({
                     <Section title="Student reports">
                       <div className="space-y-2">
                         {detail.reports.map((report) => (
-                          <p key={report.id} className="text-xs text-white/70">
+                          <p key={report.id} className="text-xs text-(--ws-fg-70)">
                             {report.action}
                             {report.reason ? ` — ${report.reason}` : ""}
                             {report.notes ? ` (${report.notes})` : ""} ·{" "}
@@ -539,18 +539,18 @@ export function ExploreContentQaClient({
                   ) : null}
 
                   {isLazy && detail.aiSummary ? (
-                    <p className="text-xs text-white/40">AI summary: {detail.aiSummary}</p>
+                    <p className="text-xs text-(--ws-fg-40)">AI summary: {detail.aiSummary}</p>
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-white/55">Select a mission to view the full content snapshot.</p>
+                <p className="text-sm text-(--ws-fg-50)">Select a mission to view the full content snapshot.</p>
               )}
             </GlassPanel>
           </div>
         )}
 
         {studentId ? (
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-(--ws-fg-40)">
             Filtered to one student.{" "}
             <Link href={backHref} className="text-teal-200 underline">
               Back
@@ -565,8 +565,8 @@ export function ExploreContentQaClient({
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wide text-white/45">{label}</p>
-      <p className="text-lg font-semibold text-white">{value}</p>
+      <p className="text-[10px] uppercase tracking-wide text-(--ws-fg-40)">{label}</p>
+      <p className="text-lg font-semibold text-(--ws-fg)">{value}</p>
     </div>
   );
 }
@@ -578,9 +578,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <div className={cn(glassInsetClass, "p-3")}>
       <h3 className="text-sm font-semibold text-teal-100">{title}</h3>
       {isPlainText ? (
-        <p className="mt-2 whitespace-pre-wrap text-sm text-white/75">{children}</p>
+        <p className="mt-2 whitespace-pre-wrap text-sm text-(--ws-fg)/75">{children}</p>
       ) : (
-        <div className="mt-2 whitespace-pre-wrap text-sm text-white/75">{children}</div>
+        <div className="mt-2 whitespace-pre-wrap text-sm text-(--ws-fg)/75">{children}</div>
       )}
     </div>
   );

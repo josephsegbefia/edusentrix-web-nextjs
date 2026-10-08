@@ -197,21 +197,21 @@ export function UploadStudentDocumentModal({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.98 }}
               transition={{ duration: 0.2 }}
-              className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+              className="w-full max-w-lg overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]"
             >
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
+              <div className="flex items-start justify-between gap-4 border-b border-(--ws-line) px-6 py-5">
                 <h2 className="text-lg font-semibold">Upload document</h2>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10"
+                  className="h-9 w-9 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                   onClick={() => onOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="px-6 py-5 text-sm text-white/70">
+              <p className="px-6 py-5 text-sm text-(--ws-fg-70)">
                 School context is missing. Refresh and try again.
               </p>
             </motion.div>
@@ -244,14 +244,14 @@ export function UploadStudentDocumentModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]"
           >
-            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b border-(--ws-line) px-6 py-5">
               <div>
                 <h2 className="text-lg font-semibold">Upload document</h2>
-                <p className="mt-1 text-sm text-white/60">
+                <p className="mt-1 text-sm text-(--ws-fg-60)">
                   For{" "}
-                  <span className="font-medium text-white/85">{studentName}</span>
+                  <span className="font-medium text-(--ws-fg-80)">{studentName}</span>
                 </p>
               </div>
               <Button
@@ -259,7 +259,7 @@ export function UploadStudentDocumentModal({
                 variant="ghost"
                 size="icon"
                 disabled={isPending}
-                className="h-9 w-9 shrink-0 rounded-full text-white/70 hover:bg-white/10"
+                className="h-9 w-9 shrink-0 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                 onClick={() => onOpenChange(false)}
               >
                 <X className="h-4 w-4" />
@@ -271,7 +271,7 @@ export function UploadStudentDocumentModal({
               className="max-h-[min(70vh,640px)] space-y-5 overflow-y-auto px-6 py-5"
             >
               <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase tracking-wider text-white/50">
+                <Label className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                   File
                 </Label>
                 <DocumentUploader
@@ -285,11 +285,11 @@ export function UploadStudentDocumentModal({
                   }
                 />
                 {uploadedFile ? (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-(--ws-fg-50)">
                     {(uploadedFile.bytes / 1024 / 1024).toFixed(2)} MB
                   </p>
                 ) : (
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-(--ws-fg-40)">
                     PDF, Office, images, CSV, or video (see uploader limits)
                   </p>
                 )}
@@ -298,7 +298,7 @@ export function UploadStudentDocumentModal({
               <div className="space-y-2">
                 <Label
                   htmlFor="student-doc-name"
-                  className="text-xs font-medium uppercase tracking-wider text-white/50"
+                  className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)"
                 >
                   Display name
                 </Label>
@@ -306,7 +306,7 @@ export function UploadStudentDocumentModal({
                   id="student-doc-name"
                   {...register("name")}
                   placeholder="e.g. Term 1 report 2026"
-                  className="border-white/15 bg-white/5 text-white placeholder:text-white/35"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 />
                 {errors.name ? (
                   <p className="text-xs text-red-400">{errors.name.message}</p>
@@ -314,7 +314,7 @@ export function UploadStudentDocumentModal({
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase tracking-wider text-white/50">
+                <Label className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                   Category
                 </Label>
                 <Select
@@ -325,7 +325,7 @@ export function UploadStudentDocumentModal({
                     })
                   }
                 >
-                  <SelectTrigger className="border-white/15 bg-white/5 text-white">
+                  <SelectTrigger className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)">
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent className={premiumSelectContent}>
@@ -348,7 +348,7 @@ export function UploadStudentDocumentModal({
               <div className="space-y-2">
                 <Label
                   htmlFor="student-doc-notes"
-                  className="text-xs font-medium uppercase tracking-wider text-white/50"
+                  className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)"
                 >
                   Notes (optional)
                 </Label>
@@ -357,18 +357,18 @@ export function UploadStudentDocumentModal({
                   {...register("notes")}
                   rows={3}
                   placeholder="Internal note for staff…"
-                  className="resize-none border-white/15 bg-white/5 text-white placeholder:text-white/35"
+                  className="resize-none border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 />
                 {errors.notes ? (
                   <p className="text-xs text-red-400">{errors.notes.message}</p>
                 ) : null}
               </div>
 
-              <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
+              <div className="flex justify-end gap-2 border-t border-(--ws-line) pt-4">
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                  className="border-(--ws-line-strong) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   disabled={isPending}
                   onClick={() => onOpenChange(false)}
                 >
@@ -377,7 +377,7 @@ export function UploadStudentDocumentModal({
                 <Button
                   type="submit"
                   disabled={isPending || !uploadedFile}
-                  className="bg-violet-600 text-white hover:bg-violet-500"
+                  className="bg-violet-600 text-(--ws-fg) hover:bg-violet-500"
                 >
                   {isPending ? "Saving…" : "Save document"}
                 </Button>

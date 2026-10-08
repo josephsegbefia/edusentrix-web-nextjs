@@ -32,7 +32,7 @@ export function SchemeStatusBadge({
             ? "border-orange-400/30 bg-orange-500/15 text-orange-100"
             : status === "rejected"
               ? "border-rose-400/30 bg-rose-500/15 text-rose-100"
-              : "border-white/15 bg-white/8 text-white/70";
+              : "border-(--ws-line-strong) bg-(--ws-fill-strong) text-(--ws-fg-70)";
 
   return (
     <Badge variant="outline" className={cn("font-medium", tone, className)}>

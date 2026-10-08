@@ -57,7 +57,7 @@ export function GradeCard({
         "group relative flex flex-col overflow-hidden rounded-2xl border bg-linear-to-br backdrop-blur-xl",
         "border-blue-500/30 from-blue-500/10 via-indigo-500/5 to-transparent",
         "shadow-xl shadow-black/30 transition-all duration-300",
-        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--ws-shadow)] cursor-pointer"
       )}
     >
       {/* Glow effect on hover */}
@@ -71,7 +71,7 @@ export function GradeCard({
 
       {/* Top shine */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine-strong) to-transparent"
         aria-hidden="true"
       />
 
@@ -89,10 +89,10 @@ export function GradeCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 space-y-0.5">
-                <h3 className="truncate text-sm font-semibold text-white sm:text-base">
+                <h3 className="truncate text-sm font-semibold text-(--ws-fg) sm:text-base">
                   {grade.name}
                 </h3>
-                <p className="truncate text-xs text-white/50">
+                <p className="truncate text-xs text-(--ws-fg-50)">
                   {grade.code ? `${grade.code} • ${grade.stage}` : grade.stage}
                 </p>
               </div>
@@ -103,7 +103,7 @@ export function GradeCard({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    className="h-7 w-7 shrink-0 rounded-lg bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
@@ -147,15 +147,15 @@ export function GradeCard({
 
         {/* Stats */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
             <Layers className="h-3.5 w-3.5 text-blue-300" />
-            <span className="text-xs font-medium text-white/80">
+            <span className="text-xs font-medium text-(--ws-fg-80)">
               {classCount} class{classCount !== 1 ? "es" : ""}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
             <Users className="h-3.5 w-3.5 text-blue-300" />
-            <span className="text-xs font-medium text-white/80">
+            <span className="text-xs font-medium text-(--ws-fg-80)">
               {studentCount} student{studentCount !== 1 ? "s" : ""}
             </span>
           </div>

@@ -42,10 +42,10 @@ function CommentTextBlock({
         tone === "internal" && "border-violet-400/20 bg-violet-500/5"
       )}
     >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
         {label}
       </p>
-      <p className="text-sm leading-relaxed text-white/85">{value}</p>
+      <p className="text-sm leading-relaxed text-(--ws-fg-80)">{value}</p>
     </div>
   );
 }
@@ -65,7 +65,7 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
   if (!model.hasContent) {
     return (
       <div className={cn(glassInsetClass, "px-4 py-8 text-center")}>
-        <p className="text-sm text-white/60">{model.emptyMessage}</p>
+        <p className="text-sm text-(--ws-fg-60)">{model.emptyMessage}</p>
       </div>
     );
   }
@@ -77,14 +77,14 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
           className={cn(
             "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
             model.isOfficialSnapshot
-              ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
-              : "border-cyan-400/25 bg-cyan-500/10 text-cyan-100"
+              ? "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)"
+              : "border-cyan-400/25 bg-cyan-500/10 text-(--ws-cyan)"
           )}
         >
           {model.sourceLabel}
         </span>
         {model.showLiveNotice ? (
-          <span className="text-[11px] text-amber-200/80">
+          <span className="text-[11px] text-(--ws-amber)/80">
             Provisional — not yet released to parents
           </span>
         ) : null}
@@ -94,10 +94,10 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
         <div className="grid gap-2 sm:grid-cols-3">
           {model.conductFields.map((field) => (
             <div key={field.key} className={cn(glassInsetClass, "px-3 py-2.5")}>
-              <p className="text-[10px] font-medium uppercase tracking-wide text-white/45">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
                 {field.label}
               </p>
-              <p className="mt-1 text-sm text-white/85">{field.value}</p>
+              <p className="mt-1 text-sm text-(--ws-fg-80)">{field.value}</p>
             </div>
           ))}
         </div>
@@ -114,7 +114,7 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
 
       {model.subjectComments.length > 0 ? (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-white/55">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-50)">
             Subject teacher remarks
           </h4>
           {model.subjectComments.map((entry) => (
@@ -123,14 +123,14 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
               className={cn(glassInsetClass, "space-y-1 px-3 py-2.5")}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-medium text-white/90">
+                <span className="text-xs font-medium text-(--ws-fg-90)">
                   {entry.subjectName}
                 </span>
                 {entry.teacherName ? (
-                  <span className="text-[10px] text-white/45">{entry.teacherName}</span>
+                  <span className="text-[10px] text-(--ws-fg-40)">{entry.teacherName}</span>
                 ) : null}
               </div>
-              <p className="text-sm leading-relaxed text-white/80">{entry.comment}</p>
+              <p className="text-sm leading-relaxed text-(--ws-fg-80)">{entry.comment}</p>
             </div>
           ))}
         </div>
@@ -142,7 +142,7 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
 function LegacyCommentsContent({ comments }: { comments: TeacherCommentDTO[] }) {
   return (
     <div className="space-y-2">
-      <span className="inline-flex rounded-full border border-white/15 bg-white/8 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/65">
+      <span className="inline-flex rounded-full border border-(--ws-line-strong) bg-(--ws-fill) px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-(--ws-fg-60)">
         Legacy teacher comments
       </span>
       {comments.map((comment) => (
@@ -201,7 +201,7 @@ export function TeacherCommentsSection({ profile, legacyComments = [] }: Props) 
       <GlassPanel className="p-4 sm:p-5" glow="none">
         <CommentsSectionHeader entryCount={0} />
         <div className={cn(glassInsetClass, "mt-3 px-4 py-8 text-center")}>
-          <p className="text-sm text-white/60">{emptyModel.emptyMessage}</p>
+          <p className="text-sm text-(--ws-fg-60)">{emptyModel.emptyMessage}</p>
         </div>
       </GlassPanel>
     );
@@ -234,13 +234,13 @@ function CommentsSectionHeader({ entryCount }: { entryCount: number }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-violet-500/20 to-slate-500/20">
-          <MessageSquareText className="h-5 w-5 text-violet-200" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-violet-500/20 to-slate-500/20">
+          <MessageSquareText className="h-5 w-5 text-(--ws-violet)" />
         </div>
-        <h3 className="text-sm font-semibold text-white">Teacher &amp; report comments</h3>
+        <h3 className="text-sm font-semibold text-(--ws-fg)">Teacher &amp; report comments</h3>
       </div>
       {entryCount > 0 ? (
-        <span className="text-[11px] text-white/45">
+        <span className="text-[11px] text-(--ws-fg-40)">
           {entryCount} entr{entryCount === 1 ? "y" : "ies"}
         </span>
       ) : null}
@@ -251,7 +251,7 @@ function CommentsSectionHeader({ entryCount }: { entryCount: number }) {
 export function TeacherCommentsSectionSkeleton() {
   return (
     <GlassPanel className="p-5" glow="none">
-      <div className="h-24 animate-pulse rounded-xl bg-white/5" />
+      <div className="h-24 animate-pulse rounded-xl bg-(--ws-fill)" />
     </GlassPanel>
   );
 }

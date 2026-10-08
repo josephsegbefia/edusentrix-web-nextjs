@@ -1,4 +1,5 @@
 import { BookOpenCheck, CheckCircle2, CircleAlert, CreditCard, ShieldCheck } from "lucide-react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { getSchoolLearnEligibility } from "@/lib/learn/eligibility";
 import { getOrCreateLearnPlatformSettings } from "@/lib/learn/platform-settings";
@@ -26,7 +27,8 @@ export default async function AdminLearnSettingsPage() {
   ]);
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <WorkspaceScope>
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Learn settings"
@@ -40,13 +42,13 @@ export default async function AdminLearnSettingsPage() {
           <GlassPanel className="p-6" glow="teal">
             <div className="flex items-center gap-3">
               {eligibility.eligible ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-200" />
+                <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
               ) : (
-                <CircleAlert className="h-5 w-5 text-amber-200" />
+                <CircleAlert className="h-5 w-5 text-(--ws-amber)" />
               )}
-              <h2 className="text-lg font-semibold text-white">School eligibility</h2>
+              <h2 className="text-lg font-semibold text-(--ws-fg)">School eligibility</h2>
             </div>
-            <p className="mt-3 text-sm leading-6 text-white/60">
+            <p className="mt-3 text-sm leading-6 text-(--ws-fg-60)">
               {eligibility.eligible
                 ? "This school can provision EduSentrix Learn accounts for active students with grade and class group placement."
                 : eligibility.reason || "This school is not currently eligible for EduSentrix Learn."}
@@ -62,8 +64,8 @@ export default async function AdminLearnSettingsPage() {
 
           <GlassPanel className="p-6" glow="both">
             <div className="flex items-center gap-3">
-              <CreditCard className="h-5 w-5 text-teal-200" />
-              <h2 className="text-lg font-semibold text-white">Parent payment policy</h2>
+              <CreditCard className="h-5 w-5 text-(--ws-teal)" />
+              <h2 className="text-lg font-semibold text-(--ws-fg)">Parent payment policy</h2>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <SettingPill
@@ -80,7 +82,7 @@ export default async function AdminLearnSettingsPage() {
                 value={settings.starterPlanBlocked ? "Blocked" : "Allowed"}
               />
             </div>
-            <p className="mt-5 text-sm leading-6 text-white/55">
+            <p className="mt-5 text-sm leading-6 text-(--ws-fg)/55">
               Pricing and global Learn policy are managed by platform operators. Parent Learn
               payments stay separate from school fees and are not included in school invoices.
             </p>
@@ -89,8 +91,8 @@ export default async function AdminLearnSettingsPage() {
 
         <GlassPanel className="p-6" glow="cyan">
           <div className="flex items-center gap-3">
-            <ShieldCheck className="h-5 w-5 text-cyan-200" />
-            <h2 className="text-lg font-semibold text-white">Credential safety</h2>
+            <ShieldCheck className="h-5 w-5 text-(--ws-cyan)" />
+            <h2 className="text-lg font-semibold text-(--ws-fg)">Credential safety</h2>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <SafetyItem text="Temporary passwords are stored only as hashes." />
@@ -100,20 +102,21 @@ export default async function AdminLearnSettingsPage() {
         </GlassPanel>
       </WorkspacePageShell>
     </div>
+    </WorkspaceScope>
   );
 }
 
 function SettingPill({ label, value }: { label: string; value: string }) {
   return (
     <div className={cn(glassInsetClass, "p-4")}>
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--ws-fg-40)">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-(--ws-fg)">{value}</p>
     </div>
   );
 }
 
 function SafetyItem({ text }: { text: string }) {
   return (
-    <div className={cn(glassInsetClass, "p-4 text-sm leading-6 text-white/65")}>{text}</div>
+    <div className={cn(glassInsetClass, "p-4 text-sm leading-6 text-(--ws-fg-60)")}>{text}</div>
   );
 }

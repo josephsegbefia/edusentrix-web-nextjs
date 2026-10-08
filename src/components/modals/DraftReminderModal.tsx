@@ -86,7 +86,7 @@ function formatUsd(value: number) {
 function renderStatusBadge(status: "sent" | "failed" | "skipped") {
   if (status === "sent") {
     return (
-      <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+      <Badge className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)">
         Sent
       </Badge>
     );
@@ -99,7 +99,7 @@ function renderStatusBadge(status: "sent" | "failed" | "skipped") {
     );
   }
   return (
-    <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-300">
+    <Badge className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)">
       Skipped
     </Badge>
   );
@@ -283,7 +283,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
 
   return (
     <div className="space-y-5">
-      <div className="text-sm text-white/70">
+      <div className="text-sm text-(--ws-fg-70)">
         Send reminders to guardians with outstanding balances. Review the exact guardians
         and wards before sending.
       </div>
@@ -303,11 +303,11 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
               className={`rounded-xl border px-4 py-3 text-left text-sm transition-colors ${
                 isActive
                   ? "border-brand bg-brand/10"
-                  : "border-white/10 bg-white/5 hover:bg-white/10"
+                  : "border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
               }`}
             >
               <div className="mb-1 flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-2 font-medium text-white">
+                <span className="inline-flex items-center gap-2 font-medium text-(--ws-fg)">
                   <Icon className="h-4 w-4" />
                   {entry.label}
                 </span>
@@ -315,14 +315,14 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                   variant="outline"
                   className={
                     isReady
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                      : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
+                      : "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
                   }
                 >
                   {isReady ? "Ready" : "Not ready"}
                 </Badge>
               </div>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-(--ws-fg-60)">
                 {channelCapability?.message || "Loading channel status..."}
               </p>
             </button>
@@ -330,9 +330,9 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
         })}
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+          <div className="inline-flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
             <Sparkles className="h-4 w-4 text-fuchsia-300" />
             AI Reminder Composer
           </div>
@@ -341,7 +341,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 border-white/15 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
+              className="h-8 border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               disabled={
                 generateAIDraft.isPending ||
                 aiDraft.isLoading ||
@@ -380,26 +380,26 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
               className={`rounded-lg border px-3 py-2 text-left ${
                 aiTone === tone.key
                   ? "border-brand bg-brand/10"
-                  : "border-white/10 bg-black/10"
+                  : "border-(--ws-line) bg-(--ws-fill)"
               }`}
             >
-              <p className="text-xs font-semibold text-white">{tone.label}</p>
-              <p className="mt-0.5 text-[11px] text-white/55">{tone.hint}</p>
+              <p className="text-xs font-semibold text-(--ws-fg)">{tone.label}</p>
+              <p className="mt-0.5 text-[11px] text-(--ws-fg)/55">{tone.hint}</p>
             </button>
           ))}
         </div>
 
         {aiDraft.isLoading ? (
-          <p className="text-sm text-white/60">Loading AI draft cache…</p>
+          <p className="text-sm text-(--ws-fg-60)">Loading AI draft cache…</p>
         ) : aiDraft.isError ? (
           <p className="text-sm text-rose-300">Failed to load AI reminder draft.</p>
         ) : aiDraft.data ? (
           <div className="space-y-3">
-            <div className="rounded-lg border border-white/10 bg-black/10 p-3 text-xs text-white/70">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-xs text-(--ws-fg-70)">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant="outline"
-                  className="border-white/15 bg-white/5 text-white/80"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80)"
                 >
                   Source: {aiDraft.data.source === "ai" ? "AI" : "Rule-based"}
                 </Badge>
@@ -407,8 +407,8 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                   variant="outline"
                   className={
                     aiDraft.data.cacheStatus === "fresh"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                      : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
+                      : "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
                   }
                 >
                   Cache: {aiDraft.data.cacheStatus}
@@ -420,7 +420,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                     : "Not generated yet"}
                 </span>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/55">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-(--ws-fg)/55">
                 <span>Tokens today: {aiDraft.data.budget.tokensUsedToday}</span>
                 <span>Remaining: {aiDraft.data.budget.tokensRemainingToday}</span>
                 <span>
@@ -430,31 +430,31 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             </div>
 
             {channel === "email" ? (
-              <div className="rounded-lg border border-white/10 bg-black/10 p-3">
-                <p className="text-[11px] uppercase tracking-wide text-white/50">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="text-[11px] uppercase tracking-wide text-(--ws-fg-50)">
                   Suggested subject
                 </p>
-                <p className="mt-1 text-sm text-white/90">
+                <p className="mt-1 text-sm text-(--ws-fg-90)">
                   {aiDraft.data.template.subject || "No subject generated"}
                 </p>
               </div>
             ) : null}
 
-            <div className="rounded-lg border border-white/10 bg-black/10 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-white/50">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+              <p className="text-[11px] uppercase tracking-wide text-(--ws-fg-50)">
                 Suggested custom message
               </p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-white/85">
+              <p className="mt-1 whitespace-pre-wrap text-sm text-(--ws-fg-80)">
                 {aiDraft.data.template.message || "No draft message generated"}
               </p>
             </div>
 
-            <p className="text-xs text-white/55">
+            <p className="text-xs text-(--ws-fg)/55">
               Why this draft: {aiDraft.data.template.rationale}
             </p>
 
             {!aiDraft.data.budget.canGenerate ? (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-(--ws-amber)">
                 <div className="mb-1 inline-flex items-center gap-1 font-medium">
                   <AlertCircle className="h-3.5 w-3.5" />
                   AI generation paused
@@ -467,16 +467,16 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <h3 className="mb-3 text-sm font-semibold text-white">Audience</h3>
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+          <h3 className="mb-3 text-sm font-semibold text-(--ws-fg)">Audience</h3>
           <div className="space-y-3">
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-200">
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-(--ws-emerald)">
               Includes all guardians with outstanding balances (issued, partially paid, and overdue).
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
               <div>
-                <Label className="text-white/80">Primary guardians only</Label>
-                <p className="text-xs text-white/55">Skip secondary guardian contacts.</p>
+                <Label className="text-(--ws-fg-80)">Primary guardians only</Label>
+                <p className="text-xs text-(--ws-fg)/55">Skip secondary guardian contacts.</p>
               </div>
               <Switch
                 checked={onlyPrimaryGuardian}
@@ -484,60 +484,60 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Max recipients</Label>
+              <Label className="text-(--ws-fg-80)">Max recipients</Label>
               <Input
                 type="number"
                 min={1}
                 max={500}
                 value={maxRecipients}
                 onChange={(event) => setMaxRecipients(Number(event.target.value || 1))}
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <h3 className="mb-3 text-sm font-semibold text-white">Delivery Preview</h3>
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+          <h3 className="mb-3 text-sm font-semibold text-(--ws-fg)">Delivery Preview</h3>
           {preview.isLoading ? (
-            <p className="text-sm text-white/60">Loading reminder preview...</p>
+            <p className="text-sm text-(--ws-fg-60)">Loading reminder preview...</p>
           ) : preview.isError ? (
-            <p className="text-sm text-red-300">Failed to load reminder preview.</p>
+            <p className="text-sm text-(--ws-rose)">Failed to load reminder preview.</p>
           ) : (
-            <div className="space-y-3 text-sm text-white/80">
+            <div className="space-y-3 text-sm text-(--ws-fg-80)">
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs text-white/50">Recipients</p>
-                  <p className="text-base font-semibold text-white">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                  <p className="text-xs text-(--ws-fg-50)">Recipients</p>
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     {preview.data?.summary.recipientCount || 0}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs text-white/50">Deliverable ({channel})</p>
-                  <p className="text-base font-semibold text-white">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                  <p className="text-xs text-(--ws-fg-50)">Deliverable ({channel})</p>
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     {preview.data?.summary.deliverableCount || 0}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs text-white/50">Wards</p>
-                  <p className="text-base font-semibold text-white">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                  <p className="text-xs text-(--ws-fg-50)">Wards</p>
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     {preview.data?.summary.studentCount || 0}
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <p className="text-xs text-white/50">Outstanding</p>
-                  <p className="text-base font-semibold text-white">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                  <p className="text-xs text-(--ws-fg-50)">Outstanding</p>
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     {formatCurrency(preview.data?.summary.totalOutstandingMinor || 0)}
                   </p>
                 </div>
               </div>
               {preview.data?.summary.truncated ? (
-                <p className="text-xs text-amber-300">
+                <p className="text-xs text-(--ws-amber)">
                   Showing first {preview.data.summary.recipientCount} of{" "}
                   {preview.data.summary.totalPotentialRecipients} matched recipients.
                 </p>
               ) : null}
-              <p className="text-xs text-white/55">
+              <p className="text-xs text-(--ws-fg)/55">
                 Recipients without a {channel === "email" ? "valid email" : "valid phone"}
                 {" "}
                 are marked and skipped.
@@ -549,29 +549,29 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
 
       {channel === "email" && (
         <div className="space-y-2">
-          <Label className="text-white/80">Email subject</Label>
+          <Label className="text-(--ws-fg-80)">Email subject</Label>
           <Input
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            className="border-white/10 bg-white/5 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
         </div>
       )}
 
       <div className="space-y-2">
-        <Label className="text-white/80">Custom message (optional)</Label>
+        <Label className="text-(--ws-fg-80)">Custom message (optional)</Label>
         <Textarea
           rows={4}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           placeholder="Optional message to include in reminders..."
-          className="border-white/10 bg-white/5 text-white"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
         />
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-          <Users className="h-4 w-4 text-white/70" />
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
+          <Users className="h-4 w-4 text-(--ws-fg-70)" />
           Recipients to be reminded
         </div>
         <div className="max-h-72 space-y-2 overflow-y-auto">
@@ -582,27 +582,27 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             return (
             <div
               key={recipient.userId}
-              className="rounded-lg border border-white/10 bg-black/10 p-3"
+              className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium text-white">{recipient.guardianName}</p>
-                  <p className="mt-1 text-xs text-white/60">
+                  <p className="text-sm font-medium text-(--ws-fg)">{recipient.guardianName}</p>
+                  <p className="mt-1 text-xs text-(--ws-fg-60)">
                     Email: {recipient.email || "Not available"} • Phone:{" "}
                     {recipient.phone || "Not available"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {channelContact ? (
-                    <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                    <Badge className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)">
                       Reachable on {channel.toUpperCase()}
                     </Badge>
                   ) : (
-                    <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-300">
+                    <Badge className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)">
                       {missingContact}
                     </Badge>
                   )}
-                  <p className="text-xs text-white/60">
+                  <p className="text-xs text-(--ws-fg-60)">
                     {formatCurrency(recipient.totalOutstandingMinor)}
                   </p>
                 </div>
@@ -611,13 +611,13 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                 {recipient.students.map((student) => (
                   <div
                     key={`${recipient.userId}:${student.studentId}`}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-2.5 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2.5 py-2"
                   >
-                    <p className="text-xs text-white/85">
+                    <p className="text-xs text-(--ws-fg-80)">
                       {student.studentName}
                       {student.classGroupName ? ` • ${student.classGroupName}` : ""}
                     </p>
-                    <p className="text-xs text-white/65">
+                    <p className="text-xs text-(--ws-fg-60)">
                       {formatCurrency(student.outstandingMinor)}
                       {student.overdueInvoiceCount > 0
                         ? ` • ${student.overdueInvoiceCount} overdue`
@@ -630,30 +630,30 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             );
           })}
           {previewRecipients.length > previewRecipientsVisible.length ? (
-            <p className="text-xs text-amber-300">
+            <p className="text-xs text-(--ws-amber)">
               Showing {previewRecipientsVisible.length} of {previewRecipients.length} listed
               recipients in this panel.
             </p>
           ) : null}
           {previewRecipients.length === 0 && !preview.isLoading ? (
-            <p className="text-sm text-white/60">No recipients matched the current filters.</p>
+            <p className="text-sm text-(--ws-fg-60)">No recipients matched the current filters.</p>
           ) : null}
         </div>
       </div>
 
       {lastSendResult ? (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
+            <CheckCircle2 className="h-4 w-4 text-(--ws-emerald)" />
             Last send results
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-white/60">Run ID: {lastSendResult.runId}</p>
+            <p className="text-xs text-(--ws-fg-60)">Run ID: {lastSendResult.runId}</p>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              className="h-7 border-white/15 bg-white/5 px-2.5 text-xs text-white hover:bg-white/10"
+              className="h-7 border-(--ws-line) bg-(--ws-fill) px-2.5 text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={() =>
                 setDetailsRun(toDetailsFromSendResult(lastSendResult, lastSendAt || undefined))
               }
@@ -663,27 +663,27 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             </Button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-lg border border-white/10 bg-white/5 p-2">
-              <p className="text-[11px] text-white/50">Attempted</p>
-              <p className="text-base font-semibold text-white">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
+              <p className="text-[11px] text-(--ws-fg-50)">Attempted</p>
+              <p className="text-base font-semibold text-(--ws-fg)">
                 {lastSendResult.summary.attempted}
               </p>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-2">
-              <p className="text-[11px] text-white/50">Sent</p>
-              <p className="text-base font-semibold text-emerald-300">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
+              <p className="text-[11px] text-(--ws-fg-50)">Sent</p>
+              <p className="text-base font-semibold text-(--ws-emerald)">
                 {lastSendResult.summary.sent}
               </p>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-2">
-              <p className="text-[11px] text-white/50">Failed</p>
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
+              <p className="text-[11px] text-(--ws-fg-50)">Failed</p>
               <p className="text-base font-semibold text-rose-300">
                 {lastSendResult.summary.failed}
               </p>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-2">
-              <p className="text-[11px] text-white/50">Skipped</p>
-              <p className="text-base font-semibold text-amber-300">
+            <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
+              <p className="text-[11px] text-(--ws-fg-50)">Skipped</p>
+              <p className="text-base font-semibold text-(--ws-amber)">
                 {lastSendResult.summary.skipped}
               </p>
             </div>
@@ -692,23 +692,23 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             {(lastSendResult.deliveries || []).map((delivery) => (
               <div
                 key={`${lastSendResult.runId}:${delivery.recipientUserId}`}
-                className="rounded-lg border border-white/10 bg-black/10 p-3"
+                className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-(--ws-fg)">
                     {delivery.guardianName}
                     {delivery.contact ? ` • ${delivery.contact}` : ""}
                   </p>
                   {renderStatusBadge(delivery.status)}
                 </div>
                 {delivery.reason ? (
-                  <p className="mt-1 text-xs text-amber-200">{delivery.reason}</p>
+                  <p className="mt-1 text-xs text-(--ws-amber)">{delivery.reason}</p>
                 ) : null}
-                <p className="mt-1 text-xs text-white/65">
+                <p className="mt-1 text-xs text-(--ws-fg-60)">
                   {delivery.students.length} ward(s) •{" "}
                   {formatCurrency(delivery.totalOutstandingMinor)}
                 </p>
-                <p className="mt-1 text-[11px] text-white/55">
+                <p className="mt-1 text-[11px] text-(--ws-fg)/55">
                   {summarizeDeliveryStudents(delivery.students)}
                 </p>
               </div>
@@ -717,25 +717,25 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-          <Clock3 className="h-4 w-4 text-white/70" />
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
+          <Clock3 className="h-4 w-4 text-(--ws-fg-70)" />
           Recent reminder runs
         </div>
         {history.isLoading ? (
-          <p className="text-sm text-white/60">Loading reminder history...</p>
+          <p className="text-sm text-(--ws-fg-60)">Loading reminder history...</p>
         ) : history.isError ? (
-          <p className="text-sm text-red-300">Failed to load reminder history.</p>
+          <p className="text-sm text-(--ws-rose)">Failed to load reminder history.</p>
         ) : history.data?.length ? (
           <div className="max-h-72 space-y-2 overflow-y-auto">
             {history.data.map((item) => (
               <details
                 key={item.id}
-                className="rounded-lg border border-white/10 bg-black/10 p-3"
+                className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
               >
                 <summary className="cursor-pointer list-none">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="text-sm text-white">
+                    <div className="text-sm text-(--ws-fg)">
                       {item.channel.toUpperCase()} • {formatDateTime(item.createdAt)}
                     </div>
                     <div className="flex items-center gap-2">
@@ -743,7 +743,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="h-7 border-white/15 bg-white/5 px-2.5 text-xs text-white hover:bg-white/10"
+                        className="h-7 border-(--ws-line) bg-(--ws-fill) px-2.5 text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                         onClick={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -753,12 +753,12 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                         <Eye className="mr-1 h-3.5 w-3.5" />
                         View recipients
                       </Button>
-                      <div className="text-xs text-white/60">
+                      <div className="text-xs text-(--ws-fg-60)">
                         Sent {item.summary.sent}/{item.summary.attempted}
                       </div>
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-white/55">
+                  <p className="mt-1 text-xs text-(--ws-fg)/55">
                     By{" "}
                     {item.actor
                       ? [item.actor.firstName, item.actor.lastName]
@@ -774,34 +774,34 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                     item.deliveries.slice(0, 20).map((delivery) => (
                       <div
                         key={`${item.id}:${delivery.recipientUserId}`}
-                        className="rounded-md border border-white/10 bg-white/5 px-2.5 py-2"
+                        className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2.5 py-2"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs text-white/85">
+                          <p className="text-xs text-(--ws-fg-80)">
                             {delivery.guardianName}
                             {delivery.contact ? ` • ${delivery.contact}` : ""}
                           </p>
                           {renderStatusBadge(delivery.status)}
                         </div>
                         {delivery.reason ? (
-                          <p className="mt-1 text-[11px] text-amber-200">{delivery.reason}</p>
+                          <p className="mt-1 text-[11px] text-(--ws-amber)">{delivery.reason}</p>
                         ) : null}
-                        <p className="mt-1 text-[11px] text-white/60">
+                        <p className="mt-1 text-[11px] text-(--ws-fg-60)">
                           {delivery.students.length} ward(s) •{" "}
                           {formatCurrency(delivery.totalOutstandingMinor)}
                         </p>
-                        <p className="mt-1 text-[11px] text-white/55">
+                        <p className="mt-1 text-[11px] text-(--ws-fg)/55">
                           {summarizeDeliveryStudents(delivery.students)}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-md border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-white/60">
+                    <div className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2.5 py-2 text-xs text-(--ws-fg-60)">
                       This run does not have stored delivery rows.
                     </div>
                   )}
                   {item.deliveries && item.deliveries.length > 20 ? (
-                    <p className="text-[11px] text-white/55">
+                    <p className="text-[11px] text-(--ws-fg)/55">
                       Showing first 20 of {item.deliveries.length} delivery rows.
                     </p>
                   ) : null}
@@ -810,12 +810,12 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             ))}
           </div>
         ) : (
-          <p className="text-sm text-white/60">No reminder history yet.</p>
+          <p className="text-sm text-(--ws-fg-60)">No reminder history yet.</p>
         )}
       </div>
 
       {capability && (!capability.enabled || !capability.ready) ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-(--ws-amber)">
           <div className="mb-1 inline-flex items-center gap-1.5 font-medium">
             <AlertCircle className="h-3.5 w-3.5" />
             Channel not ready
@@ -828,7 +828,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
         <Button
           variant="outline"
           onClick={onClose}
-          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           Cancel
         </Button>
@@ -852,13 +852,13 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
       >
         <DialogContent
           overlayClassName="z-[120] bg-black/70"
-          className="z-[121] max-h-[90vh] max-w-[calc(100%-1rem)] overflow-hidden border border-white/10 bg-slate-950/95 p-0 text-white sm:max-w-4xl"
+          className="z-[121] max-h-[90vh] max-w-[calc(100%-1rem)] overflow-hidden border border-(--ws-line) bg-(--ws-popover) p-0 text-(--ws-fg) sm:max-w-4xl"
         >
-          <DialogHeader className="border-b border-white/10 p-4 sm:p-6">
+          <DialogHeader className="border-b border-(--ws-line) p-4 sm:p-6">
             <DialogTitle className="text-base sm:text-lg">
               Recipient Details ({detailsRun?.channel.toUpperCase() || "RUN"})
             </DialogTitle>
-            <DialogDescription className="text-xs text-white/60 sm:text-sm">
+            <DialogDescription className="text-xs text-(--ws-fg-60) sm:text-sm">
               Run ID: {detailsRun?.runId || "—"}
               {detailsRun?.createdAt ? ` • ${formatDateTime(detailsRun.createdAt)}` : ""}
             </DialogDescription>
@@ -866,27 +866,27 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
 
           <div className="space-y-3 overflow-y-auto p-4 sm:p-6">
             <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-              <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-                <p className="text-[11px] text-white/50">Attempted</p>
-                <p className="text-base font-semibold text-white">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2.5">
+                <p className="text-[11px] text-(--ws-fg-50)">Attempted</p>
+                <p className="text-base font-semibold text-(--ws-fg)">
                   {detailsRun?.summary.attempted || 0}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-                <p className="text-[11px] text-white/50">Sent</p>
-                <p className="text-base font-semibold text-emerald-300">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2.5">
+                <p className="text-[11px] text-(--ws-fg-50)">Sent</p>
+                <p className="text-base font-semibold text-(--ws-emerald)">
                   {detailsRun?.summary.sent || 0}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-                <p className="text-[11px] text-white/50">Failed</p>
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2.5">
+                <p className="text-[11px] text-(--ws-fg-50)">Failed</p>
                 <p className="text-base font-semibold text-rose-300">
                   {detailsRun?.summary.failed || 0}
                 </p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-                <p className="text-[11px] text-white/50">Skipped</p>
-                <p className="text-base font-semibold text-amber-300">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2.5">
+                <p className="text-[11px] text-(--ws-fg-50)">Skipped</p>
+                <p className="text-base font-semibold text-(--ws-amber)">
                   {detailsRun?.summary.skipped || 0}
                 </p>
               </div>
@@ -897,23 +897,23 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                 {detailsRun.deliveries.map((delivery) => (
                   <div
                     key={`${detailsRun.runId}:${delivery.recipientUserId}`}
-                    className="rounded-lg border border-white/10 bg-black/10 p-3"
+                    className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-(--ws-fg)">
                           {delivery.guardianName}
                         </p>
-                        <p className="text-xs text-white/60">
+                        <p className="text-xs text-(--ws-fg-60)">
                           {delivery.contact || "No channel contact"}
                         </p>
                       </div>
                       {renderStatusBadge(delivery.status)}
                     </div>
                     {delivery.reason ? (
-                      <p className="mt-1 text-xs text-amber-200">{delivery.reason}</p>
+                      <p className="mt-1 text-xs text-(--ws-amber)">{delivery.reason}</p>
                     ) : null}
-                    <p className="mt-2 text-xs text-white/65">
+                    <p className="mt-2 text-xs text-(--ws-fg-60)">
                       {delivery.students.length} ward(s) •{" "}
                       {formatCurrency(delivery.totalOutstandingMinor)}
                     </p>
@@ -921,13 +921,13 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                       {delivery.students.map((student) => (
                         <div
                           key={`${delivery.recipientUserId}:${student.studentId}`}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-white/5 px-2.5 py-2"
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2.5 py-2"
                         >
-                          <p className="text-xs text-white/85">
+                          <p className="text-xs text-(--ws-fg-80)">
                             {student.studentName}
                             {student.classGroupName ? ` • ${student.classGroupName}` : ""}
                           </p>
-                          <p className="text-xs text-white/65">
+                          <p className="text-xs text-(--ws-fg-60)">
                             {formatCurrency(student.outstandingMinor)}
                           </p>
                         </div>
@@ -937,15 +937,15 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/60">No recipient rows stored for this run.</p>
+              <p className="text-sm text-(--ws-fg-60)">No recipient rows stored for this run.</p>
             )}
           </div>
 
-          <DialogFooter className="border-t border-white/10 p-4 sm:p-6">
+          <DialogFooter className="border-t border-(--ws-line) p-4 sm:p-6">
             <Button
               variant="outline"
               onClick={() => setDetailsRun(null)}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               Close
             </Button>

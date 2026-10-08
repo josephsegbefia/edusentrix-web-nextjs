@@ -44,12 +44,12 @@ export function ConfirmationDialog({
       zIndexClass={zIndexClass}
     >
       <div className="space-y-5">
-        <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-(--ws-line) pt-4">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             {cancelLabel}
           </Button>
@@ -57,9 +57,8 @@ export function ConfirmationDialog({
             type="button"
             onClick={onConfirm}
             className={cn(
-              "text-white",
-              intent === "destructive" && "bg-rose-600 hover:bg-rose-700",
-              intent === "warning" && "bg-amber-600 hover:bg-amber-700",
+              intent === "destructive" && "bg-rose-600 text-white hover:bg-rose-700",
+              intent === "warning" && "bg-amber-600 text-white hover:bg-amber-700",
               intent === "default" && "bg-brand text-black hover:opacity-90"
             )}
           >

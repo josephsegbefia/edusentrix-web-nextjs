@@ -34,13 +34,13 @@ export function AcademicBadgePill({
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full border border-amber-400/50",
-        "bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-50 backdrop-blur"
+        "bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-(--ws-amber) backdrop-blur"
       )}
     >
       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
       <span>{label}</span>
       {typeof latestAverage === "number" && (
-        <span className="text-[10px] text-amber-100/80">
+        <span className="text-[10px] text-(--ws-amber)">
           {latestAverage.toFixed(0)}%
         </span>
       )}

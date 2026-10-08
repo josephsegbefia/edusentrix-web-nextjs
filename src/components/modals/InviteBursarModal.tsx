@@ -148,8 +148,8 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
 
   if (!me?.schoolId) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-        <div className="text-sm text-white/60">School ID not available</div>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+        <div className="text-sm text-(--ws-fg-60)">School ID not available</div>
       </div>
     );
   }
@@ -166,7 +166,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
       className="space-y-8"
     >
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {STEPS.length}
         </div>
@@ -175,7 +175,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -214,7 +214,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                     id="firstName"
                     {...register("firstName")}
                     placeholder="Ama"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.firstName && (
                     <div className="text-xs text-rose-300">
@@ -233,7 +233,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                     id="lastName"
                     {...register("lastName")}
                     placeholder="Mensah"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.lastName && (
                     <div className="text-xs text-rose-300">
@@ -257,7 +257,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                     type="email"
                     {...register("email")}
                     placeholder="bursar@school.edu.gh"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.email && (
                     <div className="text-xs text-rose-300">
@@ -276,7 +276,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                   <GhanaPhoneInput
                     id="phone"
                     {...register("phone")}
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.phone && (
                     <div className="text-xs text-rose-300">
@@ -300,7 +300,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                   transition={{ duration: 0.3 }}
                   className="relative"
                 >
-                  <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-white/10 bg-white/5 shadow-lg">
+                  <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-(--ws-line) bg-(--ws-fill) shadow-lg">
                     <AnimatePresence mode="wait">
                       {photoUrl ? (
                         <motion.div
@@ -341,7 +341,7 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       onClick={handleRemovePhoto}
-                      className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white/10 bg-rose-500 text-white shadow-lg transition-colors hover:bg-rose-600"
+                      className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border-2 border-(--ws-line) bg-rose-500 text-(--ws-fg) shadow-lg transition-colors hover:bg-rose-600"
                     >
                       <X className="h-4 w-4" />
                     </motion.button>
@@ -378,29 +378,29 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                 Review Invitation
               </h2>
-              <div className="space-y-3 rounded-lg border border-white/10 bg-white/5 p-4">
+              <div className="space-y-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                   <div>
                     <span className="text-muted-foreground/70">Name:</span>
-                    <p className="font-medium text-white/90">
+                    <p className="font-medium text-(--ws-fg-90)">
                       {firstName} {lastName}
                     </p>
                   </div>
                   <div>
                     <span className="text-muted-foreground/70">Email:</span>
-                    <p className="font-medium text-white/90">{email}</p>
+                    <p className="font-medium text-(--ws-fg-90)">{email}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground/70">Phone:</span>
-                    <p className="font-medium text-white/90">{phone || "—"}</p>
+                    <p className="font-medium text-(--ws-fg-90)">{phone || "—"}</p>
                   </div>
                   <div>
                     <span className="text-muted-foreground/70">Role:</span>
-                    <p className="font-medium text-white/90">Bursar</p>
+                    <p className="font-medium text-(--ws-fg-90)">Bursar</p>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-(--ws-fg-60)">
                 The bursar will receive an email invitation to join your school finance
                 workspace.
               </p>
@@ -409,13 +409,13 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex items-center justify-between border-t border-white/10 pt-6">
+      <div className="flex items-center justify-between border-t border-(--ws-line) pt-6">
         <Button
           type="button"
           variant="outline"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isSubmitting || isLoading}
-          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           <ChevronLeft className="h-4 w-4" />
           {isFirstStep ? "Cancel" : "Previous"}

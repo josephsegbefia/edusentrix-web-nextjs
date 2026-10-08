@@ -72,11 +72,11 @@ export function ExistingGuardianLinker({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-white">Link existing parent</p>
-            <p className="mt-1 text-xs text-white/55">
+            <p className="text-sm font-semibold text-(--ws-fg)">Link existing parent</p>
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               Search by name, email, or phone. Existing parent accounts are linked without sending another invite.
             </p>
           </div>
@@ -84,36 +84,36 @@ export function ExistingGuardianLinker({
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="border-white/15 bg-transparent text-white/70 hover:bg-white/10"
+            className="border-(--ws-line-strong) bg-transparent text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
           >
             Back
           </Button>
         </div>
         <div className="relative mt-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search parent name, email, or phone"
-            className="border-white/15 bg-white/5 pl-9 text-white placeholder:text-white/35"
+            className="border-(--ws-line-strong) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
           />
         </div>
       </div>
 
       {query.trim().length < 2 ? (
-        <div className="rounded-xl border border-dashed border-white/15 bg-white/5 p-6 text-center text-sm text-white/55">
+        <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) p-6 text-center text-sm text-(--ws-fg-50)">
           Type at least two characters to search existing parents.
         </div>
       ) : search.isLoading ? (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-sm text-white/55">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center text-sm text-(--ws-fg-50)">
           Searching...
         </div>
       ) : search.isError ? (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-(--ws-rose)">
           {search.error instanceof Error ? search.error.message : "Search failed"}
         </div>
       ) : results.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/15 bg-white/5 p-6 text-center text-sm text-white/55">
+        <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) p-6 text-center text-sm text-(--ws-fg-50)">
           No existing parent matched this search. Use Add New Parent instead.
         </div>
       ) : (
@@ -123,28 +123,28 @@ export function ExistingGuardianLinker({
             return (
               <div
                 key={guardian.userId}
-                className="rounded-xl border border-white/10 bg-black/30 p-4"
+                className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-white">{guardian.fullName}</p>
+                      <p className="font-semibold text-(--ws-fg)">{guardian.fullName}</p>
                       {result.alreadyLinked ? (
-                        <Badge className="border border-amber-400/30 bg-amber-500/15 text-amber-100">
+                        <Badge className="border border-amber-400/30 bg-amber-500/15 text-(--ws-amber)">
                           Already linked
                         </Badge>
                       ) : null}
                       {guardian.hasPlatformAccount ? (
-                        <Badge className="border border-emerald-400/30 bg-emerald-500/15 text-emerald-100">
+                        <Badge className="border border-emerald-400/30 bg-emerald-500/15 text-(--ws-emerald)">
                           Has login
                         </Badge>
                       ) : (
-                        <Badge className="border border-white/15 bg-white/5 text-white/65">
+                        <Badge className="border border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                           No login yet
                         </Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-3 text-xs text-white/60">
+                    <div className="flex flex-wrap gap-3 text-xs text-(--ws-fg-60)">
                       <span className="inline-flex items-center gap-1.5">
                         <Mail className="h-3.5 w-3.5" />
                         {guardian.email}
@@ -156,9 +156,9 @@ export function ExistingGuardianLinker({
                         </span>
                       ) : null}
                     </div>
-                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                      <div className="flex items-center gap-2 text-xs font-medium text-white/75">
-                        <Users className="h-3.5 w-3.5 text-cyan-300" />
+                    <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="flex items-center gap-2 text-xs font-medium text-(--ws-fg-70)">
+                        <Users className="h-3.5 w-3.5 text-(--ws-cyan)" />
                         {siblingText(result)}
                       </div>
                       {result.siblingCandidates.length ? (
@@ -167,7 +167,7 @@ export function ExistingGuardianLinker({
                             <Badge
                               key={candidate.studentId}
                               variant="outline"
-                              className="border-white/15 text-white/65"
+                              className="border-(--ws-line-strong) text-(--ws-fg-60)"
                             >
                               {candidate.studentName}
                               {candidate.classGroupName ? ` · ${candidate.classGroupName}` : ""}
@@ -188,7 +188,7 @@ export function ExistingGuardianLinker({
                         }))
                       }
                       disabled={result.alreadyLinked || linkExisting.isPending}
-                      className="h-10 w-full rounded-md border border-white/15 bg-slate-950 px-3 text-sm text-white"
+                      className="h-10 w-full rounded-md border border-(--ws-line-strong) bg-(--ws-popover) px-3 text-sm text-(--ws-fg)"
                     >
                       {RELATIONSHIP_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -196,7 +196,7 @@ export function ExistingGuardianLinker({
                         </option>
                       ))}
                     </select>
-                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-70)">
                       <input
                         type="checkbox"
                         checked={Boolean(primaryByUser[guardian.userId])}
@@ -208,7 +208,7 @@ export function ExistingGuardianLinker({
                         }
                         disabled={result.alreadyLinked || linkExisting.isPending}
                       />
-                      <Star className="h-3.5 w-3.5 text-amber-300" />
+                      <Star className="h-3.5 w-3.5 text-(--ws-amber)" />
                       Set as primary
                     </label>
                     <Button

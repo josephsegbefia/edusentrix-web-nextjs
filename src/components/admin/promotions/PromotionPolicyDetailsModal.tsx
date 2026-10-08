@@ -39,20 +39,20 @@ export function PromotionPolicyDetailsModal({
         <div className="flex flex-wrap items-center gap-2">
           <Badge
             variant="outline"
-            className="border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+            className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
           >
             {policy.isActive ? "Active" : "Draft"}
           </Badge>
           <Badge
             variant="outline"
-            className="border-white/10 bg-white/[0.04] text-white/70"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
           >
             v{policy.version}
           </Badge>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
             Scope
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -61,7 +61,7 @@ export function PromotionPolicyDetailsModal({
                 <Badge
                   key={scopeName}
                   variant="outline"
-                  className="border-cyan-400/30 bg-cyan-500/10 text-cyan-100"
+                  className="border-cyan-400/30 bg-cyan-500/10 text-(--ws-cyan)"
                 >
                   {scopeName}
                 </Badge>
@@ -69,7 +69,7 @@ export function PromotionPolicyDetailsModal({
             ) : (
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/[0.04] text-white/70"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
               >
                 All grades
               </Badge>
@@ -78,15 +78,15 @@ export function PromotionPolicyDetailsModal({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <SlidersHorizontal className="h-4 w-4 text-cyan-100" />
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <div className="flex items-center gap-2 text-(--ws-fg)">
+              <SlidersHorizontal className="h-4 w-4 text-(--ws-cyan)" />
               <p className="font-medium">Criteria</p>
             </div>
-            <ul className="mt-3 space-y-2 text-sm text-white/72">
+            <ul className="mt-3 space-y-2 text-sm text-(--ws-fg)/72">
               {policy.criteria.map((criterion) => (
                 <li key={`${criterion.key}-${criterion.operator}-${criterion.value}`} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                   <span>
                     {criterion.key.replace(/_/g, " ")} {criterion.operator} {criterion.value}
                     {criterion.required ? " required" : ""}
@@ -96,38 +96,38 @@ export function PromotionPolicyDetailsModal({
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <ShieldCheck className="h-4 w-4 text-cyan-100" />
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <div className="flex items-center gap-2 text-(--ws-fg)">
+              <ShieldCheck className="h-4 w-4 text-(--ws-cyan)" />
               <p className="font-medium">Safeguards</p>
             </div>
-            <ul className="mt-3 space-y-2 text-sm text-white/72">
+            <ul className="mt-3 space-y-2 text-sm text-(--ws-fg)/72">
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                 <span>
                   Excused absences{" "}
                   {policy.attendanceComputation.treatExcusedAsPresent ? "count as present" : "do not count as present"}
                 </span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                 <span>
                   Finance hold {policy.financeHold.enabled ? "enabled" : "disabled"}
                 </span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-100" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                 <span>Tie breaker: {policy.tieBreaker.replace(/_/g, " ")}</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-white/10 pt-4">
+        <div className="flex justify-end border-t border-(--ws-line) pt-4">
           <Button
             type="button"
             variant="outline"
-            className="gap-2 border-rose-500/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/15"
+            className="gap-2 border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/15"
             onClick={() => onDelete?.(policy)}
             disabled={!onDelete || isDeleting}
           >

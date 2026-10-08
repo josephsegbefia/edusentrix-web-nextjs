@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOverdueRisk } from "@/hooks/admin/useOverdueRisk";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { formatCurrency } from "@/lib/fees/money";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 function formatDate(value: string | null) {
   if (!value) return "N/A";
@@ -89,12 +90,13 @@ export default function OverdueReportPage() {
   };
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/50">Finance</p>
-          <h1 className="text-2xl font-semibold text-white">Overdue Report</h1>
-          <p className="text-sm text-white/60">
+          <p className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-50)">Finance</p>
+          <h1 className="text-2xl font-semibold text-(--ws-fg)">Overdue Report</h1>
+          <p className="text-sm text-(--ws-fg-60)">
             Verified snapshot of outstanding overdue invoices and risk exposure.
           </p>
         </div>
@@ -104,7 +106,7 @@ export default function OverdueReportPage() {
             variant="outline"
             onClick={() => void overdueRiskQuery.refetch()}
             disabled={overdueRiskQuery.isFetching}
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             <RefreshCw
               className={`mr-2 h-4 w-4 ${overdueRiskQuery.isFetching ? "animate-spin" : ""}`}
@@ -123,19 +125,19 @@ export default function OverdueReportPage() {
         </div>
       </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent">
         <CardHeader className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <AlertTriangle className="h-5 w-5 text-rose-300" />
             Overdue Exposure
           </CardTitle>
-          <Badge className="border border-white/10 bg-white/10 text-white/70">
+          <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
             As of {formatDate(snapshot?.asOf ?? null)}
           </Badge>
         </CardHeader>
         <CardContent>
           {overdueRiskQuery.isLoading ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-70)">
               Loading overdue report data...
             </div>
           ) : overdueRiskQuery.isError ? (
@@ -145,44 +147,44 @@ export default function OverdueReportPage() {
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs text-white/55">Total Overdue</div>
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <div className="text-xs text-(--ws-fg-50)">Total Overdue</div>
                   <div className="mt-1 text-lg font-semibold text-rose-200">
                     {formatCurrency(summary?.totalOutstandingMinor ?? 0)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs text-white/55">Overdue Bills</div>
-                  <div className="mt-1 text-lg font-semibold text-white">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <div className="text-xs text-(--ws-fg-50)">Overdue Bills</div>
+                  <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                     {summary?.overdueInvoiceCount ?? 0}
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs text-white/55">Students Affected</div>
-                  <div className="mt-1 text-lg font-semibold text-white">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <div className="text-xs text-(--ws-fg-50)">Students Affected</div>
+                  <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                     {summary?.overdueStudentCount ?? 0}
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-xs text-white/55">Aging 30+ Days</div>
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <div className="text-xs text-(--ws-fg-50)">Aging 30+ Days</div>
                   <div className="mt-1 text-lg font-semibold text-rose-300">
                     {summary?.buckets["30_plus"]?.invoiceCount ?? 0}
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-black/20">
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                  <div className="text-sm font-medium text-white">Overdue Students</div>
-                  <div className="flex items-center gap-2 text-xs text-white/55">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill)">
+                <div className="flex items-center justify-between border-b border-(--ws-line) px-4 py-3">
+                  <div className="text-sm font-medium text-(--ws-fg)">Overdue Students</div>
+                  <div className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     PDF includes verification ID and QR
                   </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
-                    <thead className="text-xs uppercase tracking-[0.12em] text-white/45">
-                      <tr className="border-b border-white/10">
+                    <thead className="text-xs uppercase tracking-[0.12em] text-(--ws-fg-40)">
+                      <tr className="border-b border-(--ws-line)">
                         <th className="px-4 py-3">Student</th>
                         <th className="px-4 py-3">Guardian Contact</th>
                         <th className="px-4 py-3">Days Overdue</th>
@@ -194,7 +196,7 @@ export default function OverdueReportPage() {
                       {rows.length === 0 ? (
                         <tr>
                           <td
-                            className="px-4 py-6 text-center text-sm text-white/60"
+                            className="px-4 py-6 text-center text-sm text-(--ws-fg-60)"
                             colSpan={5}
                           >
                             No overdue records found.
@@ -204,16 +206,16 @@ export default function OverdueReportPage() {
                         rows.map((row) => (
                           <tr
                             key={row.studentId}
-                            className="border-b border-white/5 text-white/85"
+                            className="border-b border-(--ws-line) text-(--ws-fg)/85"
                           >
                             <td className="px-4 py-3">
                               <div className="font-medium">{row.studentName}</div>
-                              <div className="text-xs text-white/50">
+                              <div className="text-xs text-(--ws-fg-50)">
                                 {row.admissionNo || "No admission no."}
                                 {row.classGroupName ? ` • ${row.classGroupName}` : ""}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-xs text-white/70">
+                            <td className="px-4 py-3 text-xs text-(--ws-fg-70)">
                               {row.primaryGuardian ? (
                                 <div>
                                   <div>{row.primaryGuardian.name}</div>
@@ -238,7 +240,7 @@ export default function OverdueReportPage() {
                   </table>
                 </div>
                 {snapshot?.truncated ? (
-                  <div className="border-t border-white/10 px-4 py-2 text-xs text-white/55">
+                  <div className="border-t border-(--ws-line) px-4 py-2 text-xs text-(--ws-fg-50)">
                     Showing {rows.length} of {snapshot.totalRows} overdue students.
                   </div>
                 ) : null}
@@ -248,7 +250,7 @@ export default function OverdueReportPage() {
         </CardContent>
       </Card>
 
-      <div className="text-sm text-white/55">
+      <div className="text-sm text-(--ws-fg-50)">
         Need broader analytics? Open{" "}
         <Link href="/admin/reports" className="text-brand hover:opacity-90">
           Reports
@@ -256,5 +258,6 @@ export default function OverdueReportPage() {
         for full export options.
       </div>
     </div>
+    </WorkspaceScope>
   );
 }

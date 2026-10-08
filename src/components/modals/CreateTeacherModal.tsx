@@ -68,7 +68,7 @@ function FieldInfo({ text, label }: { text: string; label: string }) {
         <button
           type="button"
           aria-label={label}
-          className="shrink-0 rounded p-0.5 text-white/35 outline-none hover:bg-white/10 hover:text-white/75 focus-visible:ring-1 focus-visible:ring-brand"
+          className="shrink-0 rounded p-0.5 text-(--ws-fg-40) outline-none hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-70) focus-visible:ring-1 focus-visible:ring-brand"
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -80,7 +80,7 @@ function FieldInfo({ text, label }: { text: string; label: string }) {
       <TooltipContent
         side="right"
         align="center"
-        className="z-400 max-w-xs border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-lg"
+        className="z-400 max-w-xs border border-(--ws-line) bg-(--ws-popover) px-3 py-2 text-xs leading-relaxed text-(--ws-fg-90) shadow-lg"
       >
         {text}
       </TooltipContent>
@@ -429,8 +429,8 @@ export default function CreateTeacherModal({
 
   if (!me?.schoolId) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-        <div className="text-sm text-white/60">School ID not available</div>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+        <div className="text-sm text-(--ws-fg-60)">School ID not available</div>
       </div>
     );
   }
@@ -450,7 +450,7 @@ export default function CreateTeacherModal({
         className="space-y-8"
       >
         <div className="flex items-center justify-between pb-6">
-          <div className="text-sm text-white/70">
+          <div className="text-sm text-(--ws-fg-70)">
             Step <span className="font-semibold">{currentStep}</span> of{" "}
             {TOTAL_STEPS}
           </div>
@@ -459,7 +459,7 @@ export default function CreateTeacherModal({
               <span
                 key={i}
                 className={`h-1.5 w-8 rounded-full transition-all ${
-                  i <= currentStep ? "bg-brand" : "bg-white/20"
+                  i <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
                 }`}
               />
             ))}
@@ -491,7 +491,7 @@ export default function CreateTeacherModal({
                       id="firstName"
                       {...register("firstName")}
                       placeholder="John"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                     {errors.firstName && (
                       <div className="text-xs text-rose-300">
@@ -510,7 +510,7 @@ export default function CreateTeacherModal({
                       id="lastName"
                       {...register("lastName")}
                       placeholder="Doe"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                     {errors.lastName && (
                       <div className="text-xs text-rose-300">
@@ -533,7 +533,7 @@ export default function CreateTeacherModal({
                       type="email"
                       {...register("email")}
                       placeholder="john.doe@example.com"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                     {errors.email && (
                       <div className="text-xs text-rose-300">
@@ -551,7 +551,7 @@ export default function CreateTeacherModal({
                     <GhanaPhoneInput
                       id="phone"
                       {...register("phone")}
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
@@ -571,7 +571,7 @@ export default function CreateTeacherModal({
                       transition={{ duration: 0.3 }}
                       className="relative"
                     >
-                      <div className="relative w-36 h-36 rounded-full border-4 border-white/10 bg-white/5 overflow-hidden shadow-lg">
+                      <div className="relative w-36 h-36 rounded-full border-4 border-(--ws-line) bg-(--ws-fill) overflow-hidden shadow-lg">
                         <AnimatePresence mode="wait">
                           {avatarPhotoUrl ? (
                             <motion.div
@@ -610,7 +610,7 @@ export default function CreateTeacherModal({
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           onClick={handleRemovePhoto}
-                          className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-white/10 flex items-center justify-center text-white shadow-lg transition-colors"
+                          className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-(--ws-line) flex items-center justify-center text-(--ws-fg) shadow-lg transition-colors"
                         >
                           <X className="h-4 w-4" />
                         </motion.button>
@@ -659,7 +659,7 @@ export default function CreateTeacherModal({
                             className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
                               field.value === s
                                 ? "border-brand bg-brand/20 text-brand"
-                                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                             }`}
                           >
                             <input
@@ -691,19 +691,19 @@ export default function CreateTeacherModal({
                       text="Homeroom is the class this teacher leads as a form teacher, if applicable. Subject teaching assignments can be set later from the teacher or class pages."
                     />
                   </div>
-                  <p className="text-sm text-white/65">
+                  <p className="text-sm text-(--ws-fg-60)">
                     Pick a class group now, or skip and assign subjects and
                     classes after the teacher is created.
                   </p>
 
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--ws-fg-40)" />
                     <Input
                       type="text"
                       placeholder="Search class groups..."
                       value={qClass}
                       onChange={(e) => setQClass(e.target.value)}
-                      className="pl-10 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="pl-10 border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
@@ -712,13 +712,13 @@ export default function CreateTeacherModal({
                     control={control}
                     render={({ field }) => (
                       <div className="space-y-2">
-                        <div className="max-h-72 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                        <div className="max-h-72 overflow-y-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
                           {classLoading ? (
-                            <div className="text-xs text-white/50 py-4 text-center">
+                            <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                               Loading class groups…
                             </div>
                           ) : classResults.length === 0 ? (
-                            <div className="text-xs text-white/50 py-4 text-center">
+                            <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                               {qClass.trim()
                                 ? "No class groups found matching your search"
                                 : "Search to pick a homeroom class group."}
@@ -733,7 +733,7 @@ export default function CreateTeacherModal({
                                 className={`relative rounded-lg border-2 px-4 py-3 text-left transition-all ${
                                   !field.value
                                     ? "border-brand bg-brand/10 text-brand"
-                                    : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                                 }`}
                               >
                                 {!field.value && (
@@ -746,7 +746,7 @@ export default function CreateTeacherModal({
                                   </motion.div>
                                 )}
                                 <div className="font-semibold">No homeroom</div>
-                                <div className="text-xs text-white/60">
+                                <div className="text-xs text-(--ws-fg-60)">
                                   Skip for now
                                 </div>
                               </motion.button>
@@ -769,7 +769,7 @@ export default function CreateTeacherModal({
                                     className={`relative rounded-lg border-2 px-4 py-3 text-left transition-all ${
                                       selected
                                         ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                                        : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                                     }`}
                                   >
                                     {selected && (
@@ -785,7 +785,7 @@ export default function CreateTeacherModal({
                                       {cg.name}
                                     </div>
                                     {sub ? (
-                                      <div className="text-xs text-white/60">
+                                      <div className="text-xs text-(--ws-fg-60)">
                                         {sub}
                                       </div>
                                     ) : null}
@@ -807,26 +807,26 @@ export default function CreateTeacherModal({
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Review &amp; invite
                 </h2>
-                <p className="text-sm text-white/70">
+                <p className="text-sm text-(--ws-fg-70)">
                   Nothing is saved until you create the teacher. We&apos;ll send a
                   secure email invite so they can set a password and sign in.
                 </p>
 
                 {reviewConflictLoading ? (
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/65">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-60)">
                     Checking existing homeroom assignment…
                   </div>
                 ) : null}
 
                 {reviewConflictError ? (
-                  <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+                  <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)/90">
                     {reviewConflictError}
                   </div>
                 ) : null}
 
                 {reviewHomeroomConflict ? (
                   <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-100/90">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-amber)/90">
                       Homeroom already assigned
                     </p>
                     <p className="text-sm leading-relaxed text-amber-50/95">
@@ -843,44 +843,44 @@ export default function CreateTeacherModal({
                   </div>
                 ) : null}
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4 text-sm">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4 text-sm">
                   <div>
-                    <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
+                    <div className="text-xs uppercase tracking-[0.15em] text-(--ws-fg-40) mb-1">
                       Name
                     </div>
-                    <div className="text-white font-medium">
+                    <div className="text-(--ws-fg) font-medium">
                       {firstName} {lastName}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
+                      <div className="text-xs uppercase tracking-[0.15em] text-(--ws-fg-40) mb-1">
                         Email
                       </div>
-                      <div className="text-white/90">{watchedEmail || "—"}</div>
+                      <div className="text-(--ws-fg-90)">{watchedEmail || "—"}</div>
                     </div>
                     <div>
-                      <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
+                      <div className="text-xs uppercase tracking-[0.15em] text-(--ws-fg-40) mb-1">
                         Phone
                       </div>
-                      <div className="text-white/90">
+                      <div className="text-(--ws-fg-90)">
                         {watchedPhone?.trim() ? watchedPhone : "—"}
                       </div>
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
+                    <div className="text-xs uppercase tracking-[0.15em] text-(--ws-fg-40) mb-1">
                       Status
                     </div>
-                    <div className="capitalize text-white/90">
+                    <div className="capitalize text-(--ws-fg-90)">
                       {watchedStatus || "—"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
+                    <div className="text-xs uppercase tracking-[0.15em] text-(--ws-fg-40) mb-1">
                       Homeroom
                     </div>
-                    <div className="text-white/90">
+                    <div className="text-(--ws-fg-90)">
                       {watchedHomeroom
                         ? reviewLoading
                           ? "…"
@@ -888,7 +888,7 @@ export default function CreateTeacherModal({
                         : "None — assign subjects and classes later from the teacher profile"}
                     </div>
                     {reviewHomeroomConflict ? (
-                      <div className="mt-1 text-xs text-amber-200/90">
+                      <div className="mt-1 text-xs text-(--ws-amber)/90">
                         This will replace{" "}
                         {reviewHomeroomConflict.teacherName} as the current
                         homeroom teacher.
@@ -901,13 +901,13 @@ export default function CreateTeacherModal({
           </motion.div>
         </AnimatePresence>
 
-        <div className="flex items-center justify-between pt-6 border-t border-white/10">
+        <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
           <Button
             type="button"
             variant="outline"
             onClick={isFirstStep ? onClose : handlePrevious}
             disabled={isSubmitting || isLoading}
-            className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             <ChevronLeft className="h-4 w-4" />
             {isFirstStep ? "Cancel" : "Previous"}

@@ -45,7 +45,7 @@ export default function TeacherModalShell({
         }}
       />
       <div className="relative z-10 flex min-h-full items-center justify-center p-4">
-        <div className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40">
+        <div className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) shadow-[var(--ws-shadow)]">
           <div className="px-6 pt-6">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
@@ -55,13 +55,13 @@ export default function TeacherModalShell({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                className="h-9 w-9 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 onClick={onClose}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-5 h-px bg-white/10" />
+            <div className="mt-5 h-px bg-(--ws-fill-strong)" />
           </div>
           <div className="max-h-[70vh] overflow-y-auto px-6 py-6">{children}</div>
         </div>

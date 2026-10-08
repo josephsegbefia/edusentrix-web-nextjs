@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookPlus, ImagePlus, Layers3, Loader2 } from "lucide-react";
@@ -90,17 +91,20 @@ export default function AdminLibraryNewBookPage() {
 
   if (capsLoading) {
     return (
+      <WorkspaceScope>
       <LibraryPageShell>
         <LibraryBackLink href="/admin/library/books" label="Back to books" />
         <div className="flex justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-white/40" />
+          <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
         </div>
       </LibraryPageShell>
+    </WorkspaceScope>
     );
   }
 
   if (!canCreate) {
     return (
+      <WorkspaceScope>
       <LibraryPageShell>
         <LibraryBackLink href="/admin/library/books" label="Back to books" />
         <LibraryPageHeader
@@ -108,18 +112,20 @@ export default function AdminLibraryNewBookPage() {
           title="New book"
           description="Your library delegation does not include creating catalogue records."
         />
-        <p className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <p className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
           Ask a school admin for the “create books” library permission or use the librarian preset.
         </p>
-        <Button asChild variant="outline" className="border-white/20 text-white">
+        <Button asChild variant="outline" className="border-(--ws-line-strong) text-(--ws-fg)">
           <Link href="/admin/library/books">Back to books</Link>
         </Button>
       </LibraryPageShell>
+    </WorkspaceScope>
     );
   }
 
   return (
-    <LibraryPageShell>
+    <WorkspaceScope>
+      <LibraryPageShell>
       <LibraryBackLink href="/admin/library/books" label="Back to books" />
       <LibraryPageHeader
         icon={BookPlus}
@@ -131,106 +137,106 @@ export default function AdminLibraryNewBookPage() {
         <div className="space-y-6">
         <section className={`${libraryGlassPanel} space-y-5 p-5`}>
           <div>
-            <h2 className="text-base font-semibold text-white">Book details</h2>
-            <p className="mt-1 text-sm text-white/50">Core metadata shown across the library catalogue.</p>
+            <h2 className="text-base font-semibold text-(--ws-fg)">Book details</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">Core metadata shown across the library catalogue.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label className="text-white/80">Title</Label>
+              <Label className="text-(--ws-fg-80)">Title</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Author</Label>
+              <Label className="text-(--ws-fg-80)">Author</Label>
               <Input
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">ISBN</Label>
+              <Label className="text-(--ws-fg-80)">ISBN</Label>
               <Input
                 value={isbn}
                 onChange={(e) => setIsbn(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Publisher</Label>
+              <Label className="text-(--ws-fg-80)">Publisher</Label>
               <Input
                 value={publisher}
                 onChange={(e) => setPublisher(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Language</Label>
+              <Label className="text-(--ws-fg-80)">Language</Label>
               <Input
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Shelf / stack</Label>
+              <Label className="text-(--ws-fg-80)">Shelf / stack</Label>
               <Input
                 value={shelfLocation}
                 onChange={(e) => setShelfLocation(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Category</Label>
+              <Label className="text-(--ws-fg-80)">Category</Label>
               <Input
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-white/80">Subject</Label>
+              <Label className="text-(--ws-fg-80)">Subject</Label>
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="border-white/15 bg-white/[0.05] text-white"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-white/80">Description</Label>
+            <Label className="text-(--ws-fg-80)">Description</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="border-white/15 bg-white/[0.05] text-white"
+              className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-white/80">Tags (comma-separated)</Label>
+            <Label className="text-(--ws-fg-80)">Tags (comma-separated)</Label>
             <Input
               value={tagsRaw}
               onChange={(e) => setTagsRaw(e.target.value)}
               placeholder="fiction, jhs, reading-list"
-              className="border-white/15 bg-white/[0.05] text-white"
+              className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
             />
           </div>
         </section>
 
         <section className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div>
-            <h2 className="text-base font-semibold text-white">Reading level</h2>
-            <p className="mt-1 text-sm text-white/50">Optional. Link this title to the grades that should see it.</p>
+            <h2 className="text-base font-semibold text-(--ws-fg)">Reading level</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">Optional. Link this title to the grades that should see it.</p>
           </div>
           <div className="grid max-h-48 gap-2 overflow-y-auto sm:grid-cols-2">
             {grades.map((g) => (
               <label
                 key={g._id}
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/80 hover:bg-white/5"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--ws-line) px-3 py-2 text-sm text-(--ws-fg-80) hover:bg-(--ws-fill)"
               >
                 <Checkbox
                   checked={gradeLevelIds.includes(g._id)}
@@ -246,8 +252,8 @@ export default function AdminLibraryNewBookPage() {
         <aside className="space-y-6">
         <section className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div className="flex items-center gap-2">
-            <ImagePlus className="h-4 w-4 text-cyan-200" />
-            <h2 className="text-base font-semibold text-white">Cover image</h2>
+            <ImagePlus className="h-4 w-4 text-(--ws-cyan)" />
+            <h2 className="text-base font-semibold text-(--ws-fg)">Cover image</h2>
           </div>
           {schoolId ? (
             <LibraryBookCoverUpload
@@ -259,16 +265,16 @@ export default function AdminLibraryNewBookPage() {
               }}
             />
           ) : (
-            <p className="text-sm text-white/50">Loading school context…</p>
+            <p className="text-sm text-(--ws-fg-50)">Loading school context…</p>
           )}
         </section>
 
         <section className={`${libraryGlassPanel} space-y-4 p-5`}>
           <div className="flex items-center gap-2">
-            <Layers3 className="h-4 w-4 text-emerald-200" />
-            <h2 className="text-base font-semibold text-white">Initial copies</h2>
+            <Layers3 className="h-4 w-4 text-(--ws-emerald)" />
+            <h2 className="text-base font-semibold text-(--ws-fg)">Initial copies</h2>
           </div>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-(--ws-fg-50)">
             Creates numbered copies automatically. You can add more from the book detail page.
           </p>
           <Input
@@ -277,15 +283,15 @@ export default function AdminLibraryNewBookPage() {
             max={500}
             value={initialCopies}
             onChange={(e) => setInitialCopies(e.target.value)}
-            className="max-w-[200px] border-white/15 bg-white/[0.05] text-white"
+            className="max-w-[200px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
           />
         </section>
 
-        <div className="flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-linear-to-r from-white/5 to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
+        <div className="flex flex-wrap gap-3 rounded-2xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
           <Button
             type="submit"
             disabled={createBook.isPending || isRedirecting}
-            className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+            className="bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
           >
             {createBook.isPending || isRedirecting ? (
               <>
@@ -296,12 +302,13 @@ export default function AdminLibraryNewBookPage() {
               "Create book"
             )}
           </Button>
-          <Button type="button" variant="outline" asChild className="border-white/20 text-white">
+          <Button type="button" variant="outline" asChild className="border-(--ws-line-strong) text-(--ws-fg)">
             <Link href="/admin/library/books">Cancel</Link>
           </Button>
         </div>
         </aside>
       </form>
     </LibraryPageShell>
+    </WorkspaceScope>
   );
 }

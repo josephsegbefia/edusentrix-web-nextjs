@@ -11,7 +11,7 @@ type Props = {
 
 export function ScoreComponentChips({ components, className }: Props) {
   if (components.length === 0) {
-    return <span className="text-[11px] text-white/40">No components</span>;
+    return <span className="text-[11px] text-(--ws-fg-40)">No components</span>;
   }
 
   return (
@@ -27,12 +27,12 @@ export function ScoreComponentChips({ components, className }: Props) {
           className={cn(
             "inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium",
             component.status === "missing"
-              ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-              : "border-white/10 bg-white/5 text-white/75"
+              ? "border-amber-400/30 bg-amber-500/10 text-(--ws-amber)"
+              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
           )}
         >
-          <span className="truncate text-white/50">{component.label}</span>
-          <span className="text-white/90">{formatComponentCellValue(component)}</span>
+          <span className="truncate text-(--ws-fg-50)">{component.label}</span>
+          <span className="text-(--ws-fg-90)">{formatComponentCellValue(component)}</span>
         </span>
       ))}
     </div>

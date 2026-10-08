@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns/format";
@@ -107,13 +108,13 @@ interface PollRowProps {
 
 function PollRow({ poll, onPublish, onClose, onDelete }: PollRowProps) {
   return (
-    <div className="group flex items-center gap-4 border-b border-white/5 px-5 py-4 transition-all hover:bg-white/[0.03]">
+    <div className="group flex items-center gap-4 border-b border-(--ws-line) px-5 py-4 transition-all hover:bg-(--ws-fill)">
       {/* Title & Status */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/community/polls/${poll.id}`}
-            className="truncate font-medium text-white transition-colors hover:text-violet-300"
+            className="truncate font-medium text-(--ws-fg) transition-colors hover:text-violet-300"
           >
             {poll.title}
           </Link>
@@ -121,20 +122,20 @@ function PollRow({ poll, onPublish, onClose, onDelete }: PollRowProps) {
             {poll.status.replaceAll("_", " ")}
           </Badge>
         </div>
-        <p className="mt-0.5 truncate text-sm text-white/50">
+        <p className="mt-0.5 truncate text-sm text-(--ws-fg-50)">
           {poll.questionCount} question{poll.questionCount !== 1 ? "s" : ""} ·{" "}
           {SCOPE_LABELS[poll.audience.scope] || poll.audience.scope}
         </p>
       </div>
 
       {/* Stats */}
-      <div className="hidden items-center gap-6 text-sm text-white/60 md:flex">
+      <div className="hidden items-center gap-6 text-sm text-(--ws-fg-60) md:flex">
         <span className="flex items-center gap-1.5">
           <Users className="h-4 w-4 text-violet-400/60" />
           {poll.totalVotes}
         </span>
         <span className="flex items-center gap-1.5">
-          <Clock className="h-4 w-4 text-white/40" />
+          <Clock className="h-4 w-4 text-(--ws-fg-40)" />
           {formatRelativeTime(poll.createdAt)}
         </span>
       </div>
@@ -142,7 +143,7 @@ function PollRow({ poll, onPublish, onClose, onDelete }: PollRowProps) {
       {/* Actions */}
       <PremiumDropdownMenu>
         <PremiumDropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:bg-white/10 hover:text-white">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </PremiumDropdownMenuTrigger>
@@ -312,15 +313,16 @@ export default function PollsListPage() {
   const draftCount = data?.data?.filter((p) => p.status === "draft").length ?? 0;
 
   return (
+    <WorkspaceScope>
     <div className="space-y-8">
       {/* ══════════════════════════════════════════════════════════════════════
           Premium Hero Header
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-8 shadow-[var(--ws-shadow)]">
         {/* Background decorations */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-transparent blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-purple-500/10 via-purple-500/5 to-transparent blur-3xl" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine-strong) to-transparent" />
 
         <div className="relative z-10">
           {/* Top row */}
@@ -330,18 +332,18 @@ export default function PollsListPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  className="h-10 w-10 rounded-xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/20 to-purple-500/20 shadow-lg shadow-violet-500/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-gradient-to-br from-violet-500/20 to-purple-500/20 shadow-lg shadow-violet-500/10">
                   <Vote className="h-6 w-6 text-violet-300" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-white">Community Polls</h1>
-                  <p className="text-sm text-white/60">Create and manage school-wide and targeted polls</p>
+                  <h1 className="text-3xl font-bold tracking-tight text-(--ws-fg)">Community Polls</h1>
+                  <p className="text-sm text-(--ws-fg-60)">Create and manage school-wide and targeted polls</p>
                 </div>
               </div>
             </div>
@@ -358,27 +360,27 @@ export default function PollsListPage() {
 
           {/* Quick Stats */}
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Live Polls</div>
-                <div className="text-3xl font-semibold text-white drop-shadow-sm">{liveCount}</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">Live Polls</div>
+                <div className="text-3xl font-semibold text-(--ws-fg) drop-shadow-sm">{liveCount}</div>
                 <div className="h-[3px] w-12 rounded-full bg-emerald-500/50" />
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Total Votes</div>
-                <div className="text-3xl font-semibold text-white drop-shadow-sm">{totalVotes.toLocaleString()}</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">Total Votes</div>
+                <div className="text-3xl font-semibold text-(--ws-fg) drop-shadow-sm">{totalVotes.toLocaleString()}</div>
                 <div className="h-[3px] w-12 rounded-full bg-violet-500/50" />
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Drafts</div>
-                <div className="text-3xl font-semibold text-white drop-shadow-sm">{draftCount}</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">Drafts</div>
+                <div className="text-3xl font-semibold text-(--ws-fg) drop-shadow-sm">{draftCount}</div>
                 <div className="h-[3px] w-12 rounded-full bg-amber-500/50" />
               </div>
             </div>
@@ -391,12 +393,12 @@ export default function PollsListPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
           <Input
             placeholder="Search polls..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-violet-500/50 focus:ring-violet-500/20"
+            className="pl-10 rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:border-violet-500/50 focus:ring-violet-500/20"
           />
         </div>
         <PremiumSelect value={statusFilter} onValueChange={(v) => setStatusFilter(v as PollStatus | "all")}>
@@ -418,12 +420,12 @@ export default function PollsListPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Polls List
       ══════════════════════════════════════════════════════════════════════ */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         {/* Decorative overlay */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-(--ws-shine) to-transparent" />
 
-        <div className="relative z-10 divide-y divide-white/5">
+        <div className="relative z-10 divide-y divide-(--ws-line)">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <div className="relative">
@@ -433,8 +435,8 @@ export default function PollsListPage() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-white/80">Loading polls...</p>
-                <p className="text-xs text-white/50">Fetching data</p>
+                <p className="text-sm font-medium text-(--ws-fg-80)">Loading polls...</p>
+                <p className="text-xs text-(--ws-fg-50)">Fetching data</p>
               </div>
             </div>
           ) : isError ? (
@@ -443,23 +445,23 @@ export default function PollsListPage() {
                 <XCircle className="h-8 w-8 text-rose-400" />
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-white/80">Failed to load polls</p>
-                <p className="mt-1 text-sm text-white/50">Please try again later</p>
+                <p className="text-base font-medium text-(--ws-fg-80)">Failed to load polls</p>
+                <p className="mt-1 text-sm text-(--ws-fg-50)">Please try again later</p>
               </div>
             </div>
           ) : polls.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-white/10 to-white/5">
-                  <Vote className="h-10 w-10 text-white/30" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-(--ws-line) bg-gradient-to-br from-(--ws-fill-strong) to-(--ws-fill)">
+                  <Vote className="h-10 w-10 text-(--ws-fg-40)" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-violet-500">
-                  <Plus className="h-4 w-4 text-white" />
+                <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-(--ws-panel-to) bg-violet-500">
+                  <Plus className="h-4 w-4 text-(--ws-fg)" />
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-white/80">No polls found</p>
-                <p className="mt-1 max-w-xs text-sm text-white/50">
+                <p className="text-base font-medium text-(--ws-fg-80)">No polls found</p>
+                <p className="mt-1 max-w-xs text-sm text-(--ws-fg-50)">
                   {searchQuery || statusFilter !== "all"
                     ? "Try adjusting your filters"
                     : "Create your first poll to gather feedback from your community"}
@@ -490,7 +492,7 @@ export default function PollsListPage() {
 
         {/* Pagination Info */}
         {data?.pagination && data.pagination.total > 0 && (
-          <div className="relative z-10 border-t border-white/5 px-5 py-3 text-sm text-white/50">
+          <div className="relative z-10 border-t border-(--ws-line) px-5 py-3 text-sm text-(--ws-fg-50)">
             Showing {polls.length} of {data.pagination.total} poll{data.pagination.total !== 1 ? "s" : ""}
           </div>
         )}
@@ -522,5 +524,6 @@ export default function PollsListPage() {
       />
       {confirmationDialog}
     </div>
+    </WorkspaceScope>
   );
 }

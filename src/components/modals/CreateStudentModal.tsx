@@ -87,7 +87,7 @@ function LeoCallout({ children }: { children: React.ReactNode }) {
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-400/25 bg-violet-500/15 sm:h-10 sm:w-10">
         <LeoIcon className="h-4 w-4 text-violet-200 sm:h-5 sm:w-5" />
       </div>
-      <div className="min-w-0 flex-1 text-xs leading-relaxed text-white/85 sm:text-sm">
+      <div className="min-w-0 flex-1 text-xs leading-relaxed text-(--ws-fg-80) sm:text-sm">
         {children}
       </div>
     </div>
@@ -404,8 +404,8 @@ export default function CreateStudentModal({
 
   if (!me?.schoolId) {
     return (
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
-        <div className="text-sm text-white/60">School ID not available</div>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+        <div className="text-sm text-(--ws-fg-60)">School ID not available</div>
       </div>
     );
   }
@@ -426,7 +426,7 @@ export default function CreateStudentModal({
     >
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {STEPS.length}
         </div>
@@ -435,7 +435,7 @@ export default function CreateStudentModal({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -470,7 +470,7 @@ export default function CreateStudentModal({
                     id="firstName"
                     {...register("firstName")}
                     placeholder="Ama"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.firstName && (
                     <div className="text-xs text-rose-300">
@@ -489,7 +489,7 @@ export default function CreateStudentModal({
                     id="middleName"
                     {...register("middleName")}
                     placeholder="Akosua"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
                 <div className="space-y-2">
@@ -503,7 +503,7 @@ export default function CreateStudentModal({
                     id="lastName"
                     {...register("lastName")}
                     placeholder="Mensah"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                   {errors.lastName && (
                     <div className="text-xs text-rose-300">
@@ -529,7 +529,7 @@ export default function CreateStudentModal({
                             className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
                               field.value === s
                                 ? "border-brand bg-brand/20 text-brand"
-                                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                             }`}
                           >
                             <input
@@ -558,6 +558,7 @@ export default function CreateStudentModal({
                         triggerAriaLabel="Date of birth"
                         maxDate={new Date()}
                         error={errors.dateOfBirth?.message}
+                        surface="theme"
                         className="[&>div[role=button]]:min-h-12 [&>div[role=button]]:py-3"
                       />
                     )}
@@ -578,14 +579,14 @@ export default function CreateStudentModal({
                       <button
                         type="button"
                         aria-label="How student IDs work"
-                        className="rounded p-0.5 text-white/35 hover:bg-white/10 hover:text-white/70"
+                        className="rounded p-0.5 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-70)"
                       >
                         <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent
                       side="right"
-                      className="max-w-xs border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed"
+                      className="max-w-xs border border-(--ws-line) bg-(--ws-popover) px-3 py-2 text-xs leading-relaxed text-(--ws-fg-70)"
                     >
                       Many schools use a short school or district code plus intake
                       year and a roll number; others use initials plus birth date
@@ -603,19 +604,19 @@ export default function CreateStudentModal({
                       <p className="mb-2 font-medium text-violet-100">
                         School default student ID pattern is active
                       </p>
-                      <p className="mb-2 text-[11px] text-white/70 sm:text-xs">
+                      <p className="mb-2 text-[11px] text-(--ws-fg-70) sm:text-xs">
                         Leo will reuse this school-scoped pattern automatically for new students whenever the required form fields are available.
                       </p>
-                      <div className="rounded-lg border border-violet-400/20 bg-black/20 px-3 py-2 font-mono text-[11px] text-violet-100/90">
+                      <div className="rounded-lg border border-violet-400/20 bg-(--ws-fill) px-3 py-2 font-mono text-[11px] text-(--ws-violet)">
                         {savedPattern.template}
                       </div>
                       {savedPattern.explanation ? (
-                        <p className="mt-2 text-[11px] text-white/65 sm:text-xs">
+                        <p className="mt-2 text-[11px] text-(--ws-fg-60) sm:text-xs">
                           {savedPattern.explanation}
                         </p>
                       ) : null}
                       {patternMissingFields.length > 0 ? (
-                        <p className="mt-2 text-[11px] text-amber-200/90 sm:text-xs">
+                        <p className="mt-2 text-[11px] text-(--ws-amber)/90 sm:text-xs">
                           Complete{" "}
                           {patternMissingFields
                             .map((field) => missingFieldLabels[field] || field)
@@ -630,7 +631,7 @@ export default function CreateStudentModal({
                         Describe a pattern for{" "}
                         <span className="font-semibold text-violet-200">Leo</span>
                       </p>
-                      <p className="mb-2 text-[11px] text-white/70 sm:text-xs">
+                      <p className="mb-2 text-[11px] text-(--ws-fg-70) sm:text-xs">
                         Leo can define a reusable school default from the student fields available in this form, then reuse it on future student records.
                       </p>
                     </>
@@ -641,7 +642,7 @@ export default function CreateStudentModal({
                       value={patternHint}
                       onChange={(e) => setPatternHint(e.target.value)}
                       placeholder='e.g. "School prefix + class code + enrolment year + sequence"'
-                      className="min-h-[72px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                      className="min-h-[72px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                     />
                   )}
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -693,7 +694,7 @@ export default function CreateStudentModal({
                         onClick={() =>
                           setShowLeoPatternDesigner((current) => !current)
                         }
-                        className="h-8 gap-1.5 text-[11px] text-white/75 hover:bg-white/10"
+                        className="h-8 gap-1.5 text-[11px] text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                       >
                         {showLeoPatternDesigner ? "Hide Leo designer" : "Design a new default"}
                       </Button>
@@ -727,12 +728,12 @@ export default function CreateStudentModal({
                         setIdGenerated(false);
                         setPatternMissingFields([]);
                       }}
-                      className="h-8 gap-1.5 text-[11px] text-white/75 hover:bg-white/10"
+                      className="h-8 gap-1.5 text-[11px] text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                     >
                       Use custom ID instead
                     </Button>
                   </div>
-                  <p className="mt-2 text-[11px] text-white/60 sm:text-xs">
+                  <p className="mt-2 text-[11px] text-(--ws-fg-60) sm:text-xs">
                     Even when a school default exists, you can still overwrite the generated ID with a custom one.
                   </p>
                 </LeoCallout>
@@ -753,7 +754,7 @@ export default function CreateStudentModal({
                         ? "Generating…"
                         : "Generated ID or type your own"
                     }
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono tracking-wide"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono tracking-wide"
                   />
                   {generatingId && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -786,8 +787,8 @@ export default function CreateStudentModal({
                       className="flex items-start gap-2 rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2"
                     >
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-400" />
-                      <div className="space-y-0.5 text-[11px] text-teal-200/80">
-                        <span className="font-medium text-teal-200">
+                      <div className="space-y-0.5 text-[11px] text-(--ws-teal)/80">
+                        <span className="font-medium text-(--ws-teal)">
                           Standard format breakdown:
                         </span>{" "}
                         <span className="font-mono">
@@ -840,6 +841,7 @@ export default function CreateStudentModal({
                             )
                           }
                           placeholder="Select enrollment date"
+                          surface="theme"
                         />
                       );
                     }}
@@ -848,16 +850,16 @@ export default function CreateStudentModal({
               </div>
 
               {/* GES Fields — optional */}
-              <div className="space-y-3 rounded-xl border border-white/8 bg-white/2 p-4">
+              <div className="space-y-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-50)">
                     GES Information
                   </h3>
-                  <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-white/40">
+                  <span className="rounded-md bg-(--ws-fill-strong) px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                     Optional
                   </span>
                 </div>
-                <p className="text-[11px] text-white/40">
+                <p className="text-[11px] text-(--ws-fg-40)">
                   Ghana Education Service school code and BECE index number. These can also be added later from the student&apos;s profile.
                 </p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -872,7 +874,7 @@ export default function CreateStudentModal({
                       id="gesSchoolCode"
                       {...register("gesSchoolCode")}
                       placeholder="e.g. 0301234"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono"
                     />
                   </div>
                   <div className="space-y-2">
@@ -886,7 +888,7 @@ export default function CreateStudentModal({
                       id="gesIndexNumber"
                       {...register("gesIndexNumber")}
                       placeholder="e.g. 0301234001"
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono"
                     />
                   </div>
                 </div>
@@ -910,7 +912,7 @@ export default function CreateStudentModal({
                     transition={{ duration: 0.3 }}
                     className="relative"
                   >
-                    <div className="relative w-36 h-36 rounded-full border-4 border-white/10 bg-white/5 overflow-hidden shadow-lg">
+                    <div className="relative w-36 h-36 rounded-full border-4 border-(--ws-line) bg-(--ws-fill) overflow-hidden shadow-lg">
                       <AnimatePresence mode="wait">
                         {avatarPhotoUrl ? (
                           <motion.div
@@ -949,7 +951,7 @@ export default function CreateStudentModal({
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         onClick={handleRemovePhoto}
-                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-white/10 flex items-center justify-center text-white shadow-lg transition-colors"
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-(--ws-line) flex items-center justify-center text-(--ws-fg) shadow-lg transition-colors"
                       >
                         <X className="h-4 w-4" />
                       </motion.button>
@@ -1001,7 +1003,7 @@ export default function CreateStudentModal({
                             className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
                               field.value === s
                                 ? "border-brand bg-brand/20 text-brand"
-                                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
                             }`}
                           >
                             <input
@@ -1035,11 +1037,11 @@ export default function CreateStudentModal({
                   Select Grade *
                 </Label>
                 {loadingGrades ? (
-                  <div className="text-sm text-white/50 py-8 text-center">
+                  <div className="text-sm text-(--ws-fg-50) py-8 text-center">
                     Loading grades...
                   </div>
                 ) : grades.length === 0 ? (
-                  <div className="text-sm text-white/50 py-8 text-center">
+                  <div className="text-sm text-(--ws-fg-50) py-8 text-center">
                     No grades available. Please create grades first.
                   </div>
                 ) : (
@@ -1058,7 +1060,7 @@ export default function CreateStudentModal({
                             className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left ${
                               field.value === grade._id
                                 ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                                : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                             }`}
                           >
                             {field.value === grade._id && (
@@ -1099,11 +1101,11 @@ export default function CreateStudentModal({
                       Select Class Group *
                     </Label>
                     {loadingClasses ? (
-                      <div className="text-sm text-white/50 py-8 text-center">
+                      <div className="text-sm text-(--ws-fg-50) py-8 text-center">
                         Loading classes...
                       </div>
                     ) : classGroups.length === 0 ? (
-                      <div className="text-sm text-white/50 py-8 text-center border border-white/10 bg-white/5 rounded-lg p-4">
+                      <div className="text-sm text-(--ws-fg-50) py-8 text-center border border-(--ws-line) bg-(--ws-fill) rounded-lg p-4">
                         No class groups available for this grade. Please create
                         class groups first.
                       </div>
@@ -1123,7 +1125,7 @@ export default function CreateStudentModal({
                                 className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left ${
                                   field.value === cg._id
                                     ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                                    : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                                 }`}
                               >
                                 {field.value === cg._id && (
@@ -1168,13 +1170,13 @@ export default function CreateStudentModal({
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Add Subjects
                   </Label>
-                  <div className="max-h-64 overflow-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                  <div className="max-h-64 overflow-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
                     {loadingSubjects ? (
-                      <div className="text-xs text-white/50 py-4 text-center">
+                      <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                         Loading subjects…
                       </div>
                     ) : subjects.length === 0 ? (
-                      <div className="text-xs text-white/50 py-4 text-center">
+                      <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                         No subjects available
                       </div>
                     ) : (
@@ -1182,7 +1184,7 @@ export default function CreateStudentModal({
                         {subjects.map((s) => (
                           <label
                             key={s._id}
-                            className="flex items-center gap-3 rounded-md p-2.5 hover:bg-white/5 cursor-pointer transition-colors"
+                            className="flex items-center gap-3 rounded-md p-2.5 hover:bg-(--ws-fill) cursor-pointer transition-colors"
                           >
                             <input
                               type="checkbox"
@@ -1204,9 +1206,9 @@ export default function CreateStudentModal({
                                   shouldValidate: true,
                                 });
                               }}
-                              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                              className="h-4 w-4 rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand cursor-pointer"
                             />
-                            <span className="text-sm text-white/80">
+                            <span className="text-sm text-(--ws-fg-80)">
                               {s.name}
                             </span>
                           </label>
@@ -1220,13 +1222,13 @@ export default function CreateStudentModal({
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Exclude Subjects
                   </Label>
-                  <div className="max-h-64 overflow-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                  <div className="max-h-64 overflow-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
                     {loadingSubjects ? (
-                      <div className="text-xs text-white/50 py-4 text-center">
+                      <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                         Loading subjects…
                       </div>
                     ) : subjects.length === 0 ? (
-                      <div className="text-xs text-white/50 py-4 text-center">
+                      <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                         No subjects available
                       </div>
                     ) : (
@@ -1234,7 +1236,7 @@ export default function CreateStudentModal({
                         {subjects.map((s) => (
                           <label
                             key={s._id}
-                            className="flex items-center gap-3 rounded-md p-2.5 hover:bg-white/5 cursor-pointer transition-colors"
+                            className="flex items-center gap-3 rounded-md p-2.5 hover:bg-(--ws-fill) cursor-pointer transition-colors"
                           >
                             <input
                               type="checkbox"
@@ -1260,9 +1262,9 @@ export default function CreateStudentModal({
                                   shouldValidate: true,
                                 });
                               }}
-                              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                              className="h-4 w-4 rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand cursor-pointer"
                             />
-                            <span className="text-sm text-white/80">
+                            <span className="text-sm text-(--ws-fg-80)">
                               {s.name}
                             </span>
                           </label>
@@ -1283,13 +1285,13 @@ export default function CreateStudentModal({
       </AnimatePresence>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+      <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
         <Button
           type="button"
           variant="outline"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isSubmitting || isLoading}
-          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           <ChevronLeft className="h-4 w-4" />
           {isFirstStep ? "Cancel" : "Previous"}

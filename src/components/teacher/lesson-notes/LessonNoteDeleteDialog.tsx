@@ -130,9 +130,9 @@ export function LessonNoteDeleteDialog({
               <FileText className="h-5 w-5 text-rose-200" />
             </div>
             <div className="min-w-0 space-y-2">
-              <p className="text-sm font-semibold text-white">{displayTopic}</p>
+              <p className="text-sm font-semibold text-(--ws-fg)">{displayTopic}</p>
               {contextLine ? (
-                <p className="text-xs text-white/55">{contextLine}</p>
+                <p className="text-xs text-(--ws-fg-50)">{contextLine}</p>
               ) : null}
               {displayStatus ? (
                 <span
@@ -149,7 +149,7 @@ export function LessonNoteDeleteDialog({
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-white/60">
+          <div className="flex items-center gap-2 text-sm text-(--ws-fg-60)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Checking linked lessons and review data…
           </div>
@@ -179,8 +179,8 @@ export function LessonNoteDeleteDialog({
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-white/80">This will permanently remove:</p>
-                <ul className="space-y-2 text-sm text-white/60">
+                <p className="text-sm font-medium text-(--ws-fg-80)">This will permanently remove:</p>
+                <ul className="space-y-2 text-sm text-(--ws-fg-60)">
                   {impact.warnings.map((warning) => (
                     <li key={warning} className="flex gap-2">
                       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-300/80" />
@@ -192,13 +192,13 @@ export function LessonNoteDeleteDialog({
             )}
 
             {impact.canDelete ? (
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <Checkbox
                   checked={acknowledged}
                   onCheckedChange={(checked) => setAcknowledged(checked === true)}
-                  className="mt-0.5 border-white/30 data-[state=checked]:border-rose-500 data-[state=checked]:bg-rose-600"
+                  className="mt-0.5 border-(--ws-line-strong) data-[state=checked]:border-rose-500 data-[state=checked]:bg-rose-600"
                 />
-                <span className="text-sm leading-relaxed text-white/70">
+                <span className="text-sm leading-relaxed text-(--ws-fg-70)">
                   {mode === "admin"
                     ? "I confirm this school admin removal. Linked weekly plans, class sessions, and review history will be permanently deleted."
                     : "I understand this lesson note and any linked weekly plans or class sessions will be deleted and cannot be recovered."}
@@ -208,13 +208,13 @@ export function LessonNoteDeleteDialog({
           </>
         ) : null}
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-(--ws-line) pt-4">
           <Button
             type="button"
             variant="outline"
             disabled={deleteMutation.isPending}
             onClick={handleClose}
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             Cancel
           </Button>

@@ -199,7 +199,7 @@ export function ExamSessionWizard({
                 "rounded-full border px-3 py-1 text-xs",
                 currentStep === step.id
                   ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
-                  : "border-white/10 bg-white/5 text-white/50"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
               )}
             >
               {step.id}. {step.title}
@@ -208,7 +208,7 @@ export function ExamSessionWizard({
         </div>
 
         <div className={cn(glassInsetClass, "p-4")}>
-          <div className="mb-4 flex items-center gap-2 text-sm text-white/70">
+          <div className="mb-4 flex items-center gap-2 text-sm text-(--ws-fg-70)">
             <StepIcon className="h-4 w-4 text-cyan-300" />
             {EXAM_SESSION_WIZARD_STEPS[currentStep - 1]?.description}
           </div>
@@ -274,6 +274,7 @@ export function ExamSessionWizard({
               </div>
               <div className="space-y-2">
                 <CustomDatePicker
+                  surface="theme"
                   label="Start date"
                   value={form.startDate ? new Date(`${form.startDate}T00:00:00`) : null}
                   onChange={(date) =>
@@ -285,6 +286,7 @@ export function ExamSessionWizard({
               </div>
               <div className="space-y-2">
                 <CustomDatePicker
+                  surface="theme"
                   label="End date"
                   value={form.endDate ? new Date(`${form.endDate}T00:00:00`) : null}
                   onChange={(date) =>
@@ -313,7 +315,7 @@ export function ExamSessionWizard({
                           "rounded-full border px-3 py-1.5 text-sm transition",
                           selected
                             ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
-                            : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:text-(--ws-fg)"
                         )}
                       >
                         {grade.name}
@@ -326,14 +328,14 @@ export function ExamSessionWizard({
               <div>
                 <Label className="mb-2 block">Class groups</Label>
                 {classGroupsLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-white/50">
+                  <div className="flex items-center gap-2 text-sm text-(--ws-fg-50)">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading class groups…
                   </div>
                 ) : form.appliesToGradeIds.length === 0 ? (
-                  <p className="text-sm text-white/50">Select at least one grade first.</p>
+                  <p className="text-sm text-(--ws-fg-50)">Select at least one grade first.</p>
                 ) : classGroups.length === 0 ? (
-                  <p className="text-sm text-white/50">No class groups found for selected grades.</p>
+                  <p className="text-sm text-(--ws-fg-50)">No class groups found for selected grades.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {classGroups.map((group) => {
@@ -347,7 +349,7 @@ export function ExamSessionWizard({
                             "rounded-full border px-3 py-1.5 text-sm transition",
                             selected
                               ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
-                              : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:text-(--ws-fg)"
                           )}
                         >
                           {group.label || group.name}
@@ -362,10 +364,10 @@ export function ExamSessionWizard({
 
           {currentStep === 3 ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div>
-                  <p className="text-sm font-medium text-white">Parent/student visibility</p>
-                  <p className="text-xs text-white/50">
+                  <p className="text-sm font-medium text-(--ws-fg)">Parent/student visibility</p>
+                  <p className="text-xs text-(--ws-fg-50)">
                     When published, parents and students can see this exam timetable.
                   </p>
                 </div>
@@ -390,11 +392,11 @@ export function ExamSessionWizard({
           ) : null}
 
           {currentStep === 4 ? (
-            <div className="space-y-3 text-sm text-white/70">
+            <div className="space-y-3 text-sm text-(--ws-fg-70)">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
                 <div>
-                  <p className="font-medium text-white">{form.name || "Untitled session"}</p>
+                  <p className="font-medium text-(--ws-fg)">{form.name || "Untitled session"}</p>
                   <p>{formatExamType(form.examType)}</p>
                 </div>
               </div>

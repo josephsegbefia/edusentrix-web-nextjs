@@ -109,16 +109,16 @@ export function LeoPromotionGuide(props: LeoPromotionGuideProps) {
   const guidance = guidanceForStep(props);
   const toneClass =
     guidance.tone === "success"
-      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-100"
+      ? "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)"
       : guidance.tone === "warning"
-        ? "border-amber-500/25 bg-amber-500/10 text-amber-100"
-        : "border-cyan-500/25 bg-cyan-500/10 text-cyan-100";
+        ? "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)"
+        : "border-cyan-500/25 bg-cyan-500/10 text-(--ws-cyan)";
   const Icon = guidance.tone === "success" ? CheckCircle2 : guidance.tone === "warning" ? AlertTriangle : Lightbulb;
 
   return (
     <aside className={`rounded-2xl border p-5 ${toneClass}`}>
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong)">
           <LeoIcon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -126,17 +126,17 @@ export function LeoPromotionGuide(props: LeoPromotionGuideProps) {
             <Icon className="h-4 w-4" />
             <p className="text-sm font-semibold">Leo guidance</p>
           </div>
-          <h3 className="mt-2 text-lg font-semibold text-white">{guidance.title}</h3>
-          <p className="mt-1 text-sm text-white/65">{guidance.body}</p>
+          <h3 className="mt-2 text-lg font-semibold text-(--ws-fg)">{guidance.title}</h3>
+          <p className="mt-1 text-sm text-(--ws-fg-60)">{guidance.body}</p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-3">
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+      <div className="mt-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-(--ws-fg-50)">
           <ListChecks className="h-3.5 w-3.5" />
           Suggested next checks
         </div>
-        <ul className="space-y-1.5 text-sm text-white/70">
+        <ul className="space-y-1.5 text-sm text-(--ws-fg-70)">
           {guidance.actions.map((action) => (
             <li key={action} className="flex gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" />

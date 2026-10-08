@@ -91,7 +91,7 @@ export function PolicyTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-white/40" />
+        <Loader2 className="h-8 w-8 animate-spin text-(--ws-fg-40)" />
       </div>
     );
   }
@@ -99,19 +99,19 @@ export function PolicyTab() {
   return (
     <div className="space-y-8">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-white">Promotion policy</h2>
-        <p className="mt-1 text-sm text-white/50">
+        <h2 className="text-lg font-semibold text-(--ws-fg)">Promotion policy</h2>
+        <p className="mt-1 text-sm text-(--ws-fg-50)">
           Define the rules used to evaluate students for promotion.
         </p>
       </div>
       <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
-            <LeoIcon className="h-4 w-4 text-cyan-100" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong)">
+            <LeoIcon className="h-4 w-4 text-(--ws-cyan)" />
           </div>
           <div>
-            <p className="font-medium text-white">Leo configuration guide</p>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="font-medium text-(--ws-fg)">Leo configuration guide</p>
+            <p className="mt-1 text-sm text-(--ws-fg-60)">
               For the first live run, keep the policy simple: attendance, average score, and a
               clear fee hold. You can use grade scoping to pilot one section before applying it
               school-wide.
@@ -121,23 +121,23 @@ export function PolicyTab() {
       </div>
       {activePolicies.length > 0 && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
-          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-200">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--ws-emerald)">
             <CheckCircle className="h-4 w-4" />
             Active Scoped Policies
           </h3>
           <div className="grid gap-3 md:grid-cols-2">
             {activePolicies.map((policy) => (
-              <div key={policy.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div key={policy.id} className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-white">{policy.name}</span>
-                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">
+                  <span className="font-medium text-(--ws-fg)">{policy.name}</span>
+                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-(--ws-emerald)">
                     v{policy.version}
                   </Badge>
                 </div>
-                <p className="mt-1 text-sm text-white/55">
+                <p className="mt-1 text-sm text-(--ws-fg-50)">
                   Applies to: {scopeLabel(policy.appliesTo.gradeIds)}
                 </p>
-                <p className="mt-1 text-xs text-white/40">
+                <p className="mt-1 text-xs text-(--ws-fg-40)">
                   {policy.criteria.length} criteria • {policy.logic.replace("_", " ")}
                 </p>
               </div>
@@ -148,48 +148,48 @@ export function PolicyTab() {
 
       {!activePolicy && activePolicies.length === 0 && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-          <p className="text-sm text-amber-200">
+          <p className="text-sm text-(--ws-amber)">
             No active policy. Create scoped policies below and activate them. If you activate an
             all-grades policy, it replaces every active scoped policy.
           </p>
         </div>
       )}
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-white">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6">
+        <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
           <BookOpen className="h-4 w-4" />
           Create new policy
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-white/70">Policy name</Label>
+            <Label className="text-(--ws-fg-70)">Policy name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Default End-of-Year Policy"
-              className="border-white/10 bg-white/5 text-white"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-white/70">Minimum attendance (%)</Label>
+            <Label className="text-(--ws-fg-70)">Minimum attendance (%)</Label>
             <Input
               type="number"
               min={0}
               max={100}
               value={attendanceMin}
               onChange={(e) => setAttendanceMin(Number(e.target.value))}
-              className="border-white/10 bg-white/5 text-white"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-white/70">Minimum overall average (%)</Label>
+            <Label className="text-(--ws-fg-70)">Minimum overall average (%)</Label>
             <Input
               type="number"
               min={0}
               max={100}
               value={averageMin}
               onChange={(e) => setAverageMin(Number(e.target.value))}
-              className="border-white/10 bg-white/5 text-white"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             />
           </div>
           <div className="flex items-center gap-3 sm:col-span-2">
@@ -197,21 +197,21 @@ export function PolicyTab() {
               checked={treatExcused}
               onCheckedChange={setTreatExcused}
             />
-            <Label className="text-white/70">
+            <Label className="text-(--ws-fg-70)">
               Treat excused absences as present for attendance
             </Label>
           </div>
           <div className="flex items-center gap-3 sm:col-span-2">
             <Switch checked={financeEnabled} onCheckedChange={setFinanceEnabled} />
-            <Label className="text-white/70">
+            <Label className="text-(--ws-fg-70)">
               Require no fee outstanding (blocks promotion if fees owed)
             </Label>
           </div>
         </div>
         {grades.length > 0 && (
           <div className="mt-4 space-y-2">
-            <Label className="text-white/70">Apply to grades</Label>
-            <p className="text-xs text-white/40">
+            <Label className="text-(--ws-fg-70)">Apply to grades</Label>
+            <p className="text-xs text-(--ws-fg-40)">
               Select the grades this policy controls. Leave empty only for a true whole-school default.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -221,7 +221,7 @@ export function PolicyTab() {
                 return (
                   <label
                     key={id}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-sm hover:bg-(--ws-fill-strong)"
                   >
                     <input
                       type="checkbox"
@@ -254,29 +254,29 @@ export function PolicyTab() {
       </div>
 
       {policies.length > 0 && (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-          <h3 className="mb-4 text-base font-semibold text-white">All promotion policies</h3>
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6">
+          <h3 className="mb-4 text-base font-semibold text-(--ws-fg)">All promotion policies</h3>
           <div className="space-y-3">
             {policies.map((policy) => (
               <div
                 key={policy.id}
-                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
+                className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 md:flex-row md:items-center md:justify-between"
               >
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-white">{policy.name}</p>
+                    <p className="font-medium text-(--ws-fg)">{policy.name}</p>
                     <Badge
                       variant="outline"
                       className={
                         policy.isActive
-                          ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-200"
-                          : "border-white/10 bg-white/5 text-white/55"
+                          ? "border-emerald-500/40 bg-emerald-500/20 text-(--ws-emerald)"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
                       }
                     >
                       {policy.isActive ? "Active" : "Draft"} • v{policy.version}
                     </Badge>
                   </div>
-                  <p className="mt-1 text-sm text-white/50">
+                  <p className="mt-1 text-sm text-(--ws-fg-50)">
                     Applies to: {scopeLabel(policy.appliesTo.gradeIds)}
                   </p>
                 </div>

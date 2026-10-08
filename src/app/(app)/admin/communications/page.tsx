@@ -27,6 +27,7 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 type CommunicationRow = {
   id: string;
@@ -164,11 +165,11 @@ function SelectField({
 }
 
 function statusTone(status: string) {
-  if (status === "sent") return "border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
-  if (status === "partially_sent") return "border-amber-400/30 bg-amber-400/10 text-amber-200";
+  if (status === "sent") return "border-emerald-400/30 bg-emerald-400/10 text-(--ws-emerald)";
+  if (status === "partially_sent") return "border-amber-400/30 bg-amber-400/10 text-(--ws-amber)";
   if (status === "failed") return "border-red-400/30 bg-red-400/10 text-red-200";
   if (status === "queued" || status === "sending") return "border-blue-400/30 bg-blue-400/10 text-blue-200";
-  return "border-white/10 bg-white/10 text-white/70";
+  return "border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)";
 }
 
 function audienceKindFromType(value: string): RecipientKind | null {
@@ -201,7 +202,7 @@ function PremiumInput(props: React.ComponentProps<typeof Input>) {
     <Input
       {...props}
       className={cn(
-        "h-11 rounded-xl border-white/10 bg-white/[0.045] px-4 text-sm text-white shadow-none outline-none placeholder:text-white/30",
+        "h-11 rounded-xl border-(--ws-line) bg-(--ws-fill) px-4 text-sm text-(--ws-fg) shadow-none outline-none placeholder:text-(--ws-fg-40)",
         "focus-visible:border-cyan-300/40 focus-visible:ring-2 focus-visible:ring-cyan-300/15",
         props.className,
       )}
@@ -391,39 +392,39 @@ export default function AdminCommunicationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.1),transparent_32%),linear-gradient(180deg,#05070f_0%,#080b13_100%)] px-4 py-6 text-white sm:px-6 lg:px-8">
+    <WorkspaceScope className="min-h-screen px-4 py-6 text-(--ws-fg) sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium text-cyan-200/80">School Communications</p>
+            <p className="text-sm font-medium text-(--ws-cyan)/80">School Communications</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">Communication Center</h1>
-            <p className="mt-2 max-w-2xl text-sm text-white/55">
+            <p className="mt-2 max-w-2xl text-sm text-(--ws-fg-50)">
               Create one official message, choose the audience and channels, preview reach, then send and track delivery.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/[0.045] p-2 text-center shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-2 text-center shadow-2xl shadow-black/20 backdrop-blur-xl">
             <div className="px-4 py-2">
               <div className="text-lg font-semibold">{pagination.total}</div>
-              <div className="text-xs text-white/45">Total</div>
+              <div className="text-xs text-(--ws-fg-40)">Total</div>
             </div>
             <div className="px-4 py-2">
               <div className="text-lg font-semibold">{items.filter((item) => item.status === "sent").length}</div>
-              <div className="text-xs text-white/45">Page sent</div>
+              <div className="text-xs text-(--ws-fg-40)">Page sent</div>
             </div>
             <div className="px-4 py-2">
               <div className="text-lg font-semibold">{items.filter((item) => item.status === "draft").length}</div>
-              <div className="text-xs text-white/45">Page drafts</div>
+              <div className="text-xs text-(--ws-fg-40)">Page drafts</div>
             </div>
           </div>
         </div>
 
         {error ? (
-          <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100">
+          <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-(--ws-rose)">
             {error}
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-1 shadow-2xl shadow-black/20 backdrop-blur-xl">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-1 shadow-2xl shadow-black/20 backdrop-blur-xl">
           <div className="grid gap-1 md:grid-cols-3">
             {tabOptions.map((tab) => {
               const isActive = activeTab === tab.value;
@@ -436,11 +437,11 @@ export default function AdminCommunicationsPage() {
                     "rounded-xl px-4 py-3 text-left transition",
                     isActive
                       ? "bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-950/20"
-                      : "text-white/60 hover:bg-white/[0.06] hover:text-white",
+                      : "text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)",
                   )}
                 >
                   <span className="block text-sm font-semibold">{tab.label}</span>
-                  <span className={cn("mt-1 block text-xs", isActive ? "text-slate-700" : "text-white/40")}>{tab.description}</span>
+                  <span className={cn("mt-1 block text-xs", isActive ? "text-slate-700" : "text-(--ws-fg-40)")}>{tab.description}</span>
                 </button>
               );
             })}
@@ -448,50 +449,50 @@ export default function AdminCommunicationsPage() {
         </div>
 
         {activeTab === "create" ? (
-          <Card className="overflow-hidden border-white/10 bg-[#0d1320]/90 text-white shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <Card className="overflow-hidden border-(--ws-line) bg-[#0d1320]/90 text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
             <CardContent className="space-y-5 p-0">
-              <div className="border-b border-white/10 bg-white/[0.035] px-5 py-4">
+              <div className="border-b border-(--ws-line) bg-(--ws-fill) px-5 py-4">
                 <div className="flex items-center gap-2">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-300/10 ring-1 ring-cyan-300/20">
-                    <MessageSquareText className="h-5 w-5 text-cyan-200" />
+                    <MessageSquareText className="h-5 w-5 text-(--ws-cyan)" />
                   </span>
                   <div>
                     <h2 className="text-base font-semibold">Create communication</h2>
-                    <p className="text-xs text-white/45">Compose once, route through selected channels.</p>
+                    <p className="text-xs text-(--ws-fg-40)">Compose once, route through selected channels.</p>
                   </div>
                 </div>
               </div>
               <div className="space-y-5 px-5 pb-5">
               <div className="space-y-2">
-                <Label className="text-white/70">Title</Label>
+                <Label className="text-(--ws-fg-70)">Title</Label>
                 <PremiumInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="PTA meeting notice" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-white/70">Type</Label>
+                  <Label className="text-(--ws-fg-70)">Type</Label>
                   <SelectField value={type} onChange={setType} options={typeOptions} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-white/70">Priority</Label>
+                  <Label className="text-(--ws-fg-70)">Priority</Label>
                   <SelectField value={priority} onChange={setPriority} options={priorityOptions} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-white/70">Audience</Label>
+                <Label className="text-(--ws-fg-70)">Audience</Label>
                 <SelectField value={audienceType} onChange={setAudienceType} options={audienceOptions} />
               </div>
               {selectedAudienceKind ? (
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-white">Select one {selectedAudienceKind}</p>
-                      <p className="text-xs text-white/45">Search by name, email, or phone.</p>
+                      <p className="text-sm font-medium text-(--ws-fg)">Select one {selectedAudienceKind}</p>
+                      <p className="text-xs text-(--ws-fg-40)">Search by name, email, or phone.</p>
                     </div>
                     {selectedRecipient ? (
                       <button
                         type="button"
                         onClick={() => setSelectedRecipient(null)}
-                        className="rounded-lg p-1 text-white/45 transition hover:bg-white/10 hover:text-white"
+                        className="rounded-lg p-1 text-(--ws-fg-40) transition hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -503,19 +504,19 @@ export default function AdminCommunicationsPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={selectedRecipient.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-(--ws-fill-strong) text-sm font-semibold text-(--ws-fg)">
                           {initials(selectedRecipient.name)}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{selectedRecipient.name}</p>
-                        <p className="truncate text-xs text-white/55">{selectedRecipient.email || selectedRecipient.phone || "No contact shown"}</p>
+                        <p className="truncate text-sm font-semibold text-(--ws-fg)">{selectedRecipient.name}</p>
+                        <p className="truncate text-xs text-(--ws-fg-50)">{selectedRecipient.email || selectedRecipient.phone || "No contact shown"}</p>
                       </div>
                     </div>
                   ) : (
                     <>
                       <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
                         <PremiumInput
                           value={recipientQuery}
                           onChange={(event) => setRecipientQuery(event.target.value)}
@@ -525,12 +526,12 @@ export default function AdminCommunicationsPage() {
                       </div>
                       <div className="mt-2 max-h-64 space-y-2 overflow-auto pr-1">
                         {recipientLoading ? (
-                          <div className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] py-5 text-sm text-white/50">
+                          <div className="flex items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) py-5 text-sm text-(--ws-fg-50)">
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Searching
                           </div>
                         ) : recipientResults.length === 0 ? (
-                          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-4 text-center text-sm text-white/45">
+                          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-4 text-center text-sm text-(--ws-fg-40)">
                             No matching recipient
                           </div>
                         ) : (
@@ -539,24 +540,24 @@ export default function AdminCommunicationsPage() {
                               key={recipient.id}
                               type="button"
                               onClick={() => setSelectedRecipient(recipient)}
-                              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
+                              className="flex w-full items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
                             >
                               {recipient.avatarUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={recipient.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
                               ) : (
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-(--ws-fill-strong) text-sm font-semibold text-(--ws-fg)">
                                   {initials(recipient.name)}
                                 </div>
                               )}
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-white">{recipient.name}</p>
-                                <p className="truncate text-xs text-white/50">
+                                <p className="truncate text-sm font-semibold text-(--ws-fg)">{recipient.name}</p>
+                                <p className="truncate text-xs text-(--ws-fg-50)">
                                   {recipient.email || recipient.phone || "No contact shown"}
                                   {recipient.meta?.linkedStudent ? ` · ${recipient.meta.linkedStudent}` : ""}
                                 </p>
                               </div>
-                              <UserRound className="h-4 w-4 text-white/30" />
+                              <UserRound className="h-4 w-4 text-(--ws-fg-40)" />
                             </button>
                           ))
                         )}
@@ -566,7 +567,7 @@ export default function AdminCommunicationsPage() {
                 </div>
               ) : null}
               <div className="space-y-2">
-                <Label className="text-white/70">Channels</Label>
+                <Label className="text-(--ws-fg-70)">Channels</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { value: "in_app", Icon: Bell, label: "App" },
@@ -583,10 +584,10 @@ export default function AdminCommunicationsPage() {
                         )
                       }
                       className={cn(
-                        "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:bg-white/10",
+                        "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition hover:bg-(--ws-fill-strong)",
                         channels.includes(value)
-                          ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
-                          : "border-white/10 bg-white/[0.03] text-white/60",
+                          ? "border-cyan-300/50 bg-cyan-300/10 text-(--ws-cyan)"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -596,7 +597,7 @@ export default function AdminCommunicationsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-white/70">Message</Label>
+                <Label className="text-(--ws-fg-70)">Message</Label>
                 <RichTextEditor value={bodyHtml} onChange={setBodyHtml} placeholder="Write the official message..." />
               </div>
               <Button
@@ -613,19 +614,19 @@ export default function AdminCommunicationsPage() {
         ) : null}
 
         {activeTab === "recent" ? (
-            <Card className="overflow-hidden border-white/10 bg-[#0d1320]/90 text-white shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <Card className="overflow-hidden border-(--ws-line) bg-[#0d1320]/90 text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
               <CardContent className="p-0">
-                <div className="space-y-4 border-b border-white/10 bg-white/[0.035] px-5 py-4">
+                <div className="space-y-4 border-b border-(--ws-line) bg-(--ws-fill) px-5 py-4">
                   <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
                     <div>
                       <h2 className="font-semibold">Recent communications</h2>
-                      <p className="mt-1 text-xs text-white/45">Find drafts, scheduled sends, and delivery history.</p>
+                      <p className="mt-1 text-xs text-(--ws-fg-40)">Find drafts, scheduled sends, and delivery history.</p>
                     </div>
-                    <div className="text-xs text-white/45">{pagination.total.toLocaleString()} total records</div>
+                    <div className="text-xs text-(--ws-fg-40)">{pagination.total.toLocaleString()} total records</div>
                   </div>
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
                     <div className="relative">
-                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
                       <PremiumInput
                         value={listQuery}
                         onChange={(event) => setListQuery(event.target.value)}
@@ -637,17 +638,17 @@ export default function AdminCommunicationsPage() {
                   </div>
                 </div>
                 {loading ? (
-                  <div className="flex h-72 items-center justify-center text-white/50">
+                  <div className="flex h-72 items-center justify-center text-(--ws-fg-50)">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Loading
                   </div>
                 ) : items.length === 0 ? (
-                  <div className="flex h-72 flex-col items-center justify-center text-white/45">
+                  <div className="flex h-72 flex-col items-center justify-center text-(--ws-fg-40)">
                     <Users className="mb-3 h-9 w-9" />
                     <p className="text-sm">No communications yet</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-white/10">
+                  <div className="divide-y divide-(--ws-line)">
                     {items.map((item) => (
                       <button
                         key={item.id}
@@ -659,14 +660,14 @@ export default function AdminCommunicationsPage() {
                           setActiveTab("selected");
                         }}
                         className={cn(
-                          "w-full px-5 py-4 text-left transition hover:bg-white/[0.06]",
+                          "w-full px-5 py-4 text-left transition hover:bg-(--ws-fill-strong)",
                           selectedId === item.id && "bg-cyan-300/10",
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-medium">{item.title}</p>
-                            <p className="mt-1 text-xs text-white/45">
+                            <p className="mt-1 text-xs text-(--ws-fg-40)">
                               {item.type.replace(/_/g, " ")} · {item.channels.join(", ")}
                             </p>
                           </div>
@@ -678,7 +679,7 @@ export default function AdminCommunicationsPage() {
                     ))}
                   </div>
                 )}
-                <div className="border-t border-white/10 p-4">
+                <div className="border-t border-(--ws-line) p-4">
                   <StudentsPagination
                     page={pagination.page}
                     totalPages={pagination.totalPages}
@@ -698,13 +699,13 @@ export default function AdminCommunicationsPage() {
         ) : null}
 
         {activeTab === "selected" ? (
-            <Card className="overflow-hidden border-white/10 bg-[#0d1320]/90 text-white shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <Card className="overflow-hidden border-(--ws-line) bg-[#0d1320]/90 text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
               <CardContent className="space-y-5 p-5">
                 {selected ? (
                   <>
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm text-white/45">Selected communication</p>
+                        <p className="text-sm text-(--ws-fg-40)">Selected communication</p>
                         <h2 className="mt-1 text-xl font-semibold">{selected.title}</h2>
                       </div>
                       <span className={cn("rounded-full border px-2 py-1 text-xs", statusTone(selected.status))}>
@@ -712,21 +713,21 @@ export default function AdminCommunicationsPage() {
                       </span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                         <div className="text-lg font-semibold">{selected.stats?.audienceCount ?? 0}</div>
-                        <div className="text-xs text-white/45">Audience</div>
+                        <div className="text-xs text-(--ws-fg-40)">Audience</div>
                       </div>
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                         <div className="text-lg font-semibold">{selected.stats?.sentCount ?? 0}</div>
-                        <div className="text-xs text-white/45">Sent</div>
+                        <div className="text-xs text-(--ws-fg-40)">Sent</div>
                       </div>
-                      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                         <div className="text-lg font-semibold">{selected.stats?.failedCount ?? 0}</div>
-                        <div className="text-xs text-white/45">Failed</div>
+                        <div className="text-xs text-(--ws-fg-40)">Failed</div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => previewAudience(selected.id)} className="border-white/10 bg-white/[0.03] text-white hover:bg-white/10">
+                      <Button variant="outline" onClick={() => previewAudience(selected.id)} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
                         <Users className="mr-2 h-4 w-4" />
                         Preview audience
                       </Button>
@@ -744,29 +745,29 @@ export default function AdminCommunicationsPage() {
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                           <div>
                             <div className="text-xl font-semibold">{preview.summary.total}</div>
-                            <div className="text-xs text-cyan-100/60">Recipients</div>
+                            <div className="text-xs text-(--ws-cyan)/60">Recipients</div>
                           </div>
                           <div>
                             <div className="text-xl font-semibold">{preview.channelResults.pending}</div>
-                            <div className="text-xs text-cyan-100/60">Ready deliveries</div>
+                            <div className="text-xs text-(--ws-cyan)/60">Ready deliveries</div>
                           </div>
                           <div>
                             <div className="text-xl font-semibold">{preview.channelResults.skipped}</div>
-                            <div className="text-xs text-cyan-100/60">Skipped</div>
+                            <div className="text-xs text-(--ws-cyan)/60">Skipped</div>
                           </div>
                           <div>
                             <div className="text-xl font-semibold">{preview.summary.missingContact}</div>
-                            <div className="text-xs text-cyan-100/60">Missing contact</div>
+                            <div className="text-xs text-(--ws-cyan)/60">Missing contact</div>
                           </div>
                         </div>
                         <div className="mt-4 max-h-56 space-y-2 overflow-auto pr-1">
                           {preview.sampleRecipients.map((recipient) => (
-                            <div key={recipient.key} className="rounded-xl border border-white/10 bg-black/15 px-3 py-2">
+                            <div key={recipient.key} className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                               <div className="flex items-center justify-between gap-2">
                                 <p className="text-sm font-medium">{recipient.name}</p>
-                                <span className="text-xs text-white/45">{recipient.role}</span>
+                                <span className="text-xs text-(--ws-fg-40)">{recipient.role}</span>
                               </div>
-                              <p className="mt-1 text-xs text-white/50">{recipient.email || recipient.phone || "No contact"} · {recipient.reasonIncluded}</p>
+                              <p className="mt-1 text-xs text-(--ws-fg-50)">{recipient.email || recipient.phone || "No contact"} · {recipient.reasonIncluded}</p>
                             </div>
                           ))}
                         </div>
@@ -774,7 +775,7 @@ export default function AdminCommunicationsPage() {
                     ) : null}
                   </>
                 ) : (
-                  <div className="flex h-96 flex-col items-center justify-center text-white/45">
+                  <div className="flex h-96 flex-col items-center justify-center text-(--ws-fg-40)">
                     <MessageSquareText className="mb-3 h-10 w-10" />
                     <p>Select or create a communication</p>
                   </div>
@@ -783,6 +784,6 @@ export default function AdminCommunicationsPage() {
             </Card>
         ) : null}
       </div>
-    </div>
+    </WorkspaceScope>
   );
 }

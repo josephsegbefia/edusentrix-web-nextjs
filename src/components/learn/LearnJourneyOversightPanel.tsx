@@ -26,7 +26,7 @@ type LearnJourneyOversightPanelProps = StudentOversightProps | AggregateOversigh
 function ProgressTrack({ value }: { value: number }) {
   const clamped = Math.max(0, Math.min(100, value));
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+    <div className="h-2 overflow-hidden rounded-full bg-(--ws-fill-strong)">
       <div
         className="h-full rounded-full bg-gradient-to-r from-teal-300 to-cyan-300 transition-all"
         style={{ width: `${clamped}%` }}
@@ -38,8 +38,8 @@ function ProgressTrack({ value }: { value: number }) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className={cn(glassInsetClass, "p-3")}>
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/40">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-fg-40)">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-(--ws-fg)">{value}</p>
     </div>
   );
 }
@@ -50,12 +50,12 @@ export function LearnJourneyOversightPanel(props: LearnJourneyOversightPanelProp
     return (
       <GlassPanel className="p-5" glow="cyan">
         <div className="flex items-start gap-3">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-2">
             <Map className="h-5 w-5 text-teal-200" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            <p className="mt-1 text-sm text-white/55">{oversight.message}</p>
+            <h2 className="text-lg font-semibold text-(--ws-fg)">{title}</h2>
+            <p className="mt-1 text-sm text-(--ws-fg-50)">{oversight.message}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Stat label="Learners active" value={oversight.studentsWithJourney} />
               <Stat label="Completed today" value={oversight.studentsCompleted} />
@@ -64,7 +64,7 @@ export function LearnJourneyOversightPanel(props: LearnJourneyOversightPanelProp
             </div>
             {oversight.studentsWithJourney > 0 ? (
               <div className="mt-4">
-                <div className="mb-2 flex items-center justify-between text-xs text-white/45">
+                <div className="mb-2 flex items-center justify-between text-xs text-(--ws-fg-40)">
                   <span>Class average</span>
                   <span>{oversight.averageCompletionPercent}%</span>
                 </div>
@@ -83,12 +83,12 @@ export function LearnJourneyOversightPanel(props: LearnJourneyOversightPanelProp
   return (
     <GlassPanel className="p-5" glow="teal">
       <div className="flex items-start gap-3">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-2">
           <Sparkles className="h-5 w-5 text-amber-200" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold text-white">Today&apos;s Journey</h2>
-          <p className="mt-1 text-sm text-white/55">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Today&apos;s Journey</h2>
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             {today?.message || "Today's Journey will appear after class lessons are covered."}
           </p>
         </div>
@@ -96,7 +96,7 @@ export function LearnJourneyOversightPanel(props: LearnJourneyOversightPanelProp
 
       {today ? (
         <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between text-sm text-white/65">
+          <div className="flex items-center justify-between text-sm text-(--ws-fg-60)">
             <span>
               {today.subjectsCompleted} of {today.subjectsTotal} subjects complete
             </span>
@@ -116,15 +116,15 @@ export function LearnJourneyOversightPanel(props: LearnJourneyOversightPanelProp
 
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
         <section className={cn(glassInsetClass, "p-4")}>
-          <h3 className="text-sm font-semibold text-white">Catch-up vault</h3>
-          <p className="mt-1 text-xs text-white/50">{oversight.catchUp.message}</p>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Catch-up vault</h3>
+          <p className="mt-1 text-xs text-(--ws-fg-50)">{oversight.catchUp.message}</p>
           {oversight.catchUp.items.length ? (
             <ul className="mt-3 space-y-2">
               {oversight.catchUp.items.map((item) => (
-                <li key={`${item.subjectName}-${item.topicTitle}`} className="text-sm text-white/70">
-                  <span className="text-white">{item.subjectName}</span>
-                  <span className="text-white/45"> · {item.topicTitle}</span>
-                  <span className="mt-0.5 block text-xs text-white/40">
+                <li key={`${item.subjectName}-${item.topicTitle}`} className="text-sm text-(--ws-fg-70)">
+                  <span className="text-(--ws-fg)">{item.subjectName}</span>
+                  <span className="text-(--ws-fg-40)"> · {item.topicTitle}</span>
+                  <span className="mt-0.5 block text-xs text-(--ws-fg-40)">
                     {item.coveredLabel} · {item.completionPercent}% done
                   </span>
                 </li>
@@ -134,26 +134,26 @@ export function LearnJourneyOversightPanel(props: LearnJourneyOversightPanelProp
         </section>
 
         <section className={cn(glassInsetClass, "p-4")}>
-          <h3 className="text-sm font-semibold text-white">Weak concepts</h3>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Weak concepts</h3>
           {oversight.weakConcepts.length ? (
             <ul className="mt-3 space-y-2">
               {oversight.weakConcepts.map((concept) => (
                 <li key={concept.id} className="text-sm">
-                  <p className="text-white">{concept.title}</p>
-                  <p className="text-xs text-white/45">
+                  <p className="text-(--ws-fg)">{concept.title}</p>
+                  <p className="text-xs text-(--ws-fg-40)">
                     {concept.subjectName} · {concept.reason}
                   </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-white/50">No weak concepts flagged right now.</p>
+            <p className="mt-3 text-sm text-(--ws-fg-50)">No weak concepts flagged right now.</p>
           )}
         </section>
 
         <section className={cn(glassInsetClass, "p-4")}>
-          <h3 className="text-sm font-semibold text-white">Flashcard mastery</h3>
-          <p className="mt-1 text-xs text-white/50">{oversight.flashcardMastery.message}</p>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Flashcard mastery</h3>
+          <p className="mt-1 text-xs text-(--ws-fg-50)">{oversight.flashcardMastery.message}</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             <Stat label="Decks" value={oversight.flashcardMastery.decksTracked} />
             <Stat label="Known" value={oversight.flashcardMastery.cardsMastered} />

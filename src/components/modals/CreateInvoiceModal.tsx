@@ -369,7 +369,7 @@ export default function CreateInvoiceModal({
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-(--ws-fg-70)">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
           {STEPS.length}
         </div>
@@ -378,7 +378,7 @@ export default function CreateInvoiceModal({
             <span
               key={i}
               className={`h-1.5 w-8 rounded-full transition-all ${
-                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill-strong)"
               }`}
             />
           ))}
@@ -423,10 +423,10 @@ export default function CreateInvoiceModal({
                           size="md"
                         />
                         <div>
-                          <p className="font-semibold text-white">
+                          <p className="font-semibold text-(--ws-fg)">
                             {selectedStudent.fullName}
                           </p>
-                          <div className="flex items-center gap-2 text-xs text-white/60">
+                          <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
                             {selectedStudent.admissionNumber && (
                               <span>Adm. No: {selectedStudent.admissionNumber}</span>
                             )}
@@ -448,7 +448,7 @@ export default function CreateInvoiceModal({
                           setValue("studentId", "");
                         }}
                         className={cn(
-                          "text-white/60 hover:text-white",
+                          "text-(--ws-fg-60) hover:text-(--ws-fg)",
                           lockStudentAndPeriod && "hidden"
                         )}
                       >
@@ -459,24 +459,24 @@ export default function CreateInvoiceModal({
                 ) : (
                   <div className="space-y-2">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-(--ws-fg-40)" />
                       <Input
                         type="text"
                         placeholder="Search students by name or admission number..."
                         value={studentSearchQuery}
                         onChange={(e) => setStudentSearchQuery(e.target.value)}
-                        className="pl-10 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="pl-10 border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
                     {studentSearchLoading && (
-                      <div className="text-xs text-white/50 py-4 text-center">
+                      <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                         Searching...
                       </div>
                     )}
 
                     {!studentSearchLoading && studentSearchResults.length > 0 && (
-                      <div className="max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+                      <div className="max-h-64 overflow-y-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 space-y-2">
                         {studentSearchResults.map((student: any) => (
                           <motion.button
                             key={student.id}
@@ -484,7 +484,7 @@ export default function CreateInvoiceModal({
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={() => handleStudentSelect(student)}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-white/20 hover:bg-white/10"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-left transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                           >
                             <div className="flex items-center gap-3">
                               <StudentAvatarStatus
@@ -494,10 +494,10 @@ export default function CreateInvoiceModal({
                                 size="sm"
                               />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-white truncate">
+                                <p className="text-sm font-medium text-(--ws-fg) truncate">
                                   {student.fullName}
                                 </p>
-                                <div className="flex items-center gap-2 text-xs text-white/60">
+                                <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
                                   {student.admissionNumber && (
                                     <span>Adm. No: {student.admissionNumber}</span>
                                   )}
@@ -516,7 +516,7 @@ export default function CreateInvoiceModal({
                     )}
 
                     {!studentSearchLoading && studentSearchQuery.trim().length > 0 && studentSearchResults.length === 0 && (
-                      <div className="text-xs text-white/50 py-4 text-center">
+                      <div className="text-xs text-(--ws-fg-50) py-4 text-center">
                         No students found
                       </div>
                     )}
@@ -524,7 +524,7 @@ export default function CreateInvoiceModal({
                 )}
 
                 {errors.studentId && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.studentId.message}
                   </div>
                 )}
@@ -542,7 +542,7 @@ export default function CreateInvoiceModal({
                       size="sm"
                       onClick={() => setValue("academicPeriodId", "")}
                       className={cn(
-                        "text-xs text-white/60 hover:text-white h-auto py-1",
+                        "text-xs text-(--ws-fg-60) hover:text-(--ws-fg) h-auto py-1",
                         lockStudentAndPeriod && "hidden"
                       )}
                     >
@@ -579,7 +579,7 @@ export default function CreateInvoiceModal({
                         {/* Current Period Card - Show only if not a past period is selected */}
                         {currentPeriod && !isPastPeriodSelected && (
                           <div className="space-y-2">
-                            <Label className="text-xs font-medium text-white/60">
+                            <Label className="text-xs font-medium text-(--ws-fg-60)">
                               Current Period
                             </Label>
                             <motion.button
@@ -590,7 +590,7 @@ export default function CreateInvoiceModal({
                               className={`w-full rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left ${
                                 isCurrentPeriodSelected
                                   ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
-                                  : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                               }`}
                             >
                               <div className="flex items-center justify-between">
@@ -598,7 +598,7 @@ export default function CreateInvoiceModal({
                                   <span className="font-semibold">
                                     {currentPeriod.yearLabel} • {currentPeriod.term}
                                   </span>
-                                  <p className="text-xs text-white/60 mt-1">
+                                  <p className="text-xs text-(--ws-fg-60) mt-1">
                                     {new Date(currentPeriod.startDate).toLocaleDateString()} - {new Date(currentPeriod.endDate).toLocaleDateString()}
                                   </p>
                                 </div>
@@ -619,7 +619,7 @@ export default function CreateInvoiceModal({
                         {/* Past Periods Dropdown - Show only if current period is not selected */}
                         {pastPeriods.length > 0 && !isCurrentPeriodSelected && (
                           <div className="space-y-2">
-                            <Label className="text-xs font-medium text-white/60">
+                            <Label className="text-xs font-medium text-(--ws-fg-60)">
                               {currentPeriod ? "Past Periods" : "Select Period"}
                             </Label>
                             <DropdownMenu>
@@ -627,8 +627,8 @@ export default function CreateInvoiceModal({
                                 <Button
                                   variant="outline"
                                   className={cn(
-                                    "w-full justify-between border border-white/10 bg-white/5 text-white",
-                                    "hover:bg-white/10 hover:border-white/20"
+                                    "w-full justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)",
+                                    "hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                                   )}
                                 >
                                   <span>
@@ -646,7 +646,7 @@ export default function CreateInvoiceModal({
                                     onClick={() => field.onChange(period._id)}
                                     className={cn(
                                       premiumMenuItem,
-                                      field.value === period._id && "bg-white/10"
+                                      field.value === period._id && "bg-(--ws-fill-strong)"
                                     )}
                                   >
                                     <div className="flex items-center justify-between w-full">
@@ -683,7 +683,7 @@ export default function CreateInvoiceModal({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => field.onChange("")}
-                                className="h-6 w-6 p-0 text-white/60 hover:text-white"
+                                className="h-6 w-6 p-0 text-(--ws-fg-60) hover:text-(--ws-fg)"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -692,7 +692,7 @@ export default function CreateInvoiceModal({
                         )}
 
                         {!currentPeriod && pastPeriods.length === 0 && periods.length === 0 && (
-                          <p className="text-xs text-white/50 py-4 text-center">
+                          <p className="text-xs text-(--ws-fg-50) py-4 text-center">
                             No academic periods available. Please create periods first.
                           </p>
                         )}
@@ -701,7 +701,7 @@ export default function CreateInvoiceModal({
                   }}
                 />
                 {errors.academicPeriodId && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-(--ws-rose)">
                     {errors.academicPeriodId.message}
                   </div>
                 )}
@@ -717,7 +717,8 @@ export default function CreateInvoiceModal({
                       value={parseLocalDate(field.value)}
                       onChange={(date) => field.onChange(formatLocalDate(date))}
                       placeholder="Select due date"
-                      className="border-white/10 bg-white/5 text-white"
+                      surface="theme"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       error={errors.dueDate?.message}
                     />
                   )}
@@ -738,7 +739,7 @@ export default function CreateInvoiceModal({
                   variant="outline"
                   size="sm"
                   onClick={handleAddLineItem}
-                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
@@ -751,10 +752,10 @@ export default function CreateInvoiceModal({
                     key={field.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-white/80">
+                      <span className="text-sm font-medium text-(--ws-fg-80)">
                         Line Item {index + 1}
                       </span>
                       {fields.length > 1 && (
@@ -763,7 +764,7 @@ export default function CreateInvoiceModal({
                           variant="ghost"
                           size="sm"
                           onClick={() => remove(index)}
-                          className="text-rose-300 hover:text-rose-200"
+                          className="text-(--ws-rose) hover:text-(--ws-rose)"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -786,8 +787,8 @@ export default function CreateInvoiceModal({
                                   <Button
                                     variant="outline"
                                     className={cn(
-                                      "w-full justify-between border border-white/10 bg-white/5 text-white",
-                                      "hover:bg-white/10 hover:border-white/20"
+                                      "w-full justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)",
+                                      "hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                                     )}
                                   >
                                     <span>
@@ -806,7 +807,7 @@ export default function CreateInvoiceModal({
                                     onClick={() => handleFeeStructureSelect(index, "")}
                                     className={cn(
                                       premiumMenuItem,
-                                      !field.value && "bg-white/10"
+                                      !field.value && "bg-(--ws-fill-strong)"
                                     )}
                                   >
                                     <div className="flex items-center justify-between w-full">
@@ -825,7 +826,7 @@ export default function CreateInvoiceModal({
                                         onClick={() => handleFeeStructureSelect(index, structure._id)}
                                         className={cn(
                                           premiumMenuItem,
-                                          field.value === structure._id && "bg-white/10"
+                                          field.value === structure._id && "bg-(--ws-fill-strong)"
                                         )}
                                       >
                                         <div className="flex w-full items-center justify-between gap-3">
@@ -856,10 +857,10 @@ export default function CreateInvoiceModal({
                         <Input
                           {...register(`lineItems.${index}.name` as const)}
                           placeholder="e.g., Tuition Fee"
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.lineItems?.[index]?.name && (
-                          <div className="text-xs text-rose-300">
+                          <div className="text-xs text-(--ws-rose)">
                             {errors.lineItems[index]?.name?.message}
                           </div>
                         )}
@@ -873,7 +874,7 @@ export default function CreateInvoiceModal({
                       <Input
                         {...register(`lineItems.${index}.description` as const)}
                         placeholder="Optional description..."
-                        className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                        className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
@@ -888,10 +889,10 @@ export default function CreateInvoiceModal({
                           {...register(`lineItems.${index}.amount` as const, {
                             valueAsNumber: true,
                           })}
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {errors.lineItems?.[index]?.amount && (
-                          <div className="text-xs text-rose-300">
+                          <div className="text-xs text-(--ws-rose)">
                             {errors.lineItems[index]?.amount?.message}
                           </div>
                         )}
@@ -906,9 +907,9 @@ export default function CreateInvoiceModal({
                                 type="checkbox"
                                 checked={field.value}
                                 onChange={(e) => field.onChange(e.target.checked)}
-                                className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                                className="h-4 w-4 rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand cursor-pointer"
                               />
-                              <span className="text-sm text-white/80">
+                              <span className="text-sm text-(--ws-fg-80)">
                                 Allow Installments
                               </span>
                             </label>
@@ -935,7 +936,7 @@ export default function CreateInvoiceModal({
                             valueAsNumber: true,
                           })}
                           placeholder="e.g., 3"
-                          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                         />
                         {watch(`lineItems.${index}.numberOfInstallments`) &&
                           watch(`lineItems.${index}.numberOfInstallments`)! >= 2 && (
@@ -956,15 +957,15 @@ export default function CreateInvoiceModal({
               </div>
 
               {errors.lineItems && (
-                <div className="text-xs text-rose-300">
+                <div className="text-xs text-(--ws-rose)">
                   {errors.lineItems.message || "Please fix line item errors"}
                 </div>
               )}
 
               {installmentPeriodWarnings.length > 0 && selectedPeriodEndDate ? (
-                <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-amber-100">
+                <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-(--ws-amber)">
                   <p className="font-semibold">Installment dates need attention</p>
-                  <p className="mt-1 text-xs text-amber-100/80">
+                  <p className="mt-1 text-xs text-(--ws-amber)/80">
                     Installment due dates must fall on or before{" "}
                     {selectedPeriodEndDate.toLocaleDateString()} for the selected academic period.
                   </p>
@@ -976,12 +977,12 @@ export default function CreateInvoiceModal({
                 </div>
               ) : null}
 
-              <div className="pt-4 border-t border-white/10">
+              <div className="pt-4 border-t border-(--ws-line)">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white/80">
+                  <span className="text-sm font-semibold text-(--ws-fg-80)">
                     Total Amount:
                   </span>
-                  <span className="text-lg font-bold text-white">
+                  <span className="text-lg font-bold text-(--ws-fg)">
                     GHS {totalAmount.toFixed(2)}
                   </span>
                 </div>
@@ -997,32 +998,32 @@ export default function CreateInvoiceModal({
               </h2>
 
               <div className="space-y-4">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Student
                   </p>
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-(--ws-fg)">
                     {selectedStudent
                       ? `${selectedStudent.fullName}${selectedStudent.admissionNumber ? ` • ${selectedStudent.admissionNumber}` : ""}`
                       : "Not selected"}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Academic Period
                   </p>
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-(--ws-fg)">
                     {periods.find((p: any) => p._id === academicPeriodId)?.yearLabel}{" "}
                     • {periods.find((p: any) => p._id === academicPeriodId)?.term}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Total Amount
                   </p>
-                  <p className="text-2xl font-bold text-white">
+                  <p className="text-2xl font-bold text-(--ws-fg)">
                     GHS {totalAmount.toFixed(2)}
                   </p>
                 </div>
@@ -1039,7 +1040,7 @@ export default function CreateInvoiceModal({
                   id="notes"
                   {...register("notes")}
                   placeholder="Additional notes..."
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -1054,7 +1055,7 @@ export default function CreateInvoiceModal({
                   id="terms"
                   {...register("terms")}
                   placeholder="Payment terms..."
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               </div>
             </section>
@@ -1063,13 +1064,13 @@ export default function CreateInvoiceModal({
       </AnimatePresence>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+      <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
         <Button
           type="button"
           variant="ghost"
           onClick={isFirstStep ? onClose : handlePrevious}
           disabled={isSubmitting}
-          className="text-white/80 hover:text-white"
+          className="text-(--ws-fg-80) hover:text-(--ws-fg)"
         >
           {isFirstStep ? (
             <>
@@ -1088,7 +1089,7 @@ export default function CreateInvoiceModal({
           <Button
             type="submit"
             disabled={isSubmitting || isLoading}
-            className="bg-brand hover:bg-brand/90 text-white"
+            className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
           >
             <Check className="h-4 w-4 mr-2" />
             {submitLabel || (mode === "edit" ? "Save Draft Bill" : "Create Bill")}
@@ -1097,7 +1098,7 @@ export default function CreateInvoiceModal({
           <Button
             type="button"
             onClick={handleNext}
-            className="bg-brand hover:bg-brand/90 text-white"
+            className="bg-brand hover:bg-brand/90 text-(--ws-fg)"
           >
             Next
             <ChevronRight className="h-4 w-4 ml-2" />

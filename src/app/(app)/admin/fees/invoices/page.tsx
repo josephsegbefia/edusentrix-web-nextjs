@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   useInvoices,
@@ -34,10 +34,10 @@ import {
 import { Skeleton } from "@/components/loading/skeleton";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import CreateInvoiceModal from "@/components/modals/CreateInvoiceModal";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useRouter } from "next/navigation";
 import type { CreateInvoiceInput } from "@/schemas/invoice";
-import { premiumMenuContent, premiumMenuItem } from "@/components/ui/premium";
 import { cn } from "@/lib/utils";
 import {
   PeriodBlockedAlert,
@@ -82,41 +82,34 @@ function StatusFilterDropdown({
     STATUS_OPTIONS.find((opt) => opt.value === value)?.label || "All Statuses";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className="rounded-full px-3 py-1.5 bg-card hover:opacity-90 transition"
-        asChild
-      >
+    <PremiumDropdownMenu>
+      <PremiumDropdownMenuTrigger asChild>
         <Button
           variant="outline"
           className={cn(
-            "w-[180px] justify-between border border-white/10 bg-white/5 text-white",
-            "hover:bg-white/10 hover:border-white/20"
+            "w-[180px] justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)",
+            "hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
           )}
         >
           <span>{selectedLabel}</span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className={cn(premiumMenuContent, "min-w-56 p-2")}>
+      </PremiumDropdownMenuTrigger>
+      <PremiumDropdownMenuContent className="min-w-56 p-2">
         {STATUS_OPTIONS.map((option) => (
-          <DropdownMenuItem
+          <PremiumDropdownMenuItem
             key={option.value}
             onClick={() => onValueChange(option.value)}
-            className={cn(
-              premiumMenuItem,
-              "rounded-lg premium-hover",
-              value === option.value && "bg-white/10"
-            )}
+            className={cn(value === option.value && "bg-(--ws-fill-strong)")}
           >
-            <div className="flex items-center justify-between w-full">
+            <div className="flex w-full items-center justify-between">
               <span>{option.label}</span>
               {value === option.value && <Check className="h-4 w-4" />}
             </div>
-          </DropdownMenuItem>
+          </PremiumDropdownMenuItem>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PremiumDropdownMenuContent>
+    </PremiumDropdownMenu>
   );
 }
 
@@ -190,10 +183,10 @@ export default function InvoicesPage() {
     return (
       <div className="space-y-6 p-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-white">Bills</h1>
+          <h1 className="text-3xl font-bold mb-2 text-(--ws-fg)">Bills</h1>
           <p className="text-muted-foreground">Manage student bills</p>
         </div>
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <CardContent className="pt-6">
             <p className="text-destructive">Failed to load bills</p>
           </CardContent>
@@ -311,6 +304,7 @@ export default function InvoicesPage() {
   };
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -319,7 +313,7 @@ export default function InvoicesPage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push("/admin/fees")}
-            className="h-9 w-9 cursor-pointer border border-white/10 bg-white/5 transition-all duration-200 hover:scale-105 hover:border-white/20 hover:bg-white/10 hover:shadow-md hover:shadow-black/20 active:scale-95"
+            className="h-9 w-9 cursor-pointer border border-(--ws-line) bg-(--ws-fill) transition-all duration-200 hover:scale-105 hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:shadow-md hover:shadow-black/20 active:scale-95"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -327,7 +321,7 @@ export default function InvoicesPage() {
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Finance
             </p>
-            <h1 className="text-3xl font-bold text-white">Bills</h1>
+            <h1 className="text-3xl font-bold text-(--ws-fg)">Bills</h1>
             <p className="text-muted-foreground">Manage student bills</p>
           </div>
         </div>
@@ -355,13 +349,13 @@ export default function InvoicesPage() {
       <PeriodBlockedAlert operation="invoices" />
 
       {/* Filters */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10">
-          <CardTitle className="text-white">Filters</CardTitle>
+          <CardTitle className="text-(--ws-fg)">Filters</CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="flex gap-4">
@@ -372,7 +366,7 @@ export default function InvoicesPage() {
                   placeholder="Search by bill number or student name..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  className="pl-10 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
                 />
               </div>
             </div>
@@ -385,13 +379,13 @@ export default function InvoicesPage() {
       </Card>
 
       {/* Bills List */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-purple-500/5 via-purple-500/2 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10">
-          <CardTitle className="text-white">Bills</CardTitle>
+          <CardTitle className="text-(--ws-fg)">Bills</CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
           {isLoading ? (
@@ -407,7 +401,7 @@ export default function InvoicesPage() {
           ) : (
             <>
               {/* Select All Checkbox */}
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-(--ws-line)">
                 <input
                   type="checkbox"
                   checked={
@@ -415,9 +409,9 @@ export default function InvoicesPage() {
                     selectedIds.length === filteredInvoices.length
                   }
                   onChange={handleToggleAllVisible}
-                  className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                  className="h-4 w-4 rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand cursor-pointer"
                 />
-                <label className="text-sm text-white/80 cursor-pointer">
+                <label className="text-sm text-(--ws-fg-80) cursor-pointer">
                   Select all ({filteredInvoices.length} bill
                   {filteredInvoices.length !== 1 ? "s" : ""})
                 </label>
@@ -427,7 +421,7 @@ export default function InvoicesPage() {
                 {filteredInvoices.map((invoice: Invoice) => (
                   <div
                     key={invoice._id}
-                    className="group flex items-center my-3 justify-between p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+                    className="group flex items-center my-3 justify-between p-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong) transition-all duration-200"
                   >
                     <div className="flex items-center gap-3 flex-1">
                       <input
@@ -435,7 +429,7 @@ export default function InvoicesPage() {
                         checked={selectedIds.includes(invoice._id)}
                         onChange={() => handleToggleRow(invoice._id)}
                         onClick={(e) => e.stopPropagation()}
-                        className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer shrink-0"
+                        className="h-4 w-4 rounded border-(--ws-line-strong) bg-(--ws-fill) accent-brand cursor-pointer shrink-0"
                       />
                       <Link
                         href={`/admin/fees/invoices/${invoice._id}`}
@@ -444,35 +438,35 @@ export default function InvoicesPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <p className="font-semibold text-white">
+                              <p className="font-semibold text-(--ws-fg)">
                                 {invoice.invoiceNumber}
                               </p>
                               <InvoiceStatusBadge status={invoice.status} />
                             </div>
-                            <p className="text-sm text-white/80">
+                            <p className="text-sm text-(--ws-fg-80)">
                               {invoice.studentId?.firstName}{" "}
                               {invoice.studentId?.lastName}
                               {invoice.studentId?.admissionNo &&
                                 ` • ${invoice.studentId.admissionNo}`}
                             </p>
-                            <p className="text-xs text-white/60 mt-1">
+                            <p className="text-xs text-(--ws-fg-60) mt-1">
                               {invoice.academicPeriodId?.yearLabel} •{" "}
                               {invoice.academicPeriodId?.term}
                             </p>
                           </div>
                           <div className="text-right mr-4">
-                            <p className="font-semibold text-white">
+                            <p className="font-semibold text-(--ws-fg)">
                               {formatMoney(invoice.totalAmountMinor)}
                             </p>
-                            <p className="text-sm text-white/60">
+                            <p className="text-sm text-(--ws-fg-60)">
                               Paid: {formatMoney(invoice.totalPaidMinor)}
                             </p>
-                            <p className="text-xs text-white/50">
+                            <p className="text-xs text-(--ws-fg-50)">
                               Outstanding:{" "}
                               {formatMoney(invoice.totalOutstandingMinor)}
                             </p>
                           </div>
-                          <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+                          <ArrowRight className="h-4 w-4 text-(--ws-fg-40) group-hover:text-(--ws-fg)/60 group-hover:translate-x-1 transition-all" />
                         </div>
                       </Link>
                     </div>
@@ -483,7 +477,7 @@ export default function InvoicesPage() {
               {/* Pagination */}
               {pagination && pagination.pages > 1 && (
                 <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-(--ws-fg-60)">
                     Page {pagination.page} of {pagination.pages}
                   </p>
                   <div className="flex gap-2">
@@ -492,7 +486,7 @@ export default function InvoicesPage() {
                       size="sm"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       Previous
                     </Button>
@@ -503,7 +497,7 @@ export default function InvoicesPage() {
                         setPage((p) => Math.min(pagination.pages, p + 1))
                       }
                       disabled={page === pagination.pages}
-                      className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       Next
                     </Button>
@@ -544,5 +538,6 @@ export default function InvoicesPage() {
         />
       </ResponsiveModal>
     </div>
+    </WorkspaceScope>
   );
 }

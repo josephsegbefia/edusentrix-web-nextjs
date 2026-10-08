@@ -70,34 +70,34 @@ function MetricStatCard({
     teal: {
       gradient: "from-teal-500/10 via-teal-500/5 to-transparent",
       iconBg: "bg-teal-500/20 border-teal-500/30",
-      iconColor: "text-teal-300",
+      iconColor: "text-(--ws-teal)",
     },
     cyan: {
       gradient: "from-cyan-500/10 via-cyan-500/5 to-transparent",
       iconBg: "bg-cyan-500/20 border-cyan-500/30",
-      iconColor: "text-cyan-300",
+      iconColor: "text-(--ws-cyan)",
     },
     emerald: {
       gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
       iconBg: "bg-emerald-500/20 border-emerald-500/30",
-      iconColor: "text-emerald-300",
+      iconColor: "text-(--ws-emerald)",
     },
     amber: {
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
       iconBg: "bg-amber-500/20 border-amber-500/30",
-      iconColor: "text-amber-300",
+      iconColor: "text-(--ws-amber)",
     },
     red: {
       gradient: "from-red-500/10 via-red-500/5 to-transparent",
       iconBg: "bg-red-500/20 border-red-500/30",
-      iconColor: "text-red-300",
+      iconColor: "text-(--ws-rose)",
     },
   };
 
   const style = tones[tone];
 
   return (
-    <div className="group/card relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black p-4 shadow-lg shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
+    <div className="group/card relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) p-4 shadow-[var(--ws-shadow)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       <div
         className={cn(
           "pointer-events-none absolute inset-0 bg-linear-to-br opacity-60 transition-opacity duration-300 group-hover/card:opacity-100",
@@ -106,7 +106,7 @@ function MetricStatCard({
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent"
         aria-hidden="true"
       />
 
@@ -117,14 +117,14 @@ function MetricStatCard({
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <HelpCircle className="h-3.5 w-3.5 cursor-help text-white/25 transition-colors hover:text-white/50" />
+          <HelpCircle className="h-3.5 w-3.5 cursor-help text-(--ws-fg-40) transition-colors hover:text-(--ws-fg-50)" />
           {showTooltip &&
             ReactDOM.createPortal(
               <div
                 style={{ top: tooltipPos.top, left: tooltipPos.left }}
-                className="fixed z-9999 w-52 rounded-lg border border-white/15 bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-white/70 shadow-xl shadow-black/50"
+                className="fixed z-9999 w-52 rounded-lg border border-(--ws-line) bg-(--ws-popover) px-3 py-2 text-[11px] leading-relaxed text-(--ws-fg-70) shadow-xl shadow-black/50"
               >
-                <div className="absolute -top-1 right-2 h-2 w-2 rotate-45 border-l border-t border-white/15 bg-slate-900" />
+                <div className="absolute -top-1 right-2 h-2 w-2 rotate-45 border-l border-t border-(--ws-line) bg-(--ws-popover)" />
                 {tooltip}
               </div>,
               document.body
@@ -142,14 +142,14 @@ function MetricStatCard({
           >
             <Icon className={cn("h-4 w-4", style.iconColor)} />
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-(--ws-fg-50)">
             {label}
           </span>
         </div>
-        <div className="text-xl font-bold tracking-tight text-white">
+        <div className="text-xl font-bold tracking-tight text-(--ws-fg)">
           {value}
         </div>
-        {subLabel && <p className="text-[10px] text-white/40">{subLabel}</p>}
+        {subLabel && <p className="text-[10px] text-(--ws-fg-40)">{subLabel}</p>}
       </div>
     </div>
   );
@@ -270,7 +270,7 @@ export function StudentDetailHeader({
   }
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-teal-950/40 to-transparent shadow-2xl shadow-black/40 backdrop-blur-xl">
+    <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-teal-950/40 to-transparent shadow-[var(--ws-shadow)] backdrop-blur-xl">
       {/* Decorative elements */}
       <div
         className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-teal-500/10 blur-3xl"
@@ -300,13 +300,13 @@ export function StudentDetailHeader({
             {/* Name and badges */}
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) md:text-3xl">
                   {fullName}
                 </h1>
                 {performanceTier === "top" && (
                   <Badge
                     variant="outline"
-                    className="gap-1 rounded-lg border-amber-400/50 bg-amber-500/20 text-[10px] font-semibold text-amber-200"
+                    className="gap-1 rounded-lg border-amber-400/50 bg-amber-500/20 text-[10px] font-semibold text-(--ws-amber)"
                   >
                     <GraduationCap className="h-3 w-3" />
                     Top Performer
@@ -315,7 +315,7 @@ export function StudentDetailHeader({
                 {feesStatus === "owing" && (
                   <Badge
                     variant="outline"
-                    className="gap-1 rounded-lg border-red-400/50 bg-red-500/20 text-[10px] font-semibold text-red-200"
+                    className="gap-1 rounded-lg border-red-400/50 bg-red-500/20 text-[10px] font-semibold text-(--ws-rose)"
                   >
                     <Wallet className="h-3 w-3" />
                     Owing Fees
@@ -326,26 +326,26 @@ export function StudentDetailHeader({
               {/* Info badges */}
               <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 {grade && (
-                  <Badge className="rounded-lg border border-teal-400/30 bg-teal-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-teal-100">
+                  <Badge className="rounded-lg border border-teal-400/30 bg-teal-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-(--ws-teal)">
                     {grade.label}
                   </Badge>
                 )}
                 {classGroup && (
                   <Badge
                     variant="outline"
-                    className="rounded-lg border-cyan-400/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-cyan-100"
+                    className="rounded-lg border-cyan-400/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-(--ws-cyan)"
                   >
                     {classGroup.label}
                   </Badge>
                 )}
                 {admissionNo && (
-                  <span className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/60 font-mono">
+                  <span className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill-strong) px-2.5 py-1 text-[10px] font-medium text-(--ws-fg-60) font-mono">
                     <Hash className="h-3 w-3" />
                     {admissionNo}
                   </span>
                 )}
                 {typeof ageYears === "number" && ageYears >= 0 && (
-                  <span className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/60">
+                  <span className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill-strong) px-2.5 py-1 text-[10px] font-medium text-(--ws-fg-60)">
                     <Calendar className="h-3 w-3" />
                     {ageYears} years old
                   </span>
@@ -371,11 +371,11 @@ export function StudentDetailHeader({
                   className={cn(
                     "rounded-lg border px-2.5 py-1 text-[10px] font-semibold",
                     status === "active" &&
-                      "border-emerald-400/50 bg-emerald-500/20 text-emerald-200",
+                      "border-emerald-400/50 bg-emerald-500/20 text-(--ws-emerald)",
                     status === "inactive" &&
-                      "border-slate-400/50 bg-slate-500/20 text-slate-200",
+                      "border-slate-400/50 bg-slate-500/20 text-(--ws-fg-80)",
                     status === "withdrawn" &&
-                      "border-red-400/50 bg-red-500/20 text-red-200",
+                      "border-red-400/50 bg-red-500/20 text-(--ws-rose)",
                     status === "graduated" &&
                       "border-violet-400/50 bg-violet-500/20 text-violet-200"
                   )}
@@ -402,7 +402,7 @@ export function StudentDetailHeader({
                   <button
                     type="button"
                     onClick={() => setEditingGes(true)}
-                    className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-white/40 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/60"
+                    className="flex items-center gap-1 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2 py-1 text-[10px] font-medium text-(--ws-fg-40) transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-60)"
                   >
                     <Pencil className="h-2.5 w-2.5" />
                     {gesSchoolCode || gesIndexNumber ? "Edit" : "Add"} GES Info
@@ -426,7 +426,7 @@ export function StudentDetailHeader({
                         }))
                       }
                       placeholder="e.g. 0301234"
-                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-white placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
+                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-(--ws-fg) placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
                     />
                   </div>
                   <div className="flex-1 space-y-1">
@@ -442,7 +442,7 @@ export function StudentDetailHeader({
                         }))
                       }
                       placeholder="e.g. 0301234001"
-                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-white placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
+                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-(--ws-fg) placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
                     />
                   </div>
                   <div className="flex gap-1.5 shrink-0">
@@ -452,7 +452,7 @@ export function StudentDetailHeader({
                       variant="ghost"
                       onClick={handleSaveGes}
                       disabled={savingGes}
-                      className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                      className="h-8 w-8 rounded-lg bg-emerald-500/20 text-(--ws-emerald) hover:bg-emerald-500/30"
                     >
                       {savingGes ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -472,7 +472,7 @@ export function StudentDetailHeader({
                         });
                       }}
                       disabled={savingGes}
-                      className="h-8 w-8 rounded-lg bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                      className="h-8 w-8 rounded-lg bg-(--ws-fill) text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-60)"
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
@@ -535,9 +535,9 @@ export function StudentDetailHeader({
           {primaryGuardian &&
             primaryGuardian.hasPlatformAccount === false && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-left">
-                <Send className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden />
-                <p className="text-[11px] leading-snug text-amber-100/90">
-                  <span className="font-semibold text-amber-100">Primary contact</span> has not
+                <Send className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-amber)" aria-hidden />
+                <p className="text-[11px] leading-snug text-(--ws-amber)/90">
+                  <span className="font-semibold text-(--ws-amber)">Primary contact</span> has not
                   accepted their invitation yet and does not have a parent portal login. You can
                   still use their details saved here.
                 </p>
@@ -551,7 +551,7 @@ export function StudentDetailHeader({
               variant="outline"
               size="icon"
               onClick={handlePhoneClick}
-              className="h-9 w-9 rounded-xl border-white/15 bg-white/5 text-white/60 transition-all hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-300"
+              className="h-9 w-9 rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) transition-all hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-(--ws-teal)"
               aria-label={
                 guardianPhone ? `Call ${primaryGuardian?.fullName ?? "guardian"}` : "Call guardian"
               }
@@ -566,7 +566,7 @@ export function StudentDetailHeader({
               variant="outline"
               size="icon"
               onClick={handleEmailClick}
-              className="h-9 w-9 rounded-xl border-white/15 bg-white/5 text-white/60 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300"
+              className="h-9 w-9 rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-(--ws-cyan)"
               aria-label={
                 guardianEmail ? `Email ${primaryGuardian?.fullName ?? "guardian"}` : "Email guardian"
               }
@@ -581,7 +581,7 @@ export function StudentDetailHeader({
               variant="outline"
               size="sm"
               onClick={handleRecordPaymentClick}
-              className="gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-xs font-medium text-teal-200 transition-all hover:bg-teal-500/20"
+              className="gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-xs font-medium text-(--ws-teal) transition-all hover:bg-teal-500/20"
             >
               <Wallet className="h-3.5 w-3.5" />
               Record Payment

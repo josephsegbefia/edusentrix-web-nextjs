@@ -270,28 +270,28 @@ export function StudentsImportModal({
           <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-500/30 bg-teal-500/10">
-                <Info className="h-4 w-4 text-teal-300" />
+                <Info className="h-4 w-4 text-(--ws-teal)" />
               </div>
               <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-sm font-medium text-teal-200">
+                <p className="text-sm font-medium text-(--ws-teal)">
                   {isClassScoped
                     ? "Download the class import template"
                     : "Download the CSV template"}
                 </p>
-                <p className="text-xs leading-relaxed text-white/50">
+                <p className="text-xs leading-relaxed text-(--ws-fg-50)">
                   {isClassScoped ? (
                     <>
                       Students in this file will be created and placed in{" "}
-                      <span className="text-white/70">{classLabel}</span>. You
+                      <span className="text-(--ws-fg-70)">{classLabel}</span>. You
                       do not need Grade or Class columns.
                     </>
                   ) : (
                     <>
                       Import accepts flexible formatting:{" "}
-                      <span className="text-white/70">Creche</span> +{" "}
-                      <span className="text-white/70">A</span>,{" "}
-                      <span className="text-white/70">CrecheA</span>, or{" "}
-                      <span className="text-white/70">Creche A</span> all resolve
+                      <span className="text-(--ws-fg-70)">Creche</span> +{" "}
+                      <span className="text-(--ws-fg-70)">A</span>,{" "}
+                      <span className="text-(--ws-fg-70)">CrecheA</span>, or{" "}
+                      <span className="text-(--ws-fg-70)">Creche A</span> all resolve
                       to the same class group when it exists in your school.
                     </>
                   )}
@@ -301,7 +301,7 @@ export function StudentsImportModal({
                   size="sm"
                   variant="outline"
                   onClick={() => downloadTemplate(template, templateFilename)}
-                  className="gap-2 border-teal-500/30 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20"
+                  className="gap-2 border-teal-500/30 bg-teal-500/10 text-(--ws-teal) hover:bg-teal-500/20"
                 >
                   <Download className="h-3.5 w-3.5" />
                   Download Template
@@ -311,20 +311,20 @@ export function StudentsImportModal({
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wider text-white/40">
+            <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-40)">
               Column Reference
             </p>
-            <div className="max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-black/20">
+            <div className="max-h-40 overflow-y-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-left">
-                    <th className="px-3 py-2 font-medium text-white/60">
+                  <tr className="border-b border-(--ws-line) text-left">
+                    <th className="px-3 py-2 font-medium text-(--ws-fg-60)">
                       Column
                     </th>
-                    <th className="px-3 py-2 font-medium text-white/60">
+                    <th className="px-3 py-2 font-medium text-(--ws-fg-60)">
                       Required
                     </th>
-                    <th className="hidden px-3 py-2 font-medium text-white/60 sm:table-cell">
+                    <th className="hidden px-3 py-2 font-medium text-(--ws-fg-60) sm:table-cell">
                       Description
                     </th>
                   </tr>
@@ -333,9 +333,9 @@ export function StudentsImportModal({
                   {columns.map((col) => (
                     <tr
                       key={col.name}
-                      className="border-b border-white/5 last:border-0"
+                      className="border-b border-(--ws-line) last:border-0"
                     >
-                      <td className="px-3 py-1.5 font-mono text-[11px] text-white/80">
+                      <td className="px-3 py-1.5 font-mono text-[11px] text-(--ws-fg-80)">
                         {col.name}
                       </td>
                       <td className="px-3 py-1.5">
@@ -344,10 +344,10 @@ export function StudentsImportModal({
                             Yes
                           </span>
                         ) : (
-                          <span className="text-[10px] text-white/40">No</span>
+                          <span className="text-[10px] text-(--ws-fg-40)">No</span>
                         )}
                       </td>
-                      <td className="hidden px-3 py-1.5 text-[11px] text-white/50 sm:table-cell">
+                      <td className="hidden px-3 py-1.5 text-[11px] text-(--ws-fg-50) sm:table-cell">
                         {col.desc}
                       </td>
                     </tr>
@@ -371,7 +371,7 @@ export function StudentsImportModal({
                 ? "border-teal-500/60 bg-teal-500/10"
                 : file
                   ? "border-emerald-500/40 bg-emerald-500/5"
-                  : "border-white/15 bg-white/5 hover:border-white/25 hover:bg-white/8"
+                  : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
             )}
           >
             <input
@@ -385,11 +385,11 @@ export function StudentsImportModal({
             {file ? (
               <>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                  <FileSpreadsheet className="h-6 w-6 text-emerald-300" />
+                  <FileSpreadsheet className="h-6 w-6 text-(--ws-emerald)" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-white">{file.name}</p>
-                  <p className="text-xs text-white/50">
+                  <p className="text-sm font-medium text-(--ws-fg)">{file.name}</p>
+                  <p className="text-xs text-(--ws-fg-50)">
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
@@ -400,7 +400,7 @@ export function StudentsImportModal({
                     setFile(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
-                  className="flex items-center gap-1 rounded-lg bg-white/10 px-3 py-1 text-xs text-white/60 hover:bg-white/15 hover:text-white"
+                  className="flex items-center gap-1 rounded-lg bg-(--ws-fill-strong) px-3 py-1 text-xs text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 >
                   <X className="h-3 w-3" />
                   Remove
@@ -408,14 +408,14 @@ export function StudentsImportModal({
               </>
             ) : (
               <>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-                  <Upload className="h-6 w-6 text-white/40" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
+                  <Upload className="h-6 w-6 text-(--ws-fg-40)" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-white/80">
+                  <p className="text-sm font-medium text-(--ws-fg-80)">
                     Drop your file here
                   </p>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-(--ws-fg-40)">
                     CSV, TXT, or Excel (.xlsx/.xls)
                   </p>
                 </div>
@@ -429,7 +429,7 @@ export function StudentsImportModal({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               Cancel
             </Button>
@@ -456,10 +456,10 @@ export function StudentsImportModal({
             </div>
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-white">
+            <p className="text-sm font-medium text-(--ws-fg)">
               Importing students...
             </p>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-(--ws-fg-50)">
               Validating and creating student records
             </p>
           </div>
@@ -485,7 +485,7 @@ export function StudentsImportModal({
               )}
             >
               {result.created > 0 ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
               ) : (
                 <AlertCircle className="h-5 w-5 text-rose-300" />
               )}
@@ -494,7 +494,7 @@ export function StudentsImportModal({
               <p
                 className={cn(
                   "text-sm font-medium",
-                  result.created > 0 ? "text-emerald-200" : "text-rose-200"
+                  result.created > 0 ? "text-(--ws-emerald)" : "text-rose-200"
                 )}
               >
                 {result.created > 0
@@ -507,7 +507,7 @@ export function StudentsImportModal({
                 <p className="mt-1 text-xs text-rose-300/80">{result.error}</p>
               )}
               <div className="mt-2 flex flex-wrap gap-3 text-xs">
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-emerald-300">
+                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-(--ws-emerald)">
                   {result.created} created
                 </span>
                 {result.failed > 0 && (
@@ -521,19 +521,19 @@ export function StudentsImportModal({
 
           {result.errors.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-white/40">
+              <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-40)">
                 Errors ({result.errors.length})
               </p>
-              <div className="max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-black/20">
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
                 {result.errors.map((err, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-2 border-b border-white/5 px-3 py-2 last:border-0"
+                    className="flex items-start gap-2 border-b border-(--ws-line) px-3 py-2 last:border-0"
                   >
                     <span className="shrink-0 rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-mono text-rose-300">
                       Row {err.row}
                     </span>
-                    <span className="text-xs text-white/60">{err.message}</span>
+                    <span className="text-xs text-(--ws-fg-60)">{err.message}</span>
                   </div>
                 ))}
               </div>
@@ -547,7 +547,7 @@ export function StudentsImportModal({
                 variant="outline"
                 size="sm"
                 onClick={resetState}
-                className="gap-2 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
               >
                 <Upload className="h-3.5 w-3.5" />
                 Try Again

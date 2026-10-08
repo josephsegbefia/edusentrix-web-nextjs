@@ -3,6 +3,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default function CreateInvoicePage() {
   const router = useRouter();
@@ -12,5 +13,5 @@ export default function CreateInvoicePage() {
     router.replace("/admin/fees/invoices");
   }, [router]);
 
-  return null;
+  return <WorkspaceScope>{null}</WorkspaceScope>;
 }

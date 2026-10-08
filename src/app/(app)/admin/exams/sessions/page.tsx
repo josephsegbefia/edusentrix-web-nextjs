@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import {
   CalendarRange,
@@ -45,14 +46,14 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-white/10 bg-white/5 text-white/70",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   scheduled: "border-sky-500/30 bg-sky-500/10 text-sky-100",
   conflict_review: "border-amber-500/30 bg-amber-500/10 text-amber-100",
   published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   in_progress: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
   completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   locked: "border-violet-500/30 bg-violet-500/10 text-violet-100",
-  archived: "border-white/10 bg-white/5 text-white/45",
+  archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/45",
   cancelled: "border-rose-500/30 bg-rose-500/10 text-rose-100",
 };
 
@@ -91,7 +92,7 @@ function SessionCard({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-white">{session.name}</h3>
+            <h3 className="text-base font-semibold text-(--ws-fg)">{session.name}</h3>
             <Badge
               variant="outline"
               className={STATUS_STYLES[session.status] ?? STATUS_STYLES.draft}
@@ -99,13 +100,13 @@ function SessionCard({
               {formatExamSessionStatus(session.status)}
             </Badge>
           </div>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-(--ws-fg-60)">
             {periodLabel} · {formatExamType(session.examType)}
           </p>
-          <p className="mt-1 text-sm text-white/50">
+          <p className="mt-1 text-sm text-(--ws-fg-50)">
             {formatDateRange(session.startDate, session.endDate)}
           </p>
-          <p className="mt-2 text-xs text-white/40">
+          <p className="mt-2 text-xs text-(--ws-fg-40)">
             {session.appliesToClassGroupIds.length} class group
             {session.appliesToClassGroupIds.length === 1 ? "" : "s"} ·{" "}
             {session.appliesToGradeIds.length} grade
@@ -217,7 +218,8 @@ export default function ExamSessionsPage() {
   }
 
   return (
-    <WorkspacePageShell>
+    <WorkspaceScope>
+      <WorkspacePageShell>
       <WorkspacePageHeader
         icon={CalendarRange}
         title="Exam Sessions"
@@ -286,7 +288,7 @@ export default function ExamSessionsPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-white/60">
+          <div className="flex items-center justify-center py-16 text-(--ws-fg-60)">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading exam sessions…
           </div>
@@ -302,8 +304,8 @@ export default function ExamSessionsPage() {
         ) : sessions.length === 0 ? (
           <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
             <CalendarRange className="mx-auto h-10 w-10 text-cyan-300/80" />
-            <h3 className="mt-4 text-lg font-semibold text-white">No exam sessions yet</h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-white/60">
+            <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">No exam sessions yet</h3>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-(--ws-fg-60)">
               Create an exam session to start building exam timetables and assigning
               invigilators.
             </p>
@@ -339,5 +341,6 @@ export default function ExamSessionsPage() {
         onCompleted={() => setEditingSession(null)}
       />
     </WorkspacePageShell>
+    </WorkspaceScope>
   );
 }

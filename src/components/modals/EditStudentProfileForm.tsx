@@ -163,13 +163,13 @@ export default function EditStudentProfileForm({
 
   if (!me?.schoolId) {
     return (
-      <p className="text-sm text-white/60">School context not available.</p>
+      <p className="text-sm text-(--ws-fg-60)">School context not available.</p>
     );
   }
 
   if (loadingStudent || !student) {
     return (
-      <div className="flex items-center justify-center py-12 text-white/60">
+      <div className="flex items-center justify-center py-12 text-(--ws-fg-60)">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -184,41 +184,41 @@ export default function EditStudentProfileForm({
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label className="text-white/70">First name</Label>
+          <Label className="text-(--ws-fg-70)">First name</Label>
           <Input
             {...register("firstName")}
-            className="border-white/10 bg-black/30 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
           {errors.firstName ? (
             <p className="text-xs text-red-400">{errors.firstName.message}</p>
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Last name</Label>
+          <Label className="text-(--ws-fg-70)">Last name</Label>
           <Input
             {...register("lastName")}
-            className="border-white/10 bg-black/30 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
           {errors.lastName ? (
             <p className="text-xs text-red-400">{errors.lastName.message}</p>
           ) : null}
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label className="text-white/70">Middle name (optional)</Label>
+          <Label className="text-(--ws-fg-70)">Middle name (optional)</Label>
           <Input
             {...register("middleName")}
-            className="border-white/10 bg-black/30 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Admission / student ID</Label>
+          <Label className="text-(--ws-fg-70)">Admission / student ID</Label>
           <Input
             {...register("admissionNo")}
-            className="border-white/10 bg-black/30 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Sex</Label>
+          <Label className="text-(--ws-fg-70)">Sex</Label>
           <Controller
             name="sex"
             control={control}
@@ -229,7 +229,7 @@ export default function EditStudentProfileForm({
                   field.onChange(v as "male" | "female")
                 }
               >
-                <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                <SelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -245,7 +245,7 @@ export default function EditStudentProfileForm({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Date of birth</Label>
+          <Label className="text-(--ws-fg-70)">Date of birth</Label>
           <Controller
             name="dateOfBirth"
             control={control}
@@ -257,6 +257,7 @@ export default function EditStudentProfileForm({
                     d ? d.toISOString().slice(0, 10) : null
                   )
                 }
+                surface="theme"
                 className="w-full"
               />
             )}
@@ -266,7 +267,7 @@ export default function EditStudentProfileForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Enrolled on</Label>
+          <Label className="text-(--ws-fg-70)">Enrolled on</Label>
           <Controller
             name="enrolledAt"
             control={control}
@@ -278,6 +279,7 @@ export default function EditStudentProfileForm({
                     d ? d.toISOString().slice(0, 10) : null
                   )
                 }
+                surface="theme"
                 className="w-full"
               />
             )}
@@ -287,7 +289,7 @@ export default function EditStudentProfileForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Status</Label>
+          <Label className="text-(--ws-fg-70)">Status</Label>
           <Controller
             name="status"
             control={control}
@@ -300,7 +302,7 @@ export default function EditStudentProfileForm({
                   )
                 }
               >
-                <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                <SelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -328,7 +330,7 @@ export default function EditStudentProfileForm({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-white/70">Photo</Label>
+        <Label className="text-(--ws-fg-70)">Photo</Label>
         <Controller
           name="photoUrl"
           control={control}
@@ -349,7 +351,7 @@ export default function EditStudentProfileForm({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label className="text-white/70">Grade</Label>
+          <Label className="text-(--ws-fg-70)">Grade</Label>
           <Controller
             name="gradeId"
             control={control}
@@ -365,7 +367,7 @@ export default function EditStudentProfileForm({
                 }}
                 disabled={loadingGrades}
               >
-                <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                <SelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue placeholder="Select grade" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -387,7 +389,7 @@ export default function EditStudentProfileForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Class group</Label>
+          <Label className="text-(--ws-fg-70)">Class group</Label>
           <Controller
             name="classGroupId"
             control={control}
@@ -397,7 +399,7 @@ export default function EditStudentProfileForm({
                 onValueChange={field.onChange}
                 disabled={!gradeId || loadingClasses}
               >
-                <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                <SelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -422,28 +424,28 @@ export default function EditStudentProfileForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 border-t border-white/10 pt-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 border-t border-(--ws-line) pt-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label className="text-white/70">GES index number (optional)</Label>
+          <Label className="text-(--ws-fg-70)">GES index number (optional)</Label>
           <Input
             {...register("gesIndexNumber")}
-            className="border-white/10 bg-black/30 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">GES school code (optional)</Label>
+          <Label className="text-(--ws-fg-70)">GES school code (optional)</Label>
           <Input
             {...register("gesSchoolCode")}
-            className="border-white/10 bg-black/30 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           />
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
+      <div className="flex justify-end gap-2 border-t border-(--ws-line) pt-4">
         <Button
           type="button"
           variant="outline"
-          className="border-white/15 bg-transparent text-white"
+          className="border-(--ws-line) bg-transparent text-(--ws-fg)"
           onClick={onClose}
           disabled={isSubmitting}
         >
@@ -452,7 +454,7 @@ export default function EditStudentProfileForm({
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="bg-teal-600 text-white hover:bg-teal-500"
+          className="bg-teal-600 text-(--ws-fg) hover:bg-teal-500"
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

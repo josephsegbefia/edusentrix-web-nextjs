@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import Link from "next/link";
 import { format } from "date-fns/format";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
@@ -95,17 +96,17 @@ function StatsCard({ title, value, subtitle, icon: Icon, tone, href }: StatsCard
 
   const content = (
     <Card className={cn(
-      "relative overflow-hidden border-white/10 bg-white/5 transition-all hover:border-white/20",
+      "relative overflow-hidden border-(--ws-line) bg-(--ws-fill) transition-all hover:border-(--ws-line-strong)",
       href && "cursor-pointer"
     )}>
       <div className={cn("absolute inset-0 bg-linear-to-br opacity-60", styles.gradient)} />
       <CardContent className="relative p-5">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-white/60">{title}</p>
-            <p className="mt-1 text-3xl font-bold text-white">{value}</p>
+            <p className="text-sm font-medium text-(--ws-fg-60)">{title}</p>
+            <p className="mt-1 text-3xl font-bold text-(--ws-fg)">{value}</p>
             {subtitle && (
-              <p className="mt-1 text-sm text-white/50">{subtitle}</p>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">{subtitle}</p>
             )}
           </div>
           <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl border", styles.iconBg)}>
@@ -130,22 +131,22 @@ function StatsCard({ title, value, subtitle, icon: Icon, tone, href }: StatsCard
 function PollCard({ poll }: { poll: PollListItemDTO }) {
   return (
     <Link href={`/admin/community/polls/${poll.id}`}>
-      <div className="group rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20 hover:bg-white/10">
+      <div className="group rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h4 className="truncate font-medium text-white">{poll.title}</h4>
+              <h4 className="truncate font-medium text-(--ws-fg)">{poll.title}</h4>
               <Badge className={cn("shrink-0 text-xs", STATUS_STYLES[poll.status])}>
                 {poll.status.replaceAll("_", " ")}
               </Badge>
             </div>
-            <p className="mt-1 truncate text-sm text-white/50">
+            <p className="mt-1 truncate text-sm text-(--ws-fg-50)">
               {poll.questionCount} question{poll.questionCount !== 1 ? "s" : ""} · {poll.audience.scope} scope
             </p>
           </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-white/30 transition-transform group-hover:translate-x-1 group-hover:text-white/60" />
+          <ArrowRight className="h-4 w-4 shrink-0 text-(--ws-fg-40) transition-transform group-hover:translate-x-1 group-hover:text-(--ws-fg-60)" />
         </div>
-        <div className="mt-3 flex items-center gap-4 text-sm text-white/50">
+        <div className="mt-3 flex items-center gap-4 text-sm text-(--ws-fg-50)">
           <span className="flex items-center gap-1">
             <Users className="h-3.5 w-3.5" />
             {poll.totalVotes} votes
@@ -167,29 +168,29 @@ function PollCard({ poll }: { poll: PollListItemDTO }) {
 function CampaignCard({ campaign }: { campaign: CampaignListItemDTO }) {
   return (
     <Link href={`/admin/community/fundraising/${campaign.id}`}>
-      <div className="group rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20 hover:bg-white/10">
+      <div className="group rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h4 className="truncate font-medium text-white">{campaign.title}</h4>
+              <h4 className="truncate font-medium text-(--ws-fg)">{campaign.title}</h4>
               <Badge className={cn("shrink-0 text-xs", STATUS_STYLES[campaign.status])}>
                 {campaign.status.replaceAll("_", " ")}
               </Badge>
             </div>
-            <p className="mt-1 truncate text-sm text-white/50">
+            <p className="mt-1 truncate text-sm text-(--ws-fg-50)">
               {campaign.category.replaceAll("_", " ")} · {campaign.donorCount} donor{campaign.donorCount !== 1 ? "s" : ""}
             </p>
           </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-white/30 transition-transform group-hover:translate-x-1 group-hover:text-white/60" />
+          <ArrowRight className="h-4 w-4 shrink-0 text-(--ws-fg-40) transition-transform group-hover:translate-x-1 group-hover:text-(--ws-fg-60)" />
         </div>
         <div className="mt-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/50">
+            <span className="text-(--ws-fg-50)">
               {formatMoney(campaign.raisedAmountMinor, campaign.currency)} raised
             </span>
             <span className="font-medium text-emerald-400">{campaign.progressPercent}%</span>
           </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-(--ws-fill-strong)">
             <div
               className="h-full rounded-full bg-emerald-500 transition-all"
               style={{ width: `${Math.min(campaign.progressPercent, 100)}%` }}
@@ -227,12 +228,13 @@ export default function CommunityHubPage() {
   const isLoading = pollsLoading || campaignsLoading;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] px-4 py-8 sm:px-6 lg:px-8">
+    <WorkspaceScope>
+    <div className="min-h-screen bg-transparent px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Community Hub</h1>
-          <p className="mt-1 text-white/60">
+          <h1 className="text-3xl font-bold text-(--ws-fg)">Community Hub</h1>
+          <p className="mt-1 text-(--ws-fg-60)">
             Manage school-wide polls and fundraising campaigns
           </p>
         </div>
@@ -242,7 +244,7 @@ export default function CommunityHubPage() {
           {isLoading ? (
             <>
               {["sk1", "sk2", "sk3", "sk4"].map((key) => (
-                <Skeleton key={key} className="h-32 rounded-xl bg-white/5" />
+                <Skeleton key={key} className="h-32 rounded-xl bg-(--ws-fill)" />
               ))}
             </>
           ) : (
@@ -300,14 +302,14 @@ export default function CommunityHubPage() {
         {/* Content Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent Polls */}
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-(--ws-line) bg-(--ws-fill)">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg text-white">
+              <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
                 <Vote className="h-5 w-5 text-violet-400" />
                 Recent Polls
               </CardTitle>
               <Link href="/admin/community/polls">
-                <Button variant="ghost" size="sm" className="gap-1 text-white/60 hover:text-white">
+                <Button variant="ghost" size="sm" className="gap-1 text-(--ws-fg-60) hover:text-(--ws-fg)">
                   View all
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -321,8 +323,8 @@ export default function CommunityHubPage() {
               )}
               {!pollsLoading && polls.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <MessageSquare className="h-10 w-10 text-white/20" />
-                  <p className="mt-2 text-sm text-white/50">No polls yet</p>
+                  <MessageSquare className="h-10 w-10 text-(--ws-fg-40)" />
+                  <p className="mt-2 text-sm text-(--ws-fg-50)">No polls yet</p>
                   <Link href="/admin/community/polls?create=1">
                     <Button size="sm" className="mt-3 gap-1" variant="outline">
                       <Plus className="h-4 w-4" />
@@ -340,14 +342,14 @@ export default function CommunityHubPage() {
           </Card>
 
           {/* Recent Campaigns */}
-          <Card className="border-white/10 bg-white/5">
+          <Card className="border-(--ws-line) bg-(--ws-fill)">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="flex items-center gap-2 text-lg text-white">
+              <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
                 <Heart className="h-5 w-5 text-emerald-400" />
                 Active Campaigns
               </CardTitle>
               <Link href="/admin/community/fundraising">
-                <Button variant="ghost" size="sm" className="gap-1 text-white/60 hover:text-white">
+                <Button variant="ghost" size="sm" className="gap-1 text-(--ws-fg-60) hover:text-(--ws-fg)">
                   View all
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -361,8 +363,8 @@ export default function CommunityHubPage() {
               )}
               {!campaignsLoading && campaigns.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Target className="h-10 w-10 text-white/20" />
-                  <p className="mt-2 text-sm text-white/50">No campaigns yet</p>
+                  <Target className="h-10 w-10 text-(--ws-fg-40)" />
+                  <p className="mt-2 text-sm text-(--ws-fg-50)">No campaigns yet</p>
                   <Link href="/admin/community/fundraising?create=1">
                     <Button size="sm" className="mt-3 gap-1" variant="outline">
                       <Plus className="h-4 w-4" />
@@ -381,5 +383,6 @@ export default function CommunityHubPage() {
         </div>
       </div>
     </div>
+    </WorkspaceScope>
   );
 }

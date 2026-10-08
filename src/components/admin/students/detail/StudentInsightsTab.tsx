@@ -50,14 +50,14 @@ function HealthScorecard({ data }: { data: InsightsData }) {
       color: "emerald",
       bg: "bg-emerald-500/15",
       border: "border-emerald-500/30",
-      text: "text-emerald-300",
+      text: "text-(--ws-emerald)",
       icon: CheckCircle2,
     },
     medium: {
       color: "amber",
       bg: "bg-amber-500/15",
       border: "border-amber-500/30",
-      text: "text-amber-300",
+      text: "text-(--ws-amber)",
       icon: AlertTriangle,
     },
     high: {
@@ -80,10 +80,10 @@ function HealthScorecard({ data }: { data: InsightsData }) {
         : Minus;
   const trendColor =
     rb.trend === "up"
-      ? "text-emerald-300"
+      ? "text-(--ws-emerald)"
       : rb.trend === "down"
         ? "text-red-300"
-        : "text-white/50";
+        : "text-(--ws-fg-50)";
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -97,7 +97,7 @@ function HealthScorecard({ data }: { data: InsightsData }) {
       >
         <div className="flex items-center gap-2 mb-2">
           <RiskIcon className={cn("h-4 w-4", risk.text)} />
-          <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-50)">
             Risk Level
           </span>
         </div>
@@ -107,12 +107,12 @@ function HealthScorecard({ data }: { data: InsightsData }) {
       </div>
 
       {/* Trend */}
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur">
         <div className="flex items-center gap-2 mb-2">
           {React.createElement(trendIcon, {
             className: cn("h-4 w-4", trendColor),
           })}
-          <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-50)">
             Trend
           </span>
         </div>
@@ -121,7 +121,7 @@ function HealthScorecard({ data }: { data: InsightsData }) {
             ? `${rb.trendDelta > 0 ? "+" : ""}${rb.trendDelta}`
             : "--"}
         </div>
-        <p className="text-[10px] text-white/40 mt-1">
+        <p className="text-[10px] text-(--ws-fg-40) mt-1">
           {rb.trend === "up"
             ? "Improving"
             : rb.trend === "down"
@@ -136,24 +136,24 @@ function HealthScorecard({ data }: { data: InsightsData }) {
           "rounded-xl border p-4 backdrop-blur",
           rb.attendanceFlag
             ? "border-red-500/30 bg-red-500/10"
-            : "border-white/10 bg-white/5"
+            : "border-(--ws-line) bg-(--ws-fill)"
         )}
       >
         <div className="flex items-center gap-2 mb-2">
           <CalendarCheck
             className={cn(
               "h-4 w-4",
-              rb.attendanceFlag ? "text-red-300" : "text-cyan-300"
+              rb.attendanceFlag ? "text-red-300" : "text-(--ws-cyan)"
             )}
           />
-          <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-50)">
             Attendance
           </span>
         </div>
         <div
           className={cn(
             "text-xl font-bold",
-            rb.attendanceFlag ? "text-red-300" : "text-white"
+            rb.attendanceFlag ? "text-red-300" : "text-(--ws-fg)"
           )}
         >
           {rb.attendanceRate != null ? `${rb.attendanceRate}%` : "--"}
@@ -179,13 +179,13 @@ function HealthScorecard({ data }: { data: InsightsData }) {
             className={cn(
               "h-4 w-4",
               rb.feesStatus === "clear"
-                ? "text-emerald-300"
+                ? "text-(--ws-emerald)"
                 : rb.feesStatus === "owing"
                   ? "text-red-300"
-                  : "text-amber-300"
+                  : "text-(--ws-amber)"
             )}
           />
-          <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-50)">
             Fees
           </span>
         </div>
@@ -193,10 +193,10 @@ function HealthScorecard({ data }: { data: InsightsData }) {
           className={cn(
             "text-xl font-bold capitalize",
             rb.feesStatus === "clear"
-              ? "text-emerald-300"
+              ? "text-(--ws-emerald)"
               : rb.feesStatus === "owing"
                 ? "text-red-300"
-                : "text-amber-300"
+                : "text-(--ws-amber)"
           )}
         >
           {rb.feesStatus ?? "--"}
@@ -228,10 +228,10 @@ function AISummaryCard({
 
   if (!ai && !data.canGenerate) {
     return (
-      <Card className="border-white/10 bg-white/[0.02]">
+      <Card className="border-(--ws-line) bg-(--ws-fill)">
         <CardContent className="flex items-center gap-3 p-5">
-          <Info className="h-5 w-5 shrink-0 text-white/30" />
-          <p className="text-sm text-white/50">
+          <Info className="h-5 w-5 shrink-0 text-(--ws-fg-40)" />
+          <p className="text-sm text-(--ws-fg-50)">
             Leo insights have not been generated for this term yet. An
             administrator can generate them.
           </p>
@@ -248,10 +248,10 @@ function AISummaryCard({
             <LeoIcon className="h-6 w-6 text-purple-300" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white/80 mb-1">
+            <h3 className="text-sm font-semibold text-(--ws-fg-80) mb-1">
               Generate with Leo
             </h3>
-            <p className="text-xs text-white/50 max-w-sm">
+            <p className="text-xs text-(--ws-fg-50) max-w-sm">
               Get a comprehensive analysis of this student&apos;s
               academic performance, attendance, fees, and behaviour.
             </p>
@@ -286,13 +286,13 @@ function AISummaryCard({
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/20">
               <LeoIcon className="h-4 w-4 text-purple-300" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Leo Summary
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {data.generatedAt && (
-              <span className="text-[10px] text-white/30">
+              <span className="text-[10px] text-(--ws-fg-40)">
                 {new Date(data.generatedAt).toLocaleDateString()}
               </span>
             )}
@@ -302,7 +302,7 @@ function AISummaryCard({
                 size="sm"
                 onClick={onGenerate}
                 disabled={generating}
-                className="h-7 gap-1 rounded-lg px-2 text-[10px] text-white/40 hover:text-white/70"
+                className="h-7 gap-1 rounded-lg px-2 text-[10px] text-(--ws-fg-40) hover:text-(--ws-fg-70)"
               >
                 {generating ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -316,7 +316,7 @@ function AISummaryCard({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm leading-relaxed text-white/80">{ai.summary}</p>
+        <p className="text-sm leading-relaxed text-(--ws-fg-80)">{ai.summary}</p>
       </CardContent>
     </Card>
   );
@@ -331,28 +331,28 @@ function AcademicSection({ data }: { data: InsightsData }) {
   return (
     <div className="space-y-4">
       {ai?.narrative && (
-        <p className="text-sm leading-relaxed text-white/70">{ai.narrative}</p>
+        <p className="text-sm leading-relaxed text-(--ws-fg-70)">{ai.narrative}</p>
       )}
 
       {/* Position + CA vs Exam */}
       <div className="flex flex-wrap gap-3">
         {rb.classPosition != null && (
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <Users className="h-4 w-4 text-cyan-300" />
-            <span className="text-xs text-white/70">
+          <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <Users className="h-4 w-4 text-(--ws-cyan)" />
+            <span className="text-xs text-(--ws-fg-70)">
               Position{" "}
-              <span className="font-bold text-white">
+              <span className="font-bold text-(--ws-fg)">
                 {rb.classPosition}
               </span>
               {rb.classSize != null && (
-                <span className="text-white/40"> of {rb.classSize}</span>
+                <span className="text-(--ws-fg-40)"> of {rb.classSize}</span>
               )}
               {rb.positionMovement != null && rb.positionMovement !== 0 && (
                 <span
                   className={cn(
                     "ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-semibold",
                     rb.positionMovement > 0
-                      ? "text-emerald-300"
+                      ? "text-(--ws-emerald)"
                       : "text-red-300"
                   )}
                 >
@@ -368,14 +368,14 @@ function AcademicSection({ data }: { data: InsightsData }) {
           </div>
         )}
         {rb.caVsExamGap != null && (
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <BookOpen className="h-4 w-4 text-amber-300" />
-            <span className="text-xs text-white/70">
+          <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <BookOpen className="h-4 w-4 text-(--ws-amber)" />
+            <span className="text-xs text-(--ws-fg-70)">
               CA vs Exam:{" "}
               <span
                 className={cn(
                   "font-bold",
-                  rb.caVsExamGap > 0 ? "text-emerald-300" : "text-red-300"
+                  rb.caVsExamGap > 0 ? "text-(--ws-emerald)" : "text-red-300"
                 )}
               >
                 {rb.caVsExamGap > 0 ? "+" : ""}
@@ -392,7 +392,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70)">
               Strengths
             </h4>
           </div>
@@ -403,22 +403,22 @@ function AcademicSection({ data }: { data: InsightsData }) {
                 className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-emerald-200">
+                  <span className="text-xs font-medium text-(--ws-emerald)">
                     {s.subject}
                   </span>
-                  <span className="text-xs font-bold text-emerald-300">
+                  <span className="text-xs font-bold text-(--ws-emerald)">
                     {s.score}%
                   </span>
                 </div>
                 {"reason" in s && (
-                  <p className="text-[10px] text-emerald-200/60 mt-0.5">
+                  <p className="text-[10px] text-(--ws-emerald)/60 mt-0.5">
                     {(s as { reason: string }).reason}
                   </p>
                 )}
               </div>
             ))}
             {(ai?.strengths ?? rb.strengths).length === 0 && (
-              <p className="text-xs text-white/30">No data yet</p>
+              <p className="text-xs text-(--ws-fg-40)">No data yet</p>
             )}
           </div>
         </div>
@@ -427,7 +427,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="h-4 w-4 text-red-400" />
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70)">
               Areas for Improvement
             </h4>
           </div>
@@ -453,7 +453,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
               </div>
             ))}
             {(ai?.weaknesses ?? rb.weaknesses).length === 0 && (
-              <p className="text-xs text-white/30">No data yet</p>
+              <p className="text-xs text-(--ws-fg-40)">No data yet</p>
             )}
           </div>
         </div>
@@ -462,7 +462,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
       {/* Priority Subjects */}
       {ai?.prioritySubjects && ai.prioritySubjects.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70) mb-2">
             Priority Focus Areas
           </h4>
           <div className="flex flex-wrap gap-2">
@@ -481,22 +481,22 @@ function AcademicSection({ data }: { data: InsightsData }) {
       {/* Term History */}
       {data.termHistory.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70) mb-2">
             Term History
           </h4>
           <div className="space-y-1.5">
             {data.termHistory.map((t, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2"
+                className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
               >
-                <span className="text-xs text-white/60">{t.label}</span>
+                <span className="text-xs text-(--ws-fg-60)">{t.label}</span>
                 <div className="flex items-center gap-4 text-xs">
-                  <span className="text-white/80 font-medium">
+                  <span className="text-(--ws-fg-80) font-medium">
                     {t.averageScore != null ? `${t.averageScore}%` : "–"}
                   </span>
                   {t.classAverage != null && (
-                    <span className="text-white/40">
+                    <span className="text-(--ws-fg-40)">
                       Class: {t.classAverage}%
                     </span>
                   )}
@@ -520,8 +520,8 @@ function AttendanceSection({ data }: { data: InsightsData }) {
   if (!att) {
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-center">
-        <CalendarCheck className="h-8 w-8 text-white/20" />
-        <p className="text-sm text-white/40">
+        <CalendarCheck className="h-8 w-8 text-(--ws-fg-40)" />
+        <p className="text-sm text-(--ws-fg-40)">
           No attendance records found for this term.
         </p>
       </div>
@@ -529,16 +529,16 @@ function AttendanceSection({ data }: { data: InsightsData }) {
   }
 
   const stats = [
-    { label: "Present", value: att.present, color: "text-emerald-300" },
+    { label: "Present", value: att.present, color: "text-(--ws-emerald)" },
     { label: "Absent", value: att.absent, color: "text-red-300" },
-    { label: "Late", value: att.late, color: "text-amber-300" },
-    { label: "Excused", value: att.excused, color: "text-cyan-300" },
+    { label: "Late", value: att.late, color: "text-(--ws-amber)" },
+    { label: "Excused", value: att.excused, color: "text-(--ws-cyan)" },
   ];
 
   return (
     <div className="space-y-4">
       {ai?.narrative && (
-        <p className="text-sm leading-relaxed text-white/70">{ai.narrative}</p>
+        <p className="text-sm leading-relaxed text-(--ws-fg-70)">{ai.narrative}</p>
       )}
 
       {/* Breakdown grid */}
@@ -546,10 +546,10 @@ function AttendanceSection({ data }: { data: InsightsData }) {
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-lg border border-white/10 bg-white/5 p-3 text-center"
+            className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-center"
           >
             <div className={cn("text-lg font-bold", s.color)}>{s.value}</div>
-            <div className="text-[10px] text-white/40 mt-0.5">{s.label}</div>
+            <div className="text-[10px] text-(--ws-fg-40) mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
@@ -557,22 +557,22 @@ function AttendanceSection({ data }: { data: InsightsData }) {
       {/* Extra details */}
       <div className="flex flex-wrap gap-3">
         {rb.mostMissedDay && (
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <Clock className="h-3.5 w-3.5 text-white/40" />
-            <span className="text-xs text-white/60">
+          <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <Clock className="h-3.5 w-3.5 text-(--ws-fg-40)" />
+            <span className="text-xs text-(--ws-fg-60)">
               Most-missed day:{" "}
-              <span className="font-medium text-white/80">
+              <span className="font-medium text-(--ws-fg-80)">
                 {rb.mostMissedDay}
               </span>
             </span>
           </div>
         )}
         {rb.avgLateMinutes != null && (
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <Clock className="h-3.5 w-3.5 text-white/40" />
-            <span className="text-xs text-white/60">
+          <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <Clock className="h-3.5 w-3.5 text-(--ws-fg-40)" />
+            <span className="text-xs text-(--ws-fg-60)">
               Avg. late:{" "}
-              <span className="font-medium text-white/80">
+              <span className="font-medium text-(--ws-fg-80)">
                 {rb.avgLateMinutes} min
               </span>
             </span>
@@ -583,13 +583,13 @@ function AttendanceSection({ data }: { data: InsightsData }) {
       {/* AI patterns */}
       {ai?.patterns && ai.patterns.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70) mb-2">
             Patterns
           </h4>
           <ul className="space-y-1">
             {ai.patterns.map((p, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-cyan-400 mt-0.5" />
+              <li key={i} className="flex items-start gap-2 text-xs text-(--ws-fg-60)">
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-(--ws-cyan) mt-0.5" />
                 <span>{p}</span>
               </li>
             ))}
@@ -598,9 +598,9 @@ function AttendanceSection({ data }: { data: InsightsData }) {
       )}
 
       {ai?.correlationWithGrades && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-          <p className="text-xs text-white/60">
-            <span className="font-medium text-white/80">
+        <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+          <p className="text-xs text-(--ws-fg-60)">
+            <span className="font-medium text-(--ws-fg-80)">
               Grades correlation:{" "}
             </span>
             {ai.correlationWithGrades}
@@ -621,8 +621,8 @@ function FinancialSection({ data }: { data: InsightsData }) {
   if (!fees) {
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-center">
-        <Wallet className="h-8 w-8 text-white/20" />
-        <p className="text-sm text-white/40">No fee records found.</p>
+        <Wallet className="h-8 w-8 text-(--ws-fg-40)" />
+        <p className="text-sm text-(--ws-fg-40)">No fee records found.</p>
       </div>
     );
   }
@@ -633,20 +633,20 @@ function FinancialSection({ data }: { data: InsightsData }) {
   return (
     <div className="space-y-4">
       {ai?.narrative && (
-        <p className="text-sm leading-relaxed text-white/70">{ai.narrative}</p>
+        <p className="text-sm leading-relaxed text-(--ws-fg-70)">{ai.narrative}</p>
       )}
 
       {/* Summary row */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-          <div className="text-xs text-white/40 mb-1">Billed</div>
-          <div className="text-sm font-bold text-white/80">
+        <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-center">
+          <div className="text-xs text-(--ws-fg-40) mb-1">Billed</div>
+          <div className="text-sm font-bold text-(--ws-fg-80)">
             {fmt(fees.totalBilledMinor)}
           </div>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-center">
-          <div className="text-xs text-white/40 mb-1">Paid</div>
-          <div className="text-sm font-bold text-emerald-300">
+        <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-center">
+          <div className="text-xs text-(--ws-fg-40) mb-1">Paid</div>
+          <div className="text-sm font-bold text-(--ws-emerald)">
             {fmt(fees.totalPaidMinor)}
           </div>
         </div>
@@ -658,11 +658,11 @@ function FinancialSection({ data }: { data: InsightsData }) {
               : "border-emerald-500/30 bg-emerald-500/10"
           )}
         >
-          <div className="text-xs text-white/40 mb-1">Outstanding</div>
+          <div className="text-xs text-(--ws-fg-40) mb-1">Outstanding</div>
           <div
             className={cn(
               "text-sm font-bold",
-              fees.outstandingMinor > 0 ? "text-red-300" : "text-emerald-300"
+              fees.outstandingMinor > 0 ? "text-red-300" : "text-(--ws-emerald)"
             )}
           >
             {fmt(fees.outstandingMinor)}
@@ -673,11 +673,11 @@ function FinancialSection({ data }: { data: InsightsData }) {
       {/* Extra details */}
       <div className="flex flex-wrap gap-3">
         {rb.paymentConsistency != null && (
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <Zap className="h-3.5 w-3.5 text-amber-300" />
-            <span className="text-xs text-white/60">
+          <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <Zap className="h-3.5 w-3.5 text-(--ws-amber)" />
+            <span className="text-xs text-(--ws-fg-60)">
               Payment consistency:{" "}
-              <span className="font-medium text-white/80">
+              <span className="font-medium text-(--ws-fg-80)">
                 {rb.paymentConsistency}% on-time
               </span>
             </span>
@@ -695,9 +695,9 @@ function FinancialSection({ data }: { data: InsightsData }) {
       </div>
 
       {ai?.riskAssessment && (
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-          <p className="text-xs text-white/60">
-            <span className="font-medium text-white/80">
+        <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+          <p className="text-xs text-(--ws-fg-60)">
+            <span className="font-medium text-(--ws-fg-80)">
               Risk assessment:{" "}
             </span>
             {ai.riskAssessment}
@@ -717,14 +717,14 @@ function BehaviourSection({ data }: { data: InsightsData }) {
   return (
     <div className="space-y-4">
       {ai?.narrative && (
-        <p className="text-sm leading-relaxed text-white/70">{ai.narrative}</p>
+        <p className="text-sm leading-relaxed text-(--ws-fg-70)">{ai.narrative}</p>
       )}
 
       {/* Teacher comments */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <MessageSquare className="h-4 w-4 text-white/40" />
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70">
+          <MessageSquare className="h-4 w-4 text-(--ws-fg-40)" />
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70)">
             Teacher Comments ({rb.teacherCommentCount})
           </h4>
         </div>
@@ -733,12 +733,12 @@ function BehaviourSection({ data }: { data: InsightsData }) {
             {data.recentComments.map((c, i) => (
               <div
                 key={i}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2"
+                className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
               >
-                <p className="text-xs text-white/70 leading-relaxed">
+                <p className="text-xs text-(--ws-fg-70) leading-relaxed">
                   &ldquo;{c.comment}&rdquo;
                 </p>
-                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-white/40">
+                <div className="flex items-center gap-2 mt-1.5 text-[10px] text-(--ws-fg-40)">
                   {c.teacherName && <span>{c.teacherName}</span>}
                   <span className="capitalize">{c.type}</span>
                   <span>{c.date.slice(0, 10)}</span>
@@ -747,7 +747,7 @@ function BehaviourSection({ data }: { data: InsightsData }) {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-(--ws-fg-40)">
             No teacher comments for this term.
           </p>
         )}
@@ -755,12 +755,12 @@ function BehaviourSection({ data }: { data: InsightsData }) {
 
       {ai?.observations && ai.observations.length > 0 && (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-70) mb-2">
             Observations
           </h4>
           <ul className="space-y-1">
             {ai.observations.map((o, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+              <li key={i} className="flex items-start gap-2 text-xs text-(--ws-fg-60)">
                 <ChevronRight className="h-3.5 w-3.5 shrink-0 text-amber-400 mt-0.5" />
                 <span>{o}</span>
               </li>
@@ -789,19 +789,19 @@ function RecommendationsCard({ data }: { data: InsightsData }) {
   ];
 
   return (
-    <Card className="border-white/10 bg-white/[0.02]">
+    <Card className="border-(--ws-line) bg-(--ws-fill)">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/20">
-            <Zap className="h-4 w-4 text-amber-300" />
+            <Zap className="h-4 w-4 text-(--ws-amber)" />
           </div>
-          <CardTitle className="text-sm font-semibold text-white/80">
+          <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
             Recommended Actions
           </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex gap-1 border-b border-white/10">
+        <div className="flex gap-1 border-b border-(--ws-line)">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -813,7 +813,7 @@ function RecommendationsCard({ data }: { data: InsightsData }) {
                   "flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors -mb-px",
                   activeTab === tab.id
                     ? "border-purple-500 text-purple-300"
-                    : "border-transparent text-white/40 hover:text-white/60"
+                    : "border-transparent text-(--ws-fg-40) hover:text-(--ws-fg)/60"
                 )}
               >
                 <Icon className="h-3 w-3" />
@@ -826,14 +826,14 @@ function RecommendationsCard({ data }: { data: InsightsData }) {
           {recs[activeTab]?.map((action, i) => (
             <div
               key={i}
-              className="flex items-start gap-2 text-sm text-white/70"
+              className="flex items-start gap-2 text-sm text-(--ws-fg-70)"
             >
               <span className="text-purple-400 mt-0.5">•</span>
               <span>{action}</span>
             </div>
           ))}
           {(!recs[activeTab] || recs[activeTab].length === 0) && (
-            <p className="text-xs text-white/30">No recommendations yet.</p>
+            <p className="text-xs text-(--ws-fg-40)">No recommendations yet.</p>
           )}
         </div>
       </CardContent>
@@ -857,16 +857,16 @@ function AdditionalInsightsCard({ data }: { data: InsightsData }) {
   if (items.length === 0) return null;
 
   return (
-    <Card className="border-white/10 bg-white/[0.02]">
+    <Card className="border-(--ws-line) bg-(--ws-fill)">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-white/60">
+        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-(--ws-fg-60)">
           Additional Insights
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {items.map((item, i) => (
-          <p key={i} className="text-xs text-white/50">
-            <span className="font-medium text-white/70">{item.label}: </span>
+          <p key={i} className="text-xs text-(--ws-fg-50)">
+            <span className="font-medium text-(--ws-fg-70)">{item.label}: </span>
             {item.value}
           </p>
         ))}
@@ -934,11 +934,11 @@ function AskAIChat({
   }
 
   return (
-    <Card className="border-white/10 bg-white/[0.02]">
+    <Card className="border-(--ws-line) bg-(--ws-fill)">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <LeoIcon className="h-4 w-4 text-purple-300" />
-          <CardTitle className="text-sm font-semibold text-white/80">
+          <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
             Ask Leo
           </CardTitle>
         </div>
@@ -947,7 +947,7 @@ function AskAIChat({
         {messages.length > 0 && (
           <div
             ref={chatRef}
-            className="max-h-60 space-y-3 overflow-y-auto rounded-lg border border-white/5 bg-black/20 p-3"
+            className="max-h-60 space-y-3 overflow-y-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
           >
             {messages.map((m, i) => (
               <div
@@ -956,7 +956,7 @@ function AskAIChat({
                   "text-xs leading-relaxed",
                   m.role === "user"
                     ? "text-purple-200 font-medium"
-                    : "text-white/70"
+                    : "text-(--ws-fg-70)"
                 )}
               >
                 {m.role === "user" ? (
@@ -979,7 +979,7 @@ function AskAIChat({
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask a follow-up about this student..."
             disabled={askAI.isPending}
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 placeholder:text-white/30 focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20"
+            className="flex-1 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-80) placeholder:text-(--ws-fg-40) focus:border-purple-500/50 focus:outline-none focus:ring-1 focus:ring-purple-500/20"
           />
           <Button
             size="sm"
@@ -1011,7 +1011,7 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
-        <span className="ml-3 text-sm text-white/50">
+        <span className="ml-3 text-sm text-(--ws-fg-50)">
           Loading insights...
         </span>
       </div>
@@ -1056,11 +1056,11 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
           <LeoIcon className="h-5 w-5 text-purple-300" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-white/90">
+          <h2 className="text-lg font-bold text-(--ws-fg-90)">
             Leo Insights & Recommendations
           </h2>
           {data.currentPeriodLabel && (
-            <p className="text-xs text-white/40">{data.currentPeriodLabel}</p>
+            <p className="text-xs text-(--ws-fg-40)">{data.currentPeriodLabel}</p>
           )}
         </div>
       </div>
@@ -1081,7 +1081,7 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
       />
 
       {/* Section Tabs */}
-      <div className="flex gap-1 border-b border-white/10">
+      <div className="flex gap-1 border-b border-(--ws-line)">
         {sections.map((sec) => {
           const Icon = sec.icon;
           return (
@@ -1093,7 +1093,7 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
                 "flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors -mb-px",
                 activeSection === sec.id
                   ? "border-purple-500 text-purple-300"
-                  : "border-transparent text-white/40 hover:text-white/60"
+                  : "border-transparent text-(--ws-fg-40) hover:text-(--ws-fg)/60"
               )}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -1104,7 +1104,7 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
       </div>
 
       {/* Active Section Content */}
-      <Card className="border-white/10 bg-white/[0.02]">
+      <Card className="border-(--ws-line) bg-(--ws-fill)">
         <CardContent className="p-5">
           {activeSection === "academic" ? (
             <AcademicSection data={data} />

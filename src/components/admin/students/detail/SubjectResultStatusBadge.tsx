@@ -8,11 +8,11 @@ import type { AcademicProfileSubjectResultDTO } from "@/types/academics/student-
 import { cn } from "@/lib/utils";
 
 const VARIANT_STYLES: Record<SubjectResultStatusBadgeVariant, string> = {
-  official: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
-  provisional: "border-amber-400/30 bg-amber-500/10 text-amber-100",
-  legacy: "border-white/15 bg-white/8 text-white/65",
-  submitted: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100",
-  returned: "border-rose-400/30 bg-rose-500/10 text-rose-100",
+  official: "border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)",
+  provisional: "border-amber-400/30 bg-amber-500/10 text-(--ws-amber)",
+  legacy: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)",
+  submitted: "border-cyan-400/30 bg-cyan-500/10 text-(--ws-cyan)",
+  returned: "border-rose-400/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
 type Props = {

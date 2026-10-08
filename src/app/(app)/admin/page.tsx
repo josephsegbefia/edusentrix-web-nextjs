@@ -90,6 +90,7 @@ import { useStudentStats } from "@/hooks/admin/useStudentStats";
 import { useTeacherStats } from "@/hooks/admin/useTeacherStats";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { isClientDemoMode } from "@/lib/demo/runtime";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -151,13 +152,13 @@ function getPeriodStateBadge(status?: string, fallback = "Not Set") {
     case "active":
       return {
         label: "Active",
-        className: "bg-emerald-500/20 border-emerald-500/30 text-emerald-300",
+        className: "bg-emerald-500/20 border-emerald-500/30 text-(--ws-emerald)",
       };
     case "expiring_soon":
     case "expiring_very_soon":
       return {
         label: "Expiring Soon",
-        className: "bg-amber-500/20 border-amber-500/30 text-amber-300",
+        className: "bg-amber-500/20 border-amber-500/30 text-(--ws-amber)",
       };
     case "expiring_critical":
     case "grace_period":
@@ -213,10 +214,10 @@ function MetricCard({
 
   const trendColor =
     trend?.direction === "up"
-      ? "text-emerald-300"
+      ? "text-(--ws-emerald)"
       : trend?.direction === "down"
       ? "text-rose-300"
-      : "text-white/60";
+      : "text-(--ws-fg-60)";
 
   const Wrapper: React.ElementType = onClick ? "button" : "div";
 
@@ -224,9 +225,9 @@ function MetricCard({
     <Wrapper
       onClick={onClick}
       className={[
-        "relative w-full overflow-hidden rounded-2xl border border-white/10",
-        "bg-linear-to-br from-white/5 to-transparent p-5 lg:p-6",
-        "shadow-lg shadow-black/20 backdrop-blur",
+        "relative w-full overflow-hidden rounded-2xl border border-(--ws-line)",
+        "bg-linear-to-br from-(--ws-fill) to-transparent p-5 lg:p-6",
+        "shadow-[var(--ws-shadow)] backdrop-blur",
         onClick
           ? "text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           : "",
@@ -238,18 +239,18 @@ function MetricCard({
       />
       <div className="relative z-10 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">
             {label}
           </div>
           {Icon && (
-            <Icon className="h-4 w-4 text-white/40" aria-hidden="true" />
+            <Icon className="h-4 w-4 text-(--ws-fg-40)" aria-hidden="true" />
           )}
         </div>
-        <div className="text-3xl font-semibold text-white drop-shadow-sm">
+        <div className="text-3xl font-semibold text-(--ws-fg) drop-shadow-sm">
           {typeof value === "number" ? value.toLocaleString() : value}
         </div>
         {(subtitle || trend) && (
-          <div className="flex items-center gap-2 text-xs text-white/60">
+          <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
             {trend && TrendIcon && (
               <span className={`inline-flex items-center gap-1 ${trendColor}`}>
                 <TrendIcon className="h-3 w-3" />
@@ -259,7 +260,7 @@ function MetricCard({
             {subtitle && <span>{subtitle}</span>}
           </div>
         )}
-        <div className="h-[3px] w-12 rounded-full bg-white/30" />
+        <div className="h-[3px] w-12 rounded-full bg-(--ws-line-strong)" />
       </div>
     </Wrapper>
   );
@@ -290,23 +291,23 @@ function QuickAction({
         group w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200
         ${
           disabled
-            ? "border-white/5 bg-white/5 opacity-40 cursor-not-allowed"
+            ? "border-(--ws-line) bg-(--ws-fill) opacity-40 cursor-not-allowed"
             : highlighted
-            ? "border-white/20 bg-white/10"
-            : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+            ? "border-(--ws-line-strong) bg-(--ws-fill-strong)"
+            : "border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
         }
       `}
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${accent}`}>
-          <Icon className="h-4 w-4 text-white/80" />
+          <Icon className="h-4 w-4 text-(--ws-fg-80)" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-white mb-1">{title}</div>
-          <div className="text-xs text-white/60">{description}</div>
+          <div className="font-semibold text-(--ws-fg) mb-1">{title}</div>
+          <div className="text-xs text-(--ws-fg-60)">{description}</div>
         </div>
         {!disabled && (
-          <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+          <ArrowRight className="h-4 w-4 text-(--ws-fg-40) group-hover:text-(--ws-fg-60) group-hover:translate-x-1 transition-all" />
         )}
       </div>
     </div>
@@ -389,8 +390,8 @@ function Donut({
                 s.className.replace("stroke-", "bg-").replace("/60", "/60"),
               ].join(" ")}
             />
-            <span className="text-white/70 min-w-[92px]">{s.label}</span>
-            <span className="text-white/90 font-medium">{s.value}</span>
+            <span className="text-(--ws-fg-70) min-w-[92px]">{s.label}</span>
+            <span className="text-(--ws-fg-90) font-medium">{s.value}</span>
           </div>
         ))}
       </div>
@@ -408,7 +409,7 @@ function ReconPill({
 }) {
   if (count <= 0) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-(--ws-emerald)">
         <CheckCircle2 className="h-3.5 w-3.5" />
         Reconciled
       </span>
@@ -417,7 +418,7 @@ function ReconPill({
   if (linkDisabled) {
     return (
       <span
-        className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-xs text-amber-200/45"
+        className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-xs text-(--ws-amber)/45"
         title="Complete school setup on the Dashboard to open reconciliation."
       >
         <AlertCircle className="h-3.5 w-3.5" />
@@ -428,7 +429,7 @@ function ReconPill({
   return (
     <Link
       href="/admin/reconciliation"
-      className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300 hover:opacity-90"
+      className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-(--ws-amber) hover:opacity-90"
     >
       <AlertCircle className="h-3.5 w-3.5" />
       {count} unmatched settlements
@@ -1187,7 +1188,7 @@ export default function SchoolAdminOverviewPage() {
   }, [isDemoClient, onboarding.step, onboarding.isLoading]);
 
   return (
-    <div className="space-y-6">
+    <WorkspaceScope className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
@@ -1235,7 +1236,7 @@ export default function SchoolAdminOverviewPage() {
             "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
             activeDashboardTab === "overview"
               ? "border-brand bg-brand/20 text-brand"
-              : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)",
           ].join(" ")}
         >
           Overview
@@ -1250,7 +1251,7 @@ export default function SchoolAdminOverviewPage() {
                     disabled
                     className={[
                       "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                      "cursor-not-allowed border-white/10 bg-white/5 text-white/45 opacity-60",
+                      "cursor-not-allowed border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40) opacity-60",
                     ].join(" ")}
                   >
                     Insights
@@ -1270,7 +1271,7 @@ export default function SchoolAdminOverviewPage() {
               "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
               activeDashboardTab === "insights"
                 ? "border-brand bg-brand/20 text-brand"
-                : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)",
             ].join(" ")}
           >
             Insights
@@ -1319,7 +1320,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Enhanced Quick Stats */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent"
             aria-hidden="true"
@@ -1329,17 +1330,17 @@ export default function SchoolAdminOverviewPage() {
               <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
                 <Users className="h-4 w-4 text-orange-300" />
               </div>
-              <div className="text-xs text-white/60 uppercase tracking-wider">
+              <div className="text-xs text-(--ws-fg-60) uppercase tracking-wider">
                 Student/Teacher Ratio
               </div>
             </div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-(--ws-fg)">
               {teachers > 0 && students > 0 ? `1:${Math.round(students / teachers)}` : "—"}
             </div>
-            <div className="text-xs text-white/50 mt-1">Students per teacher</div>
+            <div className="text-xs text-(--ws-fg-50) mt-1">Students per teacher</div>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
             aria-hidden="true"
@@ -1347,16 +1348,16 @@ export default function SchoolAdminOverviewPage() {
           <CardContent className="relative z-10 p-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
-                <School className="h-4 w-4 text-cyan-300" />
+                <School className="h-4 w-4 text-(--ws-cyan)" />
               </div>
-              <div className="text-xs text-white/60 uppercase tracking-wider">
+              <div className="text-xs text-(--ws-fg-60) uppercase tracking-wider">
                 Class Groups
               </div>
             </div>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-(--ws-fg)">
               {onboarding.hasClassGroups ? "Active" : "—"}
             </div>
-            <div className="text-xs text-white/50 mt-1">
+            <div className="text-xs text-(--ws-fg-50) mt-1">
               {onboarding.hasClassGroups ? "Classes configured" : "Setup required"}
             </div>
           </CardContent>
@@ -1369,7 +1370,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Primary row: Quick Actions + Academic Period */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/20 via-indigo-500/5 to-transparent"
             aria-hidden="true"
@@ -1475,7 +1476,7 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Academic Period */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/20 via-amber-500/5 to-transparent"
             aria-hidden="true"
@@ -1486,7 +1487,7 @@ export default function SchoolAdminOverviewPage() {
                 <Calendar className="h-4 w-4 text-amber-400" />
               </div>
               Academic Period
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-200">
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-(--ws-amber)">
                 {upcomingInWindow} upcoming
               </span>
             </CardTitle>
@@ -1505,10 +1506,10 @@ export default function SchoolAdminOverviewPage() {
                     : undefined
                 }
                 className={[
-                  "rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80",
+                  "rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-xs font-medium text-(--ws-fg-80)",
                   onboarding.shouldRestrictSchoolAdminNav
                     ? "cursor-not-allowed opacity-45"
-                    : "hover:bg-white/10",
+                    : "hover:bg-(--ws-fill-strong)",
                 ].join(" ")}
               >
                 Overview
@@ -1517,7 +1518,7 @@ export default function SchoolAdminOverviewPage() {
                 <button
                   type="button"
                   onClick={() => setShowEditPeriod(true)}
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10"
+                  className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-xs font-medium text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Pencil className="h-3 w-3" />
@@ -1532,7 +1533,7 @@ export default function SchoolAdminOverviewPage() {
                       <button
                         type="button"
                         onClick={() => setShowCreatePeriod(true)}
-                        className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+                        className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-(--ws-amber) hover:opacity-90"
                       >
                         Create period
                       </button>
@@ -1542,7 +1543,7 @@ export default function SchoolAdminOverviewPage() {
                       type="button"
                       onClick={() => setShowCreatePeriod(true)}
                       disabled={true}
-                      className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-amber-300/40 hover:opacity-90 opacity-40 cursor-not-allowed"
+                      className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-(--ws-amber)/40 hover:opacity-90 opacity-40 cursor-not-allowed"
                       title="Complete previous steps first"
                     >
                       Create period
@@ -1554,31 +1555,31 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
 
           <CardContent className="relative z-10 space-y-4">
-            <div className="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/5">
+            <div className="flex items-start gap-4 p-4 rounded-xl border border-(--ws-line) bg-(--ws-fill)">
               <div className="p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
                 <Calendar className="h-5 w-5 text-amber-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold text-white">Current Term</span>
+                  <span className="font-semibold text-(--ws-fg)">Current Term</span>
                   <span
                     className={`px-2 py-0.5 text-xs rounded-full border ${periodBadge.className}`}
                   >
                     {periodBadge.label}
                   </span>
                 </div>
-                <div className="text-sm text-white/60 mb-3">
+                <div className="text-sm text-(--ws-fg-60) mb-3">
                   {periodOverviewSubtitle}
                 </div>
                 {progress.label !== "Not Set" && (
                   <div className="mb-3">
-                    <div className="flex items-center justify-between text-xs text-white/50 mb-2">
+                    <div className="flex items-center justify-between text-xs text-(--ws-fg-50) mb-2">
                       <span>Term Progress</span>
-                      <span className="font-medium text-white/70">
+                      <span className="font-medium text-(--ws-fg-70)">
                         {progress.pct}%
                       </span>
                     </div>
-                    <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/5 border border-white/10 shadow-inner">
+                    <div className="relative h-3 w-full overflow-hidden rounded-full bg-(--ws-fill) border border-(--ws-line) shadow-inner">
                       <div className="absolute inset-0 bg-linear-to-r from-amber-500/10 via-amber-400/5 to-transparent" />
                       {progress.pct > 0 ? (
                         <div
@@ -1590,7 +1591,7 @@ export default function SchoolAdminOverviewPage() {
                         </div>
                       ) : (
                         <div className="h-full w-full flex items-center justify-center">
-                          <div className="text-[8px] text-white/30">
+                          <div className="text-[8px] text-(--ws-fg-40)">
                             Not started
                           </div>
                         </div>
@@ -1606,7 +1607,7 @@ export default function SchoolAdminOverviewPage() {
                     </div>
                   </div>
                 )}
-                <div className="flex items-center gap-4 text-xs text-white/50 overflow-x-auto">
+                <div className="flex items-center gap-4 text-xs text-(--ws-fg-50) overflow-x-auto">
                   <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
                     <Clock className="h-3.5 w-3.5 shrink-0" />
                     <span>Start: {period.startDate || "—"}</span>
@@ -1618,7 +1619,7 @@ export default function SchoolAdminOverviewPage() {
                 </div>
                 {periodStatus?.daysUntilExpiry !== null &&
                 periodStatus?.daysUntilExpiry !== undefined ? (
-                  <div className="mt-2 text-xs text-amber-200/90">
+                  <div className="mt-2 text-xs text-(--ws-amber)/90">
                     {periodStatus.daysUntilExpiry} day
                     {periodStatus.daysUntilExpiry === 1 ? "" : "s"} until period
                     end
@@ -1628,55 +1629,55 @@ export default function SchoolAdminOverviewPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-[11px] text-white/50">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <div className="text-[11px] text-(--ws-fg-50)">
                   Upcoming ({periodOverview?.upcoming.days ?? 30}d)
                 </div>
-                <div className="mt-1 text-lg font-semibold text-white">
+                <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                   {upcomingInWindow}
                 </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-[11px] text-white/50">Next 7 days</div>
-                <div className="mt-1 text-lg font-semibold text-white">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <div className="text-[11px] text-(--ws-fg-50)">Next 7 days</div>
+                <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                   {upcomingInNext7}
                 </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-[11px] text-white/50">Calendars</div>
-                <div className="mt-1 text-lg font-semibold text-white">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <div className="text-[11px] text-(--ws-fg-50)">Calendars</div>
+                <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                   {calendarsConfigured}
                 </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                <div className="text-[11px] text-white/50">Events</div>
-                <div className="mt-1 text-lg font-semibold text-white">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <div className="text-[11px] text-(--ws-fg-50)">Events</div>
+                <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                   {eventsConfigured}
                 </div>
               </div>
             </div>
 
             {previousPeriod ? (
-              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-white/55">Immediate Past Period</span>
-                  <span className="text-white/70">
+                  <span className="text-(--ws-fg-50)">Immediate Past Period</span>
+                  <span className="text-(--ws-fg-70)">
                     Ended {formatDateLong(previousPeriod.endDate)}
                   </span>
                 </div>
-                <div className="mt-1 text-sm text-white/90 font-medium">
+                <div className="mt-1 text-sm text-(--ws-fg-90) font-medium">
                   {previousPeriod.term} {previousPeriod.yearLabel}
                 </div>
               </div>
             ) : null}
 
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-              <div className="text-xs text-white/50">
+            <div className="pt-3 border-t border-(--ws-line) flex items-center justify-between gap-2">
+              <div className="text-xs text-(--ws-fg-50)">
                 Academic Year{" "}
-                <span className="text-white/70 font-medium">{period.yearLabel}</span>
+                <span className="text-(--ws-fg-70) font-medium">{period.yearLabel}</span>
               </div>
               {period.isYearEndTerminal ? (
-                <div className="text-xs text-cyan-300">Final period of academic year</div>
+                <div className="text-xs text-(--ws-cyan)">Final period of academic year</div>
               ) : null}
               <button
                 type="button"
@@ -1693,7 +1694,7 @@ export default function SchoolAdminOverviewPage() {
                 className={[
                   "text-xs",
                   onboarding.shouldRestrictSchoolAdminNav
-                    ? "cursor-not-allowed text-white/35"
+                    ? "cursor-not-allowed text-(--ws-fg-40)"
                     : "text-brand hover:opacity-90",
                 ].join(" ")}
               >
@@ -1701,7 +1702,7 @@ export default function SchoolAdminOverviewPage() {
               </button>
             </div>
             {periodOverviewLoading ? (
-              <div className="text-[11px] text-white/40">Refreshing overview...</div>
+              <div className="text-[11px] text-(--ws-fg-40)">Refreshing overview...</div>
             ) : null}
           </CardContent>
         </Card>
@@ -1709,7 +1710,7 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Collections Snapshot + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
             aria-hidden="true"
@@ -1728,7 +1729,7 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {collectionsLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">
                 Loading collections snapshot...
               </div>
             ) : collectionsError ? (
@@ -1738,41 +1739,41 @@ export default function SchoolAdminOverviewPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-white/60 mb-1">Collected</div>
-                    <div className="text-lg font-semibold text-emerald-200">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="text-xs text-(--ws-fg-60) mb-1">Collected</div>
+                    <div className="text-lg font-semibold text-(--ws-emerald)">
                       {formatCurrency(collections.collectedMinor)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-white/60 mb-1">Outstanding</div>
-                    <div className="text-lg font-semibold text-white">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="text-xs text-(--ws-fg-60) mb-1">Outstanding</div>
+                    <div className="text-lg font-semibold text-(--ws-fg)">
                       {formatCurrency(collections.outstandingMinor)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-white/60 mb-1">Collection Rate</div>
-                    <div className="text-lg font-semibold text-white">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="text-xs text-(--ws-fg-60) mb-1">Collection Rate</div>
+                    <div className="text-lg font-semibold text-(--ws-fg)">
                       {collections.rate.toFixed(1)}%
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">This Month</div>
-                    <div className="text-sm font-medium text-white/90">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="text-[11px] text-(--ws-fg-50)">This Month</div>
+                    <div className="text-sm font-medium text-(--ws-fg-90)">
                       {formatCurrency(collections.monthlyMinor)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Open Bills</div>
-                    <div className="text-sm font-medium text-white/90">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="text-[11px] text-(--ws-fg-50)">Open Bills</div>
+                    <div className="text-sm font-medium text-(--ws-fg-90)">
                       {collections.issuedOpenCount}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Overdue Bills</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="text-[11px] text-(--ws-fg-50)">Overdue Bills</div>
                     <div className="text-sm font-medium text-rose-200">
                       {collections.overdueCount}
                     </div>
@@ -1780,15 +1781,15 @@ export default function SchoolAdminOverviewPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="flex items-center gap-1 text-[11px] text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="flex items-center gap-1 text-[11px] text-(--ws-fg-50)">
                       Unreconciled
                       <TooltipProvider delayDuration={250}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
-                              className="text-white/40 hover:text-white/70"
+                              className="text-(--ws-fg-40) hover:text-(--ws-fg-70)"
                               aria-label="Unreconciled help"
                             >
                               <CircleHelp className="h-3 w-3" />
@@ -1800,19 +1801,19 @@ export default function SchoolAdminOverviewPage() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="text-sm font-medium text-amber-200">
+                    <div className="text-sm font-medium text-(--ws-amber)">
                       {ledgerHealth.unreconciledCount}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="flex items-center gap-1 text-[11px] text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="flex items-center gap-1 text-[11px] text-(--ws-fg-50)">
                       Approval Lag
                       <TooltipProvider delayDuration={250}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
-                              className="text-white/40 hover:text-white/70"
+                              className="text-(--ws-fg-40) hover:text-(--ws-fg-70)"
                               aria-label="Approval lag help"
                             >
                               <CircleHelp className="h-3 w-3" />
@@ -1825,19 +1826,19 @@ export default function SchoolAdminOverviewPage() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="text-sm font-medium text-white/90">
+                    <div className="text-sm font-medium text-(--ws-fg-90)">
                       {ledgerHealth.averageApprovalLagHours.toFixed(1)}h
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="flex items-center gap-1 text-[11px] text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="flex items-center gap-1 text-[11px] text-(--ws-fg-50)">
                       Reversal Rate
                       <TooltipProvider delayDuration={250}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
-                              className="text-white/40 hover:text-white/70"
+                              className="text-(--ws-fg-40) hover:text-(--ws-fg-70)"
                               aria-label="Reversal rate help"
                             >
                               <CircleHelp className="h-3 w-3" />
@@ -1849,14 +1850,14 @@ export default function SchoolAdminOverviewPage() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <div className="text-sm font-medium text-white/90">
+                    <div className="text-sm font-medium text-(--ws-fg-90)">
                       {ledgerHealth.reversalRatePct.toFixed(1)}%
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
-                  <div className="text-xs text-white/50">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-(--ws-line) pt-2">
+                  <div className="text-xs text-(--ws-fg-50)">
                     {reconLoading
                       ? "Checking reconciliation status..."
                       : reconUnmatched > 0
@@ -1867,13 +1868,13 @@ export default function SchoolAdminOverviewPage() {
                     {onboarding.shouldRestrictSchoolAdminNav ? (
                       <>
                         <span
-                          className="cursor-not-allowed text-white/35"
+                          className="cursor-not-allowed text-(--ws-fg-40)"
                           title="Complete school setup on the Dashboard first."
                         >
                           Open fees →
                         </span>
                         <span
-                          className="cursor-not-allowed text-white/35"
+                          className="cursor-not-allowed text-(--ws-fg-40)"
                           title="Complete school setup on the Dashboard first."
                         >
                           Reconcile →
@@ -1902,7 +1903,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
             aria-hidden="true"
@@ -1939,14 +1940,14 @@ export default function SchoolAdminOverviewPage() {
             {upcomingEvents.map((e) => (
               <div
                 key={e.id}
-                className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                className="flex items-start gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3"
               >
                 <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
                   <Calendar className="h-4 w-4 text-fuchsia-300" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-white/80">{e.title}</div>
-                  <div className="text-xs text-white/50 mt-0.5">{e.when}</div>
+                  <div className="text-sm text-(--ws-fg-80)">{e.title}</div>
+                  <div className="text-xs text-(--ws-fg-50) mt-0.5">{e.when}</div>
                 </div>
               </div>
             ))}
@@ -1959,7 +1960,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Financial Overview + Student Enrollment */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-green-500/15 via-green-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -1974,58 +1975,58 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {financialOverviewQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading financial overview...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading financial overview...</div>
             ) : financialOverviewQuery.isError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load financial data.</div>
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Inflow</div>
-                    <div className="mt-1 text-sm font-semibold text-emerald-200">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Inflow</div>
+                    <div className="mt-1 text-sm font-semibold text-(--ws-emerald)">
                       {formatCurrency(financialOverviewQuery.data?.kpis.totalInflow ?? 0)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Outflow</div>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Outflow</div>
                     <div className="mt-1 text-sm font-semibold text-rose-200">
                       {formatCurrency(financialOverviewQuery.data?.kpis.totalOutflow ?? 0)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Net Position</div>
-                    <div className={`mt-1 text-sm font-semibold ${(financialOverviewQuery.data?.kpis.netPosition ?? 0) >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Net Position</div>
+                    <div className={`mt-1 text-sm font-semibold ${(financialOverviewQuery.data?.kpis.netPosition ?? 0) >= 0 ? "text-(--ws-emerald)" : "text-rose-200"}`}>
                       {formatCurrency(financialOverviewQuery.data?.kpis.netPosition ?? 0)}
                     </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Transactions</div>
-                    <div className="text-sm font-medium text-white/90">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="text-[11px] text-(--ws-fg-50)">Transactions</div>
+                    <div className="text-sm font-medium text-(--ws-fg-90)">
                       {(financialOverviewQuery.data?.kpis.inflowCount ?? 0) + (financialOverviewQuery.data?.kpis.outflowCount ?? 0)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Pending</div>
-                    <div className="text-sm font-medium text-amber-200">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="text-[11px] text-(--ws-fg-50)">Pending</div>
+                    <div className="text-sm font-medium text-(--ws-amber)">
                       {financialOverviewQuery.data?.kpis.pendingCount ?? 0}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
-                    <div className="text-[11px] text-white/55">Failed</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                    <div className="text-[11px] text-(--ws-fg-50)">Failed</div>
                     <div className="text-sm font-medium text-rose-200">
                       {financialOverviewQuery.data?.kpis.failedCount ?? 0}
                     </div>
                   </div>
                 </div>
-                <div className="text-[11px] text-white/40">This month&apos;s summary</div>
+                <div className="text-[11px] text-(--ws-fg-40)">This month&apos;s summary</div>
               </>
             )}
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2040,40 +2041,40 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {studentStatsQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading student stats...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading student stats...</div>
             ) : studentStatsQuery.isError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load student stats.</div>
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Total</div>
-                    <div className="mt-1 text-lg font-semibold text-white">{studentStatsQuery.data?.total ?? 0}</div>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Total</div>
+                    <div className="mt-1 text-lg font-semibold text-(--ws-fg)">{studentStatsQuery.data?.total ?? 0}</div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">New This Month</div>
-                    <div className="mt-1 text-lg font-semibold text-emerald-200">{studentStatsQuery.data?.newThisMonth ?? 0}</div>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">New This Month</div>
+                    <div className="mt-1 text-lg font-semibold text-(--ws-emerald)">{studentStatsQuery.data?.newThisMonth ?? 0}</div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Owing</div>
-                    <div className="mt-1 text-lg font-semibold text-amber-200">{studentStatsQuery.data?.owingCount ?? 0}</div>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Owing</div>
+                    <div className="mt-1 text-lg font-semibold text-(--ws-amber)">{studentStatsQuery.data?.owingCount ?? 0}</div>
                   </div>
                 </div>
                 {(studentStatsQuery.data?.gradeDistribution?.length ?? 0) > 0 && (
-                  <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                    <div className="mb-2 text-[11px] font-medium text-white/65">By Grade</div>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="mb-2 text-[11px] font-medium text-(--ws-fg-60)">By Grade</div>
                     <div className="space-y-1.5">
                       {studentStatsQuery.data!.gradeDistribution.slice(0, 5).map((g) => (
                         <div key={g.gradeId} className="flex items-center justify-between text-xs">
-                          <span className="text-white/70">{g.gradeName}</span>
+                          <span className="text-(--ws-fg-70)">{g.gradeName}</span>
                           <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-16 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-1.5 w-16 rounded-full bg-(--ws-fill-strong) overflow-hidden">
                               <div
                                 className="h-full rounded-full bg-violet-400/70"
                                 style={{ width: `${Math.min(100, ((g.count / (studentStatsQuery.data?.total || 1)) * 100))}%` }}
                               />
                             </div>
-                            <span className="text-white/90 font-medium w-6 text-right">{g.count}</span>
+                            <span className="text-(--ws-fg-90) font-medium w-6 text-right">{g.count}</span>
                           </div>
                         </div>
                       ))}
@@ -2090,12 +2091,12 @@ export default function SchoolAdminOverviewPage() {
       {/* Teacher Status + Fee Collection Trend */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-teal-500/15 via-teal-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-teal-500/20 border border-teal-500/30">
-                <Users className="h-4 w-4 text-teal-300" />
+                <Users className="h-4 w-4 text-(--ws-teal)" />
               </div>
               Teacher Status
             </CardTitle>
@@ -2105,7 +2106,7 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {teacherStatsQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading teacher stats...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading teacher stats...</div>
             ) : teacherStatsQuery.isError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load teacher stats.</div>
             ) : (() => {
@@ -2113,24 +2114,24 @@ export default function SchoolAdminOverviewPage() {
               return (
                 <>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">Active</div>
-                      <div className="mt-1 text-lg font-semibold text-emerald-200">{ts?.active ?? 0}</div>
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">Active</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-emerald)">{ts?.active ?? 0}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">Homeroom</div>
-                      <div className="mt-1 text-lg font-semibold text-white">{ts?.homeroom ?? 0}</div>
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">Homeroom</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-fg)">{ts?.homeroom ?? 0}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">On Leave</div>
-                      <div className="mt-1 text-lg font-semibold text-amber-200">{ts?.onLeave ?? 0}</div>
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">On Leave</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-amber)">{ts?.onLeave ?? 0}</div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">Inactive</div>
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">Inactive</div>
                       <div className="mt-1 text-lg font-semibold text-rose-200">{ts?.inactive ?? 0}</div>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
                     Total: {ts?.total ?? 0} teachers
                     {(ts?.terminated ?? 0) > 0 && ` • ${ts!.terminated} terminated`}
                   </div>
@@ -2140,7 +2141,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-sky-500/15 via-sky-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2155,7 +2156,7 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {reportsChartsQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading fee trends...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading fee trends...</div>
             ) : reportsChartsQuery.isError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load chart data.</div>
             ) : (() => {
@@ -2175,17 +2176,17 @@ export default function SchoolAdminOverviewPage() {
                   </div>
                   <div className="flex gap-1 overflow-hidden">
                     {points.map((p, i) => (
-                      <div key={i} className="flex-1 text-center text-[9px] text-white/40 truncate">
+                      <div key={i} className="flex-1 text-center text-[9px] text-(--ws-fg-40) truncate">
                         {p.label}
                       </div>
                     ))}
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
                     {points.length} data points • {reportsChartsQuery.data?.charts.fees.revenueTrend.interval ?? "day"} interval
                   </div>
                 </>
               ) : (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">No fee collection data yet.</div>
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">No fee collection data yet.</div>
               );
             })()}
           </CardContent>
@@ -2196,7 +2197,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Academic Performance + Community Hub */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-yellow-500/15 via-yellow-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2208,7 +2209,7 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {reportsSummaryQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading academic data...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading academic data...</div>
             ) : reportsSummaryQuery.isError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load academic data.</div>
             ) : (() => {
@@ -2216,24 +2217,24 @@ export default function SchoolAdminOverviewPage() {
               return (
                 <>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">Avg Score</div>
-                      <div className="mt-1 text-lg font-semibold text-white">
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">Avg Score</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-fg)">
                         {(ac?.averageScore ?? 0) > 0 ? `${(ac!.averageScore).toFixed(1)}%` : "—"}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">Pass Rate</div>
-                      <div className="mt-1 text-lg font-semibold text-emerald-200">
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">Pass Rate</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-emerald)">
                         {(ac?.passRate ?? 0) > 0 ? `${(ac!.passRate).toFixed(1)}%` : "—"}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                      <div className="text-[11px] text-white/55">Records</div>
-                      <div className="mt-1 text-lg font-semibold text-white">{ac?.records ?? 0}</div>
+                    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                      <div className="text-[11px] text-(--ws-fg-50)">Records</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-fg)">{ac?.records ?? 0}</div>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
                     Scope: {ac?.scope || "Current period"}
                   </div>
                 </>
@@ -2242,7 +2243,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-pink-500/15 via-pink-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2257,37 +2258,37 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Vote className="h-3.5 w-3.5 text-pink-300" />
-                  <div className="text-[11px] text-white/55">Polls</div>
+                  <div className="text-[11px] text-(--ws-fg-50)">Polls</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="text-lg font-semibold text-white">{m?.community?.polls?.live ?? 0}</div>
-                    <div className="text-[10px] text-white/40">Live</div>
+                    <div className="text-lg font-semibold text-(--ws-fg)">{m?.community?.polls?.live ?? 0}</div>
+                    <div className="text-[10px] text-(--ws-fg-40)">Live</div>
                   </div>
                   <div>
-                    <div className="text-lg font-semibold text-white/70">{m?.community?.polls?.total ?? 0}</div>
-                    <div className="text-[10px] text-white/40">Total</div>
+                    <div className="text-lg font-semibold text-(--ws-fg-70)">{m?.community?.polls?.total ?? 0}</div>
+                    <div className="text-[10px] text-(--ws-fg-40)">Total</div>
                   </div>
                 </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Heart className="h-3.5 w-3.5 text-pink-300" />
-                  <div className="text-[11px] text-white/55">Fundraising</div>
+                  <div className="text-[11px] text-(--ws-fg-50)">Fundraising</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <div className="text-lg font-semibold text-white">{m?.community?.campaigns?.live ?? 0}</div>
-                    <div className="text-[10px] text-white/40">Live</div>
+                    <div className="text-lg font-semibold text-(--ws-fg)">{m?.community?.campaigns?.live ?? 0}</div>
+                    <div className="text-[10px] text-(--ws-fg-40)">Live</div>
                   </div>
                   <div>
-                    <div className="text-lg font-semibold text-emerald-200">
+                    <div className="text-lg font-semibold text-(--ws-emerald)">
                       {formatCurrency(m?.community?.campaigns?.totalRaisedMinor ?? 0)}
                     </div>
-                    <div className="text-[10px] text-white/40">Raised</div>
+                    <div className="text-[10px] text-(--ws-fg-40)">Raised</div>
                   </div>
                 </div>
               </div>
@@ -2301,7 +2302,7 @@ export default function SchoolAdminOverviewPage() {
       {activeDashboardTab === "insights" && (
       <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent"
             aria-hidden="true"
@@ -2321,14 +2322,14 @@ export default function SchoolAdminOverviewPage() {
                 Overdue report →
               </Link>
             ) : (
-              <span className="text-sm text-white/40 cursor-not-allowed">
+              <span className="text-sm text-(--ws-fg-40) cursor-not-allowed">
                 Overdue report →
               </span>
             )}
           </CardHeader>
           <CardContent className="relative z-10">
             {overdueRiskLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">
                 Loading overdue risk snapshot...
               </div>
             ) : overdueRiskError ? (
@@ -2339,28 +2340,28 @@ export default function SchoolAdminOverviewPage() {
               <div className="space-y-4">
                 <Donut segments={donutSegments} />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Overdue Amount</div>
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Overdue Amount</div>
                     <div className="mt-1 text-sm font-semibold text-rose-200">
                       {formatCurrency(overdueAmountMinor)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Overdue Bills</div>
-                    <div className="mt-1 text-sm font-semibold text-white">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Overdue Bills</div>
+                    <div className="mt-1 text-sm font-semibold text-(--ws-fg)">
                       {overdueInvoiceCount}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="text-[11px] text-white/55">Students at Risk</div>
-                    <div className="mt-1 text-sm font-semibold text-white">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-[11px] text-(--ws-fg-50)">Students at Risk</div>
+                    <div className="mt-1 text-sm font-semibold text-(--ws-fg)">
                       {overdueStudentCount}
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-black/10 p-3">
-                  <div className="mb-2 text-[11px] font-medium text-white/65">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                  <div className="mb-2 text-[11px] font-medium text-(--ws-fg-60)">
                     Highest Risk Accounts
                   </div>
                   <div className="space-y-2">
@@ -2370,8 +2371,8 @@ export default function SchoolAdminOverviewPage() {
                         className="flex items-center justify-between gap-3 text-xs"
                       >
                         <div className="min-w-0">
-                          <div className="truncate text-white/90">{student.studentName}</div>
-                          <div className="text-white/50">
+                          <div className="truncate text-(--ws-fg-90)">{student.studentName}</div>
+                          <div className="text-(--ws-fg-50)">
                             {student.oldestDaysOverdue} day(s) overdue
                           </div>
                         </div>
@@ -2384,14 +2385,14 @@ export default function SchoolAdminOverviewPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">
                 No overdue invoices yet.
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
             aria-hidden="true"
@@ -2406,7 +2407,7 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {attendanceLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">
                 Loading attendance snapshot...
               </div>
             ) : attendanceError ? (
@@ -2416,26 +2417,26 @@ export default function SchoolAdminOverviewPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-white/60 mb-1">Present Rate</div>
-                    <div className="text-lg font-semibold text-emerald-200">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="text-xs text-(--ws-fg-60) mb-1">Present Rate</div>
+                    <div className="text-lg font-semibold text-(--ws-emerald)">
                       {attendancePresentRate.toFixed(1)}%
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-white/60 mb-1">Attendance Records</div>
-                    <div className="text-lg font-semibold text-white">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="text-xs text-(--ws-fg-60) mb-1">Attendance Records</div>
+                    <div className="text-lg font-semibold text-(--ws-fg)">
                       {attendanceTotalRecords.toLocaleString()}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-white/60 mb-1">Teacher Coverage</div>
-                    <div className="text-lg font-semibold text-white">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <div className="text-xs text-(--ws-fg-60) mb-1">Teacher Coverage</div>
+                    <div className="text-lg font-semibold text-(--ws-fg)">
                       {attendanceCoverageRate.toFixed(1)}%
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
                   {attendanceRange?.period?.label
                     ? `Period: ${attendanceRange.period.label}`
                     : "Using default attendance range"}{" "}
@@ -2451,7 +2452,7 @@ export default function SchoolAdminOverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ActivityFeed limit={5} />
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
             aria-hidden="true"
@@ -2465,11 +2466,11 @@ export default function SchoolAdminOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
               <textarea
                 rows={3}
                 placeholder="Ask: “Summarize collections this term”, “Draft a reminder for Grade 4 parents”…"
-                className="w-full resize-none rounded-lg border border-white/10 bg-transparent p-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+                className="w-full resize-none rounded-lg border border-(--ws-line) bg-transparent p-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:outline-none"
               />
               <div className="mt-2 flex flex-wrap gap-2">
                 {[
@@ -2481,7 +2482,7 @@ export default function SchoolAdminOverviewPage() {
                   <button
                     key={i}
                     type="button"
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10"
+                    className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                     onClick={() => {}}
                   >
                     {s}
@@ -2501,7 +2502,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-400/15 via-amber-400/5 to-transparent"
             aria-hidden="true"
@@ -2513,9 +2514,9 @@ export default function SchoolAdminOverviewPage() {
             {suggestions.map((s) => (
               <div
                 key={s.id}
-                className="rounded-xl border border-white/10 bg-white/5 p-4"
+                className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
               >
-                <div className="text-sm text-white/90 mb-3">{s.text}</div>
+                <div className="text-sm text-(--ws-fg-90) mb-3">{s.text}</div>
                 <div className="flex flex-wrap gap-2">
                   {s.actions.map((a, i) => {
                     const Icon = a.icon;
@@ -2523,7 +2524,7 @@ export default function SchoolAdminOverviewPage() {
                       <button
                         key={i}
                         type="button"
-                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
+                        className="inline-flex items-center gap-1 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-xs text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
                         onClick={a.onClick}
                       >
                         <Icon className="h-3.5 w-3.5" />
@@ -2540,40 +2541,40 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Top Performers + Upcoming Due Invoices + Reports Generated */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                <Trophy className="h-4 w-4 text-amber-300" />
+                <Trophy className="h-4 w-4 text-(--ws-amber)" />
               </div>
               Top Performers
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {studentStatsQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading...</div>
             ) : (studentStatsQuery.data?.topPerformers ?? 0) > 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                    <Trophy className="h-5 w-5 text-amber-300" />
+                    <Trophy className="h-5 w-5 text-(--ws-amber)" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white">{studentStatsQuery.data!.topPerformers}</div>
-                    <div className="text-xs text-white/50">Students excelling academically</div>
+                    <div className="text-2xl font-bold text-(--ws-fg)">{studentStatsQuery.data!.topPerformers}</div>
+                    <div className="text-xs text-(--ws-fg-50)">Students excelling academically</div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">
                 No academic performance data yet.
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2588,16 +2589,16 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {feeSummaryQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading...</div>
             ) : (feeSummaryQuery.data?.upcomingDue?.length ?? 0) > 0 ? (
               <div className="space-y-2">
                 {feeSummaryQuery.data!.upcomingDue.slice(0, 4).map((inv) => (
-                  <div key={inv._id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs">
+                  <div key={inv._id} className="flex items-center justify-between gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs">
                     <div className="min-w-0">
-                      <div className="truncate text-white/90">
+                      <div className="truncate text-(--ws-fg-90)">
                         {inv.studentId?.firstName} {inv.studentId?.lastName}
                       </div>
-                      <div className="text-white/50">
+                      <div className="text-(--ws-fg-50)">
                         Due {format(new Date(inv.dueDate), "dd MMM")}
                       </div>
                     </div>
@@ -2608,14 +2609,14 @@ export default function SchoolAdminOverviewPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">
                 No invoices due in the next 2 weeks.
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2627,24 +2628,24 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {reportsSummaryQuery.isLoading ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading...</div>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading...</div>
             ) : (() => {
               const act = reportsSummaryQuery.data?.categories.activity;
               return (
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-[11px] text-white/55">Total Actions</div>
-                        <div className="mt-1 text-2xl font-semibold text-white">{act?.totalInRange ?? 0}</div>
+                        <div className="text-[11px] text-(--ws-fg-50)">Total Actions</div>
+                        <div className="mt-1 text-2xl font-semibold text-(--ws-fg)">{act?.totalInRange ?? 0}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-white/55">Reports Generated</div>
+                        <div className="text-[11px] text-(--ws-fg-50)">Reports Generated</div>
                         <div className="mt-1 text-2xl font-semibold text-indigo-200">{act?.reportsGenerated ?? 0}</div>
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
                     Activity in current academic period
                   </div>
                 </div>
@@ -2661,10 +2662,10 @@ export default function SchoolAdminOverviewPage() {
         <button
           type="button"
           onClick={() => palette.setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10"
+          className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
         >
           <Search className="h-3.5 w-3.5" />
-          Press <span className="rounded bg-white/10 px-1.5 py-0.5">⌘K</span> to
+          Press <span className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5">⌘K</span> to
           search &amp; act
         </button>
       </div>
@@ -2676,39 +2677,39 @@ export default function SchoolAdminOverviewPage() {
           onClick={() => palette.setOpen(false)}
         >
           <div
-            className="w-full max-w-xl rounded-2xl border border-white/10 bg-card/95 p-4 shadow-2xl"
+            className="w-full max-w-xl rounded-2xl border border-(--ws-line) bg-card/95 p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3">
-              <Search className="h-4 w-4 text-white/60" />
+            <div className="flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3">
+              <Search className="h-4 w-4 text-(--ws-fg-60)" />
               <input
                 autoFocus
                 value={palette.q}
                 onChange={(e) => palette.setQ(e.target.value)}
                 placeholder="Search or type a command…"
-                className="h-12 flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                className="h-12 flex-1 bg-transparent text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:outline-none"
               />
             </div>
-            <div className="mt-2 max-h-72 overflow-auto rounded-xl border border-white/10 bg-white/5">
+            <div className="mt-2 max-h-72 overflow-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
               {palette.filtered.length === 0 ? (
-                <div className="p-4 text-sm text-white/60">No results</div>
+                <div className="p-4 text-sm text-(--ws-fg-60)">No results</div>
               ) : (
-                <ul className="divide-y divide-white/10">
+                <ul className="divide-y divide-(--ws-line)">
                   {palette.filtered.map((it) => (
                     <li key={it.id}>
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-white/10"
+                        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-(--ws-fill-strong)"
                         onClick={() => {
                           palette.setOpen(false);
                           it.onRun();
                         }}
                       >
-                        <span className="text-sm text-white/90">
+                        <span className="text-sm text-(--ws-fg-90)">
                           {it.label}
                         </span>
                         {it.kbd && (
-                          <span className="text-xs text-white/50 rounded bg-white/10 px-2 py-0.5">
+                          <span className="text-xs text-(--ws-fg-50) rounded bg-(--ws-fill-strong) px-2 py-0.5">
                             {it.kbd}
                           </span>
                         )}
@@ -2836,6 +2837,6 @@ export default function SchoolAdminOverviewPage() {
           }}
         />
       ) : null}
-    </div>
+    </WorkspaceScope>
   );
 }

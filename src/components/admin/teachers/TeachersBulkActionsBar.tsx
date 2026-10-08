@@ -51,7 +51,7 @@ export function TeachersBulkActionsBar({
   return (
     <>
       <div className="fixed inset-x-0 bottom-4 z-50 mx-auto w-[min(920px,calc(100%-2rem))]">
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-background/70 px-4 py-3 shadow-xl shadow-black/40 backdrop-blur">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-(--ws-line) bg-background/70 px-4 py-3 shadow-xl shadow-[var(--ws-shadow)] backdrop-blur">
           <div className="text-sm">
             <span className="font-semibold">{count}</span>{" "}
             <span className="text-muted-foreground">selected</span>

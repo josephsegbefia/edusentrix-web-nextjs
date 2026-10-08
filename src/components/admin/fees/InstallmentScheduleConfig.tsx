@@ -129,7 +129,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
           Installment Schedule ({numberOfInstallments} installments)
         </Label>
         {difference > 0.01 && (
-          <span className="text-xs text-rose-300">
+          <span className="text-xs text-(--ws-rose)">
             Total mismatch: GHS {difference.toFixed(2)}
           </span>
         )}
@@ -155,7 +155,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
                     variant="ghost"
                     size="sm"
                     onClick={() => remove(index)}
-                    className="text-rose-300 hover:text-rose-200 h-6 w-6 p-0"
+                    className="text-(--ws-rose) hover:text-(--ws-rose) h-6 w-6 p-0"
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
@@ -227,12 +227,12 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
         <div className="pt-2 border-t border-white/10">
           <div className="flex items-center justify-between text-xs">
             <span className="text-white/60">Total Scheduled:</span>
-            <span className={`font-semibold ${difference > 0.01 ? "text-rose-300" : "text-white"}`}>
+            <span className={`font-semibold ${difference > 0.01 ? "text-(--ws-rose)" : "text-white"}`}>
               GHS {totalScheduled.toFixed(2)} / GHS {totalAmount.toFixed(2)}
             </span>
           </div>
           {overdueInstallments.length > 0 && maxDueDate ? (
-            <p className="mt-2 rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            <p className="mt-2 rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-(--ws-amber)">
               Installment {overdueInstallments.join(", ")} must be due on or before{" "}
               {maxDueDate.toLocaleDateString()} because that is the selected academic period end date.
             </p>

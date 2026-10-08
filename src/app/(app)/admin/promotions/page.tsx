@@ -309,7 +309,7 @@ export default function PromotionsPage() {
           <section className="relative overflow-hidden rounded-[1.8rem] border border-amber-500/20 bg-linear-to-br from-amber-950/40 via-slate-950 to-slate-950 p-6 sm:p-8">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.16),transparent_45%)]" />
             <div className="relative space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-amber)/80">
+              <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-amber)">
                 <Sparkles className="h-3.5 w-3.5" />
                 Academic Promotions
               </div>

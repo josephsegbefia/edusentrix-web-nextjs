@@ -115,7 +115,7 @@ export function PeriodBlockedAlert({ operation, className }: BlockedAlertProps) 
         <p
           className={cn(
             "text-sm",
-            isBlocked ? "text-(--ws-rose)/80" : "text-(--ws-amber)/80"
+            isBlocked ? "text-(--ws-rose)" : "text-(--ws-amber)"
           )}
         >
           {message}

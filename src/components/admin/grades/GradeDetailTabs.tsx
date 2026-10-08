@@ -50,7 +50,7 @@ const TABS: TabConfig[] = [
     colors: {
       active:
         "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
-      icon: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+      icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
     },
   },
   {
@@ -69,7 +69,7 @@ const TABS: TabConfig[] = [
     icon: Calendar,
     colors: {
       active:
-        "border-amber-500/40 bg-amber-500/15 text-amber-200 shadow-amber-500/20",
+        "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
       icon: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     },
   },
@@ -79,8 +79,8 @@ const TABS: TabConfig[] = [
     icon: FileDown,
     colors: {
       active:
-        "border-violet-500/40 bg-violet-500/15 text-violet-200 shadow-violet-500/20",
-      icon: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+        "border-violet-500/40 bg-violet-500/15 text-(--ws-violet) shadow-violet-500/20",
+      icon: "bg-violet-500/20 text-(--ws-violet) border-violet-500/30",
     },
   },
 ];

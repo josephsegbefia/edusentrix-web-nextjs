@@ -251,7 +251,7 @@ export function InvoiceDetailDrawer(props: {
 
             {/* Line Items */}
             {invoice.lineItems && invoice.lineItems.length > 0 && (
-              <section className="rounded-3xl border border-(--ws-line) bg-(--ws-fill) p-4 shadow-xl shadow-black/20 sm:p-5">
+              <section className="rounded-3xl border border-(--ws-line) bg-(--ws-fill) p-4 shadow-[var(--ws-shadow)] sm:p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-(--ws-fg-40)">

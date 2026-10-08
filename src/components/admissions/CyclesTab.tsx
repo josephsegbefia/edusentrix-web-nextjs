@@ -41,8 +41,8 @@ type CyclesTabProps = {
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-white/10 bg-white/5 text-white/70",
   published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  paused: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-  closed: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  paused: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+  closed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   archived: "border-white/10 bg-white/5 text-white/50",
 };
 
@@ -198,7 +198,7 @@ export function CyclesTab({
 
   return (
     <>
-      <section className="rounded-[1.6rem] border border-white/10 bg-slate-950/80 p-6">
+      <section className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-panel-from) p-6">
         <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
@@ -379,7 +379,7 @@ export function CyclesTab({
                       <Button
                         type="button"
                         variant="outline"
-                        className="gap-2 border-rose-500/20 bg-rose-500/5 text-rose-100 hover:bg-rose-500/10"
+                        className="gap-2 border-rose-500/20 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
                         onClick={() => handleClose(cycle)}
                         disabled={closeCycle.isPending}
                       >
@@ -389,7 +389,7 @@ export function CyclesTab({
                     ) : null}
 
                     {cycle.status === "closed" ? (
-                      <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/20 bg-rose-500/5 px-3 py-1.5 text-xs text-rose-100">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/20 bg-rose-500/5 px-3 py-1.5 text-xs text-(--ws-rose)">
                         <XCircle className="h-3.5 w-3.5" />
                         Cycle is closed
                       </span>
@@ -409,7 +409,7 @@ export function CyclesTab({
                         <Button
                           type="button"
                           variant="outline"
-                          className="gap-2 border-rose-500/20 bg-rose-500/5 text-rose-100 hover:bg-rose-500/10"
+                          className="gap-2 border-rose-500/20 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
                           onClick={() => void handleRemove(cycle)}
                           disabled={deleteCycle.isPending}
                         >

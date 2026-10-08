@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { glassPanelClass } from "@/lib/ui/glass-surfaces";
 import {
   GraduationCap,
   UserCircle2,
@@ -270,7 +271,7 @@ export function StudentDetailHeader({
   }
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-teal-950/40 to-transparent shadow-[var(--ws-shadow)] backdrop-blur-xl">
+    <Card className={glassPanelClass}>
       {/* Decorative elements */}
       <div
         className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-teal-500/10 blur-3xl"
@@ -355,8 +356,8 @@ export function StudentDetailHeader({
                     className={cn(
                       "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold",
                       sex === "female"
-                        ? "border-rose-400/35 bg-rose-500/15 text-rose-100"
-                        : "border-sky-400/35 bg-sky-500/15 text-sky-100"
+                        ? "border-rose-400/35 bg-rose-500/15 text-(--ws-rose)"
+                        : "border-sky-400/35 bg-sky-500/15 text-(--ws-cyan)"
                     )}
                   >
                     {sex === "female" ? (
@@ -377,7 +378,7 @@ export function StudentDetailHeader({
                     status === "withdrawn" &&
                       "border-red-400/50 bg-red-500/20 text-(--ws-rose)",
                     status === "graduated" &&
-                      "border-violet-400/50 bg-violet-500/20 text-violet-200"
+                      "border-violet-400/50 bg-violet-500/20 text-(--ws-violet)"
                   )}
                 >
                   {status === "graduated" ? "Alumni" : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -387,13 +388,13 @@ export function StudentDetailHeader({
               {/* GES Information row */}
               <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 {gesSchoolCode && !editingGes && (
-                  <span className="flex items-center gap-1.5 rounded-lg border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium text-violet-200 font-mono">
+                  <span className="flex items-center gap-1.5 rounded-lg border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-violet) font-mono">
                     <Landmark className="h-3 w-3" />
                     GES: {gesSchoolCode}
                   </span>
                 )}
                 {gesIndexNumber && !editingGes && (
-                  <span className="flex items-center gap-1.5 rounded-lg border border-indigo-400/20 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-indigo-200 font-mono">
+                  <span className="flex items-center gap-1.5 rounded-lg border border-indigo-400/20 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-violet) font-mono">
                     <FileText className="h-3 w-3" />
                     Index: {gesIndexNumber}
                   </span>
@@ -414,7 +415,7 @@ export function StudentDetailHeader({
               {editingGes && (
                 <div className="mt-2 flex flex-col gap-2 rounded-xl border border-violet-500/20 bg-violet-500/5 p-3 sm:flex-row sm:items-end">
                   <div className="flex-1 space-y-1">
-                    <label className="text-[9px] font-medium uppercase tracking-wider text-violet-300/60">
+                    <label className="text-[9px] font-medium uppercase tracking-wider text-(--ws-violet)">
                       GES School Code
                     </label>
                     <Input
@@ -426,11 +427,11 @@ export function StudentDetailHeader({
                         }))
                       }
                       placeholder="e.g. 0301234"
-                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-(--ws-fg) placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
+                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
                     />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <label className="text-[9px] font-medium uppercase tracking-wider text-violet-300/60">
+                    <label className="text-[9px] font-medium uppercase tracking-wider text-(--ws-violet)">
                       BECE Index Number
                     </label>
                     <Input
@@ -442,7 +443,7 @@ export function StudentDetailHeader({
                         }))
                       }
                       placeholder="e.g. 0301234001"
-                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-(--ws-fg) placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
+                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
                     />
                   </div>
                   <div className="flex gap-1.5 shrink-0">
@@ -536,7 +537,7 @@ export function StudentDetailHeader({
             primaryGuardian.hasPlatformAccount === false && (
               <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-left">
                 <Send className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-amber)" aria-hidden />
-                <p className="text-[11px] leading-snug text-(--ws-amber)/90">
+                <p className="text-[11px] leading-snug text-(--ws-amber)">
                   <span className="font-semibold text-(--ws-amber)">Primary contact</span> has not
                   accepted their invitation yet and does not have a parent portal login. You can
                   still use their details saved here.

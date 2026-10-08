@@ -55,7 +55,7 @@ const statusConfig: Record<
   late: {
     bg: "bg-amber-500/10",
     border: "border-amber-500/30",
-    text: "text-amber-200",
+    text: "text-(--ws-amber)",
     icon: Clock,
   },
   on_leave: {
@@ -179,7 +179,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-cyan-500/15 via-blue-500/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -191,14 +191,14 @@ export function TeacherAttendanceTab({ teacher }: Props) {
 
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-blue-500/20 shadow-inner shadow-white/5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-blue-500/20 shadow-inner shadow-white/5">
               <CalendarCheck className="h-5 w-5 text-cyan-300" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Attendance
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Track daily attendance and leave requests
               </p>
             </div>
@@ -221,15 +221,15 @@ export function TeacherAttendanceTab({ teacher }: Props) {
       </Card>
 
       {/* View mode toggle */}
-      <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 p-1 text-xs">
+      <div className="inline-flex items-center rounded-full border border-(--ws-line) bg-(--ws-fill) p-1 text-xs">
         <button
           type="button"
           onClick={() => setViewMode("list")}
           className={cn(
             "inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-medium transition",
             viewMode === "list"
-              ? "bg-white/10 text-white shadow-sm shadow-black/30"
-              : "text-white/60 hover:text-white"
+              ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-sm shadow-black/30"
+              : "text-(--ws-fg-60) hover:text-(--ws-fg)"
           )}
         >
           <List className="h-3.5 w-3.5" />
@@ -241,8 +241,8 @@ export function TeacherAttendanceTab({ teacher }: Props) {
           className={cn(
             "inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-medium transition",
             viewMode === "calendar"
-              ? "bg-white/10 text-white shadow-sm shadow-black/30"
-              : "text-white/60 hover:text-white"
+              ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-sm shadow-black/30"
+              : "text-(--ws-fg-60) hover:text-(--ws-fg)"
           )}
         >
           <Calendar className="h-3.5 w-3.5" />
@@ -252,7 +252,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main content */}
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl lg:col-span-2">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl lg:col-span-2">
           <div
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
             aria-hidden="true"
@@ -262,14 +262,14 @@ export function TeacherAttendanceTab({ teacher }: Props) {
             aria-hidden="true"
           />
 
-          <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+          <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
             <div className="flex items-center gap-3 pb-4">
               {viewMode === "list" ? (
                 <List className="h-5 w-5 text-cyan-300" />
               ) : (
                 <Calendar className="h-5 w-5 text-cyan-300" />
               )}
-              <CardTitle className="text-base font-semibold text-white">
+              <CardTitle className="text-base font-semibold text-(--ws-fg)">
                 {viewMode === "list"
                   ? "Attendance Records"
                   : "Attendance Calendar"}
@@ -280,20 +280,20 @@ export function TeacherAttendanceTab({ teacher }: Props) {
           <CardContent className="relative z-10 p-6">
             {attendanceLoading ? (
               <div className="flex items-center justify-center gap-3 py-16">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400" />
-                <p className="text-sm text-white/60">Loading attendance...</p>
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--ws-line) border-t-cyan-400" />
+                <p className="text-sm text-(--ws-fg-60)">Loading attendance...</p>
               </div>
             ) : attendanceRecords.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
                 <div className="flex flex-col items-center gap-4 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-blue-500/20">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-blue-500/20">
                     <CalendarCheck className="h-7 w-7 text-cyan-300" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-(--ws-fg)">
                       No attendance records
                     </p>
-                    <p className="text-sm text-white/50">
+                    <p className="text-sm text-(--ws-fg-50)">
                       No attendance records found for this month.
                     </p>
                   </div>
@@ -316,7 +316,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                   return (
                     <div
                       key={record.id}
-                      className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-4 transition-all duration-200 hover:border-cyan-500/30 hover:bg-white/5"
+                      className="group relative overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all duration-200 hover:border-cyan-500/30 hover:bg-(--ws-fill-strong)"
                     >
                       <div
                         className={cn(
@@ -335,7 +335,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                       <div className="flex items-center justify-between gap-4 pl-3">
                         <div className="flex items-center gap-4">
                           <div>
-                            <p className="text-sm font-semibold text-white">
+                            <p className="text-sm font-semibold text-(--ws-fg)">
                               {formatDate(record.date)}
                             </p>
                             <div className="mt-1 flex items-center gap-2">
@@ -352,14 +352,14 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                                 {getStatusLabel(record.status)}
                               </Badge>
                               {record.minutesLate && (
-                                <span className="text-xs text-white/50">
+                                <span className="text-xs text-(--ws-fg-50)">
                                   {record.minutesLate} min late
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-white/50">
+                        <div className="flex items-center gap-4 text-xs text-(--ws-fg-50)">
                           {record.checkInTime && (
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -382,14 +382,14 @@ export function TeacherAttendanceTab({ teacher }: Props) {
               <ComingSoonState
                 feature="Calendar view"
                 description="Use list view for now."
-                className="rounded-2xl border-white/10 bg-white/2 text-white"
+                className="rounded-2xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             )}
           </CardContent>
         </Card>
 
         {/* Leave requests sidebar */}
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-transparent"
             aria-hidden="true"
@@ -399,10 +399,10 @@ export function TeacherAttendanceTab({ teacher }: Props) {
             aria-hidden="true"
           />
 
-          <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+          <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
             <div className="flex items-center gap-3 pb-4">
               <CalendarX className="h-5 w-5 text-blue-300" />
-              <CardTitle className="text-base font-semibold text-white">
+              <CardTitle className="text-base font-semibold text-(--ws-fg)">
                 Pending Leave Requests
               </CardTitle>
             </div>
@@ -411,13 +411,13 @@ export function TeacherAttendanceTab({ teacher }: Props) {
           <CardContent className="relative z-10 p-6">
             {leaveRequestsLoading ? (
               <div className="flex items-center justify-center gap-3 py-8">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-blue-400" />
-                <p className="text-xs text-white/60">Loading...</p>
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-(--ws-line) border-t-blue-400" />
+                <p className="text-xs text-(--ws-fg-60)">Loading...</p>
               </div>
             ) : leaveRequests.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/2 p-6 text-center">
-                <CalendarCheck className="mx-auto h-8 w-8 text-white/30" />
-                <p className="mt-2 text-sm text-white/50">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+                <CalendarCheck className="mx-auto h-8 w-8 text-(--ws-fg-40)" />
+                <p className="mt-2 text-sm text-(--ws-fg-50)">
                   No pending leave requests
                 </p>
               </div>
@@ -426,10 +426,10 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                 {leaveRequests.map((request) => (
                   <div
                     key={request.id}
-                    className="rounded-xl border border-white/10 bg-white/2 p-4"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
                   >
                     <div className="mb-3 space-y-1">
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-(--ws-fg)">
                         {formatDate(request.date)}
                       </p>
                       <Badge
@@ -439,7 +439,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                         {request.leaveType}
                       </Badge>
                       {request.reason && (
-                        <p className="text-xs text-white/60">
+                        <p className="text-xs text-(--ws-fg-60)">
                           {request.reason}
                         </p>
                       )}

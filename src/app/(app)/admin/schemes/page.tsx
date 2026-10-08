@@ -290,7 +290,7 @@ export default function AdminSchemesPage() {
               {importCount} imported in this view
             </Badge>
             {incompleteContextCount > 0 ? (
-              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-amber-100">
+              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-(--ws-amber)">
                 {incompleteContextCount} need context check
               </Badge>
             ) : (
@@ -428,7 +428,7 @@ export default function AdminSchemesPage() {
             </CardHeader>
             <CardContent className="p-0">
               {error ? (
-                <p className="p-6 text-sm text-rose-300">{error.message}</p>
+                <p className="p-6 text-sm text-(--ws-rose)">{error.message}</p>
               ) : null}
 
               {isLoading ? (
@@ -475,7 +475,7 @@ export default function AdminSchemesPage() {
                               {row.title}
                             </Link>
                             {!rowHasCompleteContext(row) ? (
-                              <div className="mt-1 flex items-center gap-1 text-xs text-amber-200">
+                              <div className="mt-1 flex items-center gap-1 text-xs text-(--ws-amber)">
                                 <AlertTriangle className="h-3.5 w-3.5" />
                                 Check grade, subject, and period
                               </div>

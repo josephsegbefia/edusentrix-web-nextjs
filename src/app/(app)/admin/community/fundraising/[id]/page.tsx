@@ -70,10 +70,10 @@ import { PostCampaignUpdateModal } from "@/components/modals/PostCampaignUpdateM
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-  pending_approval: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
   live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  paused: "border-orange-500/30 bg-orange-500/10 text-orange-200",
+  paused: "border-orange-500/30 bg-orange-500/10 text-(--ws-amber)",
   closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
   reconciled: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
   archived: "border-slate-600/30 bg-slate-600/10 text-slate-400",
@@ -228,7 +228,7 @@ export default function CampaignDetailPage() {
               <div>
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-emerald-500/20 to-teal-500/20 shadow-lg shadow-emerald-500/10">
-                    <Heart className="h-6 w-6 text-emerald-300" />
+                    <Heart className="h-6 w-6 text-(--ws-emerald)" />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
@@ -362,7 +362,7 @@ export default function CampaignDetailPage() {
 
           {/* Stats Grid */}
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-emerald-500/20">
@@ -374,7 +374,7 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-violet-500/20">
@@ -390,7 +390,7 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-amber-500/20">
@@ -637,8 +637,8 @@ export default function CampaignDetailPage() {
                         donation.status === "completed"
                           ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
                           : donation.status === "pending"
-                          ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
-                          : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+                          ? "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
+                          : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
                       )}
                     >
                       {donation.status}

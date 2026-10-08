@@ -34,6 +34,7 @@ import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDuti
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
 import TeacherModalShell from "@/components/modals/TeacherModalShell";
 import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
@@ -163,10 +164,10 @@ function TeacherDetailContent() {
             <AlertTriangle className="h-7 w-7 text-red-400" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-(--ws-fg)">
               Missing teacher identifier
             </h2>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-(--ws-fg-60)">
               The teacher ID was not provided in the URL.
             </p>
           </div>
@@ -175,7 +176,7 @@ function TeacherDetailContent() {
             variant="outline"
             size="sm"
             onClick={() => router.push("/admin/teachers")}
-            className="gap-2 rounded-lg border-white/15 bg-white/5 text-white/90 hover:bg-white/10"
+            className="gap-2 rounded-lg border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-90) hover:bg-(--ws-fill-strong)"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Teachers
@@ -190,23 +191,23 @@ function TeacherDetailContent() {
       <div className="space-y-6">
         {/* Page header skeleton */}
         <div className="flex items-center gap-4">
-          <div className="h-9 w-9 animate-pulse rounded-lg bg-white/10" />
+          <div className="h-9 w-9 animate-pulse rounded-lg bg-(--ws-fill-strong)" />
           <div className="space-y-2">
-            <div className="h-5 w-32 animate-pulse rounded bg-white/10" />
-            <div className="h-3 w-48 animate-pulse rounded bg-white/5" />
+            <div className="h-5 w-32 animate-pulse rounded bg-(--ws-fill-strong)" />
+            <div className="h-3 w-48 animate-pulse rounded bg-(--ws-fill)" />
           </div>
         </div>
 
         {/* Profile header skeleton */}
-        <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-white/10 bg-white/2 p-6">
-          <div className="h-20 w-20 shrink-0 rounded-2xl bg-white/10" />
+        <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
+          <div className="h-20 w-20 shrink-0 rounded-2xl bg-(--ws-fill-strong)" />
           <div className="flex-1 space-y-3">
-            <div className="h-7 w-56 rounded bg-white/10" />
+            <div className="h-7 w-56 rounded bg-(--ws-fill-strong)" />
             <div className="flex gap-2">
-              <div className="h-6 w-16 rounded-full bg-white/5" />
-              <div className="h-6 w-24 rounded-full bg-white/5" />
+              <div className="h-6 w-16 rounded-full bg-(--ws-fill)" />
+              <div className="h-6 w-24 rounded-full bg-(--ws-fill)" />
             </div>
-            <div className="h-4 w-72 rounded bg-white/5" />
+            <div className="h-4 w-72 rounded bg-(--ws-fill)" />
           </div>
         </div>
 
@@ -217,7 +218,7 @@ function TeacherDetailContent() {
               key={i}
               className={cn(
                 "h-10 animate-pulse rounded-xl",
-                i === 1 ? "w-28 bg-indigo-500/20" : "w-24 bg-white/5"
+                i === 1 ? "w-28 bg-indigo-500/20" : "w-24 bg-(--ws-fill)"
               )}
             />
           ))}
@@ -225,8 +226,8 @@ function TeacherDetailContent() {
 
         {/* Content skeleton */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/2" />
-          <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/2" />
+          <div className="h-80 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
+          <div className="h-80 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
         </div>
       </div>
     );
@@ -240,10 +241,10 @@ function TeacherDetailContent() {
             <AlertTriangle className="h-8 w-8 text-red-400" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-(--ws-fg)">
               Unable to load teacher details
             </h2>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-(--ws-fg-60)">
               The teacher might not exist or you might not have permission to
               view their profile.
             </p>
@@ -253,7 +254,7 @@ function TeacherDetailContent() {
             variant="outline"
             size="sm"
             onClick={() => router.push("/admin/teachers")}
-            className="gap-2 rounded-lg border-white/15 bg-white/5 text-white/90 hover:bg-white/10"
+            className="gap-2 rounded-lg border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-90) hover:bg-(--ws-fill-strong)"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Teachers
@@ -273,23 +274,23 @@ function TeacherDetailContent() {
             variant="ghost"
             size="icon"
             onClick={() => router.push("/admin/teachers")}
-            className="h-9 w-9 shrink-0 rounded-lg border border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+            className="h-9 w-9 shrink-0 rounded-lg border border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <nav className="flex items-center gap-2 text-xs text-white/50">
+            <nav className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
               <button
                 type="button"
                 onClick={() => router.push("/admin/teachers")}
-                className="transition-colors hover:text-white/80"
+                className="transition-colors hover:text-(--ws-fg-80)"
               >
                 Teachers
               </button>
               <ChevronRight className="h-3 w-3" />
-              <span className="text-white/80">{teacher.fullName}</span>
+              <span className="text-(--ws-fg-80)">{teacher.fullName}</span>
             </nav>
-            <h1 className="mt-1 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+            <h1 className="mt-1 text-xl font-semibold tracking-tight text-(--ws-fg) sm:text-2xl">
               Teacher Profile
             </h1>
           </div>
@@ -300,7 +301,7 @@ function TeacherDetailContent() {
       <TeacherDetailHeader teacher={teacher} />
 
       {/* Tabs Navigation */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
           aria-hidden="true"
@@ -452,23 +453,24 @@ function TeacherDetailContent() {
 
 export default function TeacherDetailPage() {
   return (
+    <WorkspaceScope>
     <Suspense
       fallback={
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="h-9 w-9 animate-pulse rounded-lg bg-white/10" />
+            <div className="h-9 w-9 animate-pulse rounded-lg bg-(--ws-fill-strong)" />
             <div className="space-y-2">
-              <div className="h-5 w-32 animate-pulse rounded bg-white/10" />
-              <div className="h-3 w-48 animate-pulse rounded bg-white/5" />
+              <div className="h-5 w-32 animate-pulse rounded bg-(--ws-fill-strong)" />
+              <div className="h-3 w-48 animate-pulse rounded bg-(--ws-fill)" />
             </div>
           </div>
-          <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-white/10 bg-white/2 p-6">
-            <div className="h-20 w-20 shrink-0 rounded-2xl bg-white/10" />
+          <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
+            <div className="h-20 w-20 shrink-0 rounded-2xl bg-(--ws-fill-strong)" />
             <div className="flex-1 space-y-3">
-              <div className="h-7 w-56 rounded bg-white/10" />
+              <div className="h-7 w-56 rounded bg-(--ws-fill-strong)" />
               <div className="flex gap-2">
-                <div className="h-6 w-16 rounded-full bg-white/5" />
-                <div className="h-6 w-24 rounded-full bg-white/5" />
+                <div className="h-6 w-16 rounded-full bg-(--ws-fill)" />
+                <div className="h-6 w-24 rounded-full bg-(--ws-fill)" />
               </div>
             </div>
           </div>
@@ -477,5 +479,6 @@ export default function TeacherDetailPage() {
     >
       <TeacherDetailContent />
     </Suspense>
+    </WorkspaceScope>
   );
 }

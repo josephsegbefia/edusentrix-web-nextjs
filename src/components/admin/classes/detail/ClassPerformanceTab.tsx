@@ -31,8 +31,8 @@ type Props = {
 function tierBadgeTone(tier: string | null) {
   if (tier === "top") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
   if (tier === "above_average") return "border-blue-500/30 bg-blue-500/10 text-blue-200";
-  if (tier === "at_risk") return "border-rose-500/30 bg-rose-500/10 text-rose-200";
-  return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+  if (tier === "at_risk") return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
+  return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
 }
 
 function tierLabel(tier: string | null) {
@@ -63,7 +63,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
 
   return (
     <div className="space-y-6">
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/30 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/30 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-blue-500/18 via-emerald-500/8 to-transparent blur-3xl"
           aria-hidden="true"
@@ -74,26 +74,26 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-white">
+              <CardTitle className="text-lg font-semibold text-(--ws-fg)">
                 Performance Overview
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Class averages, subject performance, weak students, top performers, and Leo forecasts.
               </p>
             </div>
           </div>
           {analytics?.filters.academicPeriodLabel ? (
-            <Badge className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/70">
+            <Badge className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] text-(--ws-fg-70)">
               {analytics.filters.academicPeriodLabel}
             </Badge>
           ) : null}
         </CardHeader>
       </Card>
 
-      <Card className="border border-white/10 bg-slate-950/60 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-(--ws-panel-from) backdrop-blur-xl">
         <CardContent className="grid gap-4 p-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
               Academic Period
             </label>
             <PremiumSelect value={academicPeriodId ?? undefined} onValueChange={setAcademicPeriodId}>
@@ -110,7 +110,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
             </PremiumSelect>
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
               Subject Lens
             </label>
             <PremiumSelect value={subjectId} onValueChange={setSubjectId}>
@@ -134,7 +134,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
       {performanceQuery.isLoading && !analytics ? (
         <div className="flex items-center justify-center gap-3 py-20">
           <Loader2 className="h-6 w-6 animate-spin text-blue-300" />
-          <p className="text-sm text-white/60">Loading class performance analytics...</p>
+          <p className="text-sm text-(--ws-fg-60)">Loading class performance analytics...</p>
         </div>
       ) : performanceQuery.isError ? (
         <EmptyAnalyticsState
@@ -188,20 +188,20 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <LeoSignalsCard leo={analytics.leo} title="Leo Performance Signals" />
 
-            <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-black backdrop-blur-xl">
-              <CardHeader className="border-b border-white/5 pb-4">
-                <CardTitle className="text-base font-semibold text-white">
+            <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+              <CardHeader className="border-b border-(--ws-line) pb-4">
+                <CardTitle className="text-base font-semibold text-(--ws-fg)">
                   Spotlight Students
                 </CardTitle>
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-40)">
                   Students leading the class and students who need targeted support.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4 p-5">
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-3.5">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">Top Performers</p>
-                    <Badge className="rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 text-[10px] text-white/70">
+                    <p className="text-sm font-semibold text-(--ws-fg)">Top Performers</p>
+                    <Badge className="rounded-full border border-(--ws-line) bg-black/20 px-2.5 py-0.5 text-[10px] text-(--ws-fg-70)">
                       {analytics.spotlight.topPerformers.length}
                     </Badge>
                   </div>
@@ -215,7 +215,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                         />
                         <div className="text-right">
                           <p className="text-sm font-semibold text-emerald-200">{row.score}%</p>
-                          <p className="text-[11px] text-white/45">Rank {row.rank ?? "—"}</p>
+                          <p className="text-[11px] text-(--ws-fg-40)">Rank {row.rank ?? "—"}</p>
                         </div>
                       </div>
                     ))}
@@ -224,8 +224,8 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
 
                 <div className="rounded-2xl border border-rose-500/20 bg-rose-500/8 p-3.5">
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">Attention Needed</p>
-                    <Badge className="rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 text-[10px] text-white/70">
+                    <p className="text-sm font-semibold text-(--ws-fg)">Attention Needed</p>
+                    <Badge className="rounded-full border border-(--ws-line) bg-black/20 px-2.5 py-0.5 text-[10px] text-(--ws-fg-70)">
                       {analytics.spotlight.attentionNeeded.length}
                     </Badge>
                   </div>
@@ -238,18 +238,18 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                           secondary={row.admissionNo ? `Adm. ${row.admissionNo}` : null}
                         />
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-rose-200">{row.score}%</p>
-                          <p className="text-[11px] text-white/45">Rank {row.rank ?? "—"}</p>
+                          <p className="text-sm font-semibold text-(--ws-rose)">{row.score}%</p>
+                          <p className="text-[11px] text-(--ws-fg-40)">Rank {row.rank ?? "—"}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3.5">
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">Performance Mix</p>
-                    <Sparkles className="h-4 w-4 text-white/40" />
+                    <p className="text-sm font-semibold text-(--ws-fg)">Performance Mix</p>
+                    <Sparkles className="h-4 w-4 text-(--ws-fg-40)" />
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-emerald-200">
@@ -258,10 +258,10 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                     <div className="rounded-xl border border-blue-500/20 bg-blue-500/8 px-3 py-2 text-blue-200">
                       Above Avg: {analytics.distribution.aboveAverage}
                     </div>
-                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-amber-200">
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-(--ws-amber)">
                       Average: {analytics.distribution.average}
                     </div>
-                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-3 py-2 text-rose-200">
+                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-3 py-2 text-(--ws-rose)">
                       At Risk: {analytics.distribution.atRisk}
                     </div>
                   </div>
@@ -271,28 +271,28 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-            <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-black backdrop-blur-xl">
-              <CardHeader className="border-b border-white/5 pb-4">
-                <CardTitle className="text-base font-semibold text-white">
+            <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+              <CardHeader className="border-b border-(--ws-line) pb-4">
+                <CardTitle className="text-base font-semibold text-(--ws-fg)">
                   Subject Breakdown
                 </CardTitle>
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-40)">
                   Average and pass-rate signals across subjects in this class.
                 </p>
               </CardHeader>
               <CardContent className="space-y-3 p-5">
                 {analytics.subjectBreakdown.map((subject) => (
-                  <div key={subject.subjectId} className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3.5">
+                  <div key={subject.subjectId} className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-white">{subject.subjectName}</p>
-                        <p className="text-xs text-white/45">
+                        <p className="font-medium text-(--ws-fg)">{subject.subjectName}</p>
+                        <p className="text-xs text-(--ws-fg-40)">
                           {subject.assessedStudentsCount} assessed • {subject.passRate}% pass rate
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-semibold text-white">{subject.averageScore}%</p>
-                        <p className="text-[11px] text-white/45">
+                        <p className="text-lg font-semibold text-(--ws-fg)">{subject.averageScore}%</p>
+                        <p className="text-[11px] text-(--ws-fg-40)">
                           {subject.lowScore}% - {subject.topScore}%
                         </p>
                       </div>
@@ -302,12 +302,12 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
               </CardContent>
             </Card>
 
-            <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-black backdrop-blur-xl">
-              <CardHeader className="border-b border-white/5 pb-4">
-                <CardTitle className="text-base font-semibold text-white">
+            <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+              <CardHeader className="border-b border-(--ws-line) pb-4">
+                <CardTitle className="text-base font-semibold text-(--ws-fg)">
                   Student Ranking
                 </CardTitle>
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-40)">
                   Ranked student performance for the selected period and subject lens.
                 </p>
               </CardHeader>
@@ -315,7 +315,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr className="border-b border-white/8 bg-white/5 text-left text-[11px] uppercase tracking-[0.18em] text-white/45">
+                      <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-left text-[11px] uppercase tracking-[0.18em] text-(--ws-fg-40)">
                         <th className="px-4 py-3">Student</th>
                         <th className="px-4 py-3 text-right">Rank</th>
                         <th className="px-4 py-3 text-right">Score</th>
@@ -324,7 +324,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                     </thead>
                     <tbody>
                       {analytics.ranking.map((row) => (
-                        <tr key={row.studentId} className="border-b border-white/6 last:border-0">
+                        <tr key={row.studentId} className="border-b border-(--ws-line) last:border-0">
                           <td className="px-4 py-3.5">
                             <StudentIdentity
                               fullName={row.fullName}
@@ -332,10 +332,10 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                               secondary={row.admissionNo ? `Adm. ${row.admissionNo}` : null}
                             />
                           </td>
-                          <td className="px-4 py-3.5 text-right font-medium text-white">
+                          <td className="px-4 py-3.5 text-right font-medium text-(--ws-fg)">
                             {row.rank ?? "—"}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-semibold text-white">
+                          <td className="px-4 py-3.5 text-right font-semibold text-(--ws-fg)">
                             {row.score}%
                           </td>
                           <td className="px-4 py-3.5">

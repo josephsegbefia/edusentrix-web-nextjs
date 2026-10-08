@@ -105,7 +105,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
           variant="outline"
           size="sm"
           onClick={() => setView("edit")}
-          className="rounded-xl border-white/10 bg-white/5 text-white/80 shadow-sm shadow-black/20 backdrop-blur-sm hover:bg-white/10 hover:text-white"
+          className="rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) shadow-sm shadow-black/20 backdrop-blur-sm hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
         >
           Open timetable editor
         </Button>
@@ -162,7 +162,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
                 onClick={() => setView("edit")}
                 className={cn(
                   "gap-2 rounded-xl border-sky-400/30 bg-sky-500/10 text-sky-100 shadow-sm shadow-black/25 backdrop-blur-sm",
-                  "hover:border-sky-400/45 hover:bg-sky-500/15 hover:text-white"
+                  "hover:border-sky-400/45 hover:bg-sky-500/15 hover:text-(--ws-fg)"
                 )}
               >
                 <Pencil className="h-3.5 w-3.5 shrink-0" />
@@ -175,7 +175,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
                 onClick={onDeletePublished}
                 disabled={deletePublished.isPending}
                 className={cn(
-                  "gap-2 rounded-xl border-rose-500/35 bg-rose-500/10 text-rose-100 shadow-sm shadow-black/25 backdrop-blur-sm",
+                  "gap-2 rounded-xl border-rose-500/35 bg-rose-500/10 text-(--ws-rose) shadow-sm shadow-black/25 backdrop-blur-sm",
                   "hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-50",
                   "disabled:pointer-events-none disabled:opacity-50"
                 )}
@@ -216,7 +216,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
             variant="outline"
             size="sm"
             onClick={() => setView("published")}
-            className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-100 shadow-sm shadow-black/25 backdrop-blur-sm hover:border-emerald-400/45 hover:bg-emerald-500/15 hover:text-white"
+            className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-100 shadow-sm shadow-black/25 backdrop-blur-sm hover:border-emerald-400/45 hover:bg-emerald-500/15 hover:text-(--ws-fg)"
           >
             View published
           </Button>

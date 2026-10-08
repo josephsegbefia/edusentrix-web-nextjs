@@ -509,7 +509,7 @@ export function StudentRelationshipsTab({ student }: Props) {
         <CardContent className="relative z-10 space-y-3">
           {(student.parentDocumentRequests ?? []).length > 0 ? (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-(--ws-amber)/90">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-(--ws-amber)">
                 Parent document requests
               </p>
               <ul className="mt-2 space-y-1.5">

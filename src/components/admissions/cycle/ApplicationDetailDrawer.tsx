@@ -89,11 +89,11 @@ const STATUS_OPTIONS: Array<{
 const STATUS_BADGES: Record<AdmissionApplicationDetail["status"], string> = {
   submitted: "border-yellow-500/30 bg-yellow-500/15 text-yellow-200",
   under_review: "border-sky-500/30 bg-sky-500/15 text-sky-200",
-  interview_scheduled: "border-violet-500/30 bg-violet-500/15 text-violet-200",
+  interview_scheduled: "border-violet-500/30 bg-violet-500/15 text-(--ws-violet)",
   accepted: "border-emerald-500/30 bg-emerald-500/15 text-emerald-200",
-  rejected: "border-rose-500/30 bg-rose-500/15 text-rose-200",
-  waitlisted: "border-amber-500/30 bg-amber-500/15 text-amber-200",
-  withdrawn: "border-white/10 bg-white/[0.06] text-white/60",
+  rejected: "border-rose-500/30 bg-rose-500/15 text-(--ws-rose)",
+  waitlisted: "border-amber-500/30 bg-amber-500/15 text-(--ws-amber)",
+  withdrawn: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)",
   expired: "border-zinc-500/30 bg-zinc-500/15 text-zinc-200",
 };
 
@@ -190,14 +190,14 @@ export function ApplicationDetailDrawer({
       >
         <SheetContent
           side="right"
-          className="w-full overflow-y-auto border-l border-white/10 bg-[#080b12] px-0 py-0 text-white shadow-2xl sm:max-w-2xl"
+          className="w-full overflow-y-auto border-l border-(--ws-line) bg-(--ws-panel-to) px-0 py-0 text-(--ws-fg) shadow-2xl sm:max-w-2xl"
         >
-          <SheetHeader className="border-b border-white/10 bg-[#0b101a] px-5 py-5">
-            <div className="rounded-2xl border border-white/10 bg-linear-to-br from-[#182033] via-[#111827] to-[#090d15] p-5 text-left shadow-xl">
-              <SheetTitle className="text-lg font-semibold text-white">
+          <SheetHeader className="border-b border-(--ws-line) bg-(--ws-panel-from) px-5 py-5">
+            <div className="rounded-2xl border border-(--ws-line) bg-linear-to-br from-[#182033] via-[#111827] to-[#090d15] p-5 text-left shadow-xl">
+              <SheetTitle className="text-lg font-semibold text-(--ws-fg)">
                 Application detail
               </SheetTitle>
-              <SheetDescription className="mt-1 max-w-lg text-sm text-white/60">
+              <SheetDescription className="mt-1 max-w-lg text-sm text-(--ws-fg-60)">
                 Review submitted information, documents, and decide on this
                 applicant.
               </SheetDescription>
@@ -205,12 +205,12 @@ export function ApplicationDetailDrawer({
           </SheetHeader>
 
           {isLoading ? (
-            <div className="flex min-h-[320px] items-center justify-center text-sm text-white/60">
+            <div className="flex min-h-[320px] items-center justify-center text-sm text-(--ws-fg-60)">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Loading…
             </div>
           ) : isError ? (
-            <div className="m-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+            <div className="m-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-(--ws-rose)">
               {error instanceof Error ? error.message : "Failed to load"}
             </div>
           ) : detail ? (
@@ -312,13 +312,13 @@ function DetailContent({
 
   return (
     <div className="space-y-5 px-5 py-5">
-      <div className="rounded-3xl border border-white/10 bg-[#0e1420] p-5 shadow-sm">
+      <div className="rounded-3xl border border-(--ws-line) bg-(--ws-panel-from) p-5 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/40">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-(--ws-fg-40)">
               Reference
             </p>
-            <p className="font-mono text-base font-semibold text-white">
+            <p className="font-mono text-base font-semibold text-(--ws-fg)">
               {detail.referenceCode}
             </p>
           </div>
@@ -357,7 +357,7 @@ function DetailContent({
           <Button
             variant="outline"
             asChild
-            className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436] hover:text-white"
+            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           >
             <a
               href={`/apply/track/${detail.trackerToken}`}
@@ -370,11 +370,11 @@ function DetailContent({
           </Button>
         </div>
         <div className="mt-3 flex flex-col gap-3">
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-white/60">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-(--ws-fg-60)">
             <Checkbox
               checked={notifyPipeline}
               onCheckedChange={(v) => onNotifyPipelineChange(v === true)}
-              className="border-white/25 data-[state=checked]:bg-emerald-600"
+              className="border-(--ws-line-strong) data-[state=checked]:bg-emerald-600"
             />
             Email guardian when status or interview schedule changes (this update)
           </label>
@@ -384,7 +384,7 @@ function DetailContent({
             size="sm"
             onClick={onResendTracker}
             disabled={resending}
-            className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436] hover:text-white"
+            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           >
             {resending ? (
               <Loader2 className="mr-2 h-3 w-3 animate-spin" />
@@ -399,7 +399,7 @@ function DetailContent({
               size="sm"
               onClick={onWithdraw}
               disabled={withdrawing}
-              className="border-rose-500/35 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20 hover:text-rose-50"
+              className="border-rose-500/35 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20 hover:text-rose-50"
             >
               {withdrawing ? (
                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
@@ -414,32 +414,32 @@ function DetailContent({
       </div>
 
       {detail.status === "interview_scheduled" ? (
-      <section className="rounded-3xl border border-white/10 bg-[#0e1420] p-5 shadow-sm">
+      <section className="rounded-3xl border border-(--ws-line) bg-(--ws-panel-from) p-5 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-white/40" />
-          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+          <CalendarDays className="h-4 w-4 text-(--ws-fg-40)" />
+          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
             Interview / assessment
           </h3>
         </div>
         {detail.interviewAt ? (
           <div className="mb-4 rounded-2xl border border-violet-500/25 bg-violet-500/10 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-200/90">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-violet)">
               Scheduled slot
             </p>
-            <p className="mt-1.5 text-sm font-medium text-white">
+            <p className="mt-1.5 text-sm font-medium text-(--ws-fg)">
               {formatAdmissionInterviewRange(
                 new Date(detail.interviewAt),
                 detail.interviewEndsAt ? new Date(detail.interviewEndsAt) : null
               )}
             </p>
-            <p className="mt-2 text-xs text-white/50">
+            <p className="mt-2 text-xs text-(--ws-fg-50)">
               Edit the fields below and save. Check &quot;Email guardian when status or
               interview schedule changes&quot; above to send the family the updated
               times, or use &quot;Email schedule to guardian&quot; after saving.
             </p>
           </div>
         ) : (
-          <p className="mb-4 text-sm text-white/55">
+          <p className="mb-4 text-sm text-(--ws-fg-50)">
             Set the interview date and times. Check &quot;Email guardian when status or
             interview schedule changes&quot; above if the family should be notified when
             you save.
@@ -456,33 +456,33 @@ function DetailContent({
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label className="text-xs text-white/55">Start time</Label>
+              <Label className="text-xs text-(--ws-fg-50)">Start time</Label>
               <input
                 type="time"
                 value={interviewStartTime}
                 onChange={(e) => setInterviewStartTime(e.target.value)}
                 disabled={!interviewDate}
                 className={cn(
-                  "mt-1 flex h-10 w-full rounded-xl border px-3 text-sm text-white",
+                  "mt-1 flex h-10 w-full rounded-xl border px-3 text-sm text-(--ws-fg)",
                   admissionsAdminFieldClass
                 )}
               />
             </div>
             <div>
-              <Label className="text-xs text-white/55">End time (optional)</Label>
+              <Label className="text-xs text-(--ws-fg-50)">End time (optional)</Label>
               <input
                 type="time"
                 value={interviewEndTime}
                 onChange={(e) => setInterviewEndTime(e.target.value)}
                 disabled={!interviewDate}
                 className={cn(
-                  "mt-1 flex h-10 w-full rounded-xl border px-3 text-sm text-white",
+                  "mt-1 flex h-10 w-full rounded-xl border px-3 text-sm text-(--ws-fg)",
                   admissionsAdminFieldClass
                 )}
               />
             </div>
           </div>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-(--ws-fg-40)">
             Times use your computer&apos;s local timezone. Default start is 9:00
             if you leave it blank.
           </p>
@@ -557,7 +557,7 @@ function DetailContent({
             <Button
               size="sm"
               variant="outline"
-              className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436]"
+              className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               disabled={!detail.interviewAt || resendInterview.isPending}
               onClick={() => {
                 resendInterview.mutate(
@@ -583,14 +583,14 @@ function DetailContent({
       </section>
       ) : null}
 
-      <section className="rounded-3xl border border-white/10 bg-[#0e1420] p-5 shadow-sm">
+      <section className="rounded-3xl border border-(--ws-line) bg-(--ws-panel-from) p-5 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
-          <Mail className="h-4 w-4 text-white/40" />
-          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+          <Mail className="h-4 w-4 text-(--ws-fg-40)" />
+          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
             Emails to guardian
           </h3>
         </div>
-        <p className="mb-3 text-xs text-white/45 sm:col-span-2">
+        <p className="mb-3 text-xs text-(--ws-fg-40) sm:col-span-2">
           Manual messages use the same secure tracker and upload links as
           automated notifications.
         </p>
@@ -598,7 +598,7 @@ function DetailContent({
           <Button
             size="sm"
             variant="outline"
-            className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436]"
+            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             disabled={resendReceived.isPending}
             onClick={() =>
               resendReceived.mutate(
@@ -622,7 +622,7 @@ function DetailContent({
           <Button
             size="sm"
             variant="outline"
-            className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436]"
+            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             disabled={resendReminder.isPending}
             onClick={() =>
               resendReminder.mutate(
@@ -646,7 +646,7 @@ function DetailContent({
           <Button
             size="sm"
             variant="outline"
-            className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436]"
+            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             disabled={
               detail.feeStatus !== "pending" || sendFeeLink.isPending
             }
@@ -672,7 +672,7 @@ function DetailContent({
           <Button
             size="sm"
             variant="outline"
-            className="border-white/15 bg-[#141b2a] text-white hover:bg-[#1a2436]"
+            className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             disabled={requestSupplemental.isPending}
             onClick={() => setRequestDocOpen(true)}
           >
@@ -683,39 +683,39 @@ function DetailContent({
       </section>
 
       <Dialog open={requestDocOpen} onOpenChange={setRequestDocOpen}>
-        <DialogContent className="border-white/10 bg-[#0e1420] text-white sm:max-w-md">
+        <DialogContent className="border-(--ws-line) bg-(--ws-panel-from) text-(--ws-fg) sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Request an extra document</DialogTitle>
-            <DialogDescription className="text-white/55">
+            <DialogDescription className="text-(--ws-fg-50)">
               Sends the guardian a secure upload link and attaches the file to
               this application when submitted.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-white/70">Document name</Label>
+              <Label className="text-(--ws-fg-70)">Document name</Label>
               <Input
                 value={docRequestLabel}
                 onChange={(e) => setDocRequestLabel(e.target.value)}
                 placeholder="e.g. Most recent report card"
-                className="mt-1 border-white/10 bg-black/20 text-white"
+                className="mt-1 border-(--ws-line) bg-black/20 text-(--ws-fg)"
               />
             </div>
             <div>
-              <Label className="text-white/70">Message (optional)</Label>
+              <Label className="text-(--ws-fg-70)">Message (optional)</Label>
               <Textarea
                 value={docRequestMessage}
                 onChange={(e) => setDocRequestMessage(e.target.value)}
                 rows={3}
                 placeholder="Instructions for the family"
-                className="mt-1 border-white/10 bg-black/20 text-white"
+                className="mt-1 border-(--ws-line) bg-black/20 text-(--ws-fg)"
               />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              className="border-white/15 bg-transparent"
+              className="border-(--ws-line-strong) bg-transparent"
               onClick={() => setRequestDocOpen(false)}
             >
               Cancel
@@ -762,7 +762,7 @@ function DetailContent({
 
       <LeoAdmissionsGuide surface="drawer" detail={detail} />
 
-      <Section title="Applicant" icon={<User className="h-4 w-4 text-white/40" />}>
+      <Section title="Applicant" icon={<User className="h-4 w-4 text-(--ws-fg-40)" />}>
         <Field
           label="Name"
           value={`${detail.applicant.firstName} ${detail.applicant.lastName}`}
@@ -785,7 +785,7 @@ function DetailContent({
         ) : null}
       </Section>
 
-      <Section title="Guardian" icon={<User className="h-4 w-4 text-white/40" />}>
+      <Section title="Guardian" icon={<User className="h-4 w-4 text-(--ws-fg-40)" />}>
         <Field
           label="Name"
           value={`${detail.guardian.firstName} ${detail.guardian.lastName}`}
@@ -814,24 +814,24 @@ function DetailContent({
 
       <Section
         title="Documents"
-        icon={<FileText className="h-4 w-4 text-white/40" />}
+        icon={<FileText className="h-4 w-4 text-(--ws-fg-40)" />}
       >
         {(detail.supplementalDocumentRequests ?? []).length > 0 ? (
           <div className="mb-4 space-y-2 sm:col-span-2">
-            <p className="text-[11px] uppercase tracking-wide text-white/40">
+            <p className="text-[11px] uppercase tracking-wide text-(--ws-fg-40)">
               Supplemental requests
             </p>
             <ul className="space-y-1.5">
               {(detail.supplementalDocumentRequests ?? []).map((req) => (
                 <li
                   key={req.id}
-                  className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-xs text-white/80"
+                  className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-xs text-(--ws-fg-80)"
                 >
-                  <span className="font-medium text-white">{req.label}</span>
+                  <span className="font-medium text-(--ws-fg)">{req.label}</span>
                   {req.fulfilledAt ? (
-                    <span className="ml-2 text-emerald-300">· Received</span>
+                    <span className="ml-2 text-(--ws-emerald)">· Received</span>
                   ) : (
-                    <span className="ml-2 text-amber-200">· Awaiting upload</span>
+                    <span className="ml-2 text-(--ws-amber)">· Awaiting upload</span>
                   )}
                 </li>
               ))}
@@ -839,7 +839,7 @@ function DetailContent({
           </div>
         ) : null}
         {detail.documents.length === 0 ? (
-          <p className="text-xs text-white/40">No documents uploaded.</p>
+          <p className="text-xs text-(--ws-fg-40)">No documents uploaded.</p>
         ) : (
           <div className="space-y-1.5 sm:col-span-2">
             {detail.documents.map((doc) => (
@@ -848,18 +848,18 @@ function DetailContent({
                 href={doc.fileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-sm text-white transition hover:border-white/20 hover:bg-[#172033]"
+                className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg) transition hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
               >
                 <span className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-white/40" />
+                  <FileText className="h-4 w-4 text-(--ws-fg-40)" />
                   <span>
                     <span className="block font-medium">{doc.label}</span>
-                    <span className="block text-[11px] text-white/40">
+                    <span className="block text-[11px] text-(--ws-fg-40)">
                       {doc.fileName ?? "Uploaded file"}
                     </span>
                   </span>
                 </span>
-                <ExternalLink className="h-3 w-3 text-white/40" />
+                <ExternalLink className="h-3 w-3 text-(--ws-fg-40)" />
               </a>
             ))}
           </div>
@@ -869,18 +869,18 @@ function DetailContent({
       {additionalEntries.length > 0 ? (
         <Section
           title="Additional answers"
-          icon={<CheckCircle2 className="h-4 w-4 text-white/40" />}
+          icon={<CheckCircle2 className="h-4 w-4 text-(--ws-fg-40)" />}
         >
           <div className="grid gap-2 text-xs">
             {additionalEntries.map(([key, value]) => (
               <div
                 key={key}
-                className="rounded-xl border border-white/10 bg-[#111827] px-3 py-2"
+                className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
               >
-                <p className="text-[11px] uppercase tracking-wide text-white/40">
+                <p className="text-[11px] uppercase tracking-wide text-(--ws-fg-40)">
                   {key}
                 </p>
-                <p className="mt-0.5 text-white/85">
+                <p className="mt-0.5 text-(--ws-fg-90)">
                   {Array.isArray(value)
                     ? (value as string[]).join(", ")
                     : String(value)}
@@ -893,7 +893,7 @@ function DetailContent({
 
       <Section
         title="Internal notes"
-        icon={<MessageCircle className="h-4 w-4 text-white/40" />}
+        icon={<MessageCircle className="h-4 w-4 text-(--ws-fg-40)" />}
       >
         <Textarea
           value={notes}
@@ -920,7 +920,7 @@ function DetailContent({
         </div>
       </Section>
 
-      <div className="rounded-2xl border border-white/10 bg-[#0e1420] p-3 text-[11px] text-white/45">
+      <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-3 text-[11px] text-(--ws-fg-40)">
         <CalendarDays className="mr-1 inline h-3 w-3" />
         Submitted{" "}
         {detail.submittedAt
@@ -942,10 +942,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-white/10 bg-[#0e1420] p-5 shadow-sm">
+    <section className="rounded-3xl border border-(--ws-line) bg-(--ws-panel-from) p-5 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         {icon}
-        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
           {title}
         </h3>
       </div>
@@ -967,8 +967,8 @@ function Field({
 }) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
-      <p className="text-[11px] uppercase tracking-wide text-white/40">{label}</p>
-      <p className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-white/90">
+      <p className="text-[11px] uppercase tracking-wide text-(--ws-fg-40)">{label}</p>
+      <p className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-(--ws-fg-90)">
         {icon}
         {value}
       </p>

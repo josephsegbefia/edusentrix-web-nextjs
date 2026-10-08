@@ -75,8 +75,8 @@ const TABS: TabConfig[] = [
     icon: Users,
     colors: {
       active:
-        "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-rose-500/20",
-      icon: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+        "border-rose-500/40 bg-rose-500/15 text-(--ws-rose) shadow-rose-500/20",
+      icon: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
     },
   },
   {
@@ -85,8 +85,8 @@ const TABS: TabConfig[] = [
     icon: Activity,
     colors: {
       active:
-        "border-violet-500/40 bg-violet-500/15 text-violet-200 shadow-violet-500/20",
-      icon: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+        "border-violet-500/40 bg-violet-500/15 text-(--ws-violet) shadow-violet-500/20",
+      icon: "bg-violet-500/20 text-(--ws-violet) border-violet-500/30",
     },
   },
   {

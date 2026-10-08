@@ -128,7 +128,7 @@ export default function OverdueReportPage() {
       <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent">
         <CardHeader className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertTriangle className="h-5 w-5 text-rose-300" />
+            <AlertTriangle className="h-5 w-5 text-(--ws-rose)" />
             Overdue Exposure
           </CardTitle>
           <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
@@ -141,7 +141,7 @@ export default function OverdueReportPage() {
               Loading overdue report data...
             </div>
           ) : overdueRiskQuery.isError ? (
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-(--ws-rose)">
               Failed to load overdue report data. Please refresh.
             </div>
           ) : (
@@ -149,7 +149,7 @@ export default function OverdueReportPage() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <div className="text-xs text-(--ws-fg-50)">Total Overdue</div>
-                  <div className="mt-1 text-lg font-semibold text-rose-200">
+                  <div className="mt-1 text-lg font-semibold text-(--ws-rose)">
                     {formatCurrency(summary?.totalOutstandingMinor ?? 0)}
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export default function OverdueReportPage() {
                 </div>
                 <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <div className="text-xs text-(--ws-fg-50)">Aging 30+ Days</div>
-                  <div className="mt-1 text-lg font-semibold text-rose-300">
+                  <div className="mt-1 text-lg font-semibold text-(--ws-rose)">
                     {summary?.buckets["30_plus"]?.invoiceCount ?? 0}
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function OverdueReportPage() {
                             </td>
                             <td className="px-4 py-3">{row.oldestDaysOverdue}</td>
                             <td className="px-4 py-3">{row.overdueInvoiceCount}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-rose-200">
+                            <td className="px-4 py-3 text-right font-semibold text-(--ws-rose)">
                               {formatCurrency(row.totalOutstandingMinor)}
                             </td>
                           </tr>

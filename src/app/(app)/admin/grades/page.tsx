@@ -222,7 +222,7 @@ export default function GradesPage() {
   return (
     <WorkspaceScope className="space-y-6 sm:space-y-8">
       {/* Premium Header - blue/indigo theme */}
-      <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from)/90 via-(--ws-panel-via)/95 to-black p-5 shadow-[var(--ws-shadow)] sm:rounded-3xl sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:rounded-3xl sm:p-8">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-blue-500/20 via-indigo-500/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -460,7 +460,7 @@ export default function GradesPage() {
             </div>
           ) : (
             <div className="space-y-4 sm:space-y-5">
-              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-(--ws-panel-from) px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-xs text-(--ws-fg-70) sm:text-sm">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-[9px] font-bold text-blue-300 sm:h-6 sm:w-6 sm:text-[10px]">
                     {paginatedGrades.length}

@@ -36,29 +36,29 @@ const TONE_STYLES = {
   polls: {
     gradient: "from-violet-500/15 via-violet-500/5 to-transparent",
     iconBg: "bg-violet-500/20 border-violet-500/30",
-    iconColor: "text-violet-300",
-    badge: "border-violet-500/30 bg-violet-500/10 text-violet-200",
+    iconColor: "text-(--ws-violet)",
+    badge: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
   },
   fundraising: {
     gradient: "from-emerald-500/15 via-emerald-500/5 to-transparent",
     iconBg: "bg-emerald-500/20 border-emerald-500/30",
-    iconColor: "text-emerald-300",
+    iconColor: "text-(--ws-emerald)",
     badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
   },
   pending: {
     gradient: "from-amber-500/15 via-amber-500/5 to-transparent",
     iconBg: "bg-amber-500/20 border-amber-500/30",
-    iconColor: "text-amber-200",
-    badge: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    iconColor: "text-(--ws-amber)",
+    badge: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   },
 };
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-  pending_approval: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
   live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  paused: "border-orange-500/30 bg-orange-500/10 text-orange-200",
+  paused: "border-orange-500/30 bg-orange-500/10 text-(--ws-amber)",
   closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
   reconciled: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
   archived: "border-slate-600/30 bg-slate-600/10 text-slate-400",
@@ -286,7 +286,7 @@ export default function CommunityHubPage() {
         {/* Quick Actions */}
         <div className="mb-8 flex flex-wrap gap-3">
           <Link href="/admin/community/polls?create=1">
-            <Button className="group gap-2 border-violet-500/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20">
+            <Button className="group gap-2 border-violet-500/30 bg-violet-500/10 text-(--ws-violet) hover:bg-violet-500/20">
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               Create Poll
             </Button>

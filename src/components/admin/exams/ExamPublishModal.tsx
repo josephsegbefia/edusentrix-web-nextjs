@@ -128,7 +128,7 @@ export function ExamPublishModal({
                   className={
                     readiness.canPublish
                       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
-                      : "border-rose-500/30 bg-rose-500/10 text-rose-100"
+                      : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
                   }
                 >
                   {readiness.canPublish ? "Ready to publish" : "Blocked"}
@@ -138,7 +138,7 @@ export function ExamPublishModal({
 
             {readiness.blockingIssues.length > 0 ? (
               <div className="space-y-2">
-                <Label className="text-rose-100">Blocking issues</Label>
+                <Label className="text-(--ws-rose)">Blocking issues</Label>
                 <div className="space-y-2">
                   {readiness.blockingIssues.slice(0, 6).map((issue) => (
                     <div
@@ -148,7 +148,7 @@ export function ExamPublishModal({
                       <p className="text-sm font-medium text-rose-50">
                         {formatPublishReadinessIssueType(issue.type)}
                       </p>
-                      <p className="mt-1 text-sm text-rose-100/90">{issue.message}</p>
+                      <p className="mt-1 text-sm text-(--ws-rose)">{issue.message}</p>
                     </div>
                   ))}
                 </div>
@@ -157,7 +157,7 @@ export function ExamPublishModal({
 
             {readiness.warnings.length > 0 ? (
               <div className="space-y-2">
-                <Label className="text-amber-100">Warnings</Label>
+                <Label className="text-(--ws-amber)">Warnings</Label>
                 <div className="space-y-2">
                   {readiness.warnings.slice(0, 4).map((issue) => (
                     <div
@@ -181,7 +181,7 @@ export function ExamPublishModal({
             ) : null}
 
             {readiness.assessmentLinks.missing.length > 0 ? (
-              <div className={cn(glassInsetClass, "p-3 text-sm text-amber-100")}>
+              <div className={cn(glassInsetClass, "p-3 text-sm text-(--ws-amber)")}>
                 {readiness.summary.missingAssessmentLinkCount} report-contributing paper(s) still
                 need assessment links.
               </div>

@@ -9,6 +9,7 @@ import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
 import { glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { LearnPaymentIntent } from "@/models/LearnPaymentIntent";
 import { Payment } from "@/models/Payment";
 import { Student } from "@/models/Student";
@@ -48,8 +49,8 @@ function shortDate(value: string | null) {
 
 function statusTone(status: string) {
   if (status === "succeeded" || status === "completed") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
-  if (status === "failed" || status === "cancelled" || status === "expired") return "border-rose-300/25 bg-rose-400/10 text-rose-100";
-  return "border-amber-300/25 bg-amber-400/10 text-amber-100";
+  if (status === "failed" || status === "cancelled" || status === "expired") return "border-rose-300/25 bg-rose-400/10 text-(--ws-rose)";
+  return "border-amber-300/25 bg-amber-400/10 text-(--ws-amber)";
 }
 
 function studentName(row: { firstName?: string | null; middleName?: string | null; lastName?: string | null } | undefined) {
@@ -111,7 +112,8 @@ export default async function AdminFinanceReceiptsPage() {
   const issued = rows.filter((row) => row.status === "succeeded" || row.status === "completed");
 
   return (
-    <div className="p-6 text-white md:p-8">
+    <WorkspaceScope>
+    <div className="p-6 text-(--ws-fg) md:p-8">
       <WorkspacePageShell>
         <WorkspacePageHeader
           title="Issued receipts"
@@ -136,8 +138,8 @@ export default async function AdminFinanceReceiptsPage() {
                   <div key={`${row.type}-${row.id}`} className={cn(glassInsetClass, "p-4")}>
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
-                        <p className="font-semibold text-white">{row.title}</p>
-                        <p className="mt-1 text-sm text-white/50">{row.studentName} · {row.receiptNumber}</p>
+                        <p className="font-semibold text-(--ws-fg)">{row.title}</p>
+                        <p className="mt-1 text-sm text-(--ws-fg-50)">{row.studentName} · {row.receiptNumber}</p>
                       </div>
                       <div className="grid gap-3 text-sm sm:grid-cols-5 lg:min-w-[760px]">
                         <Info label="Amount" value={money(row.amountMinor, row.currency)} />
@@ -145,13 +147,13 @@ export default async function AdminFinanceReceiptsPage() {
                         <Info label="Issued" value={shortDate(row.issuedAt)} />
                         <Info label="Reference" value={row.reference || "Not assigned"} />
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/35">Receipt</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-fg-40)">Receipt</p>
                           {downloadable ? (
                             <div className="mt-1 flex flex-wrap gap-2">
                               <Link
                                 href={`/api/admin/finance/receipts/${row.type}/${row.id}/download?disposition=inline`}
                                 target="_blank"
-                                className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-[11px] font-medium text-white/75 transition hover:bg-white/10"
+                                className="inline-flex items-center gap-1 rounded-lg border border-(--ws-line-strong) bg-(--ws-fill) px-2 py-1 text-[11px] font-medium text-(--ws-fg-70) transition hover:bg-(--ws-fill-strong)"
                               >
                                 <Eye className="h-3 w-3" />
                                 View
@@ -165,7 +167,7 @@ export default async function AdminFinanceReceiptsPage() {
                               </Link>
                             </div>
                           ) : (
-                            <p className="mt-1 text-white/40">Pending</p>
+                            <p className="mt-1 text-(--ws-fg-40)">Pending</p>
                           )}
                         </div>
                       </div>
@@ -175,21 +177,22 @@ export default async function AdminFinanceReceiptsPage() {
               })}
             </div>
           ) : (
-            <p className="rounded-xl border border-white/10 bg-white/5 p-5 text-sm text-white/55">
+            <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5 text-sm text-(--ws-fg-50)">
               No receipt records found yet.
             </p>
           )}
         </GlassPanel>
       </WorkspacePageShell>
     </div>
+    </WorkspaceScope>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <GlassPanel className="p-4" glow="cyan">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-(--ws-fg-40)">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{value}</p>
     </GlassPanel>
   );
 }
@@ -197,11 +200,11 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Info({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/35">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-fg-40)">{label}</p>
       {tone ? (
         <span className={cn("mt-1 inline-flex rounded-full border px-2 py-0.5 text-[11px] capitalize", tone)}>{value}</span>
       ) : (
-        <p className="mt-1 break-words text-white/80">{value}</p>
+        <p className="mt-1 break-words text-(--ws-fg-80)">{value}</p>
       )}
     </div>
   );

@@ -45,8 +45,8 @@ const toneConfig: Record<
     gradient: "from-emerald-500/15 via-emerald-500/5 to-transparent",
     iconBg: "bg-emerald-500/20",
     iconBorder: "border-emerald-500/30",
-    iconColor: "text-emerald-300",
-    valueColor: "text-emerald-300",
+    iconColor: "text-(--ws-emerald)",
+    valueColor: "text-(--ws-emerald)",
   },
   danger: {
     gradient: "from-red-500/15 via-red-500/5 to-transparent",
@@ -94,14 +94,14 @@ const toneConfig: Record<
     gradient: "from-orange-500/15 via-orange-500/5 to-transparent",
     iconBg: "bg-orange-500/20",
     iconBorder: "border-orange-500/30",
-    iconColor: "text-orange-300",
+    iconColor: "text-(--ws-amber)",
     valueColor: "text-white",
   },
   violet: {
     gradient: "from-violet-500/15 via-violet-500/5 to-transparent",
     iconBg: "bg-violet-500/20",
     iconBorder: "border-violet-500/30",
-    iconColor: "text-violet-300",
+    iconColor: "text-(--ws-violet)",
     valueColor: "text-amber-300",
   },
 };
@@ -117,7 +117,7 @@ export function MetricStatCard({
   const config = toneConfig[tone];
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
       {/* Gradient overlay */}
       <div
         className={cn(

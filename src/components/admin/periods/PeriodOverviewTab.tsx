@@ -44,7 +44,7 @@ function OverviewStatCard({
     emerald: {
       gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
       iconBg: "bg-emerald-500/20 border-emerald-500/30",
-      iconColor: "text-emerald-300",
+      iconColor: "text-(--ws-emerald)",
     },
     amber: {
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
@@ -61,7 +61,7 @@ function OverviewStatCard({
   const style = tones[tone];
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black p-5 shadow-xl shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+    <div className="group relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) p-5 shadow-xl shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
       <div
         className={cn(
           "pointer-events-none absolute inset-0 bg-linear-to-br opacity-60 transition-opacity duration-300 group-hover:opacity-100",
@@ -84,15 +84,15 @@ function OverviewStatCard({
             >
               <Icon className={cn("h-5 w-5", style.iconColor)} />
             </div>
-            <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
+            <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-50)">
               {label}
             </span>
           </div>
-          <div className="text-2xl font-bold tracking-tight text-white">
+          <div className="text-2xl font-bold tracking-tight text-(--ws-fg)">
             {value}
           </div>
           {description && (
-            <p className="text-[11px] text-white/40">{description}</p>
+            <p className="text-[11px] text-(--ws-fg-40)">{description}</p>
           )}
         </div>
       </div>
@@ -152,32 +152,32 @@ export function PeriodOverviewTab({ data }: PeriodOverviewTabProps) {
         />
       </div>
 
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 to-black shadow-xl shadow-black/30 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) shadow-xl shadow-black/30 backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-white">
+          <CardTitle className="text-base font-semibold text-(--ws-fg)">
             Period Summary
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                 Academic Activity
               </p>
-              <p className="mt-2 text-sm text-white/80">
+              <p className="mt-2 text-sm text-(--ws-fg-80)">
                 {counts.assessments} assessments have been recorded across subjects.
                 {counts.studentRoles > 0 && (
                   <> {counts.studentRoles} students are enrolled in classes.</>
                 )}
               </p>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                 Finance Snapshot
               </p>
-              <p className="mt-2 text-sm text-white/80">
+              <p className="mt-2 text-sm text-(--ws-fg-80)">
                 {counts.invoices} invoices issued. Total revenue collected:{" "}
-                <span className="font-semibold text-emerald-300">
+                <span className="font-semibold text-(--ws-emerald)">
                   {formatCurrency(revenueMinor)}
                 </span>
               </p>

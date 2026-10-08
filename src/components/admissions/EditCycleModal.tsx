@@ -200,7 +200,7 @@ export function EditCycleModal({
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         {archived ? (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-(--ws-amber)">
             Archived cycles cannot be edited. Create a new cycle to run another
             intake, or ask your platform admin if you need this archive changed.
           </div>
@@ -234,14 +234,14 @@ export function EditCycleModal({
               disabled={archived}
               className={admissionsAdminFieldClass}
             />
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-(--ws-fg-40)">
               Public URL:{" "}
-              <code className="rounded bg-black/30 px-1 py-0.5 text-[11px] text-white/65">
+              <code className="rounded bg-black/30 px-1 py-0.5 text-[11px] text-(--ws-fg-90)">
                 /apply/&lt;school&gt;/{slug || "your-slug"}
               </code>
             </p>
             {slug && !slugIsValid ? (
-              <p className="text-xs text-rose-300">
+              <p className="text-xs text-(--ws-rose)">
                 Use 1–40 lowercase letters, numbers and dashes.
               </p>
             ) : null}
@@ -250,7 +250,7 @@ export function EditCycleModal({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <CalendarRange className="h-3 w-3" />
               Accepts from
             </Label>
@@ -260,10 +260,11 @@ export function EditCycleModal({
               placeholder="Pick a start date"
               triggerAriaLabel="Cycle start date"
               disabled={archived}
+              surface="theme"
             />
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <CalendarRange className="h-3 w-3" />
               Closes (optional)
             </Label>
@@ -274,10 +275,11 @@ export function EditCycleModal({
               minDate={acceptsFrom ?? undefined}
               triggerAriaLabel="Cycle close date"
               disabled={archived}
+              surface="theme"
             />
           </div>
           <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               <CalendarRange className="h-3 w-3" />
               Decision deadline
             </Label>
@@ -288,6 +290,7 @@ export function EditCycleModal({
               minDate={acceptsFrom ?? undefined}
               triggerAriaLabel="Decision deadline"
               disabled={archived}
+              surface="theme"
             />
           </div>
         </div>
@@ -310,7 +313,7 @@ export function EditCycleModal({
                   Not yet decided
                 </PremiumSelectItem>
                 {periods.length === 0 ? (
-                  <div className="px-3 py-2 text-sm text-white/55">
+                  <div className="px-3 py-2 text-sm text-(--ws-fg-50)">
                     No periods configured yet.
                   </div>
                 ) : (
@@ -324,12 +327,12 @@ export function EditCycleModal({
             </PremiumSelect>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               Capacity controls
             </Label>
             <label
               className={cn(
-                "flex items-start gap-2 rounded-xl border border-white/10 bg-white/3 p-3",
+                "flex items-start gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3",
                 archived && "pointer-events-none opacity-50"
               )}
             >
@@ -340,8 +343,8 @@ export function EditCycleModal({
                 disabled={archived}
               />
               <div>
-                <p className="text-sm font-medium text-white">Enable waitlist</p>
-                <p className="text-xs text-white/55">
+                <p className="text-sm font-medium text-(--ws-fg)">Enable waitlist</p>
+                <p className="text-xs text-(--ws-fg-50)">
                   Lets you invite waitlisted families when seats open up.
                 </p>
               </div>
@@ -349,20 +352,20 @@ export function EditCycleModal({
           </div>
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-white/10 bg-white/3 p-4">
+        <div className="space-y-4 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+              <Label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
                 <Wallet className="h-3.5 w-3.5" />
                 Application fee
               </Label>
-              <p className="mt-1 text-xs text-white/45">
+              <p className="mt-1 text-xs text-(--ws-fg-40)">
                 Charge families before their submitted application can be marked paid.
               </p>
             </div>
             <label
               className={cn(
-                "flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/75",
+                "flex items-center gap-2 rounded-full border border-(--ws-line) bg-black/20 px-3 py-2 text-sm text-(--ws-fg-90)",
                 archived && "pointer-events-none opacity-50"
               )}
             >
@@ -392,7 +395,7 @@ export function EditCycleModal({
                 disabled={archived || !applicationFeeEnabled}
                 className={admissionsAdminFieldClass}
               />
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-(--ws-fg-40)">
                 Enter the amount in Ghana cedis. EduSentrix stores it safely in pesewas.
               </p>
             </div>
@@ -418,7 +421,7 @@ export function EditCycleModal({
                   </PremiumSelectItem>
                 </PremiumSelectContent>
               </PremiumSelect>
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-(--ws-fg-40)">
                 Use online payments when the school payout setup is ready.
               </p>
             </div>
@@ -445,16 +448,16 @@ export function EditCycleModal({
 
         <div className="space-y-2">
           <Label className="flex items-center gap-1.5">
-            <GraduationCap className="h-3.5 w-3.5 text-white/55" />
+            <GraduationCap className="h-3.5 w-3.5 text-(--ws-fg-50)" />
             Intake grades (optional)
           </Label>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-(--ws-fg-40)">
             Pick the grades families can apply to. Leave empty to allow all
             active grades.
           </p>
           <div className="flex flex-wrap gap-2">
             {grades.length === 0 ? (
-              <span className="text-sm text-white/55">
+              <span className="text-sm text-(--ws-fg-50)">
                 No active grades configured yet.
               </span>
             ) : (
@@ -470,7 +473,7 @@ export function EditCycleModal({
                       "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                       isOn
                         ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
-                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)",
                       archived && "pointer-events-none opacity-50"
                     )}
                   >
@@ -483,12 +486,12 @@ export function EditCycleModal({
         </div>
 
         {errorText ? (
-          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-(--ws-rose)">
             {errorText}
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-(--ws-line) pt-4">
           <Button
             type="button"
             variant="outline"

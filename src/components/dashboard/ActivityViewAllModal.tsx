@@ -55,7 +55,7 @@ function getActivityColor(type: string) {
   if (type.includes("teacher")) return "text-(--ws-violet)";
   if (type.includes("class_group")) return "text-(--ws-emerald)";
   if (type.includes("invitation")) return "text-(--ws-amber)";
-  if (type.includes("academic_period")) return "text-fuchsia-300";
+  if (type.includes("academic_period")) return "text-(--ws-violet)";
   return "text-(--ws-fg-60)";
 }
 
@@ -174,7 +174,7 @@ export function ActivityViewAllModal({
         <DialogHeader className="border-b border-(--ws-line) pb-4">
           <DialogTitle className="text-lg font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
-              <Clock className="h-4 w-4 text-indigo-300" />
+              <Clock className="h-4 w-4 text-(--ws-violet)" />
             </div>
             All Activities
           </DialogTitle>
@@ -202,7 +202,7 @@ export function ActivityViewAllModal({
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <p className="text-sm text-(--ws-rose)/80">
+              <p className="text-sm text-(--ws-rose)">
                 Failed to load activities
               </p>
             </div>
@@ -266,7 +266,7 @@ export function ActivityViewAllModal({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(activity)}
-                      className="h-8 w-8 shrink-0 text-(--ws-rose)/70 hover:text-(--ws-rose) hover:bg-red-500/20"
+                      className="h-8 w-8 shrink-0 text-(--ws-rose) hover:text-(--ws-rose) hover:bg-red-500/20"
                       disabled={deleteActivity.isPending}
                     >
                       <Trash2 className="h-4 w-4" />

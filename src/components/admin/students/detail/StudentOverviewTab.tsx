@@ -150,7 +150,7 @@ function getActivityColors(type: string) {
     document: {
       bg: "bg-violet-500/10",
       border: "border-violet-500/30",
-      text: "text-violet-300",
+      text: "text-(--ws-violet)",
       gradient: "from-violet-500 to-violet-600",
     },
     default: {
@@ -286,8 +286,8 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
                     className={cn(
                       "mt-1 text-[11px]",
                       academicSummary?.isFromPreviousTerm
-                        ? "text-(--ws-amber)/80"
-                        : "text-(--ws-emerald)/70"
+                        ? "text-(--ws-amber)"
+                        : "text-(--ws-emerald)"
                     )}
                   >
                     {academicDataSourceHint}
@@ -393,7 +393,7 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
                     <div className="text-xl font-bold text-(--ws-emerald)">
                       {attendanceSummary.presentDays ?? 0}
                     </div>
-                    <div className="text-[10px] text-(--ws-emerald)/70">
+                    <div className="text-[10px] text-(--ws-emerald)">
                       Present
                     </div>
                   </div>
@@ -401,13 +401,13 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
                     <div className="text-xl font-bold text-(--ws-rose)">
                       {attendanceSummary.absentDays ?? 0}
                     </div>
-                    <div className="text-[10px] text-(--ws-rose)/70">Absent</div>
+                    <div className="text-[10px] text-(--ws-rose)">Absent</div>
                   </div>
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center">
                     <div className="text-xl font-bold text-(--ws-amber)">
                       {attendanceSummary.lateDays ?? 0}
                     </div>
-                    <div className="text-[10px] text-(--ws-amber)/70">Late</div>
+                    <div className="text-[10px] text-(--ws-amber)">Late</div>
                   </div>
                 </div>
 

@@ -372,7 +372,7 @@ export function RecordPaymentModal(props: {
                 className={cn(
                   "h-8 flex-1 text-xs",
                   status === "pending_approval"
-                    ? "bg-amber-500/15 text-amber-100"
+                    ? "bg-amber-500/15 text-(--ws-amber)"
                     : "text-white/60"
                 )}
               >
@@ -473,14 +473,14 @@ export function RecordPaymentModal(props: {
 
         {duplicateCandidates.length > 0 ? (
           <Card className="border-amber-500/30 bg-amber-500/10 p-4">
-            <div className="text-sm font-semibold text-amber-100">
+            <div className="text-sm font-semibold text-(--ws-amber)">
               Duplicate warning
             </div>
-            <p className="mt-1 text-xs text-amber-100/85">
+            <p className="mt-1 text-xs text-(--ws-amber)">
               Existing payment reference(s) matched. Confirm override only if this
               is intentional.
             </p>
-            <div className="mt-3 space-y-1 text-xs text-amber-100/80">
+            <div className="mt-3 space-y-1 text-xs text-(--ws-amber)">
               {duplicateCandidates.slice(0, 3).map((candidate: any) => (
                 <div key={candidate.paymentId} className="rounded-md bg-black/20 px-2 py-1">
                   {candidate.field}: {candidate.value} •{" "}
@@ -507,7 +507,7 @@ export function RecordPaymentModal(props: {
                   value={duplicateReason}
                   onChange={(e) => setDuplicateReason(e.target.value)}
                   placeholder="Reason for override (recommended)"
-                  className="h-8 border-amber-300/25 bg-black/20 text-xs text-amber-50 placeholder:text-amber-200/50"
+                  className="h-8 border-amber-300/25 bg-black/20 text-xs text-amber-50 placeholder:text-(--ws-amber)"
                 />
               </div>
             </div>
@@ -642,7 +642,7 @@ export function RecordPaymentModal(props: {
                 <div
                   className={cn(
                     "font-semibold",
-                    overAlloc ? "text-amber-200" : "text-white/80"
+                    overAlloc ? "text-(--ws-amber)" : "text-white/80"
                   )}
                 >
                   {formatMoney(manualAllocatedMinor)}

@@ -258,7 +258,7 @@ export function ExamSmartSchedulerModal({
 
           {proposal.warnings.length > 0 ? (
             <div className="space-y-2">
-              <Label className="text-amber-100">Warnings</Label>
+              <Label className="text-(--ws-amber)">Warnings</Label>
               {proposal.warnings.slice(0, 4).map((warning) => (
                 <div
                   key={warning}
@@ -294,7 +294,7 @@ export function ExamSmartSchedulerModal({
           </div>
 
           {proposal.unscheduledItems.length > 0 ? (
-            <div className={cn(glassInsetClass, "p-3 text-sm text-amber-100")}>
+            <div className={cn(glassInsetClass, "p-3 text-sm text-(--ws-amber)")}>
               {proposal.unscheduledItems.length} paper(s) could not be placed automatically. You can
               schedule them manually after applying the draft.
             </div>
@@ -305,7 +305,7 @@ export function ExamSmartSchedulerModal({
       {step === 4 && proposal ? (
         <div className={cn(glassInsetClass, "space-y-3 p-4")}>
           <div className="flex items-start gap-2 text-sm text-white/75">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
             <span>
               Applying writes draft slots and suggested invigilators to the timetable builder. This
               does not publish the timetable.

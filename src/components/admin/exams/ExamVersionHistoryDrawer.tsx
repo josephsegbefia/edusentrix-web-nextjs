@@ -23,7 +23,7 @@ type ExamVersionHistoryDrawerProps = {
 const VERSION_STATUS_STYLES: Record<string, string> = {
   published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   superseded: "border-white/10 bg-white/5 text-white/55",
-  rolled_back: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  rolled_back: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
 function formatPublishedAt(value: string) {

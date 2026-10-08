@@ -38,7 +38,7 @@ export function InvoicesBulkActionsBar({
       <div
         className={cn(
           "mx-auto max-w-5xl rounded-2xl border border-white/15",
-          "bg-linear-to-r from-slate-900/90 via-slate-900/80 to-slate-900/90",
+          "bg-linear-to-r from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)",
           "shadow-2xl shadow-black/40 backdrop-blur-xl",
           "px-4 py-3 md:px-6 md:py-3.5",
           "max-w-full"

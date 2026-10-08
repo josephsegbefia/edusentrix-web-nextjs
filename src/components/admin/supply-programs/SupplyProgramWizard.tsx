@@ -193,8 +193,8 @@ export function SupplyProgramWizard({
         return (
           <div className="space-y-6">
             <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 text-sm text-(--ws-fg-80) leading-relaxed">
-              <div className="flex items-center gap-2 font-medium text-indigo-200/95 mb-2">
-                <Sparkles className="h-4 w-4 text-indigo-300" />
+              <div className="flex items-center gap-2 font-medium text-(--ws-violet) mb-2">
+                <Sparkles className="h-4 w-4 text-(--ws-violet)" />
                 What is a supply program?
               </div>
               <p>
@@ -334,7 +334,7 @@ export function SupplyProgramWizard({
                   ))}
                 </div>
                 {options.grades.length === 0 ? (
-                  <p className="text-sm text-amber-200/80">No grades found for this school.</p>
+                  <p className="text-sm text-(--ws-amber)">No grades found for this school.</p>
                 ) : null}
               </div>
             ) : null}
@@ -362,7 +362,7 @@ export function SupplyProgramWizard({
                   ))}
                 </div>
                 {options.classGroups.length === 0 ? (
-                  <p className="text-sm text-amber-200/80">
+                  <p className="text-sm text-(--ws-amber)">
                     No class groups found for this school.
                   </p>
                 ) : null}
@@ -478,7 +478,7 @@ export function SupplyProgramWizard({
                   "flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-all",
                   !reachable && "opacity-40 pointer-events-none",
                   isCurrent
-                    ? "bg-indigo-500/30 text-indigo-200 ring-1 ring-indigo-400/50"
+                    ? "bg-indigo-500/30 text-(--ws-violet) ring-1 ring-indigo-400/50"
                     : isPast
                       ? "bg-emerald-500/20 text-emerald-200"
                       : "bg-(--ws-fill) text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)/60"
@@ -498,7 +498,7 @@ export function SupplyProgramWizard({
         })}
       </div>
 
-      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <CardContent className="p-6">
           <div className="mb-4">
             <h3 className="text-base font-medium text-(--ws-fg)">{currentStep.label}</h3>

@@ -100,8 +100,8 @@ const ENTRY_STATUS_STYLES: Record<string, string> = {
   published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   in_progress: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
   completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  cancelled: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-  rescheduled: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  cancelled: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  rescheduled: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
 function formatEntryStatus(status: string) {
@@ -553,27 +553,27 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
             label: "Unscheduled",
             value: summary.unscheduled,
             icon: Sparkles,
-            tone: summary.unscheduled > 0 ? "text-amber-200" : "text-emerald-200",
+            tone: summary.unscheduled > 0 ? "text-(--ws-amber)" : "text-emerald-200",
           },
           {
             label: "Missing venue",
             value: summary.missingVenue,
             icon: MapPin,
-            tone: summary.missingVenue > 0 ? "text-amber-200" : "text-emerald-200",
+            tone: summary.missingVenue > 0 ? "text-(--ws-amber)" : "text-emerald-200",
           },
           {
             label: "Missing invigilators",
             value: summary.missingInvigilators,
             icon: Users,
             tone:
-              summary.missingInvigilators > 0 ? "text-amber-200" : "text-emerald-200",
+              summary.missingInvigilators > 0 ? "text-(--ws-amber)" : "text-emerald-200",
           },
           {
             label: "Missing assessment links",
             value: summary.missingAssessmentLink,
             icon: Link2,
             tone:
-              summary.missingAssessmentLink > 0 ? "text-amber-200" : "text-emerald-200",
+              summary.missingAssessmentLink > 0 ? "text-(--ws-amber)" : "text-emerald-200",
           },
           {
             label: "Published version",
@@ -714,7 +714,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                     <TableRow key={entry.id} className="border-white/10 hover:bg-white/5">
                       <TableCell className="whitespace-nowrap text-white">
                         {entry.isUnscheduled ? (
-                          <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-100">
+                          <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)">
                             Unscheduled
                           </Badge>
                         ) : (
@@ -738,7 +738,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                             className={cn(
                               "text-left text-sm",
                               canMutate
-                                ? "text-amber-200/90 hover:text-amber-100"
+                                ? "text-(--ws-amber) hover:text-(--ws-amber)"
                                 : "text-white/45"
                             )}
                             onClick={() => canMutate && openInvigilatorDrawer(entry)}
@@ -841,7 +841,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="border-rose-500/30 text-rose-100 hover:bg-rose-500/10"
+                                  className="border-rose-500/30 text-(--ws-rose) hover:bg-rose-500/10"
                                   onClick={() => void handleDelete(entry)}
                                   disabled={deleteEntry.isPending}
                                 >

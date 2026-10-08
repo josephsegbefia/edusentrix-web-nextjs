@@ -164,7 +164,7 @@ export default function AdminLibraryImportsPage() {
               <p>Successful: {String(displaySummary.successfulRows ?? "—")}</p>
               <p>Failed: {String(displaySummary.failedRows ?? "—")}</p>
               {Array.isArray(displaySummary.errors) && displaySummary.errors.length > 0 ? (
-                <div className="mt-3 max-h-48 overflow-y-auto text-xs text-amber-100/90">
+                <div className="mt-3 max-h-48 overflow-y-auto text-xs text-(--ws-amber)">
                   {(displaySummary.errors as { rowNumber?: number; message?: string }[])
                     .slice(0, 20)
                     .map((err, i) => (

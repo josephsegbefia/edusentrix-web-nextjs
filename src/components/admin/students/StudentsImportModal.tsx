@@ -340,7 +340,7 @@ export function StudentsImportModal({
                       </td>
                       <td className="px-3 py-1.5">
                         {col.required ? (
-                          <span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-medium text-rose-300">
+                          <span className="rounded-full bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-medium text-(--ws-rose)">
                             Yes
                           </span>
                         ) : (
@@ -487,14 +487,14 @@ export function StudentsImportModal({
               {result.created > 0 ? (
                 <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
               ) : (
-                <AlertCircle className="h-5 w-5 text-rose-300" />
+                <AlertCircle className="h-5 w-5 text-(--ws-rose)" />
               )}
             </div>
             <div className="min-w-0 flex-1">
               <p
                 className={cn(
                   "text-sm font-medium",
-                  result.created > 0 ? "text-(--ws-emerald)" : "text-rose-200"
+                  result.created > 0 ? "text-(--ws-emerald)" : "text-(--ws-rose)"
                 )}
               >
                 {result.created > 0
@@ -504,14 +504,14 @@ export function StudentsImportModal({
                   : "Import failed"}
               </p>
               {result.error && (
-                <p className="mt-1 text-xs text-rose-300/80">{result.error}</p>
+                <p className="mt-1 text-xs text-(--ws-rose)">{result.error}</p>
               )}
               <div className="mt-2 flex flex-wrap gap-3 text-xs">
                 <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-(--ws-emerald)">
                   {result.created} created
                 </span>
                 {result.failed > 0 && (
-                  <span className="rounded-full bg-rose-500/20 px-2.5 py-0.5 text-rose-300">
+                  <span className="rounded-full bg-rose-500/20 px-2.5 py-0.5 text-(--ws-rose)">
                     {result.failed} failed
                   </span>
                 )}
@@ -530,7 +530,7 @@ export function StudentsImportModal({
                     key={i}
                     className="flex items-start gap-2 border-b border-(--ws-line) px-3 py-2 last:border-0"
                   >
-                    <span className="shrink-0 rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-mono text-rose-300">
+                    <span className="shrink-0 rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-mono text-(--ws-rose)">
                       Row {err.row}
                     </span>
                     <span className="text-xs text-(--ws-fg-60)">{err.message}</span>

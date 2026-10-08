@@ -27,8 +27,8 @@ const tabColors: Record<StudentsTabId, { active: string; icon: string }> = {
     icon: "bg-cyan-500/20 text-(--ws-cyan) border-cyan-500/30",
   },
   "fee-defaulters": {
-    active: "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-rose-500/20",
-    icon: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+    active: "border-rose-500/40 bg-rose-500/15 text-(--ws-rose) shadow-rose-500/20",
+    icon: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
   },
   "top-performers": {
     active: "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",

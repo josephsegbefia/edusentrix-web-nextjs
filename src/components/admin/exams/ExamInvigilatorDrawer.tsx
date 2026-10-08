@@ -73,10 +73,10 @@ const ROLE_LABELS: Record<ExamInvigilatorRole, string> = {
 const STATUS_STYLES: Record<ExamInvigilatorStatus, string> = {
   assigned: "border-sky-500/30 bg-sky-500/10 text-sky-100",
   acknowledged: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  declined: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  declined: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   replaced: "border-white/10 bg-white/5 text-white/50",
   completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  missed: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  missed: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
 const ACTIVE_STATUSES: ExamInvigilatorStatus[] = ["assigned", "acknowledged"];
@@ -292,7 +292,7 @@ export function ExamInvigilatorDrawer({
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="border-rose-500/30 text-rose-100 hover:bg-rose-500/10"
+                        className="border-rose-500/30 text-(--ws-rose) hover:bg-rose-500/10"
                         onClick={() => void handleRemove(assignment)}
                         disabled={removeInvigilator.isPending}
                       >
@@ -390,7 +390,7 @@ export function ExamInvigilatorDrawer({
                                 <div className="flex items-center gap-2">
                                   <Badge
                                     variant="outline"
-                                    className="border-amber-500/30 bg-amber-500/10 text-amber-100"
+                                    className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
                                   >
                                     Availability pending
                                   </Badge>

@@ -94,7 +94,7 @@ function VenueRow({
               type="button"
               size="sm"
               variant="outline"
-              className="border-amber-500/30 text-amber-100 hover:bg-amber-500/10"
+              className="border-amber-500/30 text-(--ws-amber) hover:bg-amber-500/10"
               onClick={onDeactivate}
               disabled={deactivating}
             >

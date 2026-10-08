@@ -223,12 +223,12 @@ const BANK_MAPPING_GUIDE_ROWS: Array<{
 
 function confidenceBadgeClass(level: HeaderMappingConfidence["level"]) {
   if (level === "high") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+    return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
   }
   if (level === "medium") {
     return "border-amber-500/30 bg-amber-500/10 text-amber-300";
   }
-  return "border-rose-500/30 bg-rose-500/10 text-rose-300";
+  return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
 }
 
 function normalizeHeader(header: string) {
@@ -1017,7 +1017,7 @@ export function ReconciliationIngestionModal(props: {
             {parsed?.entries.length ? (
               <Badge
                 variant="outline"
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
               >
                 {parsed.entries.length} valid row(s)
               </Badge>
@@ -1094,14 +1094,14 @@ export function ReconciliationIngestionModal(props: {
                             <span
                               className={
                                 detail.exactCanonical
-                                  ? "text-emerald-300"
+                                  ? "text-(--ws-emerald)"
                                   : "text-amber-300"
                               }
                             >
                               {detail.exactCanonical ? "Exact" : "Alias"}
                             </span>
                           ) : (
-                            <span className="text-rose-300">Missing</span>
+                            <span className="text-(--ws-rose)">Missing</span>
                           )}
                         </td>
                       </tr>
@@ -1137,7 +1137,7 @@ export function ReconciliationIngestionModal(props: {
               <div className="rounded-xl border border-white/10 bg-black/20 p-3">
                 <p className="mb-2 text-xs font-medium text-white/75">Validation Notes</p>
                 {parsed.errors.length === 0 ? (
-                  <div className="flex items-start gap-2 text-xs text-emerald-300">
+                  <div className="flex items-start gap-2 text-xs text-(--ws-emerald)">
                     <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <span>No validation issues found.</span>
                   </div>
@@ -1159,7 +1159,7 @@ export function ReconciliationIngestionModal(props: {
           </div>
         ) : null}
         {parsed && !confidenceGatePassed ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-(--ws-amber)">
             {hasRequiredMappings
               ? `Ingestion is locked until mapping confidence reaches at least ${MIN_MAPPING_CONFIDENCE_SCORE}%.`
               : "Ingestion is locked until all required headers are mapped."}

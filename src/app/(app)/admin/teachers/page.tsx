@@ -618,7 +618,7 @@ export default function TeachersPage() {
   return (
     <WorkspaceScope className="space-y-8">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from)/90 via-(--ws-panel-via)/95 to-black p-8 shadow-[var(--ws-shadow)]">
+      <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-8 shadow-[var(--ws-shadow)]">
         {/* Background decorations */}
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
@@ -637,7 +637,7 @@ export default function TeachersPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
-                <Users className="h-6 w-6 text-indigo-300" />
+                <Users className="h-6 w-6 text-(--ws-violet)" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-(--ws-fg)">
@@ -719,7 +719,7 @@ export default function TeachersPage() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill-strong) to-(--ws-fill) shadow-inner shadow-white/5">
-                  <Sparkles className="h-5 w-5 text-indigo-300" />
+                  <Sparkles className="h-5 w-5 text-(--ws-violet)" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400" />
               </div>
@@ -786,7 +786,7 @@ export default function TeachersPage() {
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
-                    ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-300"
+                    ? "border-indigo-500/30 bg-indigo-500/10 text-(--ws-violet)"
                     : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                 )}
               >
@@ -880,9 +880,9 @@ export default function TeachersPage() {
           ) : (
             <div className="space-y-5">
               {/* Results summary bar */}
-              <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-panel-from) px-4 py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-300">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-(--ws-violet)">
                     {teachers.length}
                   </span>
                   <span>
@@ -1051,7 +1051,7 @@ export default function TeachersPage() {
               {statusModalTarget === "on_leave" ? (
                 <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)/80">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)">
                       Leave Period
                     </p>
                     {isLeavePeriodValid && leaveDurationDays > 0 && (

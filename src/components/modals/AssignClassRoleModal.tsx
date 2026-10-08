@@ -214,10 +214,10 @@ export function AssignClassRoleModal({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              className="w-full max-w-2xl max-h-[90vh] rounded-2xl border border-white/10 bg-card/95 shadow-2xl flex flex-col"
+              className="w-full max-w-2xl max-h-[90vh] rounded-2xl border border-(--ws-line) bg-card/95 shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="px-6 py-5 border-b border-(--ws-line) flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
                     <Crown className="h-5 w-5 text-amber-400" />
@@ -229,7 +229,7 @@ export function AssignClassRoleModal({
                 </div>
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="text-white/60 hover:text-white transition-colors"
+                  className="text-(--ws-fg-60) hover:text-(--ws-fg) transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -239,7 +239,7 @@ export function AssignClassRoleModal({
               <div className="p-6 overflow-y-auto flex-1 min-h-0">
                 {/* Step Indicator */}
                 <div className="flex items-center justify-between pb-6">
-                  <div className="text-sm text-white/70">
+                  <div className="text-sm text-(--ws-fg-70)">
                     Step <span className="font-semibold">{step}</span> of 2
                   </div>
                   <div className="flex gap-1">
@@ -247,7 +247,7 @@ export function AssignClassRoleModal({
                       <span
                         key={s}
                         className={`h-1.5 w-8 rounded-full transition-all ${
-                          s <= step ? "bg-amber-500" : "bg-white/20"
+                          s <= step ? "bg-amber-500" : "bg-(--ws-fill)0"
                         }`}
                       />
                     ))}
@@ -307,7 +307,7 @@ export function AssignClassRoleModal({
                                               "relative flex items-start gap-3 rounded-xl border-2 p-3 text-left transition-all",
                                               isSelected
                                                 ? `${categoryInfo.borderColor} ${categoryInfo.bgColor}`
-                                                : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                                                : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                                             )}
                                           >
                                             {isSelected && (
@@ -322,19 +322,19 @@ export function AssignClassRoleModal({
                                             <div className="flex-1 min-w-0">
                                               <p className={cn(
                                                 "font-medium",
-                                                isSelected ? categoryInfo.color : "text-white"
+                                                isSelected ? categoryInfo.color : "text-(--ws-fg)"
                                               )}>
                                                 {role.name}
                                               </p>
                                               {role.description && (
-                                                <p className="mt-1 text-xs text-white/50 line-clamp-2">
+                                                <p className="mt-1 text-xs text-(--ws-fg-50) line-clamp-2">
                                                   {role.description}
                                                 </p>
                                               )}
                                               {role.maxPerClass && (
                                                 <Badge
                                                   variant="outline"
-                                                  className="mt-2 text-[10px] border-white/20 bg-white/5"
+                                                  className="mt-2 text-[10px] border-(--ws-line-strong) bg-(--ws-fill)"
                                                 >
                                                   Max {role.maxPerClass} per class
                                                 </Badge>
@@ -369,13 +369,13 @@ export function AssignClassRoleModal({
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search students by name..."
-                            className="h-10 w-full rounded-lg border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-white placeholder:text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                            className="h-10 w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) pl-10 pr-10 text-sm text-(--ws-fg) placeholder:text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                           />
                           {search && (
                             <button
                               type="button"
                               onClick={() => setSearch("")}
-                              className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+                              className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-(--ws-fill-strong) text-(--ws-fg-60) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -388,14 +388,14 @@ export function AssignClassRoleModal({
                             <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
                           </div>
                         ) : students.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 border border-white/10 bg-white/5 rounded-lg">
-                            <Users className="h-8 w-8 text-white/30" />
-                            <p className="mt-2 text-sm text-white/50">
+                          <div className="flex flex-col items-center justify-center py-12 border border-(--ws-line) bg-(--ws-fill) rounded-lg">
+                            <Users className="h-8 w-8 text-(--ws-fg-40)" />
+                            <p className="mt-2 text-sm text-(--ws-fg-50)">
                               {search ? "No students found" : "No students in this class"}
                             </p>
                           </div>
                         ) : (
-                          <div className="max-h-[300px] space-y-2 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-3">
+                          <div className="max-h-[300px] space-y-2 overflow-y-auto rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                             {students.map((student) => {
                               const isSelected = selectedStudentId === student.id;
 
@@ -410,7 +410,7 @@ export function AssignClassRoleModal({
                                     "relative flex w-full items-center gap-3 rounded-lg border-2 p-3 text-left transition-all",
                                     isSelected
                                       ? "border-amber-500 bg-amber-500/20 shadow-lg shadow-amber-500/20"
-                                      : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                                      : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                                   )}
                                 >
                                   {isSelected && (
@@ -422,19 +422,19 @@ export function AssignClassRoleModal({
                                       <Check className="h-3 w-3" />
                                     </motion.div>
                                   )}
-                                  <Avatar className="h-10 w-10 border-2 border-white/20">
+                                  <Avatar className="h-10 w-10 border-2 border-(--ws-line-strong)">
                                     <AvatarImage
                                       src={student.photoUrl || ""}
                                       alt={student.fullName}
                                     />
-                                    <AvatarFallback className="bg-amber-500/30 text-xs font-semibold text-white">
+                                    <AvatarFallback className="bg-amber-500/30 text-xs font-semibold text-(--ws-fg)">
                                       {getInitials(student.firstName, student.lastName)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1 min-w-0">
                                     <p className={cn(
                                       "font-medium truncate",
-                                      isSelected ? "text-amber-300" : "text-white"
+                                      isSelected ? "text-amber-300" : "text-(--ws-fg)"
                                     )}>
                                       {student.fullName}
                                     </p>
@@ -486,12 +486,12 @@ export function AssignClassRoleModal({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-(--ws-line) shrink-0">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={step === 1 ? () => onOpenChange(false) : handleBack}
-                  className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   {step === 1 ? "Cancel" : "Back"}
@@ -543,10 +543,10 @@ export function AssignClassRoleModal({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 250, damping: 28 }}
-              className="rounded-t-2xl border border-white/10 bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
+              className="rounded-t-2xl border border-(--ws-line) bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
             >
               <div className="py-2 shrink-0">
-                <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+                <div className="mx-auto h-1.5 w-12 rounded-full bg-(--ws-fill)0" />
               </div>
               <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
                 <div className="flex items-center gap-3 mb-4">
@@ -556,7 +556,7 @@ export function AssignClassRoleModal({
 
                 {/* Step Indicator */}
                 <div className="flex items-center justify-between pb-4">
-                  <div className="text-sm text-white/70">
+                  <div className="text-sm text-(--ws-fg-70)">
                     Step <span className="font-semibold">{step}</span> of 2
                   </div>
                   <div className="flex gap-1">
@@ -564,7 +564,7 @@ export function AssignClassRoleModal({
                       <span
                         key={s}
                         className={`h-1.5 w-6 rounded-full transition-all ${
-                          s <= step ? "bg-amber-500" : "bg-white/20"
+                          s <= step ? "bg-amber-500" : "bg-(--ws-fill)0"
                         }`}
                       />
                     ))}
@@ -586,14 +586,14 @@ export function AssignClassRoleModal({
                             "flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all",
                             isSelected
                               ? `${categoryInfo.borderColor} ${categoryInfo.bgColor}`
-                              : "border-white/10 bg-white/5"
+                              : "border-(--ws-line) bg-(--ws-fill)"
                           )}
                         >
                           <div className="flex-1">
-                            <p className={cn("text-sm font-medium", isSelected ? categoryInfo.color : "text-white")}>
+                            <p className={cn("text-sm font-medium", isSelected ? categoryInfo.color : "text-(--ws-fg)")}>
                               {role.name}
                             </p>
-                            <Badge variant="outline" className="mt-1 text-[10px] border-white/20">
+                            <Badge variant="outline" className="mt-1 text-[10px] border-(--ws-line-strong)">
                               {categoryInfo.label}
                             </Badge>
                           </div>
@@ -611,7 +611,7 @@ export function AssignClassRoleModal({
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search students..."
-                      className="h-9 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white placeholder:text-muted"
+                      className="h-9 w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg) placeholder:text-muted"
                     />
                     <div className="space-y-2 max-h-[300px] overflow-y-auto">
                       {students.map((student) => {
@@ -623,7 +623,7 @@ export function AssignClassRoleModal({
                             onClick={() => setSelectedStudentId(student.id)}
                             className={cn(
                               "flex w-full items-center gap-3 rounded-lg border p-3 text-left",
-                              isSelected ? "border-amber-500 bg-amber-500/20" : "border-white/10 bg-white/5"
+                              isSelected ? "border-amber-500 bg-amber-500/20" : "border-(--ws-line) bg-(--ws-fill)"
                             )}
                           >
                             <Avatar className="h-8 w-8">
@@ -633,7 +633,7 @@ export function AssignClassRoleModal({
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className={cn("text-sm font-medium truncate", isSelected ? "text-amber-300" : "text-white")}>
+                              <p className={cn("text-sm font-medium truncate", isSelected ? "text-amber-300" : "text-(--ws-fg)")}>
                                 {student.fullName}
                               </p>
                             </div>
@@ -646,13 +646,13 @@ export function AssignClassRoleModal({
                 )}
 
                 {/* Mobile Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-white/10 mt-4">
+                <div className="flex items-center justify-between pt-4 border-t border-(--ws-line) mt-4">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={step === 1 ? () => onOpenChange(false) : handleBack}
-                    className="gap-1 border-white/10 bg-white/5 text-white text-xs"
+                    className="gap-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) text-xs"
                   >
                     <ChevronLeft className="h-3 w-3" />
                     {step === 1 ? "Cancel" : "Back"}

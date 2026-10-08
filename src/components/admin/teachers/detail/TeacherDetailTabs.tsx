@@ -41,8 +41,8 @@ const BASE_TABS: {
     label: "Overview",
     icon: LayoutDashboard,
     color: {
-      active: "border-indigo-500/40 bg-indigo-500/15 text-indigo-200 shadow-indigo-500/20",
-      icon: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+      active: "border-indigo-500/40 bg-indigo-500/15 text-(--ws-violet) shadow-indigo-500/20",
+      icon: "bg-indigo-500/20 text-(--ws-violet) border-indigo-500/30",
     },
   },
   {
@@ -59,8 +59,8 @@ const BASE_TABS: {
     label: "Duties",
     icon: ClipboardList,
     color: {
-      active: "border-orange-500/40 bg-orange-500/15 text-orange-200 shadow-orange-500/20",
-      icon: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+      active: "border-orange-500/40 bg-orange-500/15 text-(--ws-amber) shadow-orange-500/20",
+      icon: "bg-orange-500/20 text-(--ws-amber) border-orange-500/30",
     },
   },
   {
@@ -69,7 +69,7 @@ const BASE_TABS: {
     icon: TrendingUp,
     color: {
       active: "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
-      icon: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+      icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
     },
   },
   {
@@ -86,7 +86,7 @@ const BASE_TABS: {
     label: "Documents",
     icon: FileText,
     color: {
-      active: "border-amber-500/40 bg-amber-500/15 text-amber-200 shadow-amber-500/20",
+      active: "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
       icon: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     },
   },
@@ -95,8 +95,8 @@ const BASE_TABS: {
     label: "Notes",
     icon: StickyNote,
     color: {
-      active: "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-rose-500/20",
-      icon: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+      active: "border-rose-500/40 bg-rose-500/15 text-(--ws-rose) shadow-rose-500/20",
+      icon: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
     },
   },
   {
@@ -104,8 +104,8 @@ const BASE_TABS: {
     label: "Activity",
     icon: Activity,
     color: {
-      active: "border-violet-500/40 bg-violet-500/15 text-violet-200 shadow-violet-500/20",
-      icon: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+      active: "border-violet-500/40 bg-violet-500/15 text-(--ws-violet) shadow-violet-500/20",
+      icon: "bg-violet-500/20 text-(--ws-violet) border-violet-500/30",
     },
   },
 ];
@@ -141,7 +141,7 @@ export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
                 "group relative inline-flex items-center gap-2.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-xs font-medium transition-all duration-200",
                 isActive
                   ? cn("shadow-lg", tab.color.active)
-                  : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white/80"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
               )}
               aria-pressed={isActive}
             >
@@ -155,7 +155,7 @@ export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
                   "flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-200",
                   isActive
                     ? tab.color.icon
-                    : "border-white/10 bg-white/5 text-white/50 group-hover:border-white/15 group-hover:bg-white/8 group-hover:text-white/70"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) group-hover:border-(--ws-line-strong) group-hover:bg-(--ws-fill-strong) group-hover:text-(--ws-fg-70)"
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -167,8 +167,8 @@ export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
       </div>
 
       {/* Helper text */}
-      <div className="hidden items-center gap-2 text-[10px] text-white/40 lg:flex">
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+      <div className="hidden items-center gap-2 text-[10px] text-(--ws-fg-40) lg:flex">
+        <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1">
           {TABS.length} sections
         </span>
       </div>

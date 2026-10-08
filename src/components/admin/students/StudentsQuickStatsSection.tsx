@@ -53,8 +53,8 @@ const toneConfig: Record<
     border: "border-rose-500/30",
     bg: "from-rose-500/10 via-rose-500/5 to-transparent",
     iconBg: "from-rose-500/20 to-rose-600/20",
-    iconColor: "text-rose-300",
-    valueColor: "text-rose-100",
+    iconColor: "text-(--ws-rose)",
+    valueColor: "text-(--ws-rose)",
     glow: "bg-rose-500/20",
   },
   amber: {

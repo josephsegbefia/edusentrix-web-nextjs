@@ -115,8 +115,8 @@ function StatCard({
   const tones = {
     cyan: "border-cyan-300/20 bg-cyan-400/10 text-cyan-200",
     emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-200",
-    amber: "border-amber-300/20 bg-amber-400/10 text-amber-200",
-    violet: "border-violet-300/20 bg-violet-400/10 text-violet-200",
+    amber: "border-amber-300/20 bg-amber-400/10 text-(--ws-amber)",
+    violet: "border-violet-300/20 bg-violet-400/10 text-(--ws-violet)",
   };
 
   return (
@@ -140,7 +140,7 @@ function StatCard({
 
 function statusTone(status: string) {
   if (status === "published") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
-  if (status === "draft") return "border-amber-300/25 bg-amber-400/10 text-amber-100";
+  if (status === "draft") return "border-amber-300/25 bg-amber-400/10 text-(--ws-amber)";
   if (status === "archived") return "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-50)";
   return "border-cyan-300/20 bg-cyan-400/10 text-cyan-100";
 }

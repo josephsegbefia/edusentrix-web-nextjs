@@ -77,10 +77,10 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
   const capacityPercent = capacity && capacity > 0 ? Math.round((studentCount / capacity) * 100) : null;
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+    <Card className="group relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
       {/* Background decorations */}
       <div
-        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-emerald-500/15 via-green-500/10 to-transparent blur-3xl transition-opacity duration-500 group-hover:opacity-100 opacity-70"
+        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-linear-to-br from-emerald-500/15 via-green-500/10 to-transparent blur-3xl transition-opacity duration-500 group-hover:opacity-100 opacity-70"
         aria-hidden="true"
       />
       <div
@@ -99,7 +99,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
             {/* Icon */}
             <div className="relative shrink-0">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-white/20 bg-gradient-to-br from-emerald-500/30 to-green-600/30 shadow-2xl shadow-black/50 ring-4 ring-emerald-500/20">
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-(--ws-line-strong) bg-linear-to-br from-emerald-500/30 to-green-600/30 shadow-2xl shadow-black/50 ring-4 ring-emerald-500/20">
                   <School className="h-10 w-10 text-emerald-200" />
                 </div>
                 {/* Status indicator */}
@@ -109,7 +109,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                     isActive ? "bg-emerald-500" : "bg-slate-500"
                   )}
                 >
-                  <GraduationCap className="h-3 w-3 text-white" />
+                  <GraduationCap className="h-3 w-3 text-(--ws-fg)" />
                 </div>
               </div>
             </div>
@@ -119,7 +119,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
               {/* Name and Status */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                  <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) md:text-3xl">
                     {fullLabel}
                   </h1>
                   <Badge
@@ -127,7 +127,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                     className={cn(
                       "rounded-lg border px-2.5 py-1 text-xs font-semibold",
                       isActive
-                        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                        ? "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald)"
                         : "border-slate-500/40 bg-slate-500/15 text-slate-300"
                     )}
                   >
@@ -136,12 +136,12 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                 </div>
 
                 {/* Grade Info */}
-                <div className="flex items-center gap-2 text-sm text-white/60">
+                <div className="flex items-center gap-2 text-sm text-(--ws-fg-60)">
                   <GraduationCap className="h-4 w-4" />
                   <span>{grade.name}</span>
                   {grade.stage && (
                     <>
-                      <span className="text-white/30">•</span>
+                      <span className="text-(--ws-fg-40)">•</span>
                       <span>{grade.stage}</span>
                     </>
                   )}
@@ -152,12 +152,12 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
               <div className="flex flex-wrap items-center gap-2">
                 {homeroomTeacher && (
                   <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/15 px-3 py-1.5">
-                    <Avatar className="h-6 w-6 border border-white/20">
+                    <Avatar className="h-6 w-6 border border-(--ws-line-strong)">
                       <AvatarImage
                         src={homeroomTeacher.photoUrl || ""}
                         alt={homeroomTeacher.fullName}
                       />
-                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-violet-700 text-[10px] font-semibold text-white">
+                      <AvatarFallback className="bg-linear-to-br from-purple-600 to-violet-700 text-[10px] font-semibold text-(--ws-fg)">
                         {homeroomInitials}
                       </AvatarFallback>
                     </Avatar>
@@ -177,13 +177,13 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                       "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium",
                       capacityPercent && capacityPercent >= 90
                         ? "border-amber-500/30 bg-amber-500/15 text-amber-300"
-                        : "border-white/10 bg-white/5 text-white/60"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                     )}
                   >
                     <Users className="h-3.5 w-3.5" />
                     {studentCount} / {capacity}
                     {capacityPercent !== null && (
-                      <span className="text-white/40">({capacityPercent}%)</span>
+                      <span className="text-(--ws-fg-40)">({capacityPercent}%)</span>
                     )}
                   </span>
                 )}
@@ -193,32 +193,32 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
 
           {/* Right: Quick Stats */}
           <div className="flex flex-wrap gap-3 lg:flex-col lg:items-end">
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
               <Users className="h-5 w-5 text-emerald-400" />
               <div className="text-right">
-                <p className="text-2xl font-bold text-white tabular-nums">{studentCount}</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Students</p>
+                <p className="text-2xl font-bold text-(--ws-fg) tabular-nums">{studentCount}</p>
+                <p className="text-[10px] uppercase tracking-wider text-(--ws-fg-40)">Students</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
               <BookOpen className="h-5 w-5 text-blue-400" />
               <div className="text-right">
-                <p className="text-2xl font-bold text-white tabular-nums">{subjectCount}</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Subjects</p>
+                <p className="text-2xl font-bold text-(--ws-fg) tabular-nums">{subjectCount}</p>
+                <p className="text-[10px] uppercase tracking-wider text-(--ws-fg-40)">Subjects</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
               <UserCheck className="h-5 w-5 text-purple-400" />
               <div className="text-right">
-                <p className="text-2xl font-bold text-white tabular-nums">{teacherCount}</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Teachers</p>
+                <p className="text-2xl font-bold text-(--ws-fg) tabular-nums">{teacherCount}</p>
+                <p className="text-[10px] uppercase tracking-wider text-(--ws-fg-40)">Teachers</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
               <Calendar className="h-5 w-5 text-teal-400" />
               <div className="text-right">
-                <p className="text-xs font-medium text-white/80">{createdLabel}</p>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Created</p>
+                <p className="text-xs font-medium text-(--ws-fg-80)">{createdLabel}</p>
+                <p className="text-[10px] uppercase tracking-wider text-(--ws-fg-40)">Created</p>
               </div>
             </div>
           </div>

@@ -145,7 +145,7 @@ export function FeesCharts({ studentId }: Props) {
     <div className="grid gap-4 md:grid-cols-2">
       {/* Payment Trend */}
       {hasMultiplePeriods && (
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/5 via-emerald-500/2 to-transparent"
             aria-hidden="true"
@@ -177,7 +177,7 @@ export function FeesCharts({ studentId }: Props) {
       )}
 
       {/* Outstanding Breakdown */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/5 via-amber-500/2 to-transparent"
           aria-hidden="true"
@@ -210,7 +210,7 @@ export function FeesCharts({ studentId }: Props) {
       </Card>
 
       {/* Collection Rate */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur md:col-span-2">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl md:col-span-2">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
           aria-hidden="true"

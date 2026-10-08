@@ -141,18 +141,18 @@ function Callout({
       className={cn(
         "rounded-2xl border p-4",
         tone === "warning"
-          ? "border-amber-400/20 bg-amber-500/10 text-amber-100"
+          ? "border-amber-400/20 bg-amber-500/10 text-(--ws-amber)"
           : "border-sky-400/20 bg-sky-500/10 text-sky-100"
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+        <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
           <Icon className="h-4.5 w-4.5" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-semibold">{title}</p>
           {children ? (
-            <div className="text-sm text-white/80">{children}</div>
+            <div className="text-sm text-(--ws-fg-80)">{children}</div>
           ) : null}
         </div>
       </div>
@@ -198,12 +198,12 @@ function Combobox({
           <Button
             type="button"
             variant="outline"
-            className="h-10 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-brand"
+            className="h-10 w-full justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus-visible:ring-1 focus-visible:ring-brand"
           >
             <span
               className={cn(
                 "truncate",
-                valueLabel ? "text-white" : "text-muted-foreground"
+                valueLabel ? "text-(--ws-fg)" : "text-muted-foreground"
               )}
             >
               {valueLabel || placeholder}
@@ -567,7 +567,7 @@ export function CreateTeacherAssignmentModal({
             transition={{ duration: 0.2 }}
             className={cn(
               // SOLID dark panel (like CreateStudentModal vibe)
-              "w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+              "w-full max-w-[860px] overflow-hidden rounded-2xl border border-(--ws-line) bg-neutral-950 text-(--ws-fg) shadow-2xl shadow-black/40"
             )}
           >
             {/* Header (clear + underlined) */}
@@ -575,9 +575,9 @@ export function CreateTeacherAssignmentModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <h1 className="text-lg font-semibold">Create Assignment</h1>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-(--ws-fg-60)">
             Assign a subject and class group to{" "}
-                    <span className="font-medium text-white/85">
+                    <span className="font-medium text-(--ws-fg-90)">
               {teacher.fullName}
             </span>
             .
@@ -589,14 +589,14 @@ export function CreateTeacherAssignmentModal({
                   variant="ghost"
                   size="icon"
                   disabled={isPending}
-                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  className="h-9 w-9 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   onClick={() => onOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="mt-5 h-px bg-white/10" />
+              <div className="mt-5 h-px bg-(--ws-fill-strong)" />
             </div>
 
             {/* Body (scrollable) */}
@@ -620,32 +620,32 @@ export function CreateTeacherAssignmentModal({
             {slotConflict ? (
               <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 p-4 text-violet-50">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+                  <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
                     <Info className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 space-y-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-(--ws-fg)">
                         This class already has a teacher for this subject
                       </p>
-                      <p className="mt-1 text-sm text-white/75">
+                      <p className="mt-1 text-sm text-(--ws-fg-90)">
                         {slotConflict.message}
                       </p>
                       {slotConflict.teachers.length > 0 ? (
-                        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-white/65">
+                        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-(--ws-fg-90)">
                           {slotConflict.teachers.map((t) => (
                             <li key={t.assignmentId}>{t.name}</li>
                           ))}
                         </ul>
                       ) : null}
-                      <p className="mt-2 text-xs text-white/55">
+                      <p className="mt-2 text-xs text-(--ws-fg-50)">
                         Choose whether {teacher.fullName} should teach alongside them, or take over this assignment for the term.
                       </p>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Button
                         type="button"
-                        className="gap-2 bg-violet-500 text-white hover:bg-violet-600"
+                        className="gap-2 bg-violet-500 text-(--ws-fg) hover:bg-violet-600"
                         disabled={isPending}
                         onClick={() =>
                           void form.handleSubmit((v) =>
@@ -662,7 +662,7 @@ export function CreateTeacherAssignmentModal({
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                        className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                         disabled={isPending}
                         onClick={() =>
                           void form.handleSubmit((v) =>
@@ -684,7 +684,7 @@ export function CreateTeacherAssignmentModal({
             {conflict ? (
           <Callout tone="warning" title="Schedule conflict detected">
             <div className="space-y-1">
-              <p className="text-white/80">
+              <p className="text-(--ws-fg-80)">
                 Overlaps with:{" "}
                 <b>
                   {conflict.subject?.name ?? "Subject"} •{" "}
@@ -694,7 +694,7 @@ export function CreateTeacherAssignmentModal({
               {conflict.schedule?.dayOfWeek != null &&
               conflict.schedule?.startTime &&
               conflict.schedule?.endTime ? (
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+                <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs text-(--ws-fg-80)">
                   <Clock className="h-3.5 w-3.5" />
                   {DOW[Number(conflict.schedule.dayOfWeek)]?.label ??
                     `Day ${conflict.schedule.dayOfWeek}`}{" "}
@@ -702,7 +702,7 @@ export function CreateTeacherAssignmentModal({
                           {conflict.schedule.endTime}
                 </div>
               ) : null}
-              <p className="text-white/70">
+              <p className="text-(--ws-fg-70)">
                         Adjust the day/time or remove schedule from this
                         assignment.
               </p>
@@ -714,24 +714,24 @@ export function CreateTeacherAssignmentModal({
           <div className="space-y-4">
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-100">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+                <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
                   <Check className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
                           <p className="text-sm font-semibold">
                             Assignment created
                           </p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-(--ws-fg-80)">
                     {periodLabel(form.getValues("academicPeriodId"))} •{" "}
                             {selectedSubjectLabel ?? "—"} •{" "}
                             {selectedClassLabel ?? "—"}
                   </p>
                   {warnings.length ? (
                     <div className="mt-2 space-y-1">
-                      <p className="text-xs font-semibold text-white/80">
+                      <p className="text-xs font-semibold text-(--ws-fg-80)">
                         Warnings
                       </p>
-                      <ul className="list-disc space-y-1 pl-5 text-sm text-white/75">
+                      <ul className="list-disc space-y-1 pl-5 text-sm text-(--ws-fg-90)">
                         {warnings.map((w, idx) => (
                           <li key={idx}>{w}</li>
                         ))}
@@ -745,7 +745,7 @@ export function CreateTeacherAssignmentModal({
                     <div className="flex items-center justify-end pt-2">
                 <Button
                   variant="outline"
-                        className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   onClick={() => {
                     form.reset();
                           setSelectedSubjectLabel(null);
@@ -765,7 +765,7 @@ export function CreateTeacherAssignmentModal({
                   >
                     {/* Step indicator (same style as CreateStudentModal) */}
                     <div className="flex items-center justify-between pb-2">
-                      <div className="text-sm text-white/70">
+                      <div className="text-sm text-(--ws-fg-70)">
                         Step{" "}
                         <span className="font-semibold">{currentStep}</span> of{" "}
                         {STEPS.length}
@@ -776,7 +776,7 @@ export function CreateTeacherAssignmentModal({
                             key={i}
                             className={cn(
                               "h-1.5 w-8 rounded-full transition-all",
-                              i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                              i + 1 <= currentStep ? "bg-brand" : "bg-(--ws-fill)0"
                             )}
                           />
                         ))}
@@ -811,7 +811,7 @@ export function CreateTeacherAssignmentModal({
                     })
                   }
                 >
-                                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                                  <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
                     <SelectValue
                       placeholder={
                                         periodsLoading
@@ -849,7 +849,7 @@ export function CreateTeacherAssignmentModal({
                   </SelectContent>
                 </Select>
                 {form.formState.errors.academicPeriodId ? (
-                                  <p className="text-xs text-rose-300">
+                                  <p className="text-xs text-(--ws-rose)">
                                     {
                                       form.formState.errors.academicPeriodId
                                         .message
@@ -867,13 +867,13 @@ export function CreateTeacherAssignmentModal({
                   min={0}
                   max={80}
                   step={1}
-                                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   {...form.register("workloadHours")}
                 />
               </div>
             </div>
 
-            <Separator className="bg-white/10" />
+            <Separator className="bg-(--ws-fill-strong)" />
 
             <div className="grid gap-4 md:grid-cols-2">
                               <div className="space-y-2">
@@ -896,7 +896,7 @@ export function CreateTeacherAssignmentModal({
                 }}
               />
               {form.formState.errors.subjectId ? (
-                                  <p className="text-xs text-rose-300">
+                                  <p className="text-xs text-(--ws-rose)">
                   {form.formState.errors.subjectId.message}
                 </p>
               ) : null}
@@ -922,7 +922,7 @@ export function CreateTeacherAssignmentModal({
                 }}
               />
               {form.formState.errors.classGroupId ? (
-                                  <p className="text-xs text-rose-300">
+                                  <p className="text-xs text-(--ws-rose)">
                   {form.formState.errors.classGroupId.message}
                 </p>
               ) : null}
@@ -941,7 +941,7 @@ export function CreateTeacherAssignmentModal({
               type="single"
               collapsible
                               value={includeSchedule ? "schedule" : ""}
-              className="rounded-2xl border border-white/10 bg-white/5"
+              className="rounded-2xl border border-(--ws-line) bg-(--ws-fill)"
               onValueChange={(v) =>
                                 form.setValue(
                                   "includeSchedule",
@@ -962,7 +962,7 @@ export function CreateTeacherAssignmentModal({
                       <Button
                         type="button"
                         variant="outline"
-                                        className="w-full border-dashed border-white/20 bg-transparent hover:bg-white/5 hover:border-white/30"
+                                        className="w-full border-dashed border-(--ws-line-strong) bg-transparent hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                         onClick={() => {
                           form.setValue(
                             "schedules",
@@ -1004,10 +1004,10 @@ export function CreateTeacherAssignmentModal({
                       return (
                         <div
                           key={idx}
-                          className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                          className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4"
                         >
                           <div className="flex items-center justify-between">
-                                            <Label className="text-sm font-medium text-white/90">
+                                            <Label className="text-sm font-medium text-(--ws-fg-90)">
                               Schedule {idx + 1}
                             </Label>
 
@@ -1016,7 +1016,7 @@ export function CreateTeacherAssignmentModal({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                                className="h-8 w-8 text-rose-300 hover:text-rose-200 hover:bg-rose-500/10"
+                                                className="h-8 w-8 text-(--ws-rose) hover:text-(--ws-rose) hover:bg-rose-500/10"
                                 onClick={() => {
                                                   const current =
                                                     form.getValues(
@@ -1064,7 +1064,7 @@ export function CreateTeacherAssignmentModal({
                                                   );
                                                 }}
                                               >
-                                                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                                                <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
                                   <SelectValue placeholder="Select day" />
                                 </SelectTrigger>
                                                 <SelectContent
@@ -1088,7 +1088,7 @@ export function CreateTeacherAssignmentModal({
                                               {form.formState.errors
                                                 ?.schedules?.[idx]
                                                 ?.dayOfWeek ? (
-                                                <p className="text-xs text-rose-300">
+                                                <p className="text-xs text-(--ws-rose)">
                                   {String(
                                                     form.formState.errors
                                                       .schedules[idx]?.dayOfWeek
@@ -1148,7 +1148,7 @@ export function CreateTeacherAssignmentModal({
                                               </Label>
                               <Input
                                 type="time"
-                                                className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                                                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                                 value={schedule.startTime || ""}
                                 onChange={(e) => {
                                                   const current =
@@ -1177,7 +1177,7 @@ export function CreateTeacherAssignmentModal({
                                               </Label>
                               <Input
                                 type="time"
-                                                className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                                                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                                 value={schedule.endTime || ""}
                                 onChange={(e) => {
                                                   const current =
@@ -1200,7 +1200,7 @@ export function CreateTeacherAssignmentModal({
                                               />
                                               {form.formState.errors
                                                 ?.schedules?.[idx]?.endTime ? (
-                                                <p className="text-xs text-rose-300">
+                                                <p className="text-xs text-(--ws-rose)">
                                   {String(
                                                     form.formState.errors
                                                       .schedules[idx]?.endTime
@@ -1217,7 +1217,7 @@ export function CreateTeacherAssignmentModal({
                     <Button
                       type="button"
                       variant="outline"
-                                      className="w-full border-dashed border-white/20 bg-transparent hover:bg-white/5 hover:border-white/30"
+                                      className="w-full border-dashed border-(--ws-line-strong) bg-transparent hover:bg-(--ws-fill-strong) hover:border-(--ws-line-strong)"
                       onClick={() => {
                                         const current =
                                           form.getValues("schedules") || [];
@@ -1265,59 +1265,59 @@ export function CreateTeacherAssignmentModal({
                                 Notes (optional)
                               </Label>
                               <Textarea
-                                className="min-h-[110px] border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                                className="min-h-[110px] border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                                 {...form.register("notes")}
                               />
                             </div>
 
-                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+                            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-3">
                               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                 Review
                               </p>
 
                               <div className="grid gap-3 md:grid-cols-2">
                                 <div className="space-y-1">
-                                  <p className="text-xs text-white/50">
+                                  <p className="text-xs text-(--ws-fg-50)">
                                     Academic period
                                   </p>
-                                  <p className="text-sm text-white/85">
+                                  <p className="text-sm text-(--ws-fg-90)">
                                     {periodLabel(
                                       form.getValues("academicPeriodId")
                                     )}
                                   </p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-xs text-white/50">
+                                  <p className="text-xs text-(--ws-fg-50)">
                                     Workload
                                   </p>
-                                  <p className="text-sm text-white/85">
+                                  <p className="text-sm text-(--ws-fg-90)">
                                     {formatHoursMinutes(form.getValues("workloadHours") ?? 0)}/week
                       </p>
                     </div>
                                 <div className="space-y-1">
-                                  <p className="text-xs text-white/50">
+                                  <p className="text-xs text-(--ws-fg-50)">
                                     Subject
                                   </p>
-                                  <p className="text-sm text-white/85">
+                                  <p className="text-sm text-(--ws-fg-90)">
                                     {selectedSubjectLabel ?? "—"}
                                   </p>
                   </div>
                                 <div className="space-y-1">
-                                  <p className="text-xs text-white/50">
+                                  <p className="text-xs text-(--ws-fg-50)">
                                     Class group
                                   </p>
-                                  <p className="text-sm text-white/85">
+                                  <p className="text-sm text-(--ws-fg-90)">
                                     {selectedClassLabel ?? "—"}
                                   </p>
                                 </div>
                               </div>
 
-                              <div className="pt-2 border-t border-white/10">
+                              <div className="pt-2 border-t border-(--ws-line)">
                                 <div className="flex items-center justify-between">
-                                  <p className="text-xs text-white/50">
+                                  <p className="text-xs text-(--ws-fg-50)">
                                     Schedules
                                   </p>
-                                  <p className="text-xs text-white/75">
+                                  <p className="text-xs text-(--ws-fg-90)">
                                     {includeSchedule && schedules.length > 0
                                       ? `${schedules.length} item(s)`
                                       : "Not included"}
@@ -1341,7 +1341,7 @@ export function CreateTeacherAssignmentModal({
                     </AnimatePresence>
 
                     {/* Footer nav (like CreateStudentModal) */}
-                    <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                    <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
             <Button
               type="button"
               variant="outline"
@@ -1350,7 +1350,7 @@ export function CreateTeacherAssignmentModal({
                           else handlePrevious();
                         }}
               disabled={isPending}
-                        className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
                         <ChevronLeft className="h-4 w-4" />
                         {isFirstStep ? "Cancel" : "Previous"}

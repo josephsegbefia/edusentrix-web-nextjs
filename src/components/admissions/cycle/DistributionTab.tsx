@@ -66,18 +66,18 @@ function CardShell({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-white/10 bg-slate-950/60 p-5",
+        "rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5",
         className
       )}
     >
       <div className="mb-3 flex items-start gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/80">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80)">
           {icon}
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">{title}</h3>
           {description ? (
-            <p className="text-xs text-white/55">{description}</p>
+            <p className="text-xs text-(--ws-fg-50)">{description}</p>
           ) : null}
         </div>
       </div>
@@ -101,7 +101,7 @@ function PublicLinkCard({
       description="Anyone with this link can open the application."
     >
       {ineligible ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-(--ws-amber)">
           Publish the cycle to activate the link. Drafts are not reachable.
         </div>
       ) : null}
@@ -129,7 +129,7 @@ function PublicLinkCard({
           variant="ghost"
           size="sm"
           asChild
-          className="text-white/55"
+          className="text-(--ws-fg-50)"
           disabled={ineligible}
         >
           <a href={applyUrl} target="_blank" rel="noreferrer">
@@ -176,7 +176,7 @@ function EmbedCard({
       icon={<Code2 className="h-4 w-4" />}
       description="Drop this snippet on any HTML page."
     >
-      <div className="mb-2 inline-flex rounded-lg border border-white/10 bg-black/30 p-0.5">
+      <div className="mb-2 inline-flex rounded-lg border border-(--ws-line) bg-black/30 p-0.5">
         <button
           type="button"
           onClick={() => setMode("smart")}
@@ -184,7 +184,7 @@ function EmbedCard({
             "rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
             mode === "smart"
               ? "bg-cyan-500/20 text-cyan-100"
-              : "text-white/55 hover:text-white"
+              : "text-(--ws-fg-50) hover:text-(--ws-fg)"
           )}
         >
           Smart embed (auto-resize)
@@ -196,7 +196,7 @@ function EmbedCard({
             "rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
             mode === "iframe"
               ? "bg-cyan-500/20 text-cyan-100"
-              : "text-white/55 hover:text-white"
+              : "text-(--ws-fg-50) hover:text-(--ws-fg)"
           )}
         >
           Plain iframe
@@ -209,7 +209,7 @@ function EmbedCard({
         className="font-mono text-xs"
         onFocus={(e) => e.currentTarget.select()}
       />
-      <p className="mt-2 text-[11px] text-white/45">
+      <p className="mt-2 text-[11px] text-(--ws-fg-40)">
         {mode === "smart"
           ? "Recommended. The widget loads our hosted script and resizes itself as the form changes."
           : "Use when your CMS strips <script> tags. You may need to adjust the height manually."}
@@ -273,7 +273,7 @@ function QrCard({ applyUrl }: { applyUrl: string }) {
       description="Print on flyers, enrollment posters, or info packs."
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-32 w-32 items-center justify-center rounded-xl border border-white/10 bg-white p-2">
+        <div className="flex h-32 w-32 items-center justify-center rounded-xl border border-(--ws-line) bg-white p-2">
           {dataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={dataUrl} alt="Application QR code" className="h-full w-full" />
@@ -282,8 +282,8 @@ function QrCard({ applyUrl }: { applyUrl: string }) {
           )}
         </div>
         <div className="flex-1 space-y-2">
-          <p className="text-xs text-white/55">Decoded URL</p>
-          <p className="rounded-md border border-white/10 bg-black/30 p-2 font-mono text-[10px] break-all text-white/70">
+          <p className="text-xs text-(--ws-fg-50)">Decoded URL</p>
+          <p className="rounded-md border border-(--ws-line) bg-black/30 p-2 font-mono text-[10px] break-all text-(--ws-fg-70)">
             {qrUrl}
           </p>
           <Button
@@ -318,8 +318,8 @@ function WhatsAppCard({
       icon={<MessageCircle className="h-4 w-4" />}
       description="Compose a pre-filled message in WhatsApp."
     >
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
-        <p className="line-clamp-2 text-xs text-white/70">{message}</p>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-(--ws-line) bg-black/20 p-3">
+        <p className="line-clamp-2 text-xs text-(--ws-fg-70)">{message}</p>
         <Button asChild size="sm" className="bg-emerald-500 hover:bg-emerald-600">
           <a href={wa} target="_blank" rel="noreferrer">
             <Send className="mr-1.5 h-3.5 w-3.5" />
@@ -400,7 +400,7 @@ function DirectInviteCard({ cycle }: { cycle: AdmissionCycleDTO }) {
       className="lg:col-span-2"
     >
       {ineligible ? (
-        <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+        <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-(--ws-amber)">
           Publish the cycle to send invites.
         </div>
       ) : null}
@@ -442,7 +442,7 @@ function DirectInviteCard({ cycle }: { cycle: AdmissionCycleDTO }) {
               size="sm"
               onClick={() => removeRow(i)}
               disabled={recipients.length <= 1}
-              className="h-9 w-9 p-0 text-rose-400 hover:text-rose-300"
+              className="h-9 w-9 p-0 text-rose-400 hover:text-(--ws-rose)"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -467,7 +467,7 @@ function DirectInviteCard({ cycle }: { cycle: AdmissionCycleDTO }) {
           {last ? (
             <Badge
               variant="outline"
-              className="border-white/10 bg-white/5 text-xs text-white/70"
+              className="border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70)"
             >
               <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-400" />
               Sent {last.sent}

@@ -70,7 +70,7 @@ const categoryConfig: Record<
   behavior: {
     bg: "bg-amber-500/10",
     border: "border-amber-500/30",
-    text: "text-amber-200",
+    text: "text-(--ws-amber)",
   },
   disciplinary: {
     bg: "bg-red-500/10",
@@ -163,7 +163,7 @@ export function TeacherNotesTab({ teacher }: Props) {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-rose-500/15 via-pink-500/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -175,21 +175,21 @@ export function TeacherNotesTab({ teacher }: Props) {
 
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-rose-500/20 to-pink-500/20 shadow-inner shadow-white/5">
-              <StickyNote className="h-5 w-5 text-rose-300" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-rose-500/20 to-pink-500/20 shadow-inner shadow-white/5">
+              <StickyNote className="h-5 w-5 text-(--ws-rose)" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Notes
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {notes.length} note{notes.length !== 1 ? "s" : ""} recorded
               </p>
             </div>
           </div>
           <Button
             variant="outline"
-            className="gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+            className="gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
             onClick={() => setAddModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -208,8 +208,8 @@ export function TeacherNotesTab({ teacher }: Props) {
             className={cn(
               "rounded-xl",
               categoryFilter === null
-                ? "bg-white/10 text-white"
-                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
           >
             All ({notes.length})
@@ -226,7 +226,7 @@ export function TeacherNotesTab({ teacher }: Props) {
                   "rounded-xl",
                   categoryFilter === cat
                     ? cn(config.bg, config.border, config.text)
-                    : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 )}
               >
                 {getCategoryLabel(cat)} ({notesByCategory[cat].length})
@@ -237,7 +237,7 @@ export function TeacherNotesTab({ teacher }: Props) {
       )}
 
       {/* Notes list */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-rose-500/5 via-transparent to-transparent"
           aria-hidden="true"
@@ -250,20 +250,20 @@ export function TeacherNotesTab({ teacher }: Props) {
         <CardContent className="relative z-10 p-6">
           {isLoading ? (
             <div className="flex items-center justify-center gap-3 py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-rose-400" />
-              <p className="text-sm text-white/60">Loading notes...</p>
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--ws-line) border-t-rose-400" />
+              <p className="text-sm text-(--ws-fg-60)">Loading notes...</p>
             </div>
           ) : notes.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-rose-500/20 to-pink-500/20">
-                  <MessageSquare className="h-7 w-7 text-rose-300" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-rose-500/20 to-pink-500/20">
+                  <MessageSquare className="h-7 w-7 text-(--ws-rose)" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-white">
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     No notes yet
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-50)">
                     {categoryFilter
                       ? `No notes in the "${getCategoryLabel(
                           categoryFilter
@@ -274,7 +274,7 @@ export function TeacherNotesTab({ teacher }: Props) {
                 {!categoryFilter && (
                   <Button
                     variant="outline"
-                    className="mt-2 gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                    className="mt-2 gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
                     onClick={() => setAddModalOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
@@ -304,13 +304,13 @@ export function TeacherNotesTab({ teacher }: Props) {
                   <div key={category} className="space-y-3">
                     {categories.length > 1 && (
                       <div className="flex items-center gap-3 pt-2">
-                        <h3 className="text-sm font-semibold text-white/60">
+                        <h3 className="text-sm font-semibold text-(--ws-fg-60)">
                           {getCategoryLabel(category)}
                         </h3>
-                        <Separator className="flex-1 bg-white/10" />
+                        <Separator className="flex-1 bg-(--ws-fill-strong)" />
                         <Badge
                           variant="outline"
-                          className="rounded-lg border-white/10 bg-white/5 text-xs text-white/50"
+                          className="rounded-lg border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-50)"
                         >
                           {notesByCategory[category].length}
                         </Badge>
@@ -376,7 +376,7 @@ function NoteCard({
     categoryConfig[note.category || "general"] || categoryConfig.general;
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-5 transition-all duration-200 hover:border-rose-500/30 hover:bg-white/5">
+    <div className="group relative overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5 transition-all duration-200 hover:border-rose-500/30 hover:bg-(--ws-fill-strong)">
       {/* Accent bar */}
       <div
         className="absolute inset-y-0 left-0 w-1 bg-linear-to-b from-rose-500 to-pink-500"
@@ -389,11 +389,11 @@ function NoteCard({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-white">{note.title}</p>
+                <p className="text-sm font-semibold text-(--ws-fg)">{note.title}</p>
                 {note.isConfidential && (
                   <Badge
                     variant="outline"
-                    className="gap-1 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-amber-200"
+                    className="gap-1 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-(--ws-amber)"
                   >
                     <Lock className="h-3 w-3" />
                     Confidential
@@ -417,7 +417,7 @@ function NoteCard({
                     <Badge
                       key={idx}
                       variant="outline"
-                      className="gap-1 rounded-lg border-white/5 bg-white/5 text-[10px] text-white/50"
+                      className="gap-1 rounded-lg border-(--ws-line) bg-(--ws-fill) text-[10px] text-(--ws-fg-50)"
                     >
                       <Tag className="h-2.5 w-2.5" />
                       {tag}
@@ -428,14 +428,14 @@ function NoteCard({
           </div>
 
           {/* Content */}
-          <div className="rounded-lg border border-white/10 bg-white/2 p-3">
-            <p className="whitespace-pre-wrap text-sm text-white/80">
+          <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+            <p className="whitespace-pre-wrap text-sm text-(--ws-fg-80)">
               {note.content}
             </p>
           </div>
 
           {/* Footer */}
-          <div className="flex flex-wrap items-center gap-4 text-xs text-white/50">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-(--ws-fg-50)">
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {formatDate(note.createdAt)}
@@ -454,7 +454,7 @@ function NoteCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             onClick={() => onEdit(note)}
             title="Edit note"
           >
@@ -463,7 +463,7 @@ function NoteCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-white/60 hover:bg-red-500/10 hover:text-red-300"
+            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-red-500/10 hover:text-red-300"
             onClick={() => onDelete(note)}
             disabled={isDeleting}
             title="Delete note"

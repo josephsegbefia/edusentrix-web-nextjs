@@ -120,8 +120,8 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Assigned Duties</h2>
-          <p className="text-sm text-white/50">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Assigned Duties</h2>
+          <p className="text-sm text-(--ws-fg-50)">
             Non-teaching duties assigned to {teacher.fullName}
           </p>
         </div>
@@ -145,16 +145,16 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
 
       {/* Duty Cards */}
       {assignments.length === 0 ? (
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-(--ws-line) bg-(--ws-fill)">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Clock className="h-10 w-10 text-white/30" />
-            <p className="mt-3 text-sm text-white/50">
+            <Clock className="h-10 w-10 text-(--ws-fg-40)" />
+            <p className="mt-3 text-sm text-(--ws-fg-50)">
               No duties assigned yet
             </p>
             <Button
               onClick={() => setAssignModalOpen(true)}
               variant="outline"
-              className="mt-4 gap-2 border-white/10 text-white hover:bg-white/10"
+              className="mt-4 gap-2 border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <Plus className="h-4 w-4" />
               Assign First Duty
@@ -168,7 +168,7 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
               key={assignment.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="group relative rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20"
+              className="group relative rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong)"
               style={{
                 borderLeftColor: assignment.duty?.color || undefined,
                 borderLeftWidth: assignment.duty?.color ? "3px" : undefined,
@@ -178,7 +178,7 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
               <button
                 onClick={() => handleRemove(assignment.id)}
                 disabled={removeMutation.isPending}
-                className="absolute right-2 top-2 rounded-lg p-1.5 text-white/30 opacity-0 transition-all hover:bg-white/10 hover:text-rose-400 group-hover:opacity-100"
+                className="absolute right-2 top-2 rounded-lg p-1.5 text-(--ws-fg-40) opacity-0 transition-all hover:bg-(--ws-fill-strong) hover:text-rose-400 group-hover:opacity-100"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -186,26 +186,26 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
               <div className="space-y-3">
                 {/* Duty name */}
                 <div>
-                  <h3 className="font-medium text-white">
+                  <h3 className="font-medium text-(--ws-fg)">
                     {assignment.duty?.name}
                   </h3>
-                  <p className="text-xs capitalize text-white/50">
+                  <p className="text-xs capitalize text-(--ws-fg-50)">
                     {assignment.duty?.category}
                   </p>
                 </div>
 
                 {/* Schedule info */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs text-white/60">
+                  <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
                     <Calendar className="h-3.5 w-3.5" />
                     {formatDays(assignment.days)}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-white/60">
+                  <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
                     <Clock className="h-3.5 w-3.5" />
                     {assignment.startTime} - {assignment.endTime}
                   </div>
                   {assignment.duty?.location && (
-                    <div className="flex items-center gap-2 text-xs text-white/60">
+                    <div className="flex items-center gap-2 text-xs text-(--ws-fg-60)">
                       <MapPin className="h-3.5 w-3.5" />
                       {assignment.duty.location}
                     </div>
@@ -214,7 +214,7 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
 
                 {/* Notes */}
                 {assignment.notes && (
-                  <p className="text-xs text-white/40 italic">
+                  <p className="text-xs text-(--ws-fg-40) italic">
                     {assignment.notes}
                   </p>
                 )}
@@ -226,9 +226,9 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
 
       {/* Weekly Schedule View */}
       {assignments.length > 0 && (
-        <Card className="border-white/10 bg-white/5">
+        <Card className="border-(--ws-line) bg-(--ws-fill)">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium text-white">
+            <CardTitle className="text-base font-medium text-(--ws-fg)">
               Weekly Schedule
             </CardTitle>
           </CardHeader>
@@ -236,10 +236,10 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
             <div className="grid grid-cols-5 gap-2">
               {[1, 2, 3, 4, 5].map((day) => (
                 <div key={day} className="space-y-2">
-                  <div className="text-center text-xs font-medium text-white/60">
+                  <div className="text-center text-xs font-medium text-(--ws-fg-60)">
                     {DAY_NAMES[day]}
                   </div>
-                  <div className="min-h-[100px] space-y-1.5 rounded-lg border border-white/10 bg-white/5 p-2">
+                  <div className="min-h-[100px] space-y-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
                     {(assignmentsByDay[day] || []).map((a) => (
                       <div
                         key={`${a.id}-${day}`}
@@ -249,16 +249,16 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
                           borderLeft: `2px solid ${a.duty?.color || "#fff"}`,
                         }}
                       >
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-(--ws-fg)">
                           {a.duty?.name}
                         </p>
-                        <p className="text-white/60">
+                        <p className="text-(--ws-fg-60)">
                           {a.startTime} - {a.endTime}
                         </p>
                       </div>
                     ))}
                     {!assignmentsByDay[day]?.length && (
-                      <p className="text-center text-xs text-white/30 py-4">
+                      <p className="text-center text-xs text-(--ws-fg-40) py-4">
                         No duties
                       </p>
                     )}

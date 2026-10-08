@@ -46,7 +46,7 @@ function InvoiceStatusBadge({ status }: { status: string }) {
     draft: "bg-gray-500/20 text-gray-300",
     issued: "bg-blue-500/20 text-blue-300",
     partially_paid: "bg-yellow-500/20 text-yellow-300",
-    paid: "bg-green-500/20 text-green-300",
+    paid: "bg-green-500/20 text-(--ws-emerald)",
     overdue: "bg-red-500/20 text-red-300",
     cancelled: "bg-gray-500/20 text-gray-400",
   };
@@ -70,7 +70,7 @@ function MetricCard({
   accent: string;
 }) {
   return (
-    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <div
         className={`pointer-events-none absolute inset-0 bg-linear-to-br ${accent}`}
         aria-hidden="true"
@@ -207,7 +207,7 @@ export default function InvoiceDetailPage() {
             Back to Bills
           </Button>
         </Link>
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <CardContent className="pt-6">
             <p className="text-destructive">Failed to load bill</p>
           </CardContent>
@@ -385,7 +385,7 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* Line Items */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-purple-500/5 via-purple-500/2 to-transparent"
           aria-hidden="true"
@@ -435,9 +435,9 @@ export default function InvoiceDetailPage() {
                       <p className={cn(
                         "font-semibold text-lg",
                         item.isAdjustment && item.amountMinor < 0
-                          ? "text-emerald-300"
+                          ? "text-(--ws-emerald)"
                           : item.isAdjustment && item.amountMinor > 0
-                          ? "text-orange-300"
+                          ? "text-(--ws-amber)"
                           : "text-(--ws-fg)"
                       )}>
                         {item.isAdjustment && item.amountMinor < 0 ? "-" : ""}
@@ -470,7 +470,7 @@ export default function InvoiceDetailPage() {
       </Card>
 
       {/* Payments */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-green-500/5 via-green-500/2 to-transparent"
           aria-hidden="true"

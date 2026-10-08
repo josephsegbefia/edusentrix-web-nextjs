@@ -32,7 +32,7 @@ export function GradesPagination({
   const end = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent px-4 py-3 text-xs text-muted-foreground shadow-lg shadow-black/15 backdrop-blur md:flex-row md:items-center md:justify-between min-w-0">
+    <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) px-4 py-3 text-xs text-muted-foreground shadow-lg shadow-black/15 backdrop-blur md:flex-row md:items-center md:justify-between min-w-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1 text-[11px]">
           Showing{" "}

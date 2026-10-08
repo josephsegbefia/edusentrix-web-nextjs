@@ -32,8 +32,8 @@ const STATUS_STYLES: Record<ReportCardRunStatus, string> = {
   collecting_marks: "border-cyan-500/20 bg-cyan-500/10 text-cyan-100",
   ready_to_compile: "border-teal-500/20 bg-teal-500/10 text-teal-100",
   compiled: "border-violet-500/20 bg-violet-500/10 text-violet-100",
-  submitted_for_approval: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-  returned: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  submitted_for_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+  returned: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   approved: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   released: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
@@ -130,7 +130,7 @@ export function AdminReportRunsClient() {
             </div>
           ) : error ? (
             <div className={cn(glassInsetClass, "px-4 py-8 text-center")}>
-              <p className="text-sm text-rose-200">
+              <p className="text-sm text-(--ws-rose)">
                 {error instanceof Error ? error.message : "Failed to load report runs."}
               </p>
               <Button

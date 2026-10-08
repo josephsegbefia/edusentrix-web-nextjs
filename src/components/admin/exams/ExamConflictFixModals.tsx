@@ -600,7 +600,7 @@ function ExamConflictInvigilatorModal({
         </div>
 
         {isReplace && !assignmentToReplace ? (
-          <div className={cn(glassInsetClass, "p-3 text-sm text-amber-100")}>
+          <div className={cn(glassInsetClass, "p-3 text-sm text-(--ws-amber)")}>
             Select the exam paper that contains the overlapping invigilator assignment.
           </div>
         ) : null}

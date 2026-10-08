@@ -591,16 +591,16 @@ export function ClassTimetableEditor({
   };
 
   return (
-    <Card className="border-white/10 bg-white/5">
+    <Card className="border-(--ws-line) bg-(--ws-fill)">
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
+          <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
             <CalendarDays className="h-5 w-5 text-cyan-300" />
             Class Timetable
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
             <PremiumSelect value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
-              <PremiumSelectTrigger className="w-[220px] border-white/20 bg-white/5 text-white">
+              <PremiumSelectTrigger className="w-[220px] border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)">
                 <PremiumSelectValue placeholder="Select academic period" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
@@ -614,7 +614,7 @@ export function ClassTimetableEditor({
             </PremiumSelect>
           </div>
         </div>
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-(--ws-fg-60)">
           Periods and breaks follow school settings in{" "}
           <Link href={bellScheduleSettingsHref} className="text-cyan-300 underline hover:text-cyan-200">
             Settings
@@ -627,17 +627,17 @@ export function ClassTimetableEditor({
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-(--ws-amber)" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-50">
+                  <p className="text-sm font-semibold text-(--ws-fg)">
                     Published timetable needs review
                   </p>
-                  <p className="mt-1 text-sm text-amber-100/85">
+                  <p className="mt-1 text-sm text-(--ws-amber)">
                     Teacher assignments changed after this timetable was published. Review the draft,
                     resolve any conflicts, then publish again so staff calendars stay accurate.
                   </p>
                   {stalePublishedVersion.staleReasons?.length ? (
-                    <p className="mt-2 text-xs text-amber-100/75">
+                    <p className="mt-2 text-xs text-(--ws-amber)">
                       Latest reason:{" "}
                       {stalePublishedVersion.staleReasons[
                         stalePublishedVersion.staleReasons.length - 1
@@ -651,7 +651,7 @@ export function ClassTimetableEditor({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="border-amber-300/40 bg-amber-500/10 text-amber-50 hover:bg-amber-500/20"
+                  className="border-amber-300/40 bg-amber-500/10 text-(--ws-fg) hover:bg-amber-500/20"
                   onClick={handlePublish}
                   disabled={!versionId || publishBlocked || publishMutation.isPending || !slots.length}
                 >
@@ -667,24 +667,24 @@ export function ClassTimetableEditor({
         {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 &&
         !settingsQuery.isLoading &&
         !dailyQuery.isLoading ? (
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-(--ws-amber)">
             {groupedDailyScheduleRequiresMatch
               ? "This class grade is not assigned to any daily schedule group. Add its grade to a daily schedule in "
               : "Configure school hours and periods in "}
-            <Link href={bellScheduleSettingsHref} className="underline hover:text-amber-100">
+            <Link href={bellScheduleSettingsHref} className="underline hover:text-(--ws-amber)">
               Settings
             </Link>{" "}
             before building timetables.
           </p>
         ) : null}
 
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/45">
+              <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-fg-40)">
                 Leo coach
               </p>
-              <p className="text-sm text-white/70">
+              <p className="text-sm text-(--ws-fg-70)">
                 Short suggestions for this class&apos;s draft and open conflicts.
               </p>
             </div>
@@ -705,16 +705,16 @@ export function ClassTimetableEditor({
             </Button>
           </div>
           {leoText !== null ? (
-            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
+            <div className="mt-3 rounded-lg border border-(--ws-line) bg-black/20 p-3">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm leading-relaxed text-white/85 whitespace-pre-wrap">
+                <p className="text-sm leading-relaxed text-(--ws-fg-90) whitespace-pre-wrap">
                   {leoText || "No suggestions right now."}
                 </p>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 text-white/55 hover:bg-white/10 hover:text-white"
+                  className="h-8 w-8 shrink-0 text-(--ws-fg-50) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   onClick={() => setLeoText(null)}
                 >
                   <X className="h-4 w-4" />
@@ -725,22 +725,22 @@ export function ClassTimetableEditor({
         </div>
 
         {conflictsQuery.isError ? (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-(--ws-rose)">
             Could not load timetable conflicts.{" "}
             {conflictsQuery.error instanceof Error ? conflictsQuery.error.message : "Try again."}
           </div>
         ) : null}
 
         {hasIssueSummary ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-400/25 bg-amber-500/10">
-                  <AlertTriangle className="h-4 w-4 text-amber-200" />
+                  <AlertTriangle className="h-4 w-4 text-(--ws-amber)" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Draft issues</p>
-                  <p className="mt-1 text-sm text-white/65">
+                  <p className="text-sm font-medium text-(--ws-fg)">Draft issues</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-90)">
                     {errorConflicts.length > 0
                       ? `${errorConflicts.length} error(s) affect this class.`
                       : "No error-level issues affect this class."}{" "}
@@ -755,7 +755,7 @@ export function ClassTimetableEditor({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 onClick={() => setIssuesExpanded((current) => !current)}
               >
                 {issuesExpanded ? (
@@ -776,12 +776,12 @@ export function ClassTimetableEditor({
                       return (
                         <div
                           key={conflict.id}
-                          className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-100"
+                          className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2.5 text-sm text-(--ws-rose)"
                         >
                           <p className="font-medium text-rose-50">{details.title}</p>
-                          <p className="mt-1 text-rose-100/90">{details.summary}</p>
+                          <p className="mt-1 text-(--ws-rose)">{details.summary}</p>
                           {details.lines.length > 0 ? (
-                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-rose-100/85">
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-(--ws-rose)">
                               {details.lines.map((line, index) => (
                                 <li key={`${conflict.id}-${index}`}>{line}</li>
                               ))}
@@ -800,12 +800,12 @@ export function ClassTimetableEditor({
                       return (
                         <div
                           key={conflict.id}
-                          className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100"
+                          className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-sm text-(--ws-amber)"
                         >
-                          <p className="font-medium text-amber-50">{details.title}</p>
-                          <p className="mt-1 text-amber-100/90">{details.summary}</p>
+                          <p className="font-medium text-(--ws-fg)">{details.title}</p>
+                          <p className="mt-1 text-(--ws-amber)">{details.summary}</p>
                           {details.lines.length > 0 ? (
-                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/85">
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-(--ws-amber)">
                               {details.lines.map((line, index) => (
                                 <li key={`${conflict.id}-${index}`}>{line}</li>
                               ))}
@@ -814,22 +814,22 @@ export function ClassTimetableEditor({
                         </div>
                       );
                     })}
-                    <p className="text-xs text-amber-200/85">
+                    <p className="text-xs text-(--ws-amber)">
                       Warnings do not block publishing unless your school treats them as errors.
                     </p>
                   </div>
                 ) : null}
 
                 {publishBlocked && otherErrorConflicts.length > 0 ? (
-                  <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/80">
-                    <p className="font-medium text-white">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 px-3 py-3 text-sm text-(--ws-fg-80)">
+                    <p className="font-medium text-(--ws-fg)">
                       Other classes still have {otherErrorConflicts.length} blocking issue(s).
                     </p>
-                    <p className="mt-1 text-white/60">
+                    <p className="mt-1 text-(--ws-fg-60)">
                       The shared academic-period draft currently has {openErrorCount} open error(s)
                       across the school.
                     </p>
-                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-white/70">
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-(--ws-fg-70)">
                       {otherErrorConflicts.slice(0, 4).map((conflict) => (
                         <li key={conflict.id}>{describeConflict(conflict, classId).summary}</li>
                       ))}
@@ -843,11 +843,11 @@ export function ClassTimetableEditor({
       </CardHeader>
       <CardContent>
         {!selectedPeriodId ? (
-          <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-6 text-center text-sm text-white/60">
+          <div className="rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) p-6 text-center text-sm text-(--ws-fg-60)">
             Select an academic period to edit the timetable.
           </div>
         ) : slotsQuery.isLoading || subjectTeachersQuery.isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-white/70">
+          <div className="flex items-center justify-center gap-2 py-12 text-(--ws-fg-70)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading timetable…
           </div>
@@ -870,7 +870,7 @@ export function ClassTimetableEditor({
                         "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                         active
                           ? "bg-cyan-500/25 text-cyan-100 ring-1 ring-cyan-400/40"
-                          : "bg-white/5 text-white/50 hover:bg-white/10"
+                          : "bg-(--ws-fill) text-(--ws-fg-50) hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       {i + 1}. {label}
@@ -883,7 +883,7 @@ export function ClassTimetableEditor({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white"
+                  className="border-(--ws-line-strong) text-(--ws-fg)"
                   disabled={wizardStep === 0}
                   onClick={() => setWizardStep((s) => Math.max(0, s - 1))}
                 >
@@ -894,7 +894,7 @@ export function ClassTimetableEditor({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white"
+                  className="border-(--ws-line-strong) text-(--ws-fg)"
                   disabled={wizardStep >= totalSteps - 1}
                   onClick={() => setWizardStep((s) => Math.min(totalSteps - 1, s + 1))}
                 >
@@ -906,9 +906,9 @@ export function ClassTimetableEditor({
 
             {!isReviewStep ? (
               <div className="space-y-1.5">
-                <p className="text-sm text-white/55">
+                <p className="text-sm text-(--ws-fg-50)">
                   Step {wizardStep + 1} of {totalSteps}: editing{" "}
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-(--ws-fg)">
                     {activeDay !== null ? DAY_NAMES[activeDay] : ""}
                   </span>
                   . Drag subjects from the strip above into period rows. Opening blocks and breaks
@@ -916,7 +916,7 @@ export function ClassTimetableEditor({
                 </p>
                 {activeDay !== null && getResolvedForDay(activeDay)?.isConfigured ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-white/45">
+                    <p className="text-xs text-(--ws-fg-40)">
                       Resolved for {DAY_NAMES[activeDay]}: teaching window{" "}
                       {formatTimeLabel(getResolvedForDay(activeDay)!.startTime)}–
                       {formatTimeLabel(getResolvedForDay(activeDay)!.endTime)}
@@ -929,11 +929,11 @@ export function ClassTimetableEditor({
                       if (!diagnostics) return null;
                       if (diagnostics.periodsShortfall > 0) {
                         return (
-                          <p className="text-xs text-rose-200/85">
+                          <p className="text-xs text-(--ws-rose)">
                             {DAY_NAMES[activeDay]} can currently fit only {diagnostics.scheduledPeriods} of{" "}
                             {getResolvedForDay(activeDay)!.periodsPerDay} configured periods. Review
                             daily schedule end time, breaks, or day structure in{" "}
-                            <Link href={bellScheduleSettingsHref} className="underline hover:text-rose-100">
+                            <Link href={bellScheduleSettingsHref} className="underline hover:text-(--ws-rose)">
                               Settings
                             </Link>
                             .
@@ -945,7 +945,7 @@ export function ClassTimetableEditor({
                         diagnostics.lastPeriodEndTime
                       ) {
                         return (
-                          <p className="text-xs text-amber-200/85">
+                          <p className="text-xs text-(--ws-amber)">
                             Teaching periods end at{" "}
                             {formatTimeLabel(diagnostics.lastPeriodEndTime)}, leaving{" "}
                             {formatMinutesLabel(diagnostics.unallocatedMinutes)} before school closes.
@@ -956,11 +956,11 @@ export function ClassTimetableEditor({
                     })()}
                   </div>
                 ) : activeDay !== null ? (
-                  <p className="text-xs text-amber-200/85">
+                  <p className="text-xs text-(--ws-amber)">
                     {groupedDailyScheduleRequiresMatch
                       ? `${DAY_NAMES[activeDay]} is not configured for this class grade. Assign the grade to a daily schedule group in `
                       : `${DAY_NAMES[activeDay]} is not configured yet. Set period duration first, then start/end time and breaks in `}
-                    <Link href={bellScheduleSettingsHref} className="underline hover:text-amber-100">
+                    <Link href={bellScheduleSettingsHref} className="underline hover:text-(--ws-amber)">
                       Settings
                     </Link>
                     .
@@ -969,12 +969,12 @@ export function ClassTimetableEditor({
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-white/55">
+                <p className="text-sm text-(--ws-fg-50)">
                   Review the full week. Drag lessons to adjust times or days. Saving updates the
                   shared draft immediately.
                 </p>
-                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/55">
-                  <p className="font-medium text-white/70">School hours by day (this class)</p>
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
+                  <p className="font-medium text-(--ws-fg-70)">School hours by day (this class)</p>
                   <ul className="mt-1.5 space-y-0.5">
                     {workingDays.map((d) => {
                       const r = getResolvedForDay(d);
@@ -999,7 +999,7 @@ export function ClassTimetableEditor({
                 </div>
                 {canPublishTimetable ? (
                   <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                    <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
                     <div className="min-w-0 flex-1 text-sm text-emerald-50">
                       <p className="font-medium">Publish for the school</p>
                       <p className="text-emerald-100/80">
@@ -1017,7 +1017,7 @@ export function ClassTimetableEditor({
                     <Button
                       type="button"
                       size="sm"
-                      className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-500"
+                      className="shrink-0 bg-emerald-600 text-(--ws-fg) hover:bg-emerald-500"
                       disabled={
                         !versionId ||
                         publishBlocked ||
@@ -1034,7 +1034,7 @@ export function ClassTimetableEditor({
                     </Button>
                   </div>
                 ) : (
-                  <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/65">
+                  <p className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-90)">
                     A school admin can publish the shared draft from the Review step here when ready. Your
                     edits are saved in the shared draft.
                   </p>
@@ -1043,9 +1043,9 @@ export function ClassTimetableEditor({
             )}
 
             {slotsOutsideCurrentPeriods.length > 0 ? (
-              <div className="rounded-xl border border-rose-500/25 bg-rose-950/20 px-4 py-3 text-sm text-rose-100">
+              <div className="rounded-xl border border-rose-500/25 bg-rose-950/20 px-4 py-3 text-sm text-(--ws-rose)">
                 <p className="font-medium text-rose-50">Off-grid draft lessons</p>
-                <p className="mt-1 text-xs text-rose-100/85">
+                <p className="mt-1 text-xs text-(--ws-rose)">
                   These times do not match any current school period row (for example 07:00 when
                   periods start at 08:00), so they will not appear in the grid. They are still in the
                   shared draft and can trigger &quot;outside period&quot; errors—remove them here or
@@ -1072,13 +1072,13 @@ export function ClassTimetableEditor({
                           {" · "}
                           {DAY_NAMES[slot.dayOfWeek]}{" "}
                           {formatTimeLabel(slot.startTime)}–{formatTimeLabel(slot.endTime)}
-                          <span className="text-rose-200/70"> · {src}</span>
+                          <span className="text-(--ws-rose)"> · {src}</span>
                         </span>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-8 border-rose-400/30 text-rose-100 hover:bg-rose-500/20"
+                          className="h-8 border-rose-400/30 text-(--ws-rose) hover:bg-rose-500/20"
                           disabled={deleteOffGridSlot.isPending}
                           onClick={async () => {
                             try {
@@ -1099,33 +1099,33 @@ export function ClassTimetableEditor({
             ) : null}
 
             {contactHourMismatches.length > 0 ? (
-              <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-50">
+              <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-fg)">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-400/25 bg-amber-500/15">
-                      <Clock className="h-4 w-4 text-amber-200" />
+                      <Clock className="h-4 w-4 text-(--ws-amber)" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-amber-50">Weekly hours vs timetable</p>
-                      <p className="mt-1 text-xs leading-relaxed text-amber-100/75">
+                      <p className="font-medium text-(--ws-fg)">Weekly hours vs timetable</p>
+                      <p className="mt-1 text-xs leading-relaxed text-(--ws-amber)">
                         On Subjects &amp; Teachers you set how many hours each teacher should teach
                         this subject in this class. This compares that target to periods already on
                         this class grid. It does not change the timetable or block publishing.
                       </p>
                       {!contactHoursExpanded ? (
-                        <p className="mt-2 text-sm text-amber-50/90">
+                        <p className="mt-2 text-sm text-(--ws-fg-80)">
                           {activeContactHourMismatches.length === 0 ? (
                             "All reminders dismissed for this browser."
                           ) : (
                             <>
-                              <span className="font-medium text-amber-50">
+                              <span className="font-medium text-(--ws-fg)">
                                 {activeContactHourMismatches.length} assignment
                                 {activeContactHourMismatches.length === 1 ? "" : "s"}
                               </span>{" "}
                               off target
                               {underContactHourMismatches.length > 0 ||
                               overContactHourMismatches.length > 0 ? (
-                                <span className="text-amber-100/80">
+                                <span className="text-(--ws-amber)">
                                   {" "}
                                   (
                                   {[
@@ -1151,7 +1151,7 @@ export function ClassTimetableEditor({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="shrink-0 border-amber-300/30 text-amber-100 hover:bg-amber-500/20"
+                    className="shrink-0 border-amber-300/30 text-(--ws-amber) hover:bg-amber-500/20"
                     onClick={() => setContactHoursExpanded((current) => !current)}
                   >
                     {contactHoursExpanded ? (
@@ -1167,7 +1167,7 @@ export function ClassTimetableEditor({
                   <div className="mt-4 space-y-4">
                     {underContactHourMismatches.length > 0 ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-200/70">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-(--ws-amber)">
                           Need more periods on the grid
                         </p>
                         <ul className="mt-2 space-y-1.5">
@@ -1179,22 +1179,22 @@ export function ClassTimetableEditor({
                                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/20 bg-black/20 px-3 py-2 text-xs"
                               >
                                 <span className="min-w-0">
-                                  <span className="font-medium text-amber-50">{plan.subjectName}</span>
-                                  <span className="text-amber-100/70"> · {plan.teacherName}</span>
+                                  <span className="font-medium text-(--ws-fg)">{plan.subjectName}</span>
+                                  <span className="text-(--ws-amber)"> · {plan.teacherName}</span>
                                 </span>
                                 <span className="flex shrink-0 flex-wrap items-center gap-2">
-                                  <span className="text-amber-100/80">
+                                  <span className="text-(--ws-amber)">
                                     {formatHoursMinutes(plan.plannedHours)} of{" "}
                                     {formatHoursMinutes(plan.targetHours)}
                                   </span>
-                                  <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 font-medium text-amber-100">
+                                  <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 font-medium text-(--ws-amber)">
                                     -{formatHoursMinutes(gapHours)}
                                   </span>
                                   <Button
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 border-amber-300/30 text-amber-100 hover:bg-amber-500/20"
+                                    className="h-7 border-amber-300/30 text-(--ws-amber) hover:bg-amber-500/20"
                                     onClick={() => ignoreContactHourKey(plan.key)}
                                   >
                                     Dismiss
@@ -1209,7 +1209,7 @@ export function ClassTimetableEditor({
 
                     {overContactHourMismatches.length > 0 ? (
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-rose-200/70">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-(--ws-rose)">
                           More periods than target
                         </p>
                         <ul className="mt-2 space-y-1.5">
@@ -1222,21 +1222,21 @@ export function ClassTimetableEditor({
                               >
                                 <span className="min-w-0">
                                   <span className="font-medium text-rose-50">{plan.subjectName}</span>
-                                  <span className="text-rose-100/70"> · {plan.teacherName}</span>
+                                  <span className="text-(--ws-rose)"> · {plan.teacherName}</span>
                                 </span>
                                 <span className="flex shrink-0 flex-wrap items-center gap-2">
-                                  <span className="text-rose-100/80">
+                                  <span className="text-(--ws-rose)">
                                     {formatHoursMinutes(plan.plannedHours)} of{" "}
                                     {formatHoursMinutes(plan.targetHours)}
                                   </span>
-                                  <span className="rounded-full border border-rose-400/30 bg-rose-500/15 px-2 py-0.5 font-medium text-rose-100">
+                                  <span className="rounded-full border border-rose-400/30 bg-rose-500/15 px-2 py-0.5 font-medium text-(--ws-rose)">
                                     +{formatHoursMinutes(gapHours)}
                                   </span>
                                   <Button
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 border-rose-400/30 text-rose-100 hover:bg-rose-500/20"
+                                    className="h-7 border-rose-400/30 text-(--ws-rose) hover:bg-rose-500/20"
                                     onClick={() => ignoreContactHourKey(plan.key)}
                                   >
                                     Dismiss
@@ -1250,7 +1250,7 @@ export function ClassTimetableEditor({
                     ) : null}
 
                     {dismissedContactHourCount > 0 ? (
-                      <p className="text-xs text-amber-100/60">
+                      <p className="text-xs text-(--ws-amber)">
                         {dismissedContactHourCount} reminder
                         {dismissedContactHourCount === 1 ? "" : "s"} dismissed on this device only.
                       </p>

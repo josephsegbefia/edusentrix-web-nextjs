@@ -47,7 +47,7 @@ function EvidenceItemRow({
             : null}
         </p>
         {item.exclusionReason ? (
-          <p className="text-[11px] text-(--ws-amber)/80">{item.exclusionReason}</p>
+          <p className="text-[11px] text-(--ws-amber)">{item.exclusionReason}</p>
         ) : null}
       </div>
       <div className="text-right">
@@ -182,7 +182,7 @@ export function AssessmentBreakdownProfileContent({
               </span>
             )}
             {breakdown.dataSource === "legacy" ? (
-              <span className="text-[11px] text-(--ws-amber)/80">Legacy gradebook data</span>
+              <span className="text-[11px] text-(--ws-amber)">Legacy gradebook data</span>
             ) : null}
           </CardContent>
         </Card>

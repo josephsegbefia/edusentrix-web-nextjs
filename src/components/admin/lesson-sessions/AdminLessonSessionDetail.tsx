@@ -106,7 +106,7 @@ type AdminLessonSessionDetailResponse = {
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-amber-400/30 bg-amber-500/10 text-amber-100",
+  draft: "border-amber-400/30 bg-amber-500/10 text-(--ws-amber)",
   ready: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100",
   published: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
   archived: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)",
@@ -114,7 +114,7 @@ const STATUS_STYLES: Record<string, string> = {
   in_progress: "border-teal-400/30 bg-teal-500/10 text-teal-100",
   delivered: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
   completed: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
-  cancelled: "border-rose-400/30 bg-rose-500/10 text-rose-100",
+  cancelled: "border-rose-400/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
 function humanize(value: string) {
@@ -333,7 +333,7 @@ export function AdminLessonSessionDetail({ sessionId }: { sessionId: string }) {
                     <DetailRow label="Completed" value={formatDateTime(delivery.completedAt)} />
                   </div>
                   {delivery.substituteReason ? (
-                    <p className="mt-3 text-xs text-amber-100/75">
+                    <p className="mt-3 text-xs text-(--ws-amber)">
                       Substitute reason: {humanize(delivery.substituteReason)}
                     </p>
                   ) : null}

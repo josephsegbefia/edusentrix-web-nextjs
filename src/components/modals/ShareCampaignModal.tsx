@@ -127,7 +127,7 @@ export function ShareCampaignModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 shadow-2xl sm:max-w-lg">
+      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 shadow-2xl sm:max-w-lg">
         {/* Ambient gradient */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />
@@ -180,7 +180,7 @@ export function ShareCampaignModal({
               </div>
 
               {campaign.status !== "live" && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-(--ws-amber)">
                   Only live campaigns can be shared publicly. Please publish this campaign first.
                 </div>
               )}
@@ -297,7 +297,7 @@ export function ShareCampaignModal({
                   onClick={handleDisableShare}
                   disabled={disableShareMutation.isPending}
                   variant="ghost"
-                  className="w-full gap-2 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+                  className="w-full gap-2 text-rose-400 hover:bg-rose-500/10 hover:text-(--ws-rose)"
                 >
                   {disableShareMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

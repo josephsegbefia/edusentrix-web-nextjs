@@ -307,7 +307,7 @@ export function TeachersTable({
                       end.setHours(0, 0, 0, 0);
                       const d = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
                       return (
-                        <span className="text-[10px] text-(--ws-amber)/70">
+                        <span className="text-[10px] text-(--ws-amber)">
                           {d === 0 ? "ends today" : `${d}d left`}
                         </span>
                       );

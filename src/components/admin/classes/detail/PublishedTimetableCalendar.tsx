@@ -36,7 +36,7 @@ const FullCalendar = dynamic(
 
 function PublishedCalendarSkeleton() {
   return (
-    <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-white/10 bg-white/2 text-sm text-white/50">
+    <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg-50)">
       Loading week view…
     </div>
   );
@@ -126,7 +126,7 @@ function PublishedEventCard({
         {isCurrent ? (
           <span className="h-2 w-2 shrink-0 rounded-full bg-sky-200 shadow-[0_0_10px_rgba(125,211,252,0.9)]" />
         ) : null}
-        <p className="truncate text-[11px] font-semibold text-white">{title}</p>
+        <p className="truncate text-[11px] font-semibold text-(--ws-fg)">{title}</p>
       </div>
     );
   }
@@ -157,7 +157,7 @@ function PublishedEventCard({
       </div>
       <p
         className={cn(
-          "mt-1 min-w-0 break-words font-semibold text-white",
+          "mt-1 min-w-0 break-words font-semibold text-(--ws-fg)",
           isCompact ? "line-clamp-1 text-xs leading-snug" : "line-clamp-2 text-sm leading-tight"
         )}
       >
@@ -198,7 +198,7 @@ function renderEventContent(arg: EventContentArg) {
   if (kind === "lesson") {
     const slot = arg.event.extendedProps?.slot as PublishedClassSlotDTO | undefined;
     if (!slot) {
-      return <div className="p-1 text-xs text-white/80">{arg.event.title}</div>;
+      return <div className="p-1 text-xs text-(--ws-fg-80)">{arg.event.title}</div>;
     }
     const durationMinutes = minutesBetween(slot.startTime, slot.endTime);
     const isSlotSource = slot.teacherLinkSource === "slot";
@@ -225,14 +225,14 @@ function renderEventContent(arg: EventContentArg) {
             ? {
                 bodyClassName:
                   "border-amber-400/35 bg-linear-to-br from-amber-500/15 via-amber-900/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(251,191,36,0.12)_inset]",
-                eyebrowClassName: "text-amber-200/90",
-                metaClassName: "text-amber-100/75",
+                eyebrowClassName: "text-(--ws-amber)",
+                metaClassName: "text-(--ws-amber)",
               }
             : {
                 bodyClassName:
                   "border-cyan-400/30 bg-linear-to-br from-cyan-500/20 via-sky-500/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]",
                 eyebrowClassName: "text-cyan-100/85",
-                metaClassName: "text-white/65",
+                metaClassName: "text-(--ws-fg-90)",
               }
         }
       />
@@ -241,7 +241,7 @@ function renderEventContent(arg: EventContentArg) {
   if (kind === "gap") {
     const fill = arg.event.extendedProps?.fill as PublishedGapFillDTO | undefined;
     if (!fill) {
-      return <div className="p-1 text-xs text-amber-100/80">{arg.event.title}</div>;
+      return <div className="p-1 text-xs text-(--ws-amber)">{arg.event.title}</div>;
     }
     const durationMinutes = minutesBetween(fill.startTime, fill.endTime);
     return (
@@ -256,8 +256,8 @@ function renderEventContent(arg: EventContentArg) {
         tone={{
           bodyClassName:
             "border-amber-400/30 bg-linear-to-br from-amber-500/20 to-amber-950/30 shadow-[0_1px_0_0_rgba(251,191,36,0.15)_inset]",
-          eyebrowClassName: "text-amber-200/90",
-          metaClassName: "text-amber-100/75",
+          eyebrowClassName: "text-(--ws-amber)",
+          metaClassName: "text-(--ws-amber)",
         }}
       />
     );
@@ -297,8 +297,8 @@ function renderEventContent(arg: EventContentArg) {
         tone={{
           bodyClassName:
             "border-rose-400/30 bg-linear-to-br from-rose-500/20 to-slate-950/80",
-          eyebrowClassName: "text-rose-200/90",
-          metaClassName: "text-rose-100/70",
+          eyebrowClassName: "text-(--ws-rose)",
+          metaClassName: "text-(--ws-rose)",
         }}
       />
     );
@@ -317,7 +317,7 @@ function renderEventContent(arg: EventContentArg) {
         tone={{
           bodyClassName:
             "border-violet-400/30 bg-linear-to-br from-violet-500/20 to-slate-950/80",
-          eyebrowClassName: "text-violet-200/90",
+          eyebrowClassName: "text-(--ws-violet)",
           metaClassName: "text-violet-100/70",
         }}
       />
@@ -336,14 +336,14 @@ function renderEventContent(arg: EventContentArg) {
         isCurrent={isCurrent}
         tone={{
           bodyClassName:
-            "border border-dashed border-slate-400/35 bg-slate-900/60",
+            "border border-dashed border-slate-400/35 bg-(--ws-panel-from)",
           eyebrowClassName: "text-slate-200/90",
           metaClassName: "text-slate-200/75",
         }}
       />
     );
   }
-  return <div className="p-1 text-xs text-white/70">{arg.event.title}</div>;
+  return <div className="p-1 text-xs text-(--ws-fg-70)">{arg.event.title}</div>;
 }
 
 /**
@@ -391,22 +391,22 @@ export function PublishedTimetableCalendar({
   }, [timeAxis.hours, startHour]);
 
   return (
-    <Card className="overflow-hidden border-white/10 bg-linear-to-b from-white/5 to-transparent shadow-xl shadow-black/20">
-      <CardHeader className="space-y-3 border-b border-white/[0.07] pb-4">
+    <Card className="overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)]">
+      <CardHeader className="space-y-3 border-b border-(--ws-line) pb-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
               <LayoutGrid className="h-5 w-5 text-cyan-300" />
               Published week · {classLabel}
             </CardTitle>
-            <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-white/55">
+            <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-(--ws-fg-50)">
               A cleaner week view for this class: lessons, breaks, assembly blocks, and free
               periods, all aligned to the configured school day.
             </p>
           </div>
         </div>
         {staleTeacherSlotCount > 0 && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100/90">
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-sm text-(--ws-amber)">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
             <p>
               <span className="font-semibold">{staleTeacherSlotCount} slot{staleTeacherSlotCount === 1 ? "" : "s"} have a mismatched teacher.</span>{" "}
@@ -424,7 +424,7 @@ export function PublishedTimetableCalendar({
             Lessons
           </span>
           <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-100/90"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-amber)"
             title="Time not covered by a subject; label is set per grade"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_#fbbf24]" />
@@ -438,7 +438,7 @@ export function PublishedTimetableCalendar({
             Breaks
           </span>
           <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-rose-400/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-100/90"
+            className="inline-flex items-center gap-1.5 rounded-full border border-rose-400/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-rose)"
             title="Assembly and similar blocks"
           >
             <Sun className="h-3 w-3" />
@@ -453,7 +453,7 @@ export function PublishedTimetableCalendar({
           </span>
           {staleTeacherSlotCount > 0 && (
             <span
-              className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-200/90"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-amber)"
               title="Teacher appears in the timetable but has no active subject assignment in this class"
             >
               <AlertTriangle className="h-3 w-3" />

@@ -74,7 +74,7 @@ const toneConfig: Record<
     bg: "from-rose-500/10 via-rose-500/5 to-transparent",
     glow: "bg-rose-500/20",
     accent: "bg-rose-500",
-    badge: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+    badge: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
   },
   amber: {
     border: "border-amber-500/30",
@@ -95,7 +95,7 @@ const toneConfig: Record<
     bg: "from-violet-500/10 via-violet-500/5 to-transparent",
     glow: "bg-violet-500/20",
     accent: "bg-violet-500",
-    badge: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+    badge: "bg-violet-500/20 text-(--ws-violet) border-violet-500/30",
   },
 };
 

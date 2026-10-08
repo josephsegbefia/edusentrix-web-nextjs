@@ -25,11 +25,11 @@ import { LeoAdmissionsGuide } from "@/components/admissions/leo/LeoAdmissionsGui
 type Action = "publish" | "pause" | "close";
 
 const STATUS_DOT: Record<AdmissionCycleDTO["status"], string> = {
-  draft: "bg-white/30",
+  draft: "bg-(--ws-fill)0",
   published: "bg-emerald-400",
   paused: "bg-amber-400",
   closed: "bg-rose-400",
-  archived: "bg-white/15",
+  archived: "bg-(--ws-fill-strong)",
 };
 
 function fmt(value?: string | null) {
@@ -106,13 +106,13 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
         />
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-(--ws-fg)">
               Cycle controls
             </h3>
-            <p className="text-xs text-white/55">
+            <p className="text-xs text-(--ws-fg-50)">
               Publishing makes the application link reachable. Pausing hides it
               from the public without losing data.
             </p>
@@ -153,7 +153,7 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
                 size="sm"
                 onClick={() => setConfirm("close")}
                 disabled={transitioning}
-                className="text-rose-300 hover:text-rose-200"
+                className="text-(--ws-rose) hover:text-(--ws-rose)"
               >
                 {isClosing ? (
                   <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
@@ -167,9 +167,9 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-        <h3 className="text-sm font-semibold text-white">Pipeline snapshot</h3>
-        <p className="text-xs text-white/55">
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
+        <h3 className="text-sm font-semibold text-(--ws-fg)">Pipeline snapshot</h3>
+        <p className="text-xs text-(--ws-fg-50)">
           Live counts by status across all submitted applications.
         </p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -184,10 +184,10 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
           ].map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 p-3"
+              className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-black/20 p-3"
             >
-              <span className="text-xs text-white/70">{item.label}</span>
-              <span className="text-base font-semibold text-white">
+              <span className="text-xs text-(--ws-fg-70)">{item.label}</span>
+              <span className="text-base font-semibold text-(--ws-fg)">
                 {byStatus[item.id] ?? 0}
               </span>
             </div>
@@ -195,11 +195,11 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-        <h3 className="text-sm font-semibold text-white">Cycle settings</h3>
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
+        <h3 className="text-sm font-semibold text-(--ws-fg)">Cycle settings</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Row label="Slug">
-            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs text-white/85">
+            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs text-(--ws-fg-90)">
               {cycle.slug}
             </code>
           </Row>
@@ -215,7 +215,7 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
             ) : (
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/5 text-white/55"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
               >
                 <CircleDashed className="mr-1 h-3 w-3" />
                 Disabled
@@ -224,16 +224,16 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
           </Row>
           <Row label="Application fee">
             {cycle.applicationFee?.enabled ? (
-              <span className="text-sm text-white/85">
+              <span className="text-sm text-(--ws-fg-90)">
                 {cycle.applicationFee.currency}{" "}
                 {(cycle.applicationFee.amountMinor / 100).toFixed(2)}
               </span>
             ) : (
-              <span className="text-sm text-white/55">No fee</span>
+              <span className="text-sm text-(--ws-fg-50)">No fee</span>
             )}
           </Row>
           <Row label="Intake grades">
-            <span className="text-sm text-white/85">
+            <span className="text-sm text-(--ws-fg-90)">
               {cycle.intakeGradeIds.length || "All active grades"}
             </span>
           </Row>
@@ -282,11 +282,11 @@ function StatCard({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
         {label}
       </p>
-      <div className="mt-2 text-base font-semibold text-white">{value}</div>
+      <div className="mt-2 text-base font-semibold text-(--ws-fg)">{value}</div>
     </div>
   );
 }
@@ -299,8 +299,8 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 p-3">
-      <span className="text-xs text-white/55">{label}</span>
+    <div className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-black/20 p-3">
+      <span className="text-xs text-(--ws-fg-50)">{label}</span>
       <div>{children}</div>
     </div>
   );

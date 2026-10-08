@@ -34,7 +34,7 @@ const FullCalendar = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm text-white/55">
+      <div className="flex min-h-[420px] items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg-50)">
         Loading weekly schedule…
       </div>
     ),
@@ -244,7 +244,7 @@ function EventCard({
           ) : null}
           <p
             className={cn(
-              "font-semibold text-white",
+              "font-semibold text-(--ws-fg)",
               useWrapMeta
                 ? "line-clamp-2 min-w-0 flex-1 text-[10px] leading-tight"
                 : "truncate text-[11px]"
@@ -254,7 +254,7 @@ function EventCard({
           </p>
         </div>
         {useWrapMeta && (detail || description) ? (
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-(--ws-fill)0">
             {detail ? (
               <p className={cn("wrap-break-word text-[9px] leading-snug", metaClassName)}>{detail}</p>
             ) : null}
@@ -294,7 +294,7 @@ function EventCard({
       </div>
       <p
         className={cn(
-          "min-h-0 min-w-0 shrink-0 font-semibold leading-snug text-white",
+          "min-h-0 min-w-0 shrink-0 font-semibold leading-snug text-(--ws-fg)",
           isCompact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-sm"
         )}
       >
@@ -324,7 +324,7 @@ function EventCard({
         <div
           className={cn(
             "mt-0.5 flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin]",
-            "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20"
+            "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-(--ws-fill)0"
           )}
         >
           {detail ? (
@@ -358,7 +358,7 @@ function EventCard({
         <div
           className={cn(
             "mt-1 flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin]",
-            "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20"
+            "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-(--ws-fill)0"
           )}
         >
           {detail ? (
@@ -380,7 +380,7 @@ function renderEventContent(arg: EventContentArg) {
   if (kind === "lesson") {
     const lesson = arg.event.extendedProps?.lesson as TeacherWeekLessonDTO | undefined;
     if (!lesson) {
-      return <div className="p-1 text-xs text-white/80">{arg.event.title}</div>;
+      return <div className="p-1 text-xs text-(--ws-fg-80)">{arg.event.title}</div>;
     }
     const otherTeachers = lesson.teacherNames.filter(
       (name) => name && name !== lesson.teacherName
@@ -408,7 +408,7 @@ function renderEventContent(arg: EventContentArg) {
         isCurrent={isCurrent}
         bodyClassName="border-cyan-400/30 bg-linear-to-br from-cyan-500/20 via-sky-500/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]"
         eyebrowClassName="text-cyan-100/85"
-        metaClassName="text-white/65"
+        metaClassName="text-(--ws-fg-90)"
       />
     );
   }
@@ -416,7 +416,7 @@ function renderEventContent(arg: EventContentArg) {
   if (kind === "duty") {
     const duty = arg.event.extendedProps?.duty as TeacherWeekDutyDTO | undefined;
     if (!duty) {
-      return <div className="p-1 text-xs text-white/80">{arg.event.title}</div>;
+      return <div className="p-1 text-xs text-(--ws-fg-80)">{arg.event.title}</div>;
     }
     const detail = [duty.location, duty.dutyCategory]
       .filter((value): value is string => Boolean(value))
@@ -437,16 +437,16 @@ function renderEventContent(arg: EventContentArg) {
         description={duty.notes || null}
         durationMinutes={minutesBetween(duty.startTime, duty.endTime)}
         isCurrent={isCurrent}
-        bodyClassName="bg-slate-950/80"
-        eyebrowClassName="text-amber-100/90"
-        metaClassName="text-white/70"
+        bodyClassName="bg-(--ws-panel-from)"
+        eyebrowClassName="text-(--ws-amber)"
+        metaClassName="text-(--ws-fg-70)"
         style={style}
         metaMode="wrap"
       />
     );
   }
 
-  return <div className="p-1 text-xs text-white/70">{arg.event.title}</div>;
+  return <div className="p-1 text-xs text-(--ws-fg-70)">{arg.event.title}</div>;
 }
 
 function TodayBadge() {
@@ -504,15 +504,15 @@ export function TeacherWeekScheduleCalendar({
   const isCurrentWeek = agenda.weekStart === formatYmd(mondayContaining(new Date()));
 
   return (
-    <Card className="overflow-hidden border-white/10 bg-linear-to-b from-white/5 to-transparent shadow-xl shadow-black/20">
-      <CardHeader className="space-y-4 border-b border-white/[0.07] pb-4">
+    <Card className="overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)]">
+      <CardHeader className="space-y-4 border-b border-(--ws-line) pb-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-2">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
               <CalendarDays className="h-5 w-5 text-cyan-300" />
               Weekly schedule · {teacherName}
             </CardTitle>
-            <p className="max-w-3xl text-sm leading-relaxed text-white/55">
+            <p className="max-w-3xl text-sm leading-relaxed text-(--ws-fg-50)">
               Lessons repeat each week from the active class timetables in the
               current academic period. Non-teaching duties appear only on dates
               where they are active inside that period.
@@ -524,7 +524,7 @@ export function TeacherWeekScheduleCalendar({
               variant="outline"
               size="sm"
               onClick={onPreviousWeek}
-              className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+              className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
             >
               <ChevronLeft className="h-4 w-4" />
               Prev week
@@ -534,7 +534,7 @@ export function TeacherWeekScheduleCalendar({
               variant="outline"
               size="sm"
               onClick={onCurrentWeek}
-              className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+              className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
             >
               <RefreshCcw className="h-4 w-4" />
               This week
@@ -544,7 +544,7 @@ export function TeacherWeekScheduleCalendar({
               variant="outline"
               size="sm"
               onClick={onNextWeek}
-              className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+              className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
             >
               Next week
               <ChevronRight className="h-4 w-4" />
@@ -553,7 +553,7 @@ export function TeacherWeekScheduleCalendar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/85">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] font-medium text-(--ws-fg-90)">
             <Clock className="h-3 w-3 text-cyan-300" />
             {weekLabel}
           </span>
@@ -562,7 +562,7 @@ export function TeacherWeekScheduleCalendar({
             <BookOpen className="h-3 w-3" />
             {agenda.summary.lessonCount} lessons
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-100/90">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-amber)">
             <ClipboardList className="h-3 w-3" />
             {agenda.summary.dutyCount} duties
           </span>
@@ -573,7 +573,7 @@ export function TeacherWeekScheduleCalendar({
             </span>
           ) : null}
           {isFetching ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/70">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] font-medium text-(--ws-fg-70)">
               <RefreshCcw className="h-3 w-3 animate-spin" />
               Refreshing
             </span>
@@ -585,10 +585,10 @@ export function TeacherWeekScheduleCalendar({
             {agenda.academicPeriods.map((period) => (
               <span
                 key={period.id}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/80"
+                className="inline-flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] font-medium text-(--ws-fg-80)"
                 title={`${format(parseYmdLocal(period.startDate.slice(0, 10)), "MMM d, yyyy")} to ${format(parseYmdLocal(period.endDate.slice(0, 10)), "MMM d, yyyy")}`}
               >
-                <BriefcaseBusiness className="h-3 w-3 text-emerald-300" />
+                <BriefcaseBusiness className="h-3 w-3 text-(--ws-emerald)" />
                 {period.label}
                 {period.lessonVersionStatus ? ` · ${period.lessonVersionStatus}` : " · no timetable"}
               </span>
@@ -601,8 +601,8 @@ export function TeacherWeekScheduleCalendar({
             className={cn(
               "flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
               agenda.boundaryState === "outside"
-                ? "border-rose-500/20 bg-rose-500/10 text-rose-100"
-                : "border-amber-500/20 bg-amber-500/10 text-amber-100"
+                ? "border-rose-500/20 bg-rose-500/10 text-(--ws-rose)"
+                : "border-amber-500/20 bg-amber-500/10 text-(--ws-amber)"
             )}
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -622,7 +622,7 @@ export function TeacherWeekScheduleCalendar({
         ) : null}
 
         {!hasLessons && !hasDuties ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/65">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-90)">
             No lessons or duties fall in this week for {teacherName}. If the
             teacher has subject assignments, check that the class-group
             timetable for the relevant academic period has been created.
@@ -630,7 +630,7 @@ export function TeacherWeekScheduleCalendar({
         ) : null}
 
         {!hasLessons && hasDuties ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/65">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-90)">
             Duties are active for this week, but no timetable lessons were found
             in the current academic period.
           </div>
@@ -665,7 +665,7 @@ export function TeacherWeekScheduleCalendar({
           />
         </div>
 
-        <div className="grid gap-px border-t border-white/10 bg-white/5 px-4 py-3 text-xs text-white/55 sm:grid-cols-3">
+        <div className="grid gap-px border-t border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-xs text-(--ws-fg-50) sm:grid-cols-3">
           <div className="flex items-center gap-2">
             <BookOpen className="h-3.5 w-3.5 text-cyan-300" />
             Lessons repeat weekly inside the academic period.
@@ -675,7 +675,7 @@ export function TeacherWeekScheduleCalendar({
             Duties appear only on active dates and active date ranges.
           </div>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 text-sky-300" />
+            <Sparkles className="h-3.5 w-3.5 text-(--ws-cyan)" />
             The blue line and glow show the current time and current block.
           </div>
         </div>

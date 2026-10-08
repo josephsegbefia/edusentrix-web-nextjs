@@ -126,7 +126,7 @@ export function ExamAssessmentLinkExistingModal({
                         {item.componentKey ? ` · ${item.componentKey}` : ""}
                       </p>
                       {item.ineligibilityReason ? (
-                        <p className="mt-1 text-xs text-amber-100/90">
+                        <p className="mt-1 text-xs text-(--ws-amber)">
                           {item.ineligibilityReason}
                         </p>
                       ) : null}
@@ -150,7 +150,7 @@ export function ExamAssessmentLinkExistingModal({
         )}
 
         {!isLoading && candidates.length > 0 && eligibleCandidates.length === 0 ? (
-          <p className="text-sm text-amber-100/90">
+          <p className="text-sm text-(--ws-amber)">
             No eligible items match this exam entry. Adjust component, max score, or create a
             linked item instead.
           </p>

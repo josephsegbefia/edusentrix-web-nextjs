@@ -60,11 +60,11 @@ export default function AdminReportCardViewPage() {
         ) : data ? (
           <div className="space-y-4">
             {data.source === "snapshot" ? (
-              <GlassPanel className="px-4 py-3 text-sm text-(--ws-emerald)/80">
+              <GlassPanel className="px-4 py-3 text-sm text-(--ws-emerald)">
                 Showing frozen report snapshot ({data.status ?? "snapshot"}).
               </GlassPanel>
             ) : (
-              <GlassPanel className="px-4 py-3 text-sm text-(--ws-amber)/80">
+              <GlassPanel className="px-4 py-3 text-sm text-(--ws-amber)">
                 Showing legacy SubjectGrade data fallback until a released snapshot exists.
               </GlassPanel>
             )}

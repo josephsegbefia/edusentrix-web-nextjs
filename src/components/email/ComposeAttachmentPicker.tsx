@@ -106,7 +106,7 @@ export function ComposeAttachmentPicker({
           variant="outline"
           disabled={disabled || busy || attachments.length >= MAX_ATTACHMENTS}
           onClick={() => inputRef.current?.click()}
-          className="gap-2 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+          className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
         >
           {busy ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -115,7 +115,7 @@ export function ComposeAttachmentPicker({
           )}
           Attach files
         </Button>
-        <span className="text-xs text-white/40">
+        <span className="text-xs text-(--ws-fg-40)">
           Up to {MAX_ATTACHMENTS} files, 8 MB each, 12 MB total
         </span>
       </div>
@@ -125,12 +125,12 @@ export function ComposeAttachmentPicker({
           {attachments.map((attachment, index) => (
             <div
               key={`${attachment.name}-${index}`}
-              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
             >
-              <FileText className="h-4 w-4 shrink-0 text-white/50" />
+              <FileText className="h-4 w-4 shrink-0 text-(--ws-fg-50)" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-white/80">{attachment.name}</p>
-                <p className="text-xs text-white/40">
+                <p className="truncate text-sm text-(--ws-fg-80)">{attachment.name}</p>
+                <p className="text-xs text-(--ws-fg-40)">
                   {formatBytes(attachment.sizeBytes)}
                 </p>
               </div>
@@ -142,7 +142,7 @@ export function ComposeAttachmentPicker({
                 onClick={() =>
                   onChange(attachments.filter((_, itemIndex) => itemIndex !== index))
                 }
-                className="h-8 w-8 p-0 text-white/40 hover:text-white"
+                className="h-8 w-8 p-0 text-(--ws-fg-40) hover:text-(--ws-fg)"
               >
                 <X className="h-4 w-4" />
               </Button>

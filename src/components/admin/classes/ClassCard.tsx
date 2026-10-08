@@ -96,7 +96,7 @@ export function ClassCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-linear-to-br from-emerald-500/20 to-green-500/20">
-                <School className="h-5 w-5 text-emerald-300" />
+                <School className="h-5 w-5 text-(--ws-emerald)" />
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-lg font-semibold text-white">
@@ -189,7 +189,7 @@ export function ClassCard({
             </div>
             <Badge
               variant="outline"
-              className="rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300"
+              className="rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-(--ws-emerald)"
             >
               <UserCheck className="mr-1 h-2.5 w-2.5" />
               Assigned
@@ -200,21 +200,21 @@ export function ClassCard({
         {/* Stats */}
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 p-2">
-            <Users className="mb-1 h-4 w-4 text-emerald-300" />
+            <Users className="mb-1 h-4 w-4 text-(--ws-emerald)" />
             <p className="text-xs font-semibold text-white">
               {classGroup.studentCount}
             </p>
             <p className="text-[10px] text-white/50">Students</p>
           </div>
           <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 p-2">
-            <BookOpen className="mb-1 h-4 w-4 text-emerald-300" />
+            <BookOpen className="mb-1 h-4 w-4 text-(--ws-emerald)" />
             <p className="text-xs font-semibold text-white">
               {classGroup.subjectCount}
             </p>
             <p className="text-[10px] text-white/50">Subjects</p>
           </div>
           <div className="flex flex-col items-center rounded-lg border border-white/10 bg-white/5 p-2">
-            <UserCheck className="mb-1 h-4 w-4 text-emerald-300" />
+            <UserCheck className="mb-1 h-4 w-4 text-(--ws-emerald)" />
             <p className="text-xs font-semibold text-white">
               {classGroup.teacherCount}
             </p>

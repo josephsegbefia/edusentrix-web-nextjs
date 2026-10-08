@@ -18,6 +18,7 @@ import { PeriodDetailHeader } from "@/components/admin/periods/PeriodDetailHeade
 import { PeriodDetailTabs, type PeriodDetailTabId } from "@/components/admin/periods/PeriodDetailTabs";
 import { PeriodOverviewTab } from "@/components/admin/periods/PeriodOverviewTab";
 import { PeriodReportsTab } from "@/components/admin/periods/PeriodReportsTab";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 function getInitialTab(sp: URLSearchParams | null): PeriodDetailTabId {
   if (!sp) return "overview";
@@ -214,29 +215,29 @@ function PeriodDetailContent() {
       <div className="space-y-6">
         <div className="relative">
           <div className="relative z-10 flex items-start gap-4">
-            <div className="h-10 w-10 animate-pulse rounded-xl border border-white/10 bg-white/5" />
+            <div className="h-10 w-10 animate-pulse rounded-xl border border-(--ws-line) bg-(--ws-fill)" />
             <div className="space-y-2">
-              <div className="h-9 w-64 animate-pulse rounded-lg bg-white/10" />
-              <div className="h-4 w-96 animate-pulse rounded bg-white/5" />
+              <div className="h-9 w-64 animate-pulse rounded-lg bg-(--ws-fill-strong)" />
+              <div className="h-4 w-96 animate-pulse rounded bg-(--ws-fill)" />
             </div>
           </div>
         </div>
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-teal-950/40 to-transparent">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
           <CardContent className="flex animate-pulse flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 items-center gap-4">
-              <div className="size-24 rounded-full bg-white/10" />
+              <div className="size-24 rounded-full bg-(--ws-fill-strong)" />
               <div className="space-y-3">
-                <div className="h-6 w-48 rounded bg-white/15" />
+                <div className="h-6 w-48 rounded bg-(--ws-fill-strong)" />
                 <div className="flex gap-2">
-                  <div className="h-5 w-20 rounded-full bg-white/10" />
-                  <div className="h-5 w-24 rounded-full bg-white/10" />
+                  <div className="h-5 w-20 rounded-full bg-(--ws-fill-strong)" />
+                  <div className="h-5 w-24 rounded-full bg-(--ws-fill-strong)" />
                 </div>
               </div>
             </div>
             <div className="hidden w-80 space-y-3 md:block">
               <div className="grid grid-cols-2 gap-3">
-                <div className="h-24 rounded-xl bg-white/10" />
-                <div className="h-24 rounded-xl bg-white/10" />
+                <div className="h-24 rounded-xl bg-(--ws-fill-strong)" />
+                <div className="h-24 rounded-xl bg-(--ws-fill-strong)" />
               </div>
             </div>
           </CardContent>
@@ -245,14 +246,14 @@ function PeriodDetailContent() {
           {[...Array(2)].map((_, i) => (
             <div
               key={i}
-              className="h-9 w-28 shrink-0 animate-pulse rounded-xl bg-white/10"
+              className="h-9 w-28 shrink-0 animate-pulse rounded-xl bg-(--ws-fill-strong)"
             />
           ))}
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
-          <div className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
-          <div className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+          <div className="h-32 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
+          <div className="h-32 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
+          <div className="h-32 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
         </div>
       </div>
     );
@@ -312,7 +313,7 @@ function PeriodDetailContent() {
               variant="ghost"
               size="icon"
               onClick={() => router.push("/admin/periods")}
-              className="h-10 w-10 shrink-0 rounded-xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-300"
+              className="h-10 w-10 shrink-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) transition-all duration-200 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-300"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -320,7 +321,7 @@ function PeriodDetailContent() {
               <h1 className="bg-linear-to-r from-teal-200 via-cyan-200 to-sky-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
                 Period Dashboard
               </h1>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-(--ws-fg-60)">
                 View summary, analytics, and generate reports for this period
               </p>
             </div>
@@ -331,7 +332,7 @@ function PeriodDetailContent() {
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/periods")}
-              className="gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+              className="gap-2 rounded-xl border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <Calendar className="h-3.5 w-3.5" />
               All Periods
@@ -376,15 +377,16 @@ function PeriodDetailContent() {
 
 export default function PeriodDetailPage() {
   return (
+    <WorkspaceScope>
     <Suspense
       fallback={
         <div className="space-y-6">
           <div className="relative">
             <div className="relative z-10 flex items-start gap-4">
-              <div className="h-10 w-10 animate-pulse rounded-xl border border-white/10 bg-white/5" />
+              <div className="h-10 w-10 animate-pulse rounded-xl border border-(--ws-line) bg-(--ws-fill)" />
               <div className="space-y-2">
-                <div className="h-9 w-64 animate-pulse rounded-lg bg-white/10" />
-                <div className="h-4 w-96 animate-pulse rounded bg-white/5" />
+                <div className="h-9 w-64 animate-pulse rounded-lg bg-(--ws-fill-strong)" />
+                <div className="h-4 w-96 animate-pulse rounded bg-(--ws-fill)" />
               </div>
             </div>
           </div>
@@ -393,5 +395,6 @@ export default function PeriodDetailPage() {
     >
       <PeriodDetailContent />
     </Suspense>
+    </WorkspaceScope>
   );
 }

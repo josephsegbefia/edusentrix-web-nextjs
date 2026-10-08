@@ -1194,7 +1194,7 @@ export default function AcademicCalendarPage() {
                 Calendar published
               </Badge>
             ) : (
-              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-amber-100">
+              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-(--ws-amber)">
                 Calendar draft
               </Badge>
             )}
@@ -1267,7 +1267,7 @@ export default function AcademicCalendarPage() {
                 {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} inside this period
               </div>
               {outsidePeriodEvents.length > 0 && (
-                <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm text-amber-100 backdrop-blur-md">
+                <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm text-(--ws-amber) backdrop-blur-md">
                   {outsidePeriodEvents.length} anchored event{outsidePeriodEvents.length === 1 ? "" : "s"} sit outside this period&apos;s dates.
                 </div>
               )}
@@ -1427,12 +1427,12 @@ export default function AcademicCalendarPage() {
               {!loading && outsidePeriodEvents.length > 0 && (
                 <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 backdrop-blur-md">
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-200" />
+                    <AlertTriangle className="mt-0.5 h-5 w-5 text-(--ws-amber)" />
                     <div>
                       <h3 className="text-sm font-semibold text-amber-50">
                         Anchored here, outside the period dates
                       </h3>
-                      <p className="mt-1 text-xs text-amber-100/75">
+                      <p className="mt-1 text-xs text-(--ws-amber)">
                         These events belong to {describePeriod(selectedPeriod)}, but their dates fall outside the period window. They stay here and will not show as upcoming events in another period.
                       </p>
                     </div>
@@ -1455,7 +1455,7 @@ export default function AcademicCalendarPage() {
                             {format(new Date(event.endDate), "MMM d, yyyy")}
                           </span>
                         </span>
-                        <Badge className="bg-amber-400/15 text-amber-100">
+                        <Badge className="bg-amber-400/15 text-(--ws-amber)">
                           Outside period
                         </Badge>
                       </button>
@@ -1930,7 +1930,7 @@ export default function AcademicCalendarPage() {
           {eventForm.status === "published" &&
             eventTargetCalendar &&
             !eventTargetCalendar.isPublished && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-(--ws-amber)">
               This event is set to published, but the selected calendar is still draft. It won&apos;t be visible until the calendar is published.
             </div>
           )}
@@ -2075,7 +2075,7 @@ export default function AcademicCalendarPage() {
               )}
 
               {eventForm.audience.scope === "specific_users" && (
-                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100/90">
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-(--ws-amber)">
                   Invite-only events are managed from the meetings workflow. This calendar keeps them visible and editable, but participant selection lives outside this screen.
                 </div>
               )}

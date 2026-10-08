@@ -92,7 +92,7 @@ const statusConfig: Record<
   active: {
     bg: "bg-emerald-500/15",
     border: "border-emerald-500/40",
-    text: "text-emerald-300",
+    text: "text-(--ws-emerald)",
     dot: "bg-emerald-500",
   },
   inactive: {
@@ -146,7 +146,7 @@ const toneStyles: Record<
 > = {
   indigo: {
     iconBg: "bg-indigo-500/15 border-indigo-500/25",
-    iconColor: "text-indigo-300",
+    iconColor: "text-(--ws-violet)",
   },
   purple: {
     iconBg: "bg-purple-500/15 border-purple-500/25",
@@ -154,7 +154,7 @@ const toneStyles: Record<
   },
   emerald: {
     iconBg: "bg-emerald-500/15 border-emerald-500/25",
-    iconColor: "text-emerald-300",
+    iconColor: "text-(--ws-emerald)",
   },
   amber: {
     iconBg: "bg-amber-500/15 border-amber-500/25",
@@ -166,7 +166,7 @@ const toneStyles: Record<
   },
   rose: {
     iconBg: "bg-rose-500/15 border-rose-500/25",
-    iconColor: "text-rose-300",
+    iconColor: "text-(--ws-rose)",
   },
 };
 
@@ -181,7 +181,7 @@ function StatCard({
   const style = toneStyles[tone];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill)">
       <div className="flex items-start gap-3">
         <div
           className={cn(
@@ -192,19 +192,19 @@ function StatCard({
           <Icon className={cn("h-5 w-5", style.iconColor)} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-white/45">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
             {label}
           </div>
           <div
             className={cn(
-              "mt-1 text-xl font-semibold text-white",
+              "mt-1 text-xl font-semibold text-(--ws-fg)",
               valueClassName
             )}
           >
             {value}
           </div>
           {description && (
-            <p className="mt-0.5 text-xs text-white/40">{description}</p>
+            <p className="mt-0.5 text-xs text-(--ws-fg-40)">{description}</p>
           )}
         </div>
       </div>
@@ -230,11 +230,11 @@ function QuickAction({
 }: QuickActionProps) {
   const variants = {
     default:
-      "border-white/10 bg-white/5 text-white/80 hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-white",
+      "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-80) hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-(--ws-fg)",
     success:
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200",
+      "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-emerald-200",
     warning:
-      "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-amber-200",
+      "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-(--ws-amber)",
     danger:
       "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 hover:text-red-200",
   };
@@ -377,11 +377,11 @@ export function TeacherOverviewTab({
       {/* Main Content */}
       <div className="space-y-6">
         {/* Overview Section */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-base font-semibold text-white">Overview</h3>
-              <p className="mt-0.5 text-sm text-white/50">
+              <h3 className="text-base font-semibold text-(--ws-fg)">Overview</h3>
+              <p className="mt-0.5 text-sm text-(--ws-fg-50)">
                 Workload, assignments, and profile snapshot
               </p>
             </div>
@@ -389,7 +389,7 @@ export function TeacherOverviewTab({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-lg border-indigo-500/25 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/15"
+                className="gap-2 rounded-lg border-indigo-500/25 bg-indigo-500/10 text-(--ws-violet) hover:bg-indigo-500/15"
                 onClick={() => setAssignSubjectOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -469,7 +469,7 @@ export function TeacherOverviewTab({
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
-                      <span className="text-xl font-bold text-amber-200">
+                      <span className="text-xl font-bold text-(--ws-amber)">
                         {(() => {
                           const end = new Date(teacher.leaveEndDate);
                           const today = new Date();
@@ -480,7 +480,7 @@ export function TeacherOverviewTab({
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-amber-200">
+                      <p className="text-sm font-semibold text-(--ws-amber)">
                         {(() => {
                           const end = new Date(teacher.leaveEndDate);
                           const today = new Date();
@@ -490,11 +490,11 @@ export function TeacherOverviewTab({
                           return daysLeft === 0 ? "Leave ends today" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`;
                         })()}
                       </p>
-                      <p className="text-xs text-amber-200/70">
+                      <p className="text-xs text-(--ws-amber)">
                         {formatDate(teacher.leaveStartDate)} → {formatDate(teacher.leaveEndDate)}
                       </p>
                       {teacher.leaveReason && (
-                        <p className="mt-1 text-[11px] text-white/50 line-clamp-2">{teacher.leaveReason}</p>
+                        <p className="mt-1 text-[11px] text-(--ws-fg-50) line-clamp-2">{teacher.leaveReason}</p>
                       )}
                     </div>
                   </div>
@@ -503,7 +503,7 @@ export function TeacherOverviewTab({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1.5 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-amber-200 hover:bg-amber-500/20"
+                        className="h-8 gap-1.5 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-(--ws-amber) hover:bg-amber-500/20"
                         onClick={(e) => {
                           e.stopPropagation();
                           onUpdateLeave();
@@ -513,7 +513,7 @@ export function TeacherOverviewTab({
                         Update dates
                       </Button>
                     )}
-                    <Clock className="h-4 w-4 text-amber-200/50" />
+                    <Clock className="h-4 w-4 text-(--ws-amber)" />
                   </div>
                 </div>
               </div>
@@ -524,12 +524,12 @@ export function TeacherOverviewTab({
         {/* Two Column Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Assignments Card */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-(--ws-fg)">
                 Teaching Assignments
               </h3>
-              <p className="mt-0.5 text-xs text-white/45">
+              <p className="mt-0.5 text-xs text-(--ws-fg-40)">
                 Leo suggestions, homeroom, and subject load for this term
               </p>
             </div>
@@ -541,9 +541,9 @@ export function TeacherOverviewTab({
               />
 
               {/* Homeroom — directly under Leo so it’s easy to set alongside teaching assignments */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <p className="flex items-center gap-2 text-xs font-medium text-white/60">
+                  <p className="flex items-center gap-2 text-xs font-medium text-(--ws-fg-60)">
                     <Home className="h-3.5 w-3.5" />
                     Homeroom Class
                   </p>
@@ -577,7 +577,7 @@ export function TeacherOverviewTab({
                         type="button"
                         onClick={handleRemoveHomeroom}
                         disabled={removeHomeroomMutation.isPending}
-                        className="ml-0.5 rounded-full p-0.5 transition-all hover:bg-white/10"
+                        className="ml-0.5 rounded-full p-0.5 transition-all hover:bg-(--ws-fill-strong)"
                         title="Remove homeroom"
                       >
                         <X className="h-3 w-3" />
@@ -585,16 +585,16 @@ export function TeacherOverviewTab({
                     </Badge>
                   </div>
                 ) : (
-                  <p className="text-sm text-white/40">
+                  <p className="text-sm text-(--ws-fg-40)">
                     No homeroom yet. Assign the class this teacher leads as a form teacher.
                   </p>
                 )}
               </div>
 
           {/* Subjects */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <p className="flex items-center gap-2 text-xs font-medium text-white/60">
+                  <p className="flex items-center gap-2 text-xs font-medium text-(--ws-fg-60)">
                     <BookOpen className="h-3.5 w-3.5" />
                     Subjects ({subjects.length})
                   </p>
@@ -602,7 +602,7 @@ export function TeacherOverviewTab({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 gap-1 rounded-lg text-xs text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200"
+                      className="h-7 gap-1 rounded-lg text-xs text-(--ws-violet) hover:bg-indigo-500/10 hover:text-(--ws-violet)"
                       onClick={() => setAssignSubjectOpen(true)}
                     >
                       <Plus className="h-3 w-3" />
@@ -620,7 +620,7 @@ export function TeacherOverviewTab({
                       return (
                         <div
                           key={s.id}
-                          className="group flex w-full items-start justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5 text-indigo-200"
+                          className="group flex w-full items-start justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5 text-(--ws-violet)"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="break-words text-sm font-medium leading-snug text-indigo-100">
@@ -640,7 +640,7 @@ export function TeacherOverviewTab({
                             type="button"
                             onClick={() => handleRemoveSubject(s.id, s.name)}
                             disabled={removeSubjectMutation.isPending}
-                            className="mt-0.5 shrink-0 rounded-full p-0.5 opacity-0 transition-all hover:bg-white/10 group-hover:opacity-100"
+                            className="mt-0.5 shrink-0 rounded-full p-0.5 opacity-0 transition-all hover:bg-(--ws-fill-strong) group-hover:opacity-100"
                             title={`Remove ${s.name}`}
                           >
                             <X className="h-3 w-3" />
@@ -649,7 +649,7 @@ export function TeacherOverviewTab({
                       );
                     })
                   ) : (
-                    <p className="text-sm text-white/40">
+                    <p className="text-sm text-(--ws-fg-40)">
                       No subjects assigned yet.
                     </p>
                   )}
@@ -676,12 +676,12 @@ export function TeacherOverviewTab({
         {workload && (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Workload Card */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-sm font-semibold text-(--ws-fg)">
                   Workload Analysis
                 </h3>
-                <p className="mt-0.5 text-xs text-white/45">
+                <p className="mt-0.5 text-xs text-(--ws-fg-40)">
                   Current load vs capacity
                 </p>
               </div>
@@ -695,14 +695,14 @@ export function TeacherOverviewTab({
                       <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-300" />
                       <div className="flex-1 text-xs">
                         {workload.warnings.isOverCapacity && (
-                          <p className="font-medium text-amber-200">
+                          <p className="font-medium text-(--ws-amber)">
                             Over Capacity: This teacher has exceeded their
                             maximum capacity limits.
                           </p>
                         )}
                         {workload.warnings.isAboveAverage &&
                           !workload.warnings.isOverCapacity && (
-                            <p className="font-medium text-amber-200">
+                            <p className="font-medium text-(--ws-amber)">
                               Above Average: Workload is significantly above the
                               school average.
                             </p>
@@ -714,20 +714,20 @@ export function TeacherOverviewTab({
 
                 {/* Progress bars */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-emerald-400" />
-                      <p className="text-xs font-medium text-white/60">
+                      <p className="text-xs font-medium text-(--ws-fg-60)">
                         Classes
                       </p>
                     </div>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-(--ws-fg)">
                       {workload.current.classes}
                     </p>
                     {workload.capacity.maxClasses && (
                       <div className="mt-3">
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="text-white/40">
+                          <span className="text-(--ws-fg-40)">
                             of {workload.capacity.maxClasses}
                           </span>
                           <span
@@ -735,13 +735,13 @@ export function TeacherOverviewTab({
                               workload.capacity.classUtilization &&
                               workload.capacity.classUtilization > 100
                                 ? "text-red-400"
-                                : "text-white/60"
+                                : "text-(--ws-fg-60)"
                             }
                           >
                             {workload.capacity.classUtilization?.toFixed(0)}%
                           </span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-2 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                           <div
                             className={cn(
                               "h-full transition-all",
@@ -765,25 +765,25 @@ export function TeacherOverviewTab({
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <Users className="h-4 w-4 text-amber-400" />
                       <MetricLabelWithInfo
                         label={ADMIN_TEACHER_SEAT_CAPACITY_METRIC.label}
                         tooltip={ADMIN_TEACHER_SEAT_CAPACITY_METRIC.tooltip}
-                        labelClassName="text-xs font-medium text-white/60 normal-case tracking-normal"
+                        labelClassName="text-xs font-medium text-(--ws-fg-60) normal-case tracking-normal"
                       />
                     </div>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-(--ws-fg)">
                       {workload.current.students}
                     </p>
-                    <p className="mt-1 text-[11px] text-white/40">
+                    <p className="mt-1 text-[11px] text-(--ws-fg-40)">
                       {ADMIN_TEACHER_SEAT_CAPACITY_METRIC.shortDescription}
                     </p>
                     {workload.capacity.maxStudents && (
                       <div className="mt-3">
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="text-white/40">
+                          <span className="text-(--ws-fg-40)">
                             of {workload.capacity.maxStudents}
                           </span>
                           <span
@@ -791,13 +791,13 @@ export function TeacherOverviewTab({
                               workload.capacity.studentUtilization &&
                               workload.capacity.studentUtilization > 100
                                 ? "text-red-400"
-                                : "text-white/60"
+                                : "text-(--ws-fg-60)"
                             }
                           >
                             {workload.capacity.studentUtilization?.toFixed(0)}%
                           </span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-2 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                           <div
                             className={cn(
                               "h-full transition-all",
@@ -824,23 +824,23 @@ export function TeacherOverviewTab({
 
                 {/* Additional stats */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                     <div className="mb-1 flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-white/40" />
-                      <p className="text-xs text-white/40">Workload per Week</p>
+                      <Clock className="h-3.5 w-3.5 text-(--ws-fg-40)" />
+                      <p className="text-xs text-(--ws-fg-40)">Workload per Week</p>
                     </div>
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-lg font-semibold text-(--ws-fg)">
                       {formatHoursMinutes(workload.current.workloadHours)}/week
                     </p>
-                    <p className="mt-0.5 text-[10px] text-white/40">
+                    <p className="mt-0.5 text-[10px] text-(--ws-fg-40)">
                       From linked timetable slots for this week
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                     <div className="mb-1 flex items-center gap-2">
-                      <TrendingUp className="h-3.5 w-3.5 text-white/40" />
-                      <p className="text-xs text-white/40">vs School Avg</p>
+                      <TrendingUp className="h-3.5 w-3.5 text-(--ws-fg-40)" />
+                      <p className="text-xs text-(--ws-fg-40)">vs School Avg</p>
                     </div>
                     <p
                       className={cn(
@@ -856,7 +856,7 @@ export function TeacherOverviewTab({
                       )}{" "}
                       classes
                     </p>
-                    <p className="mt-0.5 text-[10px] text-white/40">
+                    <p className="mt-0.5 text-[10px] text-(--ws-fg-40)">
                       Avg: {workload.comparison.schoolAvgClasses.toFixed(1)}
                     </p>
                   </div>
@@ -865,30 +865,30 @@ export function TeacherOverviewTab({
             </div>
 
             {/* Record History Card */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
               <div className="mb-4">
-                <h3 className="text-sm font-semibold text-white">
+                <h3 className="text-sm font-semibold text-(--ws-fg)">
                   Record History
                 </h3>
-                <p className="mt-0.5 text-xs text-white/45">Profile timeline</p>
+                <p className="mt-0.5 text-xs text-(--ws-fg-40)">Profile timeline</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                    <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                       <Calendar className="h-3 w-3" />
                       Created
                     </p>
-                    <p className="mt-2 text-sm font-medium text-white">
+                    <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                       {formatDate(teacher.createdAt)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                    <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                    <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                       <Calendar className="h-3 w-3" />
                       Updated
                     </p>
-                    <p className="mt-2 text-sm font-medium text-white">
+                    <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                       {formatDate(teacher.updatedAt)}
                     </p>
                   </div>
@@ -899,29 +899,29 @@ export function TeacherOverviewTab({
 
         {/* Record History (when no workload data) */}
         {!workload && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
             <div className="mb-4">
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-(--ws-fg)">
                 Record History
               </h3>
-              <p className="mt-0.5 text-xs text-white/45">Profile timeline</p>
+              <p className="mt-0.5 text-xs text-(--ws-fg-40)">Profile timeline</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                   <Calendar className="h-3 w-3" />
                   Created
                 </p>
-                <p className="mt-2 text-sm font-medium text-white">
+                <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                   {formatDate(teacher.createdAt)}
                 </p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                   <Calendar className="h-3 w-3" />
                   Updated
                 </p>
-                <p className="mt-2 text-sm font-medium text-white">
+                <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                   {formatDate(teacher.updatedAt)}
                 </p>
               </div>
@@ -933,12 +933,12 @@ export function TeacherOverviewTab({
       {/* Sidebar */}
       <div className="space-y-6 lg:sticky lg:top-6">
         {/* Quick Actions Card */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-(--ws-fg)">
               Quick Actions
             </h3>
-            <p className="mt-0.5 text-xs text-white/45">
+            <p className="mt-0.5 text-xs text-(--ws-fg-40)">
               Shortcuts for common tasks
             </p>
           </div>
@@ -974,8 +974,8 @@ export function TeacherOverviewTab({
             </div>
 
             {/* Status Management */}
-            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
                 <FileText className="h-3 w-3" />
                 Status Management
               </p>
@@ -1082,19 +1082,19 @@ function LeaveInfoCard({
             <Clock className="h-5 w-5 text-amber-300" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Leave Status</h3>
-            <p className="text-xs text-amber-200/70">Currently on leave</p>
+            <h3 className="text-sm font-semibold text-(--ws-fg)">Leave Status</h3>
+            <p className="text-xs text-(--ws-amber)">Currently on leave</p>
           </div>
         </div>
         <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/15">
-          <span className="text-xl font-bold text-amber-200">{daysLeft}</span>
+          <span className="text-xl font-bold text-(--ws-amber)">{daysLeft}</span>
         </div>
       </div>
 
       <div className="space-y-4">
         {/* Days remaining header */}
         <div className="text-center">
-          <p className="text-sm font-medium text-amber-200">
+          <p className="text-sm font-medium text-(--ws-amber)">
             {daysLeft === 0
               ? "Leave ends today"
               : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining`}
@@ -1103,13 +1103,13 @@ function LeaveInfoCard({
 
         {/* Progress bar */}
         <div className="space-y-2">
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-2 overflow-hidden rounded-full bg-(--ws-fill-strong)">
             <div
               className="h-full rounded-full bg-linear-to-r from-amber-400 to-amber-500 transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex items-center justify-between text-[10px] text-white/40">
+          <div className="flex items-center justify-between text-[10px] text-(--ws-fg-40)">
             <span>{elapsed} of {totalDays} days elapsed</span>
             <span>{Math.round(progressPct)}%</span>
           </div>
@@ -1118,10 +1118,10 @@ function LeaveInfoCard({
         {/* Date range */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-amber-200/50">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-(--ws-amber)">
               Start
             </p>
-            <p className="mt-1 text-sm font-medium text-white">
+            <p className="mt-1 text-sm font-medium text-(--ws-fg)">
               {startDate
                 ? startDate.toLocaleDateString(undefined, {
                     weekday: "short",
@@ -1132,10 +1132,10 @@ function LeaveInfoCard({
             </p>
           </div>
           <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-amber-200/50">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-(--ws-amber)">
               End
             </p>
-            <p className="mt-1 text-sm font-medium text-white">
+            <p className="mt-1 text-sm font-medium text-(--ws-fg)">
               {endDate
                 ? endDate.toLocaleDateString(undefined, {
                     weekday: "short",
@@ -1150,11 +1150,11 @@ function LeaveInfoCard({
 
         {/* Reason */}
         {teacher.leaveReason && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-white/40 mb-1">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40) mb-1">
               Reason
             </p>
-            <p className="text-sm text-white/80">{teacher.leaveReason}</p>
+            <p className="text-sm text-(--ws-fg-80)">{teacher.leaveReason}</p>
           </div>
         )}
       </div>

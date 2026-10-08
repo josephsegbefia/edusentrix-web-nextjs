@@ -53,13 +53,13 @@ const TAB_OPTIONS: Array<{
     id: "error",
     label: "Errors",
     icon: ShieldAlert,
-    tone: "text-rose-200",
+    tone: "text-(--ws-rose)",
   },
   {
     id: "warning",
     label: "Warnings",
     icon: AlertTriangle,
-    tone: "text-amber-200",
+    tone: "text-(--ws-amber)",
   },
   {
     id: "info",
@@ -70,15 +70,15 @@ const TAB_OPTIONS: Array<{
 ];
 
 const SEVERITY_STYLES: Record<ExamConflictSeverity, string> = {
-  error: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-  warning: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  error: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  warning: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   info: "border-sky-500/30 bg-sky-500/10 text-sky-100",
 };
 
 function readinessTone(score: number) {
   if (score >= 85) return "text-emerald-200";
-  if (score >= 60) return "text-amber-200";
-  return "text-rose-200";
+  if (score >= 60) return "text-(--ws-amber)";
+  return "text-(--ws-rose)";
 }
 
 function readinessLabel(score: number, errorCount: number, entryCount: number) {
@@ -281,7 +281,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
         </div>
       ) : conflictError ? (
         <GlassPanel className="p-8 text-center">
-          <AlertTriangle className="mx-auto h-10 w-10 text-rose-300/80" />
+          <AlertTriangle className="mx-auto h-10 w-10 text-(--ws-rose)" />
           <p className="mt-4 text-sm text-white/70">
             {conflictError instanceof Error
               ? conflictError.message
@@ -330,13 +330,13 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                   label: "Blocking errors",
                   value: summary?.errors ?? 0,
                   icon: ShieldAlert,
-                  tone: (summary?.errors ?? 0) > 0 ? "text-rose-200" : "text-emerald-200",
+                  tone: (summary?.errors ?? 0) > 0 ? "text-(--ws-rose)" : "text-emerald-200",
                 },
                 {
                   label: "Warnings",
                   value: summary?.warnings ?? 0,
                   icon: AlertTriangle,
-                  tone: (summary?.warnings ?? 0) > 0 ? "text-amber-200" : "text-white/70",
+                  tone: (summary?.warnings ?? 0) > 0 ? "text-(--ws-amber)" : "text-white/70",
                 },
                 {
                   label: "Overridden",
@@ -398,7 +398,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
             {activeConflicts.length === 0 ? (
               <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
                 {activeTab === "error" ? (
-                  <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-300/80" />
+                  <CheckCircle2 className="mx-auto h-10 w-10 text-(--ws-emerald)" />
                 ) : (
                   <CalendarRange className="mx-auto h-10 w-10 text-cyan-300/80" />
                 )}
@@ -547,7 +547,7 @@ function ConflictCard({
 
       {conflict.suggestion ? (
         <div className={cn(glassInsetClass, "border-amber-500/20 bg-amber-500/5 p-3")}>
-          <p className="text-xs uppercase tracking-wide text-amber-100/70">Suggested fix</p>
+          <p className="text-xs uppercase tracking-wide text-(--ws-amber)">Suggested fix</p>
           <p className="mt-1 text-sm text-amber-50/90">{conflict.suggestion}</p>
         </div>
       ) : null}

@@ -146,7 +146,7 @@ export function AdmissionsHero({
         </div>
       </section>
 
-      <section className="rounded-[1.8rem] border border-white/10 bg-slate-950/80 p-6 sm:p-7">
+      <section className="rounded-[1.8rem] border border-(--ws-line) bg-(--ws-panel-from) p-6 sm:p-7">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
             <LeoIcon className="h-5 w-5 text-cyan-100" />

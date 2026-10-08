@@ -108,7 +108,7 @@ export function UpdateLeaveModal({
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-4">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)/80">
+                <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)">
                   Leave Period
                 </p>
                 {isValid && durationDays > 0 && (
@@ -169,7 +169,7 @@ export function UpdateLeaveModal({
                       })}
                     </p>
                   </div>
-                  <Clock className="h-4 w-4 shrink-0 text-(--ws-amber)/40" />
+                  <Clock className="h-4 w-4 shrink-0 text-(--ws-amber)" />
                 </div>
               )}
 

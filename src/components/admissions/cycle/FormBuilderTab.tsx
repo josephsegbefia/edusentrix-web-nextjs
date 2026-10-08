@@ -102,7 +102,7 @@ export function FormBuilderTab({ cycleId }: FormBuilderTabProps) {
 
   if (isLoading || !state) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-white/10 bg-slate-950/60 p-10 text-sm text-white/55">
+      <div className="flex items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-10 text-sm text-(--ws-fg-50)">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Loading form…
       </div>
@@ -111,7 +111,7 @@ export function FormBuilderTab({ cycleId }: FormBuilderTabProps) {
 
   if (isError) {
     return (
-      <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+      <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">
         {error instanceof Error ? error.message : "Could not load form"}
       </div>
     );
@@ -169,13 +169,13 @@ export function FormBuilderTab({ cycleId }: FormBuilderTabProps) {
 
       <FormBuilderValidations schema={liveSchema} />
 
-      <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-slate-950/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-white">Application form</p>
-          <p className="text-xs text-white/55">
+          <p className="text-sm font-semibold text-(--ws-fg)">Application form</p>
+          <p className="text-xs text-(--ws-fg-50)">
             Reorder sections, add custom questions, or hide optional fields.
             Fields marked with{" "}
-            <Lock className="inline h-3 w-3 align-text-bottom text-white/55" />{" "}
+            <Lock className="inline h-3 w-3 align-text-bottom text-(--ws-fg-50)" />{" "}
             are required by EduSentrix to provision the student & guardian.
           </p>
         </div>
@@ -251,7 +251,7 @@ export function FormBuilderTab({ cycleId }: FormBuilderTabProps) {
 
       <Button
         variant="outline"
-        className="w-full border-dashed border-white/15 bg-transparent text-white/70 hover:bg-white/5"
+        className="w-full border-dashed border-(--ws-line-strong) bg-transparent text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
         onClick={() =>
           update((prev) => ({
             ...prev,
@@ -279,8 +279,8 @@ export function FormBuilderTab({ cycleId }: FormBuilderTabProps) {
         }
       />
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-        <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+      <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
+        <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
           Consent statement
         </Label>
         <Textarea
@@ -382,7 +382,7 @@ function SectionEditor({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60">
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from)">
       <div className="flex items-start justify-between gap-3 p-4">
         <div className="flex-1 space-y-2">
           <Input
@@ -425,7 +425,7 @@ function SectionEditor({
             size="sm"
             disabled={lockedSection}
             onClick={onRemove}
-            className="h-7 w-7 p-0 text-rose-400 hover:text-rose-300"
+            className="h-7 w-7 p-0 text-rose-400 hover:text-(--ws-rose)"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -450,7 +450,7 @@ function SectionEditor({
           variant="ghost"
           size="sm"
           onClick={addField}
-          className="w-full border border-dashed border-white/10 hover:bg-white/5"
+          className="w-full border border-dashed border-(--ws-line) hover:bg-(--ws-fill-strong)"
         >
           <Plus className="mr-2 h-3.5 w-3.5" />
           Add question
@@ -479,7 +479,7 @@ function FieldRow({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/10 bg-black/20 p-3",
+        "rounded-xl border border-(--ws-line) bg-black/20 p-3",
         !field.visible && "opacity-60"
       )}
     >
@@ -506,7 +506,7 @@ function FieldRow({
             {locked ? (
               <Badge
                 variant="outline"
-                className="border-amber-500/30 bg-amber-500/10 text-amber-100"
+                className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
               >
                 <Lock className="mr-1 h-3 w-3" /> platform required
               </Badge>
@@ -514,7 +514,7 @@ function FieldRow({
             {field.systemFieldKey && !locked ? (
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/5 text-[11px] text-white/55"
+                className="border-(--ws-line) bg-(--ws-fill) text-[11px] text-(--ws-fg-50)"
               >
                 {field.systemFieldKey}
               </Badge>
@@ -540,7 +540,7 @@ function FieldRow({
               </PremiumSelectContent>
             </PremiumSelect>
 
-            <label className="flex items-center gap-1.5 text-xs text-white/70">
+            <label className="flex items-center gap-1.5 text-xs text-(--ws-fg-70)">
               <Checkbox
                 checked={field.required}
                 onCheckedChange={(v) =>
@@ -555,7 +555,7 @@ function FieldRow({
               size="sm"
               onClick={() => !locked && onChange({ visible: !field.visible })}
               disabled={locked}
-              className="h-7 px-2 text-xs text-white/70"
+              className="h-7 px-2 text-xs text-(--ws-fg-70)"
             >
               {field.visible ? (
                 <>
@@ -592,7 +592,7 @@ function FieldRow({
           size="sm"
           disabled={locked}
           onClick={onRemove}
-          className="h-7 w-7 p-0 text-rose-400 hover:text-rose-300"
+          className="h-7 w-7 p-0 text-rose-400 hover:text-(--ws-rose)"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -611,8 +611,8 @@ function OptionsEditor({
   disabled?: boolean;
 }) {
   return (
-    <div className="space-y-1.5 rounded-lg border border-white/5 bg-black/20 p-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">
+    <div className="space-y-1.5 rounded-lg border border-(--ws-line) bg-black/20 p-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-(--ws-fg-40)">
         Choices
       </p>
       {options.map((opt, idx) => (
@@ -644,7 +644,7 @@ function OptionsEditor({
             size="sm"
             disabled={disabled}
             onClick={() => onChange(options.filter((_, i) => i !== idx))}
-            className="h-7 w-7 p-0 text-rose-400 hover:text-rose-300"
+            className="h-7 w-7 p-0 text-rose-400 hover:text-(--ws-rose)"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -672,9 +672,9 @@ function DocumentRequirementsEditor({
   onChange: (next: AdmissionDocumentRequirement[]) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Document uploads</p>
+        <p className="text-sm font-semibold text-(--ws-fg)">Document uploads</p>
         <Button
           variant="ghost"
           size="sm"
@@ -698,12 +698,12 @@ function DocumentRequirementsEditor({
 
       <div className="space-y-2">
         {requirements.length === 0 ? (
-          <p className="text-xs text-white/40">No document uploads configured.</p>
+          <p className="text-xs text-(--ws-fg-40)">No document uploads configured.</p>
         ) : (
           requirements.map((req, idx) => (
             <div
               key={req.id}
-              className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-3"
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-(--ws-line) bg-black/20 p-3"
             >
               <Input
                 value={req.label}
@@ -734,7 +734,7 @@ function DocumentRequirementsEditor({
                   "h-8 max-w-xs flex-1"
                 )}
               />
-              <label className="flex items-center gap-1.5 text-xs text-white/70">
+              <label className="flex items-center gap-1.5 text-xs text-(--ws-fg-70)">
                 <Checkbox
                   checked={req.required}
                   onCheckedChange={(v) =>
@@ -761,14 +761,14 @@ function DocumentRequirementsEditor({
                 }
                 className={cn(admissionsAdminFieldClass, "h-8 w-20")}
               />
-              <span className="text-[11px] text-white/40">MB</span>
+              <span className="text-[11px] text-(--ws-fg-40)">MB</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() =>
                   onChange(requirements.filter((_, i) => i !== idx))
                 }
-                className="h-7 w-7 p-0 text-rose-400 hover:text-rose-300"
+                className="h-7 w-7 p-0 text-rose-400 hover:text-(--ws-rose)"
                 disabled={req.isPlatformRequired}
               >
                 <Trash2 className="h-3.5 w-3.5" />

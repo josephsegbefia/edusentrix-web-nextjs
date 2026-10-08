@@ -228,7 +228,7 @@ function AdminSchemeImportInner() {
     return (
       <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 p-4 md:p-6">
         <section className="rounded-3xl border border-amber-300/20 bg-amber-500/10 p-6 text-amber-50">
-          <p className="text-xs uppercase tracking-wide text-amber-100/70">Scheme of Learning import</p>
+          <p className="text-xs uppercase tracking-wide text-(--ws-amber)">Scheme of Learning import</p>
           <h1 className="mt-2 text-2xl font-semibold">Import is for NaCCA schools only</h1>
           <p className="mt-2 text-sm leading-6 text-amber-50/80">
             The current upload/import parser is built for GES/NaCCA scheme documents. This school is
@@ -301,9 +301,9 @@ function AdminSchemeImportInner() {
               <p className="text-sm text-(--ws-fg-50)">Loading school context...</p>
             )}
             {uploadWarning ? (
-              <p className="mt-2 text-sm text-amber-200">{uploadWarning}</p>
+              <p className="mt-2 text-sm text-(--ws-amber)">{uploadWarning}</p>
             ) : null}
-            {uploadError ? <p className="mt-2 text-sm text-rose-300">{uploadError}</p> : null}
+            {uploadError ? <p className="mt-2 text-sm text-(--ws-rose)">{uploadError}</p> : null}
             {createMutation.isPending || parsePhase ? (
               <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-100">
                 <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
@@ -330,9 +330,9 @@ function AdminSchemeImportInner() {
           </p>
         </div>
       ) : null}
-      {jobError ? <p className="text-sm text-rose-300">{jobError.message}</p> : null}
+      {jobError ? <p className="text-sm text-(--ws-rose)">{jobError.message}</p> : null}
       {job?.status === "failed" && job.parseError ? (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-sm text-rose-100">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-sm text-(--ws-rose)">
           <p className="font-medium">Could not parse file</p>
           <p className="mt-1">{job.parseError}</p>
           {job.fileUrl ? (
@@ -348,7 +348,7 @@ function AdminSchemeImportInner() {
               Retry import without re-uploading
             </Button>
           ) : (
-            <p className="mt-3 text-xs text-rose-100/70">
+            <p className="mt-3 text-xs text-(--ws-rose)">
               The uploaded file is no longer retained for this failed import. Upload the document again.
             </p>
           )}
@@ -386,7 +386,7 @@ function AdminSchemeImportInner() {
       ) : null}
 
       {job?.status === "parsed" && job.parseWarning ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-amber-100">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-(--ws-amber)">
           <p className="font-medium">
             {/api key|authenticate|not configured/i.test(job.parseWarning)
               ? "AI extraction unavailable — limited manual parse"
@@ -396,7 +396,7 @@ function AdminSchemeImportInner() {
           {job.fileUrl &&
           /connection|econnreset|network|fetch failed|timed out/i.test(job.parseWarning) ? (
             <div className="mt-3 border-t border-amber-500/20 pt-3">
-              <p className="mb-2 text-xs text-amber-200/80">
+              <p className="mb-2 text-xs text-(--ws-amber)">
                 AI extraction failed due to a network issue, not a PDF problem. Try again once your
                 connection is stable.
               </p>
@@ -498,7 +498,7 @@ function AdminSchemeImportInner() {
                   {stats?.usable ?? 0} usable
                 </Badge>
                 {stats?.issues ? (
-                  <Badge variant="outline" className="border-rose-300/25 bg-rose-500/10 text-rose-100">
+                  <Badge variant="outline" className="border-rose-300/25 bg-rose-500/10 text-(--ws-rose)">
                     {stats.issues} with issues
                   </Badge>
                 ) : null}
@@ -602,7 +602,7 @@ function AdminSchemeImportInner() {
                   <p className="mt-1 text-sm text-(--ws-fg-50)">
                     After creation, open the review detail page to activate it for Lesson Notes.
                   </p>
-                  {actionError ? <p className="mt-2 text-sm text-rose-300">{actionError}</p> : null}
+                  {actionError ? <p className="mt-2 text-sm text-(--ws-rose)">{actionError}</p> : null}
                 </div>
               </div>
               <Button

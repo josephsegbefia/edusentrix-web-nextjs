@@ -26,7 +26,7 @@ const CARD_TONES = [
   "text-(--ws-emerald)",
   "text-(--ws-amber)",
   "text-(--ws-rose)",
-  "text-violet-200",
+  "text-(--ws-violet)",
 ];
 
 export function ExamAnalyticsDashboard({

@@ -300,7 +300,7 @@ export function AdminLessonSessionsOverview() {
           </div>
         ) : error ? (
           <div className="p-6 text-center">
-            <p className="text-sm text-rose-300">
+            <p className="text-sm text-(--ws-rose)">
               {error instanceof Error ? error.message : "Failed to load sessions"}
             </p>
             <Button

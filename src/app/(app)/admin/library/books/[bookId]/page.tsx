@@ -300,7 +300,7 @@ export default function AdminLibraryBookDetailPage() {
           icon={isArchived ? Archive : CheckCircle2}
           label="Catalogue status"
           value={
-            <span className={isArchived ? "text-amber-100" : "text-emerald-100"}>
+            <span className={isArchived ? "text-(--ws-amber)" : "text-emerald-100"}>
               {isArchived ? "Archived" : "Active"}
             </span>
           }
@@ -310,7 +310,7 @@ export default function AdminLibraryBookDetailPage() {
       </div>
 
       {isArchived ? (
-        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)">
           This title is archived. Copies remain on file, but it won’t appear in the default active list.
         </p>
       ) : null}
@@ -446,7 +446,7 @@ export default function AdminLibraryBookDetailPage() {
         {copiesLoading ? (
           <Loader2 className="h-6 w-6 animate-spin text-(--ws-fg-40)" />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent">
+          <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
             <Table>
               <TableHeader>
                     <TableRow className="border-(--ws-line) hover:bg-transparent">

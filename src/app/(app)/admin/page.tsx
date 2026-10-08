@@ -91,6 +91,7 @@ import { useTeacherStats } from "@/hooks/admin/useTeacherStats";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { isClientDemoMode } from "@/lib/demo/runtime";
 import { WorkspaceScope } from "@/components/theme/workspace-scope";
+import { glassPanelClass } from "@/lib/ui/glass-surfaces";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -164,22 +165,22 @@ function getPeriodStateBadge(status?: string, fallback = "Not Set") {
     case "grace_period":
       return {
         label: "Action Needed",
-        className: "bg-orange-500/20 border-orange-500/30 text-orange-300",
+        className: "bg-orange-500/20 border-orange-500/30 text-(--ws-amber)",
       };
     case "expired":
       return {
         label: "Expired",
-        className: "bg-rose-500/20 border-rose-500/30 text-rose-300",
+        className: "bg-rose-500/20 border-rose-500/30 text-(--ws-rose)",
       };
     case "no_period":
       return {
         label: "No Period",
-        className: "bg-rose-500/20 border-rose-500/30 text-rose-300",
+        className: "bg-rose-500/20 border-rose-500/30 text-(--ws-rose)",
       };
     default:
       return {
         label: fallback,
-        className: "bg-amber-500/20 border-amber-500/30 text-amber-400",
+        className: "bg-amber-500/20 border-amber-500/30 text-(--ws-amber)",
       };
   }
 }
@@ -216,7 +217,7 @@ function MetricCard({
     trend?.direction === "up"
       ? "text-(--ws-emerald)"
       : trend?.direction === "down"
-      ? "text-rose-300"
+      ? "text-(--ws-rose)"
       : "text-(--ws-fg-60)";
 
   const Wrapper: React.ElementType = onClick ? "button" : "div";
@@ -225,9 +226,8 @@ function MetricCard({
     <Wrapper
       onClick={onClick}
       className={[
-        "relative w-full overflow-hidden rounded-2xl border border-(--ws-line)",
-        "bg-linear-to-br from-(--ws-fill) to-transparent p-5 lg:p-6",
-        "shadow-[var(--ws-shadow)] backdrop-blur",
+        glassPanelClass,
+        "w-full p-5 lg:p-6",
         onClick
           ? "text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           : "",
@@ -418,7 +418,7 @@ function ReconPill({
   if (linkDisabled) {
     return (
       <span
-        className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-xs text-(--ws-amber)/45"
+        className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-xs text-(--ws-amber)"
         title="Complete school setup on the Dashboard to open reconciliation."
       >
         <AlertCircle className="h-3.5 w-3.5" />
@@ -1320,7 +1320,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Enhanced Quick Stats */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent"
             aria-hidden="true"
@@ -1328,7 +1328,7 @@ export default function SchoolAdminOverviewPage() {
           <CardContent className="relative z-10 p-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
-                <Users className="h-4 w-4 text-orange-300" />
+                <Users className="h-4 w-4 text-(--ws-amber)" />
               </div>
               <div className="text-xs text-(--ws-fg-60) uppercase tracking-wider">
                 Student/Teacher Ratio
@@ -1340,7 +1340,7 @@ export default function SchoolAdminOverviewPage() {
             <div className="text-xs text-(--ws-fg-50) mt-1">Students per teacher</div>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
             aria-hidden="true"
@@ -1370,7 +1370,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Primary row: Quick Actions + Academic Period */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/20 via-indigo-500/5 to-transparent"
             aria-hidden="true"
@@ -1476,7 +1476,7 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Academic Period */}
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/20 via-amber-500/5 to-transparent"
             aria-hidden="true"
@@ -1484,7 +1484,7 @@ export default function SchoolAdminOverviewPage() {
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                <Calendar className="h-4 w-4 text-amber-400" />
+                <Calendar className="h-4 w-4 text-(--ws-amber)" />
               </div>
               Academic Period
               <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-(--ws-amber)">
@@ -1543,7 +1543,7 @@ export default function SchoolAdminOverviewPage() {
                       type="button"
                       onClick={() => setShowCreatePeriod(true)}
                       disabled={true}
-                      className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-(--ws-amber)/40 hover:opacity-90 opacity-40 cursor-not-allowed"
+                      className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-(--ws-amber) hover:opacity-90 opacity-40 cursor-not-allowed"
                       title="Complete previous steps first"
                     >
                       Create period
@@ -1557,7 +1557,7 @@ export default function SchoolAdminOverviewPage() {
           <CardContent className="relative z-10 space-y-4">
             <div className="flex items-start gap-4 p-4 rounded-xl border border-(--ws-line) bg-(--ws-fill)">
               <div className="p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                <Calendar className="h-5 w-5 text-amber-400" />
+                <Calendar className="h-5 w-5 text-(--ws-amber)" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
@@ -1619,7 +1619,7 @@ export default function SchoolAdminOverviewPage() {
                 </div>
                 {periodStatus?.daysUntilExpiry !== null &&
                 periodStatus?.daysUntilExpiry !== undefined ? (
-                  <div className="mt-2 text-xs text-(--ws-amber)/90">
+                  <div className="mt-2 text-xs text-(--ws-amber)">
                     {periodStatus.daysUntilExpiry} day
                     {periodStatus.daysUntilExpiry === 1 ? "" : "s"} until period
                     end
@@ -1710,7 +1710,7 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Collections Snapshot + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
             aria-hidden="true"
@@ -1733,7 +1733,7 @@ export default function SchoolAdminOverviewPage() {
                 Loading collections snapshot...
               </div>
             ) : collectionsError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">
                 Could not load collections data. Please refresh.
               </div>
             ) : (
@@ -1774,7 +1774,7 @@ export default function SchoolAdminOverviewPage() {
                   </div>
                   <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                     <div className="text-[11px] text-(--ws-fg-50)">Overdue Bills</div>
-                    <div className="text-sm font-medium text-rose-200">
+                    <div className="text-sm font-medium text-(--ws-rose)">
                       {collections.overdueCount}
                     </div>
                   </div>
@@ -1903,7 +1903,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
             aria-hidden="true"
@@ -1911,14 +1911,14 @@ export default function SchoolAdminOverviewPage() {
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
-                <Calendar className="h-4 w-4 text-fuchsia-300" />
+                <Calendar className="h-4 w-4 text-(--ws-violet)" />
               </div>
               Upcoming Events
             </CardTitle>
             {onboarding.step === "complete" ? (
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs text-fuchsia-200 hover:opacity-90"
+                className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs text-(--ws-violet) hover:opacity-90"
                 onClick={() => router.push("/admin/academic-calendar")}
               >
                 <PlusCircle className="h-3.5 w-3.5" />
@@ -1928,7 +1928,7 @@ export default function SchoolAdminOverviewPage() {
               <button
                 type="button"
                 disabled={true}
-                className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/10 bg-fuchsia-500/5 px-3 py-1.5 text-xs text-fuchsia-200/40 hover:opacity-90 opacity-40 cursor-not-allowed"
+                className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/10 bg-fuchsia-500/5 px-3 py-1.5 text-xs text-(--ws-violet) hover:opacity-90 opacity-40 cursor-not-allowed"
                 title="Complete onboarding first"
               >
                 <PlusCircle className="h-3.5 w-3.5" />
@@ -1943,7 +1943,7 @@ export default function SchoolAdminOverviewPage() {
                 className="flex items-start gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3"
               >
                 <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
-                  <Calendar className="h-4 w-4 text-fuchsia-300" />
+                  <Calendar className="h-4 w-4 text-(--ws-violet)" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-(--ws-fg-80)">{e.title}</div>
@@ -1960,12 +1960,12 @@ export default function SchoolAdminOverviewPage() {
       {/* Financial Overview + Student Enrollment */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-green-500/15 via-green-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-green-500/20 border border-green-500/30">
-                <Wallet className="h-4 w-4 text-green-300" />
+                <Wallet className="h-4 w-4 text-(--ws-emerald)" />
               </div>
               Financial Overview
             </CardTitle>
@@ -1977,7 +1977,7 @@ export default function SchoolAdminOverviewPage() {
             {financialOverviewQuery.isLoading ? (
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading financial overview...</div>
             ) : financialOverviewQuery.isError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load financial data.</div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">Could not load financial data.</div>
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3">
@@ -1989,13 +1989,13 @@ export default function SchoolAdminOverviewPage() {
                   </div>
                   <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                     <div className="text-[11px] text-(--ws-fg-50)">Outflow</div>
-                    <div className="mt-1 text-sm font-semibold text-rose-200">
+                    <div className="mt-1 text-sm font-semibold text-(--ws-rose)">
                       {formatCurrency(financialOverviewQuery.data?.kpis.totalOutflow ?? 0)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                     <div className="text-[11px] text-(--ws-fg-50)">Net Position</div>
-                    <div className={`mt-1 text-sm font-semibold ${(financialOverviewQuery.data?.kpis.netPosition ?? 0) >= 0 ? "text-(--ws-emerald)" : "text-rose-200"}`}>
+                    <div className={`mt-1 text-sm font-semibold ${(financialOverviewQuery.data?.kpis.netPosition ?? 0) >= 0 ? "text-(--ws-emerald)" : "text-(--ws-rose)"}`}>
                       {formatCurrency(financialOverviewQuery.data?.kpis.netPosition ?? 0)}
                     </div>
                   </div>
@@ -2015,7 +2015,7 @@ export default function SchoolAdminOverviewPage() {
                   </div>
                   <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                     <div className="text-[11px] text-(--ws-fg-50)">Failed</div>
-                    <div className="text-sm font-medium text-rose-200">
+                    <div className="text-sm font-medium text-(--ws-rose)">
                       {financialOverviewQuery.data?.kpis.failedCount ?? 0}
                     </div>
                   </div>
@@ -2026,12 +2026,12 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
-                <BarChart3 className="h-4 w-4 text-violet-300" />
+                <BarChart3 className="h-4 w-4 text-(--ws-violet)" />
               </div>
               Student Enrollment
             </CardTitle>
@@ -2043,7 +2043,7 @@ export default function SchoolAdminOverviewPage() {
             {studentStatsQuery.isLoading ? (
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading student stats...</div>
             ) : studentStatsQuery.isError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load student stats.</div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">Could not load student stats.</div>
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3">
@@ -2091,7 +2091,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Teacher Status + Fee Collection Trend */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-teal-500/15 via-teal-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2108,7 +2108,7 @@ export default function SchoolAdminOverviewPage() {
             {teacherStatsQuery.isLoading ? (
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading teacher stats...</div>
             ) : teacherStatsQuery.isError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load teacher stats.</div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">Could not load teacher stats.</div>
             ) : (() => {
               const ts = teacherStatsQuery.data?.data;
               return (
@@ -2128,7 +2128,7 @@ export default function SchoolAdminOverviewPage() {
                     </div>
                     <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                       <div className="text-[11px] text-(--ws-fg-50)">Inactive</div>
-                      <div className="mt-1 text-lg font-semibold text-rose-200">{ts?.inactive ?? 0}</div>
+                      <div className="mt-1 text-lg font-semibold text-(--ws-rose)">{ts?.inactive ?? 0}</div>
                     </div>
                   </div>
                   <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-50)">
@@ -2141,12 +2141,12 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-sky-500/15 via-sky-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-sky-500/20 border border-sky-500/30">
-                <TrendingUp className="h-4 w-4 text-sky-300" />
+                <TrendingUp className="h-4 w-4 text-(--ws-cyan)" />
               </div>
               Fee Collection Trend
             </CardTitle>
@@ -2158,7 +2158,7 @@ export default function SchoolAdminOverviewPage() {
             {reportsChartsQuery.isLoading ? (
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading fee trends...</div>
             ) : reportsChartsQuery.isError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load chart data.</div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">Could not load chart data.</div>
             ) : (() => {
               const points = reportsChartsQuery.data?.charts.fees.revenueTrend.points ?? [];
               const maxVal = Math.max(...points.map((p) => p.value), 1);
@@ -2197,12 +2197,12 @@ export default function SchoolAdminOverviewPage() {
       {/* Academic Performance + Community Hub */}
       {activeDashboardTab === "insights" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-yellow-500/15 via-yellow-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-yellow-500/20 border border-yellow-500/30">
-                <Award className="h-4 w-4 text-yellow-300" />
+                <Award className="h-4 w-4 text-(--ws-amber)" />
               </div>
               Academic Performance
             </CardTitle>
@@ -2211,7 +2211,7 @@ export default function SchoolAdminOverviewPage() {
             {reportsSummaryQuery.isLoading ? (
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-70)">Loading academic data...</div>
             ) : reportsSummaryQuery.isError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load academic data.</div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">Could not load academic data.</div>
             ) : (() => {
               const ac = reportsSummaryQuery.data?.categories.academics;
               return (
@@ -2243,12 +2243,12 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-pink-500/15 via-pink-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-pink-500/20 border border-pink-500/30">
-                <Heart className="h-4 w-4 text-pink-300" />
+                <Heart className="h-4 w-4 text-(--ws-rose)" />
               </div>
               Community Hub
             </CardTitle>
@@ -2260,7 +2260,7 @@ export default function SchoolAdminOverviewPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Vote className="h-3.5 w-3.5 text-pink-300" />
+                  <Vote className="h-3.5 w-3.5 text-(--ws-rose)" />
                   <div className="text-[11px] text-(--ws-fg-50)">Polls</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -2276,7 +2276,7 @@ export default function SchoolAdminOverviewPage() {
               </div>
               <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Heart className="h-3.5 w-3.5 text-pink-300" />
+                  <Heart className="h-3.5 w-3.5 text-(--ws-rose)" />
                   <div className="text-[11px] text-(--ws-fg-50)">Fundraising</div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -2302,7 +2302,7 @@ export default function SchoolAdminOverviewPage() {
       {activeDashboardTab === "insights" && (
       <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent"
             aria-hidden="true"
@@ -2310,7 +2310,7 @@ export default function SchoolAdminOverviewPage() {
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/30">
-                <DollarSign className="h-4 w-4 text-rose-300" />
+                <DollarSign className="h-4 w-4 text-(--ws-rose)" />
               </div>
               Overdues &amp; Risk
             </CardTitle>
@@ -2333,7 +2333,7 @@ export default function SchoolAdminOverviewPage() {
                 Loading overdue risk snapshot...
               </div>
             ) : overdueRiskError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">
                 Could not load overdue risk snapshot. Please refresh the page.
               </div>
             ) : overdueTotal > 0 ? (
@@ -2342,7 +2342,7 @@ export default function SchoolAdminOverviewPage() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                     <div className="text-[11px] text-(--ws-fg-50)">Overdue Amount</div>
-                    <div className="mt-1 text-sm font-semibold text-rose-200">
+                    <div className="mt-1 text-sm font-semibold text-(--ws-rose)">
                       {formatCurrency(overdueAmountMinor)}
                     </div>
                   </div>
@@ -2376,7 +2376,7 @@ export default function SchoolAdminOverviewPage() {
                             {student.oldestDaysOverdue} day(s) overdue
                           </div>
                         </div>
-                        <div className="font-semibold text-rose-200">
+                        <div className="font-semibold text-(--ws-rose)">
                           {formatCurrency(student.totalOutstandingMinor)}
                         </div>
                       </div>
@@ -2392,7 +2392,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
             aria-hidden="true"
@@ -2400,7 +2400,7 @@ export default function SchoolAdminOverviewPage() {
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                <Users className="h-4 w-4 text-blue-300" />
+                <Users className="h-4 w-4 text-(--ws-cyan)" />
               </div>
               Attendance &amp; Coverage
             </CardTitle>
@@ -2411,7 +2411,7 @@ export default function SchoolAdminOverviewPage() {
                 Loading attendance snapshot...
               </div>
             ) : attendanceError ? (
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">
                 Could not load attendance data. Please refresh.
               </div>
             ) : (
@@ -2452,7 +2452,7 @@ export default function SchoolAdminOverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ActivityFeed limit={5} />
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
             aria-hidden="true"
@@ -2460,7 +2460,7 @@ export default function SchoolAdminOverviewPage() {
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-indigo-400/20 border border-indigo-400/30">
-                <Search className="h-4 w-4 text-indigo-200" />
+                <Search className="h-4 w-4 text-(--ws-violet)" />
               </div>
               Admin Assistant
             </CardTitle>
@@ -2502,7 +2502,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-400/15 via-amber-400/5 to-transparent"
             aria-hidden="true"
@@ -2541,7 +2541,7 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Top Performers + Upcoming Due Invoices + Reports Generated */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -2574,12 +2574,12 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
-                <AlertTriangle className="h-4 w-4 text-orange-300" />
+                <AlertTriangle className="h-4 w-4 text-(--ws-amber)" />
               </div>
               Upcoming Due
             </CardTitle>
@@ -2602,7 +2602,7 @@ export default function SchoolAdminOverviewPage() {
                         Due {format(new Date(inv.dueDate), "dd MMM")}
                       </div>
                     </div>
-                    <div className="font-semibold text-orange-200 shrink-0">
+                    <div className="font-semibold text-(--ws-amber) shrink-0">
                       {formatCurrency(inv.totalOutstandingMinor)}
                     </div>
                   </div>
@@ -2616,12 +2616,12 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
-                <Activity className="h-4 w-4 text-indigo-300" />
+                <Activity className="h-4 w-4 text-(--ws-violet)" />
               </div>
               Admin Activity
             </CardTitle>
@@ -2641,7 +2641,7 @@ export default function SchoolAdminOverviewPage() {
                       </div>
                       <div>
                         <div className="text-[11px] text-(--ws-fg-50)">Reports Generated</div>
-                        <div className="mt-1 text-2xl font-semibold text-indigo-200">{act?.reportsGenerated ?? 0}</div>
+                        <div className="mt-1 text-2xl font-semibold text-(--ws-violet)">{act?.reportsGenerated ?? 0}</div>
                       </div>
                     </div>
                   </div>

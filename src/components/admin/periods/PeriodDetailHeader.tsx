@@ -57,7 +57,7 @@ function MetricStatCard({
     emerald: {
       gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
       iconBg: "bg-emerald-500/20 border-emerald-500/30",
-      iconColor: "text-emerald-300",
+      iconColor: "text-(--ws-emerald)",
     },
     amber: {
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
@@ -69,7 +69,7 @@ function MetricStatCard({
   const style = tones[tone];
 
   return (
-    <div className="group/card relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black p-4 shadow-lg shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
+    <div className="group/card relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) p-4 shadow-lg shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       <div
         className={cn(
           "pointer-events-none absolute inset-0 bg-linear-to-br opacity-60 transition-opacity duration-300 group-hover/card:opacity-100",
@@ -91,11 +91,11 @@ function MetricStatCard({
           >
             <Icon className={cn("h-4 w-4", style.iconColor)} />
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-widest text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-(--ws-fg-50)">
             {label}
           </span>
         </div>
-        <div className="text-xl font-bold tracking-tight text-white">
+        <div className="text-xl font-bold tracking-tight text-(--ws-fg)">
           {value}
         </div>
       </div>
@@ -111,7 +111,7 @@ export function PeriodDetailHeader({
   const { period, counts, revenueMinor } = data;
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-teal-950/40 to-transparent shadow-2xl shadow-black/40 backdrop-blur-xl">
+    <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <div
         className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-teal-500/10 blur-3xl"
         aria-hidden="true"
@@ -133,7 +133,7 @@ export function PeriodDetailHeader({
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) md:text-3xl">
                   {period.term} {period.yearLabel}
                 </h1>
                 {period.isCurrent && (
@@ -143,7 +143,7 @@ export function PeriodDetailHeader({
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-(--ws-fg-60)">
                 {formatDateRange(period.startDate, period.endDate)}
               </p>
             </div>

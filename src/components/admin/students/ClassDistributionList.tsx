@@ -20,7 +20,7 @@ export function ClassDistributionList({
   const items = distribution ?? [];
   if (loading) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
           aria-hidden="true"
@@ -47,7 +47,7 @@ export function ClassDistributionList({
 
   if (!items.length) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
           aria-hidden="true"
@@ -70,7 +70,7 @@ export function ClassDistributionList({
   const max = Math.max(...items.map((d) => d.count || 0));
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
         aria-hidden="true"

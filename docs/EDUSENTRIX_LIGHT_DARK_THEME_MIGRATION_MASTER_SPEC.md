@@ -349,7 +349,7 @@ This registry is authoritative. **An agent must consult it before touching share
 | Public marketing footer | `src/components/marketing/PublicMarketingFooter.tsx` | THEME_COMPLETE | `/about` | Shared by about, contact, privacy, and terms |
 | Public contact form | `src/components/marketing/PublicContactForm.tsx` | THEME_COMPLETE | `/contact` | Auth field classes. Select menu overrides are local. Form was not submitted |
 | Launch wizard | `src/components/onboarding/LaunchWizard.tsx` | THEME_COMPLETE | `/onboard` | Also `/launch`. Platform school onboarding keeps dark portaled selects and the dark date picker |
-| App shell theme lock | `src/app/(app)/layout.tsx` | THEME_COMPLETE | `/admin` | `.dark` wraps the page column (`AdminMainContent`, student main, `/docs`, `/profile`), not the top bar or sidebars. `/bursar` redirects into admin finance. Workspace routes omit that lock: `/admin`, students, fees list, teachers list, grades list, classes redirect, assessment-plans, grading, periods list, communications, promotions, report-card preview, background-tasks, subscription, notifications, `library/*`, exam analytics/sessions/venues (exact sessions, not nested timetable/conflicts), lesson analytics plus `lessons/sessions` and `[id]`, `learn/*`, `community/*`, examinations list, question-bank, admissions list, curricula redirects, lessons audit, invitations, docs splash, store, supplies, overdue-report, teacher reports, `lesson-notes/*`, `schemes/*`, `reports/report-runs/*`, `expenses/*`, `fees/invoices/*`, fees structures, `/admin/fees/payments/record`, and `/admin/reconciliation`. Nested teacher/grade/period/exam-session/exam-paper/admissions-cycle and the finance hub stay dark. |
+| App shell theme lock | `src/app/(app)/layout.tsx` | THEME_COMPLETE | `/admin` | `.dark` wraps the page column (`AdminMainContent`, student main, `/docs`, `/profile`), not the top bar or sidebars. `/bursar` redirects into admin finance. Workspace routes omit that lock: `/admin`, students, fees list, teachers list plus `[id]`, grades list, classes redirect plus `[classId]`, assessment-plans, grading, periods list plus `[periodId]`, communications, promotions, report-card preview, background-tasks, subscription, notifications, `library/*`, exam analytics/sessions/venues (exact sessions, not nested timetable/conflicts), lesson analytics plus `lessons/sessions` and `[id]`, `learn/*`, `community/*`, examinations list, question-bank, admissions list plus cycle, curricula redirects, lessons audit, invitations, docs splash, store, supplies, overdue-report, teacher reports, `lesson-notes/*`, `schemes/*`, `reports/report-runs/*`, `expenses/*`, `fees/invoices/*`, fees structures, `/admin/fees/payments/record`, `/admin/reconciliation`, documents, email, tasks, delegations, `subjects/[subjectId]` (not the offerings list), and finance leaves `payments`/`receipts`/`cash-close`. Finance hub, reports hub, settings, grades/[id], subjects list, exam paper/timetable stay dark. |
 | Workspace scope | `src/components/theme/workspace-scope.tsx` | THEME_COMPLETE | `/admin/students` | Page canvas plus the class portaled menus, selects, dialogs, and date pickers add when their trigger is inside the scope. |
 | Demo banner | `src/components/demo/DemoBanner.tsx` | NOT_STARTED | demo landing/app | Verify both themes |
 | Navigation sidebars | `src/components/nav/sidebars/*`, `src/components/platform/PlatformSidebar.tsx` | THEME_COMPLETE | `/admin` | Admin, bursar, billing owner, delegated, teacher, parent, student, and platform frames follow the shell theme. Nav routes unchanged |
@@ -508,6 +508,19 @@ The registry is intentionally extensible because not every reusable domain compo
 | Installment schedule view | `src/components/admin/fees/InstallmentScheduleView.tsx` | THEME_COMPLETE | `/admin/fees/invoices/[id]` |  |
 | Invoice event timeline | `src/components/admin/fees/InvoiceEventTimeline.tsx` | THEME_COMPLETE | `/admin/fees/invoices/[id]` |  |
 | Add adjustment modal | `src/components/modals/AddAdjustmentModal.tsx` | THEME_COMPLETE | `/admin/fees/invoices/[id]` | Overlay dimmer unchanged. |
+| Compose attachment picker | `src/components/email/ComposeAttachmentPicker.tsx` | THEME_COMPLETE | `/admin/email` | Rich-text editor internals not rewritten. |
+| Edit cycle modal | `src/components/admissions/EditCycleModal.tsx` | THEME_COMPLETE | `/admin/admissions/[cycleId]` | Date pickers use `surface="theme"`. Also opened from the admissions list. |
+| Admissions cycle workspace | `src/components/admissions/cycle/CycleWorkspace.tsx` | THEME_COMPLETE | `/admin/admissions/[cycleId]` | Includes cycle tabs, kanban, form builder, and application drawer. Overlay dimmers stay `bg-black/*`. |
+| Period detail chrome | `src/components/admin/periods/PeriodDetailHeader.tsx` | THEME_COMPLETE | `/admin/periods/[periodId]` | Also overview/reports tabs. |
+| Class detail chrome | `src/components/admin/classes/detail/ClassDetailHeader.tsx` | THEME_COMPLETE | `/admin/classes/[classId]` | Detail tabs and timetable editor. First-touch class assignment modals. |
+| Assign homeroom modal | `src/components/modals/AssignHomeroomModal.tsx` | THEME_COMPLETE | `/admin/classes/[classId]` | Overlay dimmer unchanged. |
+| Assign subjects to class | `src/components/modals/AssignSubjectsToClassModal.tsx` | THEME_COMPLETE | `/admin/classes/[classId]` | Overlay dimmer unchanged. |
+| Subject-teacher assignment wizard | `src/components/modals/SubjectTeacherAssignmentWizard.tsx` | THEME_COMPLETE | `/admin/classes/[classId]` | Overlay dimmer unchanged. |
+| Add student to class modal | `src/components/modals/AddStudentToClassModal.tsx` | THEME_COMPLETE | `/admin/classes/[classId]` | Overlay dimmer unchanged. |
+| Assign class role modal | `src/components/modals/AssignClassRoleModal.tsx` | THEME_COMPLETE | `/admin/classes/[classId]` | Overlay dimmer unchanged. |
+| Teacher detail chrome | `src/components/admin/teachers/detail/TeacherDetailHeader.tsx` | THEME_COMPLETE | `/admin/teachers/[id]` | Detail tabs and assignment modals. Edit/leave modals already themed. |
+| Payment details drawer | `src/components/admin/fees/payments/PaymentDetailsDrawer.tsx` | THEME_COMPLETE | `/admin/finance/payments` | Overlay dimmer unchanged. |
+| Pending approvals card | `src/components/admin/fees/payments/PendingApprovalsCard.tsx` | THEME_COMPLETE | `/admin/finance/payments` |  |
 
 ---
 
@@ -722,11 +735,11 @@ Every agent must report:
 | NOT_STARTED | `/admin/academic-calendar` | `src/app/(app)/admin/academic-calendar/page.tsx` |  |
 | THEME_COMPLETE | `/admin/academics/assessment-plans` | `src/app/(app)/admin/academics/assessment-plans/page.tsx` | Workspace scope. First-touch: header/shell and assessment plan wizard. |
 | THEME_COMPLETE | `/admin/academics/grading` | `src/app/(app)/admin/academics/grading/page.tsx` | Workspace scope. First-touch: grading policy drawer and `sheet`. |
-| NOT_STARTED | `/admin/admissions/[cycleId]` | `src/app/(app)/admin/admissions/[cycleId]/page.tsx` |  |
-| THEME_COMPLETE | `/admin/admissions` | `src/app/(app)/admin/admissions/page.tsx` | Workspace scope on the list only. First-touch: `AdmissionsWorkspace` and `CreateCycleModal`. Cycle detail stays dark. |
+| THEME_COMPLETE | `/admin/admissions/[cycleId]` | `src/app/(app)/admin/admissions/[cycleId]/page.tsx` | Workspace scope. First-touch: `EditCycleModal` and cycle workspace. |
+| THEME_COMPLETE | `/admin/admissions` | `src/app/(app)/admin/admissions/page.tsx` | Workspace scope. First-touch: `AdmissionsWorkspace` and `CreateCycleModal`. |
 | THEME_COMPLETE | `/admin/background-tasks` | `src/app/(app)/admin/background-tasks/page.tsx` | Workspace scope. First-touch: `BackgroundTaskCenter`. |
-| NOT_STARTED | `/admin/classes/[classId]` | `src/app/(app)/admin/classes/[classId]/page.tsx` |  |
-| THEME_COMPLETE | `/admin/classes` | `src/app/(app)/admin/classes/page.tsx` | Redirect splash only. Workspace scope. Does not theme `/admin/classes/[classId]`. |
+| THEME_COMPLETE | `/admin/classes/[classId]` | `src/app/(app)/admin/classes/[classId]/page.tsx` | Workspace scope. First-touch: class detail tabs and assignment modals. |
+| THEME_COMPLETE | `/admin/classes` | `src/app/(app)/admin/classes/page.tsx` | Redirect splash. Workspace scope. |
 | THEME_COMPLETE | `/admin/communications` | `src/app/(app)/admin/communications/page.tsx` | Workspace scope. Rich-text editor internals not rewritten. |
 | THEME_COMPLETE | `/admin/community/fundraising/[id]/donations` | `src/app/(app)/admin/community/fundraising/[id]/donations/page.tsx` | Workspace scope. |
 | THEME_COMPLETE | `/admin/community/fundraising/[id]` | `src/app/(app)/admin/community/fundraising/[id]/page.tsx` | Workspace scope. First-touch: campaign edit/approve/reject/close, share, update, and offline donation modals. |
@@ -736,10 +749,10 @@ Every agent must report:
 | THEME_COMPLETE | `/admin/community/polls` | `src/app/(app)/admin/community/polls/page.tsx` | Workspace scope. First-touch: `CreatePollModal` and `PollTemplateSelector`. |
 | THEME_COMPLETE | `/admin/curricula/[id]` | `src/app/(app)/admin/curricula/[id]/page.tsx` | Redirect-only to `/admin/schemes`. |
 | THEME_COMPLETE | `/admin/curricula` | `src/app/(app)/admin/curricula/page.tsx` | Redirect-only to `/admin/schemes`. |
-| NOT_STARTED | `/admin/delegations` | `src/app/(app)/admin/delegations/page.tsx` |  |
+| THEME_COMPLETE | `/admin/delegations` | `src/app/(app)/admin/delegations/page.tsx` | Workspace scope. Date pickers use `surface="theme"`. |
 | THEME_COMPLETE | `/admin/docs` | `src/app/(app)/admin/docs/page.tsx` | Workspace scope. Client splash redirects to `/docs`. |
-| NOT_STARTED | `/admin/documents` | `src/app/(app)/admin/documents/page.tsx` |  |
-| NOT_STARTED | `/admin/email` | `src/app/(app)/admin/email/page.tsx` |  |
+| THEME_COMPLETE | `/admin/documents` | `src/app/(app)/admin/documents/page.tsx` | Workspace scope. Filters use PremiumSelect. |
+| THEME_COMPLETE | `/admin/email` | `src/app/(app)/admin/email/page.tsx` | Workspace scope. First-touch: `ComposeAttachmentPicker`. Rich-text internals not rewritten. |
 | NOT_STARTED | `/admin/examinations/[examPaperId]` | `src/app/(app)/admin/examinations/[examPaperId]/page.tsx` |  |
 | THEME_COMPLETE | `/admin/examinations` | `src/app/(app)/admin/examinations/page.tsx` | Workspace scope on the list only. First-touch: `ExaminationCenterPage`. Paper editor stays dark. |
 | THEME_COMPLETE | `/admin/exams/analytics` | `src/app/(app)/admin/exams/analytics/page.tsx` | Workspace scope. First-touch: `ExamAnalyticsDashboard`. Nested exam paper/session timetable stay dark. |
@@ -757,13 +770,13 @@ Every agent must report:
 | THEME_COMPLETE | `/admin/fees/structures` | `src/app/(app)/admin/fees/structures/page.tsx` | Workspace scope. First-touch: `CreateFeeStructureModal`. |
 | NOT_STARTED | `/admin/finance/budgets/create` | `src/app/(app)/admin/finance/budgets/create/page.tsx` |  |
 | NOT_STARTED | `/admin/finance/budgets` | `src/app/(app)/admin/finance/budgets/page.tsx` |  |
-| NOT_STARTED | `/admin/finance/cash-close` | `src/app/(app)/admin/finance/cash-close/page.tsx` |  |
+| THEME_COMPLETE | `/admin/finance/cash-close` | `src/app/(app)/admin/finance/cash-close/page.tsx` | Workspace scope. Date picker uses `surface="theme"`. Finance hub stays dark. |
 | NOT_STARTED | `/admin/finance/disbursements` | `src/app/(app)/admin/finance/disbursements/page.tsx` |  |
 | NOT_STARTED | `/admin/finance/meetings/[meetingId]` | `src/app/(app)/admin/finance/meetings/[meetingId]/page.tsx` |  |
 | NOT_STARTED | `/admin/finance/meetings` | `src/app/(app)/admin/finance/meetings/page.tsx` |  |
 | NOT_STARTED | `/admin/finance` | `src/app/(app)/admin/finance/page.tsx` |  |
-| NOT_STARTED | `/admin/finance/payments` | `src/app/(app)/admin/finance/payments/page.tsx` |  |
-| NOT_STARTED | `/admin/finance/receipts` | `src/app/(app)/admin/finance/receipts/page.tsx` |  |
+| THEME_COMPLETE | `/admin/finance/payments` | `src/app/(app)/admin/finance/payments/page.tsx` | Workspace scope. First-touch: payment details drawer and pending approvals card. Finance hub stays dark. |
+| THEME_COMPLETE | `/admin/finance/receipts` | `src/app/(app)/admin/finance/receipts/page.tsx` | Workspace scope. Finance hub stays dark. |
 | NOT_STARTED | `/admin/finance/reconciliation` | `src/app/(app)/admin/finance/reconciliation/page.tsx` |  |
 | NOT_STARTED | `/admin/finance/reconciliation/sessions/[id]` | `src/app/(app)/admin/finance/reconciliation/sessions/[id]/page.tsx` |  |
 | NOT_STARTED | `/admin/finance/reconciliation/sessions/new` | `src/app/(app)/admin/finance/reconciliation/sessions/new/page.tsx` |  |
@@ -806,8 +819,8 @@ Every agent must report:
 | THEME_COMPLETE | `/admin/notifications` | `src/app/(app)/admin/notifications/page.tsx` | Workspace scope. Inbox list and filters. |
 | THEME_COMPLETE | `/admin/overdue-report` | `src/app/(app)/admin/overdue-report/page.tsx` | Workspace scope. |
 | THEME_COMPLETE | `/admin` | `src/app/(app)/admin/page.tsx` | Workspace scope. First-touch: dashboard widgets, setup checklist, onboarding indicator, period banner/expiry, activity feed, create teacher/period/class, invite bursar, reminders, simple report, tooltips. Create student already themed. |
-| NOT_STARTED | `/admin/periods/[periodId]` | `src/app/(app)/admin/periods/[periodId]/page.tsx` |  |
-| THEME_COMPLETE | `/admin/periods` | `src/app/(app)/admin/periods/page.tsx` | List only. Create period modal already themed. Period detail stays dark. |
+| THEME_COMPLETE | `/admin/periods/[periodId]` | `src/app/(app)/admin/periods/[periodId]/page.tsx` | Workspace scope. First-touch: period detail header, overview, and reports tabs. |
+| THEME_COMPLETE | `/admin/periods` | `src/app/(app)/admin/periods/page.tsx` | List. Create period modal already themed. |
 | THEME_COMPLETE | `/admin/promotions` | `src/app/(app)/admin/promotions/page.tsx` | Workspace scope. Tabs, policy/preview wizards, and details modal. |
 | THEME_COMPLETE | `/admin/question-bank` | `src/app/(app)/admin/question-bank/page.tsx` | Workspace scope. Shares `ExaminationCenterPage`. |
 | THEME_COMPLETE | `/admin/reconciliation` | `src/app/(app)/admin/reconciliation/page.tsx` | Redirect-only to `/admin/finance/reconciliation/sessions`. Does not theme finance reconciliation. |
@@ -827,13 +840,13 @@ Every agent must report:
 | THEME_COMPLETE | `/admin/store` | `src/app/(app)/admin/store/page.tsx` | Workspace scope. |
 | THEME_COMPLETE | `/admin/students/[studentId]` | `src/app/(app)/admin/students/[studentId]/page.tsx` | All tabs plus fee/guardian/assessment drawers and modals. |
 | THEME_COMPLETE | `/admin/students` | `src/app/(app)/admin/students/page.tsx` | Workspace scope, glass tokens, filters, command palette, row menus, and create/import/edit/assign modals. |
-| NOT_STARTED | `/admin/subjects/[subjectId]` | `src/app/(app)/admin/subjects/[subjectId]/page.tsx` |  |
+| THEME_COMPLETE | `/admin/subjects/[subjectId]` | `src/app/(app)/admin/subjects/[subjectId]/page.tsx` | Workspace scope. Subject offerings list stays dark. |
 | NOT_STARTED | `/admin/subjects` | `src/app/(app)/admin/subjects/page.tsx` |  |
 | THEME_COMPLETE | `/admin/subscription` | `src/app/(app)/admin/subscription/page.tsx` | Workspace scope. First-touch: event log and billing guide. |
 | THEME_COMPLETE | `/admin/supplies` | `src/app/(app)/admin/supplies/page.tsx` | Workspace scope. First-touch: `SupplyProgramWizard`. |
-| NOT_STARTED | `/admin/tasks` | `src/app/(app)/admin/tasks/page.tsx` |  |
-| NOT_STARTED | `/admin/teachers/[id]` | `src/app/(app)/admin/teachers/[id]/page.tsx` |  |
-| THEME_COMPLETE | `/admin/teachers` | `src/app/(app)/admin/teachers/page.tsx` | Workspace scope on the list only. First-touch: edit/import/leave modals, teacher modal shell, confirmation dialog. Create teacher already themed. Teacher detail stays dark. |
+| THEME_COMPLETE | `/admin/tasks` | `src/app/(app)/admin/tasks/page.tsx` | Workspace scope. Markdown tracker chrome retokened. |
+| THEME_COMPLETE | `/admin/teachers/[id]` | `src/app/(app)/admin/teachers/[id]/page.tsx` | Workspace scope. First-touch: teacher detail tabs and assignment modals. |
+| THEME_COMPLETE | `/admin/teachers` | `src/app/(app)/admin/teachers/page.tsx` | Workspace scope. First-touch: edit/import/leave modals, teacher modal shell, confirmation dialog. Create teacher already themed. |
 | THEME_COMPLETE | `/admin/teachers/reports` | `src/app/(app)/admin/teachers/reports/page.tsx` | Workspace scope. |
 
 ### Teacher (75 pages)
@@ -1045,13 +1058,13 @@ Every agent must report:
 | Marketing / auth / root | 15 | 13 | 0 | 0 | 0 |
 | School onboarding | 1 | 0 | 0 | 0 | 0 |
 | Other authenticated | 3 | 0 | 0 | 0 | 0 |
-| Admin | 116 | 76 | 0 | 0 | 0 |
+| Admin | 116 | 88 | 0 | 0 | 0 |
 | Teacher | 75 | 0 | 0 | 0 | 0 |
 | Parent | 26 | 0 | 0 | 0 | 0 |
 | Student | 13 | 0 | 0 | 0 | 0 |
 | Platform | 49 | 0 | 0 | 0 | 0 |
 | Public transactional / application | 11 | 0 | 0 | 0 | 0 |
-| **TOTAL** | **309** | **89** | **0** | **0** | **0** |
+| **TOTAL** | **309** | **101** | **0** | **0** | **0** |
 
 
 > When page statuses change, update this summary in the same change. Do not allow the tracker and summary to drift.

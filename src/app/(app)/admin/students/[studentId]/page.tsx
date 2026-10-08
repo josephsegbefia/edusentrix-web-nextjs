@@ -102,7 +102,7 @@ function StudentDetailContent() {
                 <div className="font-semibold text-(--ws-rose)">
                   Missing student identifier
                 </div>
-                <p className="text-xs text-(--ws-rose)/70">
+                <p className="text-xs text-(--ws-rose)">
                   The student ID was not provided in the URL.
                 </p>
               </div>
@@ -146,7 +146,7 @@ function StudentDetailContent() {
         </div>
 
         {/* Header Card Skeleton */}
-        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-teal-950/40 to-transparent shadow-[var(--ws-shadow)] backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <CardContent className="flex animate-pulse flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 items-center gap-4">
               <div className="size-24 rounded-full bg-(--ws-fill-strong)" />
@@ -208,7 +208,7 @@ function StudentDetailContent() {
                 <div className="font-semibold text-(--ws-rose)">
                   Unable to load student details
                 </div>
-                <p className="text-xs text-(--ws-rose)/70">
+                <p className="text-xs text-(--ws-rose)">
                   The student might not exist or you might not have access.
                 </p>
               </div>

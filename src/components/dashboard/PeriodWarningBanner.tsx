@@ -73,7 +73,7 @@ const warningConfig: Record<
     bgGradient: "from-orange-500/15 via-orange-500/5 to-transparent",
     borderColor: "border-orange-400/40",
     iconBg: "bg-orange-500/20 border border-orange-400/30",
-    iconColor: "text-orange-300",
+    iconColor: "text-(--ws-amber)",
     textColor: "text-orange-100",
     accentColor: "bg-orange-400/80",
     Icon: AlertTriangle,
@@ -181,7 +181,7 @@ export function PeriodWarningBanner({
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.3 }}
         className={cn(
-          "relative overflow-hidden rounded-xl border shadow-lg shadow-black/20 backdrop-blur",
+          "relative overflow-hidden rounded-xl border shadow-[var(--ws-shadow)] backdrop-blur",
           `bg-linear-to-br ${config.bgGradient}`,
           config.borderColor,
           className

@@ -1033,7 +1033,7 @@ export default function AdminMeetingsPage() {
         <Card className="border-white/10 bg-[#0d1322] text-white">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Video className="h-5 w-5 text-emerald-300" />
+              <Video className="h-5 w-5 text-(--ws-emerald)" />
               Schedule A Meeting
             </CardTitle>
             <p className="text-sm text-white/55">
@@ -1054,7 +1054,7 @@ export default function AdminMeetingsPage() {
             ) : (
               <>
             {calendars.length === 0 && !loadingCalendars && (
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)">
                 No academic calendars exist yet.{" "}
                 {!capabilities || capabilities.isSchoolAdmin ? (
                   <>
@@ -1231,7 +1231,7 @@ export default function AdminMeetingsPage() {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                    <Sparkles className="h-4 w-4 text-emerald-300" />
+                    <Sparkles className="h-4 w-4 text-(--ws-emerald)" />
                     Invite Summary
                   </div>
                   <div className="text-xs text-white/50">
@@ -1412,7 +1412,7 @@ export default function AdminMeetingsPage() {
                   className={cn(
                     "flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
                     isLow
-                      ? "border-amber-400/25 bg-amber-500/10 text-amber-100"
+                      ? "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)"
                       : "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
                   )}
                 >
@@ -1524,7 +1524,7 @@ export default function AdminMeetingsPage() {
                               className={cn(
                                 "border",
                                 meeting.status === "cancelled"
-                                  ? "border-rose-400/25 bg-rose-500/10 text-rose-200"
+                                  ? "border-rose-400/25 bg-rose-500/10 text-(--ws-rose)"
                                   : "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
                               )}
                             >
@@ -1608,7 +1608,7 @@ export default function AdminMeetingsPage() {
                               onClick={() =>
                                 handleDeleteCancelledMeeting(meeting.id, meeting.title)
                               }
-                              className="border-rose-400/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+                              className="border-rose-400/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
                             >
                               {deletingMeetingId === meeting.id ? (
                                 <>
@@ -1631,7 +1631,7 @@ export default function AdminMeetingsPage() {
                           <CalendarDays className="h-4 w-4 text-white/35" />
                           <span>{meeting.calendar.name}</span>
                           {!meeting.calendar.isPublished && (
-                            <Badge className="border border-amber-400/25 bg-amber-500/10 text-amber-100">
+                            <Badge className="border border-amber-400/25 bg-amber-500/10 text-(--ws-amber)">
                               Draft calendar
                             </Badge>
                           )}
@@ -1649,8 +1649,8 @@ export default function AdminMeetingsPage() {
                         className={cn(
                           "rounded-2xl border px-3 py-2 text-xs",
                           meeting.providerStatus === "failed"
-                            ? "border-rose-400/25 bg-rose-500/10 text-rose-100/90"
-                            : "border-amber-400/20 bg-amber-500/10 text-amber-100/85"
+                            ? "border-rose-400/25 bg-rose-500/10 text-(--ws-rose)"
+                            : "border-amber-400/20 bg-amber-500/10 text-(--ws-amber)"
                         )}
                       >
                         <div>
@@ -1692,7 +1692,7 @@ export default function AdminMeetingsPage() {
                       </div>
 
                       {meeting.status === "cancelled" && meeting.cancelReason && (
-                        <div className="flex items-start gap-2 rounded-2xl border border-rose-400/15 bg-rose-500/10 px-3 py-2 text-xs text-rose-100/85">
+                        <div className="flex items-start gap-2 rounded-2xl border border-rose-400/15 bg-rose-500/10 px-3 py-2 text-xs text-(--ws-rose)">
                           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                           <span>{meeting.cancelReason}</span>
                         </div>

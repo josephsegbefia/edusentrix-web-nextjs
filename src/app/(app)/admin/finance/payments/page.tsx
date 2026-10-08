@@ -6,6 +6,7 @@ import { ArrowLeft, Banknote, CalendarCheck2, FileSearch, Plus, ShieldCheck } fr
 import { PaymentDetailsDrawer } from "@/components/admin/fees/payments/PaymentDetailsDrawer";
 import { PendingApprovalsCard } from "@/components/admin/fees/payments/PendingApprovalsCard";
 import { Button } from "@/components/ui/button";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default function FinancePaymentsPage() {
   const [activePaymentId, setActivePaymentId] = React.useState<string | null>(null);
@@ -17,22 +18,23 @@ export default function FinancePaymentsPage() {
   }
 
   return (
+    <WorkspaceScope>
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-(--ws-line) pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Button asChild variant="ghost" className="mb-3 px-0 text-white/60 hover:bg-transparent hover:text-white">
+          <Button asChild variant="ghost" className="mb-3 px-0 text-(--ws-fg-60) hover:bg-transparent hover:text-(--ws-fg)">
             <Link href="/admin/finance">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Finance
             </Link>
           </Button>
           <div className="flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
               <Banknote className="h-5 w-5 text-emerald-200" />
             </span>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-white">Payment Inbox</h1>
-              <p className="mt-1 text-sm text-white/55">
+              <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg)">Payment Inbox</h1>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Review pending payments, run reconciliation checks, inspect evidence, and close
                 cash without mixing this work into the broader fees page.
               </p>
@@ -40,19 +42,19 @@ export default function FinancePaymentsPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
+          <Button asChild className="bg-emerald-600 text-(--ws-fg) hover:bg-emerald-500">
             <Link href="/admin/fees/payments/record">
               <Plus className="mr-2 h-4 w-4" />
               Record Payment
             </Link>
           </Button>
-          <Button asChild variant="outline" className="border-white/10 bg-white/[0.04] text-white">
+          <Button asChild variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
             <Link href="/admin/finance/cash-close">
               <CalendarCheck2 className="mr-2 h-4 w-4" />
               Cash Close
             </Link>
           </Button>
-          <Button asChild variant="outline" className="border-white/10 bg-white/[0.04] text-white">
+          <Button asChild variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
             <Link href="/admin/finance/reconciliation/sessions">
               <FileSearch className="mr-2 h-4 w-4" />
               Reconciliation
@@ -83,5 +85,6 @@ export default function FinancePaymentsPage() {
         paymentId={activePaymentId}
       />
     </div>
+    </WorkspaceScope>
   );
 }

@@ -394,7 +394,7 @@ export function ExamSessionWizard({
           {currentStep === 4 ? (
             <div className="space-y-3 text-sm text-(--ws-fg-70)">
               <div className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 text-(--ws-emerald)" />
                 <div>
                   <p className="font-medium text-(--ws-fg)">{form.name || "Untitled session"}</p>
                   <p>{formatExamType(form.examType)}</p>

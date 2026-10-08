@@ -411,7 +411,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
                   </span>
                 </div>
                 {"reason" in s && (
-                  <p className="text-[10px] text-(--ws-emerald)/60 mt-0.5">
+                  <p className="text-[10px] text-(--ws-emerald) mt-0.5">
                     {(s as { reason: string }).reason}
                   </p>
                 )}

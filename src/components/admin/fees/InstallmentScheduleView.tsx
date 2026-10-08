@@ -34,7 +34,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
 
     if (status === "paid") {
       return (
-        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">
+        <Badge className="bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30">
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Paid
         </Badge>
@@ -52,7 +52,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
 
     if (isOverdue) {
       return (
-        <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/30">
+        <Badge className="bg-rose-500/20 text-(--ws-rose) border-rose-500/30">
           <AlertCircle className="h-3 w-3 mr-1" />
           Overdue
         </Badge>
@@ -73,7 +73,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
   };
 
   return (
-    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/5 via-indigo-500/2 to-transparent"
         aria-hidden="true"
@@ -129,7 +129,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
                   <>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-(--ws-fg-60)">Paid</span>
-                      <span className="text-emerald-300">
+                      <span className="text-(--ws-emerald)">
                         {formatMoney(installment.amountPaidMinor)}
                       </span>
                     </div>
@@ -153,9 +153,9 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
                     "font-semibold",
                     installment.amountOutstandingMinor > 0
                       ? isOverdue
-                        ? "text-rose-300"
-                        : "text-orange-300"
-                      : "text-emerald-300"
+                        ? "text-(--ws-rose)"
+                        : "text-(--ws-amber)"
+                      : "text-(--ws-emerald)"
                   )}>
                     {formatMoney(installment.amountOutstandingMinor)}
                   </span>

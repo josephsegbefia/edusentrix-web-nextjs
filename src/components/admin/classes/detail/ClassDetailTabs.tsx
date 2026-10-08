@@ -64,7 +64,7 @@ const TABS: TabConfig[] = [
     colors: {
       active:
         "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
-      icon: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+      icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
     },
   },
   {
@@ -83,7 +83,7 @@ const TABS: TabConfig[] = [
     icon: Crown,
     colors: {
       active:
-        "border-amber-500/40 bg-amber-500/15 text-amber-200 shadow-amber-500/20",
+        "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
       icon: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     },
   },
@@ -93,8 +93,8 @@ const TABS: TabConfig[] = [
     icon: UserCheck,
     colors: {
       active:
-        "border-orange-500/40 bg-orange-500/15 text-orange-200 shadow-orange-500/20",
-      icon: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+        "border-orange-500/40 bg-orange-500/15 text-(--ws-amber) shadow-orange-500/20",
+      icon: "bg-orange-500/20 text-(--ws-amber) border-orange-500/30",
     },
   },
   {
@@ -103,8 +103,8 @@ const TABS: TabConfig[] = [
     icon: BarChart3,
     colors: {
       active:
-        "border-violet-500/40 bg-violet-500/15 text-violet-200 shadow-violet-500/20",
-      icon: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+        "border-violet-500/40 bg-violet-500/15 text-(--ws-violet) shadow-violet-500/20",
+      icon: "bg-violet-500/20 text-(--ws-violet) border-violet-500/30",
     },
   },
   {
@@ -113,8 +113,8 @@ const TABS: TabConfig[] = [
     icon: Receipt,
     colors: {
       active:
-        "border-rose-500/40 bg-rose-500/15 text-rose-200 shadow-rose-500/20",
-      icon: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+        "border-rose-500/40 bg-rose-500/15 text-(--ws-rose) shadow-rose-500/20",
+      icon: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
     },
   },
   {
@@ -151,7 +151,7 @@ export function ClassDetailTabs({ value, onChange }: ClassDetailTabsProps) {
               "group relative inline-flex items-center gap-2.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-xs font-medium transition-all duration-200",
               active
                 ? cn("shadow-lg", colors.active)
-                : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white/80"
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-80)"
             )}
             aria-pressed={active}
           >
@@ -164,7 +164,7 @@ export function ClassDetailTabs({ value, onChange }: ClassDetailTabsProps) {
                 "flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-200",
                 active
                   ? colors.icon
-                  : "border-white/10 bg-white/5 text-white/50 group-hover:border-white/15 group-hover:bg-white/8 group-hover:text-white/70"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) group-hover:border-(--ws-line-strong) group-hover:bg-(--ws-fill-strong) group-hover:text-(--ws-fg-70)"
               )}
             >
               <Icon className="h-3.5 w-3.5" />

@@ -235,14 +235,14 @@ export function ExamTimetableEntryDrawer({
       description="Schedule a subject paper for one or more class groups."
     >
       {!canMutate ? (
-        <div className={cn(glassInsetClass, "p-4 text-sm text-amber-100")}>
+        <div className={cn(glassInsetClass, "p-4 text-sm text-(--ws-amber)")}>
           This exam session can no longer be edited from the timetable builder.
         </div>
       ) : null}
 
       <div className={cn(glassInsetClass, "space-y-4 p-4")}>
         {entry?.isUnscheduled ? (
-          <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-(--ws-amber)">
             This paper is unscheduled. Set a date and time to place it on the timetable.
           </p>
         ) : null}

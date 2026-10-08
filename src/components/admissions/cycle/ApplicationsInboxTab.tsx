@@ -38,7 +38,7 @@ import { ApplicationsBulkBar } from "./ApplicationsBulkBar";
 import { ApplicationsKanban } from "./ApplicationsKanban";
 
 const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
-  { id: "", label: "All", tone: "border-white/10 bg-white/5 text-white/70" },
+  { id: "", label: "All", tone: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)" },
   {
     id: "submitted",
     label: "New",
@@ -47,7 +47,7 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
   {
     id: "under_review",
     label: "Under review",
-    tone: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    tone: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   },
   {
     id: "interview_scheduled",
@@ -57,7 +57,7 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
   {
     id: "waitlisted",
     label: "Waitlisted",
-    tone: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    tone: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   },
   {
     id: "accepted",
@@ -67,25 +67,25 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
   {
     id: "rejected",
     label: "Not offered",
-    tone: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+    tone: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   },
   {
     id: "withdrawn",
     label: "Withdrawn",
-    tone: "border-white/10 bg-white/5 text-white/55",
+    tone: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
   },
 ];
 
 const STATUS_BADGES: Record<AdmissionApplicationListItem["status"], string> = {
   submitted: "border-blue-500/30 bg-blue-500/10 text-blue-100",
-  under_review: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  under_review: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   interview_scheduled:
     "border-violet-500/30 bg-violet-500/10 text-violet-100",
   accepted: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  rejected: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-  waitlisted: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-  withdrawn: "border-white/10 bg-white/5 text-white/55",
-  expired: "border-white/10 bg-white/5 text-white/55",
+  rejected: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  waitlisted: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+  withdrawn: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
+  expired: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
 };
 
 type ApplicationsInboxTabProps = {
@@ -186,7 +186,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                   "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                   isActive
                     ? filter.tone
-                    : "border-white/10 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 )}
               >
                 {filter.label}
@@ -198,7 +198,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
           })}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-white/10 bg-black/30 p-0.5">
+          <div className="inline-flex rounded-lg border border-(--ws-line) bg-black/30 p-0.5">
             <button
               type="button"
               onClick={() => setView("list")}
@@ -206,7 +206,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
                 view === "list"
                   ? "bg-cyan-500/20 text-cyan-100"
-                  : "text-white/55 hover:text-white"
+                  : "text-(--ws-fg-50) hover:text-(--ws-fg)"
               )}
               title="List view"
             >
@@ -220,7 +220,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
                 view === "kanban"
                   ? "bg-cyan-500/20 text-cyan-100"
-                  : "text-white/55 hover:text-white"
+                  : "text-(--ws-fg-50) hover:text-(--ws-fg)"
               )}
               title="Kanban board"
             >
@@ -229,7 +229,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
             </button>
           </div>
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/40" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-(--ws-fg-40)" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -259,7 +259,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
             size="sm"
             onClick={handleExportAll}
             disabled={exportingAll}
-            className="h-9 border-white/10 bg-white/5 text-white"
+            className="h-9 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           >
             {exportingAll ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -272,19 +272,19 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center rounded-2xl border border-white/10 bg-slate-950/60 p-10 text-sm text-white/55">
+        <div className="flex items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-10 text-sm text-(--ws-fg-50)">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Loading applications…
         </div>
       ) : isError ? (
-        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">
           {error instanceof Error ? error.message : "Failed to load applications."}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/15 bg-slate-950/60 p-10 text-center">
-          <Inbox className="h-8 w-8 text-white/25" />
-          <p className="text-sm font-medium text-white">No applications yet</p>
-          <p className="max-w-sm text-xs text-white/55">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-(--ws-line-strong) bg-(--ws-panel-from) p-10 text-center">
+          <Inbox className="h-8 w-8 text-(--ws-fg-40)" />
+          <p className="text-sm font-medium text-(--ws-fg)">No applications yet</p>
+          <p className="max-w-sm text-xs text-(--ws-fg-50)">
             Once applicants submit, they will appear here. Share the application
             link from the Distribution tab to start receiving applications.
           </p>
@@ -292,9 +292,9 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
       ) : view === "kanban" ? (
         <ApplicationsKanban items={items} onOpen={setOpenId} />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/60">
+        <div className="overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-panel-from)">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            <thead className="bg-(--ws-fill) text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
               <tr>
                 <th className="px-3 py-2.5 text-left">
                   <Checkbox
@@ -318,7 +318,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                   key={app.id}
                   onClick={() => setOpenId(app.id)}
                   className={cn(
-                    "cursor-pointer border-t border-white/5 hover:bg-white/5",
+                    "cursor-pointer border-t border-(--ws-line) hover:bg-(--ws-fill-strong)",
                     selected.has(app.id) && "bg-cyan-500/5"
                   )}
                 >
@@ -332,14 +332,14 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                       aria-label={`Select ${app.referenceCode}`}
                     />
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-white/70">
+                  <td className="px-4 py-3 font-mono text-xs text-(--ws-fg-70)">
                     {app.referenceCode}
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-(--ws-fg)">
                       {app.applicant.firstName} {app.applicant.lastName}
                     </p>
-                    <p className="text-[11px] text-white/40">
+                    <p className="text-[11px] text-(--ws-fg-40)">
                       {app.applicant.sex ?? ""}
                       {app.applicant.dateOfBirth
                         ? ` · ${format(
@@ -349,14 +349,14 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                         : ""}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-white/70">
+                  <td className="px-4 py-3 text-(--ws-fg-70)">
                     {app.applicant.intendedGradeName ?? "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-white/85">
+                    <p className="text-(--ws-fg-90)">
                       {app.guardian.firstName} {app.guardian.lastName}
                     </p>
-                    <p className="text-[11px] text-white/40">{app.guardian.email}</p>
+                    <p className="text-[11px] text-(--ws-fg-40)">{app.guardian.email}</p>
                   </td>
                   <td className="px-4 py-3">
                     <Badge
@@ -369,17 +369,17 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                       {app.status.replace("_", " ")}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-white/55">
+                  <td className="px-4 py-3 text-xs text-(--ws-fg-50)">
                     {app.submittedAt
                       ? format(new Date(app.submittedAt), "MMM d, p")
                       : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-0.5 text-[11px] text-white/70">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-(--ws-fill) px-2 py-0.5 text-[11px] text-(--ws-fg-70)">
                       {app.documentsCount > 0 ? (
                         <CheckCircle2 className="h-3 w-3 text-emerald-400" />
                       ) : (
-                        <XCircle className="h-3 w-3 text-white/40" />
+                        <XCircle className="h-3 w-3 text-(--ws-fg-40)" />
                       )}
                       {app.documentsCount}
                     </span>
@@ -389,8 +389,8 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
             </tbody>
           </table>
 
-          <div className="flex items-center justify-between border-t border-white/5 px-4 py-2.5">
-            <p className="text-[11px] text-white/40">
+          <div className="flex items-center justify-between border-t border-(--ws-line) px-4 py-2.5">
+            <p className="text-[11px] text-(--ws-fg-40)">
               <Clock className="mr-1 inline h-3 w-3" />
               Showing {items.length} of {total} application{total === 1 ? "" : "s"}
             </p>
@@ -416,7 +416,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
                   variant="ghost"
                   size="sm"
                   asChild
-                  className="ml-2 text-white/55"
+                  className="ml-2 text-(--ws-fg-50)"
                 >
                   <a
                     href={`/apply/track/${items[0].trackerToken}`}

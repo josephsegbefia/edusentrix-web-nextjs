@@ -39,7 +39,7 @@ const STATUS_TONE: Record<string, string> = {
   active: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   pilot: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
   grace: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  restricted_read_only: "border-orange-500/30 bg-orange-500/10 text-orange-200",
+  restricted_read_only: "border-orange-500/30 bg-orange-500/10 text-(--ws-amber)",
   suspended: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
   cancelled: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
@@ -85,7 +85,7 @@ function UsageBar({
         </div>
         <span className="text-xs text-(--ws-fg-50)">
           {isUnlimited ? (
-            <span className="text-(--ws-emerald)/70">Unlimited</span>
+            <span className="text-(--ws-emerald)">Unlimited</span>
           ) : (
             <>
               <span className={cn("font-medium", isDanger ? "text-(--ws-rose)" : "text-(--ws-fg-80)")}>

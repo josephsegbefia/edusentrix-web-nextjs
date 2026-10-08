@@ -139,26 +139,26 @@ export function AssignSubjectsToClassModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl"
+          className="relative z-10 w-full max-w-2xl rounded-2xl border border-(--ws-line) bg-neutral-950 shadow-2xl"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 p-6">
+          <div className="flex items-center justify-between border-b border-(--ws-line) p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
                 <BookOpen className="h-5 w-5 text-emerald-300" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-(--ws-fg)">
                   Assign Subjects to Class
                 </h2>
-                <p className="text-sm text-white/60">{classGroup.fullLabel}</p>
+                <p className="text-sm text-(--ws-fg-60)">{classGroup.fullLabel}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -169,8 +169,8 @@ export function AssignSubjectsToClassModal({
             <div className="space-y-6">
               {/* Current subjects */}
               {classGroup.subjects.length > 0 && (
-                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/50">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                     Currently Assigned ({classGroup.subjects.length})
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -189,15 +189,15 @@ export function AssignSubjectsToClassModal({
 
               {/* Subject selection */}
               <div className="space-y-2">
-                <Label className="text-white">Select Subjects</Label>
+                <Label className="text-(--ws-fg)">Select Subjects</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-12 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="h-12 w-full justify-between border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
-                      <span className="text-white/50">
+                      <span className="text-(--ws-fg-50)">
                         {selectedSubjectIds.length > 0
                           ? `${selectedSubjectIds.length} subject(s) selected`
                           : "Search and select subjects..."}
@@ -261,8 +261,8 @@ export function AssignSubjectsToClassModal({
 
                 {/* Selected subjects preview */}
                 {selectedSubjectIds.length > 0 && (
-                  <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-3">
-                    <p className="mb-2 text-xs font-medium text-white/70">
+                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <p className="mb-2 text-xs font-medium text-(--ws-fg-70)">
                       Selected Subjects ({selectedSubjectIds.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -298,14 +298,14 @@ export function AssignSubjectsToClassModal({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-emerald-500 text-white hover:bg-emerald-600"
+                className="bg-emerald-500 text-(--ws-fg) hover:bg-emerald-600"
               >
                 {isSubmitting ? (
                   <>

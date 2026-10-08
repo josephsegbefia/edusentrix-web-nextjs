@@ -965,7 +965,7 @@ export default function CreateInvoiceModal({
               {installmentPeriodWarnings.length > 0 && selectedPeriodEndDate ? (
                 <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm text-(--ws-amber)">
                   <p className="font-semibold">Installment dates need attention</p>
-                  <p className="mt-1 text-xs text-(--ws-amber)/80">
+                  <p className="mt-1 text-xs text-(--ws-amber)">
                     Installment due dates must fall on or before{" "}
                     {selectedPeriodEndDate.toLocaleDateString()} for the selected academic period.
                   </p>

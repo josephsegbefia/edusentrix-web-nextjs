@@ -183,7 +183,7 @@ function DraggableSlot({
     <div ref={setNodeRef} style={style} className="relative">
       <button
         type="button"
-        className="absolute left-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-white/35 hover:bg-white/10 hover:text-white/70"
+        className="absolute left-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg-70)"
         {...listeners}
         {...attributes}
         aria-label="Drag to move lesson"
@@ -209,7 +209,7 @@ function DroppableCell({
     <div
       ref={setNodeRef}
       className={cn(
-        "min-h-[88px] rounded-xl border border-dashed border-white/15 bg-white/[0.04] p-2.5 transition-colors",
+        "min-h-[88px] rounded-xl border border-dashed border-(--ws-line-strong) bg-(--ws-fill) p-2.5 transition-colors",
         isOver && "border-cyan-400/50 bg-cyan-500/10",
         className
       )}
@@ -449,19 +449,19 @@ export function ClassTimetableGridBoard({
     return (
       <div
         key={day}
-        className="overflow-hidden rounded-2xl border border-white/10 bg-black/20 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
+        className="overflow-hidden rounded-2xl border border-(--ws-line) bg-black/20 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3">
-          <span className="font-medium text-white">{DAY_NAMES[day]}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--ws-line) bg-(--ws-fill) px-4 py-3">
+          <span className="font-medium text-(--ws-fg)">{DAY_NAMES[day]}</span>
           {timeline.length > 0 ? (
-            <span className="text-xs text-white/45">
+            <span className="text-xs text-(--ws-fg-40)">
               {timeline.filter((row) => row.kind === "period").length} teaching block(s)
             </span>
           ) : null}
         </div>
-        <div className="divide-y divide-white/10">
+        <div className="divide-y divide-(--ws-line)">
           {timeline.length === 0 ? (
-            <p className="p-4 text-sm text-amber-200/90">
+            <p className="p-4 text-sm text-(--ws-amber)">
               No periods resolved for this day — check school settings, breaks, and grade
               overrides for {className}.
             </p>
@@ -473,16 +473,16 @@ export function ClassTimetableGridBoard({
                     key={`br-${day}-${idx}`}
                     className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                   >
-                    <div className="border-t border-amber-500/20 bg-amber-500/10 px-3 py-3 text-sm text-amber-100/90 lg:border-r lg:border-amber-500/15">
+                    <div className="border-t border-amber-500/20 bg-amber-500/10 px-3 py-3 text-sm text-(--ws-amber) lg:border-r lg:border-amber-500/15">
                       <span className="flex items-center gap-2 font-medium">
                         <Coffee className="h-4 w-4 shrink-0 text-amber-300" />
                         {row.name}
                       </span>
-                      <span className="mt-1 block text-xs text-amber-200/70">
+                      <span className="mt-1 block text-xs text-(--ws-amber)">
                         {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                       </span>
                     </div>
-                    <div className="border-t border-amber-500/10 bg-amber-500/5 px-3 py-3 text-xs leading-relaxed text-amber-100/60 lg:border-l-0">
+                    <div className="border-t border-amber-500/10 bg-amber-500/5 px-3 py-3 text-xs leading-relaxed text-(--ws-amber) lg:border-l-0">
                       Break (school settings) — not a teaching period
                     </div>
                   </div>
@@ -495,16 +495,16 @@ export function ClassTimetableGridBoard({
                     key={`op-${day}-${idx}`}
                     className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                   >
-                    <div className="border-t border-amber-400/20 bg-amber-400/5 px-3 py-3 text-sm text-amber-50/90 lg:border-r lg:border-amber-400/15">
+                    <div className="border-t border-amber-400/20 bg-amber-400/5 px-3 py-3 text-sm text-(--ws-fg-80) lg:border-r lg:border-amber-400/15">
                       <span className="flex items-center gap-2 font-medium">
-                        <Sun className="h-4 w-4 shrink-0 text-amber-200" />
+                        <Sun className="h-4 w-4 shrink-0 text-(--ws-amber)" />
                         {row.name}
                       </span>
-                      <span className="mt-1 block text-xs text-amber-100/60">
+                      <span className="mt-1 block text-xs text-(--ws-amber)">
                         {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                       </span>
                     </div>
-                    <div className="border-t border-amber-400/10 bg-amber-950/20 px-3 py-3 text-xs leading-relaxed text-amber-100/55 lg:border-l-0">
+                    <div className="border-t border-amber-400/10 bg-amber-500/10 px-3 py-3 text-xs leading-relaxed text-(--ws-fg-70) lg:border-l-0">
                       Non-teaching (opening) — not on the class timetable; lessons start at Period 1.
                     </div>
                   </div>
@@ -517,16 +517,16 @@ export function ClassTimetableGridBoard({
                     key={`slack-${day}-${idx}`}
                     className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                   >
-                    <div className="border-t border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-white/50 lg:border-r lg:border-white/10">
-                      <span className="flex items-center gap-2 font-medium text-white/65">
-                        <Hourglass className="h-4 w-4 shrink-0 text-white/35" />
+                    <div className="border-t border-(--ws-line) bg-(--ws-fill) px-3 py-3 text-sm text-(--ws-fg-50) lg:border-r lg:border-(--ws-line)">
+                      <span className="flex items-center gap-2 font-medium text-(--ws-fg-90)">
+                        <Hourglass className="h-4 w-4 shrink-0 text-(--ws-fg-40)" />
                         {row.label}
                       </span>
-                      <span className="mt-1 block text-xs text-white/40">
+                      <span className="mt-1 block text-xs text-(--ws-fg-40)">
                         {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                       </span>
                     </div>
-                    <div className="border-t border-white/5 bg-white/[0.02] px-3 py-3 lg:border-l-0">
+                    <div className="border-t border-(--ws-line) bg-(--ws-fill) px-3 py-3 lg:border-l-0">
                       <UnallocatedGapActions
                         classId={classId}
                         academicPeriodId={academicPeriodId}
@@ -557,15 +557,15 @@ export function ClassTimetableGridBoard({
                   key={`${day}-${row.periodNumber}-${row.startTime}`}
                   className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                 >
-                  <div className="border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white/70 lg:border-r">
-                    <span className="block font-medium text-white/90">{row.label}</span>
-                    <span className="mt-1 block text-xs text-white/45">
+                  <div className="border-(--ws-line) bg-(--ws-fill) px-3 py-3 text-sm text-(--ws-fg-70) lg:border-r">
+                    <span className="block font-medium text-(--ws-fg-90)">{row.label}</span>
+                    <span className="mt-1 block text-xs text-(--ws-fg-40)">
                       {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                     </span>
                   </div>
-                  <DroppableCell id={cid} className="border-white/5 lg:border-l-0">
+                  <DroppableCell id={cid} className="border-(--ws-line) lg:border-l-0">
                     {cellSlots.length === 0 ? (
-                      <p className="py-5 text-center text-xs text-white/35">
+                      <p className="py-5 text-center text-xs text-(--ws-fg-40)">
                         Drop a subject card here
                       </p>
                     ) : (
@@ -591,29 +591,29 @@ export function ClassTimetableGridBoard({
                             <DraggableSlot key={slot.id} slot={slot} disabled={busy}>
                               <div
                                 className={cn(
-                                  "flex min-w-0 items-start justify-between gap-2 rounded-xl border bg-white/5 py-2.5 pl-1 pr-2.5",
+                                  "flex min-w-0 items-start justify-between gap-2 rounded-xl border bg-(--ws-fill) py-2.5 pl-1 pr-2.5",
                                   issueSeverity === "error"
                                     ? "border-rose-400/50 bg-rose-500/10 shadow-[0_0_0_1px_rgba(251,113,133,0.12)]"
                                     : issueSeverity === "warning"
                                       ? "border-amber-400/45 bg-amber-500/10 shadow-[0_0_0_1px_rgba(251,191,36,0.1)]"
-                                      : "border-white/10"
+                                      : "border-(--ws-line)"
                                 )}
                               >
                                 <div className="min-w-0 flex-1">
                                   <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                                    <p className="min-w-0 break-words text-sm font-medium leading-snug text-white">
+                                    <p className="min-w-0 break-words text-sm font-medium leading-snug text-(--ws-fg)">
                                       {subject?.name || "Subject"}
                                     </p>
                                     {subject?.code ? (
                                       <Badge
                                         variant="outline"
-                                        className="shrink-0 border-white/20 text-[10px]"
+                                        className="shrink-0 border-(--ws-line-strong) text-[10px]"
                                       >
                                         {subject.code}
                                       </Badge>
                                     ) : null}
                                   </div>
-                                  <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-white/55">
+                                  <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-(--ws-fg-50)">
                                     <User className="h-3 w-3" />
                                     <span className="truncate">{teacherName}</span>
                                   </p>
@@ -622,8 +622,8 @@ export function ClassTimetableGridBoard({
                                       className={cn(
                                         "mt-1 text-[11px] font-medium uppercase tracking-wide",
                                         issueSeverity === "error"
-                                          ? "text-rose-200"
-                                          : "text-amber-200"
+                                          ? "text-(--ws-rose)"
+                                          : "text-(--ws-amber)"
                                       )}
                                     >
                                       Needs review
@@ -634,7 +634,7 @@ export function ClassTimetableGridBoard({
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 shrink-0 text-rose-300 hover:bg-rose-500/15 hover:text-rose-200"
+                                  className="h-8 shrink-0 text-(--ws-rose) hover:bg-rose-500/15 hover:text-(--ws-rose)"
                                   onClick={() => handleDelete(slot)}
                                   disabled={deleteMutation.isPending}
                                 >
@@ -661,16 +661,16 @@ export function ClassTimetableGridBoard({
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
         <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-200/90">
+          <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-violet)">
             Class subjects (drag into periods)
           </p>
-          <p className="mt-1 text-sm text-white/65">
+          <p className="mt-1 text-sm text-(--ws-fg-90)">
             Only subjects assigned to this class are shown. The teacher comes from your
             subject–teacher assignments. Subjects without a teacher can still be placed
             and will update when you assign a teacher.
           </p>
           {classSubjects.length === 0 ? (
-            <p className="mt-3 text-sm text-amber-200/90">
+            <p className="mt-3 text-sm text-(--ws-amber)">
               No subjects for this class yet — assign subjects under Class → Subjects first.
             </p>
           ) : (
@@ -700,7 +700,7 @@ export function ClassTimetableGridBoard({
       </div>
 
       {busy ? (
-        <div className="pointer-events-none fixed bottom-6 right-6 flex items-center gap-2 rounded-lg border border-white/10 bg-black/80 px-3 py-2 text-sm text-white/80 shadow-xl">
+        <div className="pointer-events-none fixed bottom-6 right-6 flex items-center gap-2 rounded-lg border border-(--ws-line) bg-black/80 px-3 py-2 text-sm text-(--ws-fg-80) shadow-xl">
           <Loader2 className="h-4 w-4 animate-spin" />
           Saving…
         </div>
@@ -738,7 +738,7 @@ function DraggablePaletteCard({
       className={cn(
         "flex min-w-0 w-full max-w-none items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium",
         warnNoTeacher
-          ? "border-amber-500/40 bg-amber-500/15 text-amber-50"
+          ? "border-amber-500/40 bg-amber-500/15 text-(--ws-fg)"
           : "border-violet-400/40 bg-violet-500/20 text-violet-100",
         disabled && "cursor-not-allowed opacity-40"
       )}

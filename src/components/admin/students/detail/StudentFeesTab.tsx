@@ -303,16 +303,16 @@ export function StudentFeesTab({
       <Receipt className="h-4 w-4 text-(--ws-fg-70)" />
     ) : clickable ? (
       isPendingApproval ? (
-        <Clock className="h-4 w-4 text-(--ws-amber)/80" />
+        <Clock className="h-4 w-4 text-(--ws-amber)" />
       ) : (
-        <ArrowDownLeft className="h-4 w-4 text-(--ws-emerald)/80" />
+        <ArrowDownLeft className="h-4 w-4 text-(--ws-emerald)" />
       )
     ) : isCreditApplied ? (
-      <ArrowDownLeft className="h-4 w-4 text-(--ws-cyan)/80" />
+      <ArrowDownLeft className="h-4 w-4 text-(--ws-cyan)" />
     ) : isCreditAdded ? (
-      <ArrowUpRight className="h-4 w-4 text-(--ws-cyan)/80" />
+      <ArrowUpRight className="h-4 w-4 text-(--ws-cyan)" />
     ) : (
-      <ArrowUpRight className="h-4 w-4 text-(--ws-cyan)/80" />
+      <ArrowUpRight className="h-4 w-4 text-(--ws-cyan)" />
     );
 
     const badge = isPendingApproval ? (

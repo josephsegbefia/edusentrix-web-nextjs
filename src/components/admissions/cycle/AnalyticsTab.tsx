@@ -76,7 +76,7 @@ export function AnalyticsTab({ cycleId }: { cycleId: string }) {
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-24 animate-pulse rounded-2xl border border-white/10 bg-slate-950/60"
+            className="h-24 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-panel-from)"
           />
         ))}
       </div>
@@ -85,12 +85,12 @@ export function AnalyticsTab({ cycleId }: { cycleId: string }) {
 
   if (isError || !data) {
     return (
-      <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 text-sm text-rose-100">
+      <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5 text-sm text-(--ws-rose)">
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-4 w-4" />
           <div>
             <p className="font-semibold">Couldn’t load analytics</p>
-            <p className="text-xs text-rose-100/80">
+            <p className="text-xs text-(--ws-rose)">
               {error?.message ?? "Try again in a moment."}
             </p>
           </div>
@@ -114,8 +114,8 @@ export function AnalyticsTab({ cycleId }: { cycleId: string }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Pipeline analytics</h3>
-          <p className="text-xs text-white/55">
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Pipeline analytics</h3>
+          <p className="text-xs text-(--ws-fg-50)">
             Live snapshot of conversion, capacity, and operational SLAs.
           </p>
         </div>
@@ -204,14 +204,14 @@ function SummaryCard({
   helper?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-        <span className="text-white/55">{icon}</span>
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+        <span className="text-(--ws-fg-50)">{icon}</span>
         {label}
       </div>
-      <div className="mt-2 text-lg font-semibold text-white">{value}</div>
+      <div className="mt-2 text-lg font-semibold text-(--ws-fg)">{value}</div>
       {helper ? (
-        <div className="mt-1 text-xs text-white/55">{helper}</div>
+        <div className="mt-1 text-xs text-(--ws-fg-50)">{helper}</div>
       ) : null}
     </div>
   );
@@ -225,17 +225,17 @@ function FunnelSection({ snap }: { snap: CycleAnalyticsSnapshot }) {
   const max = Math.max(...snap.funnel.map((f) => f.count), 1);
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+    <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Conversion funnel</h3>
-          <p className="text-xs text-white/55">
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Conversion funnel</h3>
+          <p className="text-xs text-(--ws-fg-50)">
             How applicants flow from submission to enrolment.
           </p>
         </div>
         <Badge
           variant="outline"
-          className="border-white/10 bg-white/5 text-white/65"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-90)"
         >
           {snap.totals.applications} total
         </Badge>
@@ -252,24 +252,24 @@ function FunnelSection({ snap }: { snap: CycleAnalyticsSnapshot }) {
           return (
             <li key={stage.id} className="space-y-1">
               <div className="flex items-baseline justify-between text-xs">
-                <span className="font-semibold text-white/85">{stage.label}</span>
-                <span className="text-white/55">
+                <span className="font-semibold text-(--ws-fg-90)">{stage.label}</span>
+                <span className="text-(--ws-fg-50)">
                   {stage.count}
                   {idx > 0 && stage.conversionFromPrev != null ? (
                     <>
-                      <span className="px-1.5 text-white/30">·</span>
+                      <span className="px-1.5 text-(--ws-fg-40)">·</span>
                       {pct(stage.conversionFromPrev, 0)} of prev
                     </>
                   ) : null}
                   {dropOff > 0 ? (
                     <>
-                      <span className="px-1.5 text-white/30">·</span>
-                      <span className="text-rose-200">−{dropOff}</span>
+                      <span className="px-1.5 text-(--ws-fg-40)">·</span>
+                      <span className="text-(--ws-rose)">−{dropOff}</span>
                     </>
                   ) : null}
                 </span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
+              <div className="h-2.5 overflow-hidden rounded-full bg-(--ws-fill)">
                 <div
                   className={cn(
                     "h-full rounded-full bg-gradient-to-r transition-all",
@@ -283,7 +283,7 @@ function FunnelSection({ snap }: { snap: CycleAnalyticsSnapshot }) {
         })}
       </ol>
 
-      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-white/10 pt-4">
+      <div className="mt-4 grid grid-cols-3 gap-3 border-t border-(--ws-line) pt-4">
         <FunnelStat label="This week — submitted" value={snap.totals.submittedThisWeek} />
         <FunnelStat label="This week — decided" value={snap.totals.decidedThisWeek} />
         <FunnelStat
@@ -297,11 +297,11 @@ function FunnelSection({ snap }: { snap: CycleAnalyticsSnapshot }) {
 
 function FunnelStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+    <div className="rounded-xl border border-(--ws-line) bg-black/20 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
         {label}
       </p>
-      <p className="mt-1 text-base font-semibold text-white">{value}</p>
+      <p className="mt-1 text-base font-semibold text-(--ws-fg)">{value}</p>
     </div>
   );
 }
@@ -321,12 +321,12 @@ function CapacitySection({
     return (
       <section
         className={cn(
-          "rounded-2xl border border-white/10 bg-slate-950/60 p-5",
+          "rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5",
           className
         )}
       >
-        <h3 className="text-sm font-semibold text-white">Capacity by grade</h3>
-        <p className="mt-2 text-xs text-white/55">
+        <h3 className="text-sm font-semibold text-(--ws-fg)">Capacity by grade</h3>
+        <p className="mt-2 text-xs text-(--ws-fg-50)">
           Applications haven’t been mapped to a grade yet.
         </p>
       </section>
@@ -336,22 +336,22 @@ function CapacitySection({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-white/10 bg-slate-950/60 p-5",
+        "rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5",
         className
       )}
     >
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Capacity by grade</h3>
-          <p className="text-xs text-white/55">
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Capacity by grade</h3>
+          <p className="text-xs text-(--ws-fg-50)">
             Accepted versus declared capacity. Colour intensity shows fill rate.
           </p>
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-white/10">
+      <div className="mt-4 overflow-hidden rounded-xl border border-(--ws-line)">
         <table className="w-full text-xs">
-          <thead className="bg-white/5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+          <thead className="bg-(--ws-fill) text-[10px] font-semibold uppercase tracking-[0.16em] text-(--ws-fg-40)">
             <tr>
               <th className="px-3 py-2 text-left">Grade</th>
               <th className="px-3 py-2 text-right">In progress</th>
@@ -364,27 +364,27 @@ function CapacitySection({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.gradeId ?? "_unassigned"} className="border-t border-white/5">
-                <td className="px-3 py-2 text-white/85">
+              <tr key={row.gradeId ?? "_unassigned"} className="border-t border-(--ws-line)">
+                <td className="px-3 py-2 text-(--ws-fg-90)">
                   <div className="flex items-center gap-2">
                     <span>{row.gradeName}</span>
                     {row.atCapacity ? (
                       <Badge
                         variant="outline"
-                        className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-100"
+                        className="border-amber-500/30 bg-amber-500/10 text-[10px] text-(--ws-amber)"
                       >
                         Full
                       </Badge>
                     ) : null}
                   </div>
                 </td>
-                <td className="px-3 py-2 text-right text-white/70">{row.inProgress}</td>
-                <td className="px-3 py-2 text-right text-white/70">{row.waitlisted}</td>
+                <td className="px-3 py-2 text-right text-(--ws-fg-70)">{row.inProgress}</td>
+                <td className="px-3 py-2 text-right text-(--ws-fg-70)">{row.waitlisted}</td>
                 <td className="px-3 py-2 text-right font-medium text-emerald-100">
                   {row.accepted}
                 </td>
-                <td className="px-3 py-2 text-right text-white/70">{row.provisioned}</td>
-                <td className="px-3 py-2 text-right text-white/55">
+                <td className="px-3 py-2 text-right text-(--ws-fg-70)">{row.provisioned}</td>
+                <td className="px-3 py-2 text-right text-(--ws-fg-50)">
                   {row.capacity == null ? "—" : row.capacity}
                 </td>
                 <td className="px-3 py-2 text-left">
@@ -414,7 +414,7 @@ function FillBar({
 }) {
   if (capacity == null) {
     return (
-      <span className="text-[11px] text-white/40">No capacity set</span>
+      <span className="text-[11px] text-(--ws-fg-40)">No capacity set</span>
     );
   }
   const clamped = Math.min(1, Math.max(0, fill ?? 0));
@@ -428,13 +428,13 @@ function FillBar({
           : "from-emerald-500 to-emerald-400";
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/5">
+      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-(--ws-fill)">
         <div
           className={cn("h-full rounded-full bg-gradient-to-r", tone)}
           style={{ width: `${Math.max(clamped * 100, accepted > 0 ? 4 : 0)}%` }}
         />
       </div>
-      <span className="text-[11px] text-white/55">{pct(clamped, 0)}</span>
+      <span className="text-[11px] text-(--ws-fg-50)">{pct(clamped, 0)}</span>
     </div>
   );
 }
@@ -446,13 +446,13 @@ function FillBar({
 function ChannelSection({ breakdown }: { breakdown: ChannelBreakdown }) {
   const total = breakdown.reduce((sum, row) => sum + row.total, 0);
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-      <h3 className="text-sm font-semibold text-white">Channel mix</h3>
-      <p className="text-xs text-white/55">
+    <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
+      <h3 className="text-sm font-semibold text-(--ws-fg)">Channel mix</h3>
+      <p className="text-xs text-(--ws-fg-50)">
         Where applications are coming from.
       </p>
       {total === 0 ? (
-        <p className="mt-3 text-xs text-white/55">No applications yet.</p>
+        <p className="mt-3 text-xs text-(--ws-fg-50)">No applications yet.</p>
       ) : (
         <ul className="mt-4 space-y-2">
           {breakdown
@@ -463,20 +463,20 @@ function ChannelSection({ breakdown }: { breakdown: ChannelBreakdown }) {
               return (
                 <li key={row.channel} className="space-y-1">
                   <div className="flex items-baseline justify-between text-xs">
-                    <span className="font-medium text-white/85">
+                    <span className="font-medium text-(--ws-fg-90)">
                       {CHANNEL_LABELS[row.channel] ?? row.channel}
                     </span>
-                    <span className="text-white/55">
+                    <span className="text-(--ws-fg-50)">
                       {row.total} · {pct(share, 0)}
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-(--ws-fill)">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-cyan-500/70 to-violet-500/70"
                       style={{ width: `${Math.max(share * 100, 4)}%` }}
                     />
                   </div>
-                  <div className="text-[11px] text-white/45">
+                  <div className="text-[11px] text-(--ws-fg-40)">
                     {row.accepted} accepted · {pct(row.acceptanceRate, 0)} acceptance
                   </div>
                 </li>
@@ -500,11 +500,11 @@ function FeeSection({ snap }: { snap: CycleAnalyticsSnapshot }) {
   const collected = snap.fee.paid * snap.fee.amountMinor;
   const pendingValue = snap.fee.pending * snap.fee.amountMinor;
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+    <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">Application fees</h3>
-          <p className="text-xs text-white/55">
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Application fees</h3>
+          <p className="text-xs text-(--ws-fg-50)">
             {snap.fee.mode === "online_paystack"
               ? "Collected automatically via Paystack."
               : "Recorded manually by staff."}
@@ -512,7 +512,7 @@ function FeeSection({ snap }: { snap: CycleAnalyticsSnapshot }) {
         </div>
         <Badge
           variant="outline"
-          className="border-white/10 bg-white/5 text-white/65"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-90)"
         >
           {money(snap.fee.amountMinor, snap.fee.currency)} fee
         </Badge>
@@ -560,7 +560,7 @@ function FeeCard({
 }) {
   const toneClasses: Record<typeof tone, string> = {
     emerald: "border-emerald-500/30 bg-emerald-500/5 text-emerald-100",
-    amber: "border-amber-500/30 bg-amber-500/5 text-amber-100",
+    amber: "border-amber-500/30 bg-amber-500/5 text-(--ws-amber)",
     cyan: "border-cyan-500/30 bg-cyan-500/5 text-cyan-100",
   };
   return (

@@ -70,7 +70,7 @@ const CreatePollModal = dynamic(() => import("@/components/modals/CreatePollModa
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-  pending_approval: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
   live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
   closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
@@ -114,7 +114,7 @@ function PollRow({ poll, onPublish, onClose, onDelete }: PollRowProps) {
         <div className="flex items-center gap-2">
           <Link
             href={`/admin/community/polls/${poll.id}`}
-            className="truncate font-medium text-(--ws-fg) transition-colors hover:text-violet-300"
+            className="truncate font-medium text-(--ws-fg) transition-colors hover:text-(--ws-violet)"
           >
             {poll.title}
           </Link>
@@ -339,7 +339,7 @@ export default function PollsListPage() {
               </Link>
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-gradient-to-br from-violet-500/20 to-purple-500/20 shadow-lg shadow-violet-500/10">
-                  <Vote className="h-6 w-6 text-violet-300" />
+                  <Vote className="h-6 w-6 text-(--ws-violet)" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight text-(--ws-fg)">Community Polls</h1>
@@ -360,7 +360,7 @@ export default function PollsListPage() {
 
           {/* Quick Stats */}
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">Live Polls</div>
@@ -368,7 +368,7 @@ export default function PollsListPage() {
                 <div className="h-[3px] w-12 rounded-full bg-emerald-500/50" />
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">Total Votes</div>
@@ -376,7 +376,7 @@ export default function PollsListPage() {
                 <div className="h-[3px] w-12 rounded-full bg-violet-500/50" />
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-60)">Drafts</div>

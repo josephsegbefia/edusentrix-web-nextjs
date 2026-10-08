@@ -37,7 +37,7 @@ export function OfficialStatusBadge({
     >
       {PERIOD_STATUS_LABELS[status]}
       {isOfficial ? (
-        <span className="text-[9px] uppercase tracking-wide text-(--ws-emerald)/90">
+        <span className="text-[9px] uppercase tracking-wide text-(--ws-emerald)">
           Official
         </span>
       ) : null}

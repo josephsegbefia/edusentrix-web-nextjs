@@ -43,11 +43,11 @@ function getActivityIcon(type: ActivityType): LucideIcon {
 function getActivityColor(type: ActivityType): string {
   if (type.startsWith("student.")) return "text-blue-300";
   if (type.startsWith("teacher.")) return "text-purple-300";
-  if (type.startsWith("class_group.")) return "text-indigo-300";
-  if (type.startsWith("invitation.")) return "text-violet-300";
-  if (type.startsWith("subject.")) return "text-emerald-300";
+  if (type.startsWith("class_group.")) return "text-(--ws-violet)";
+  if (type.startsWith("invitation.")) return "text-(--ws-violet)";
+  if (type.startsWith("subject.")) return "text-(--ws-emerald)";
   if (type.startsWith("academic_period.")) return "text-amber-300";
-  if (type.startsWith("fee.") || type.startsWith("payment.")) return "text-green-300";
+  if (type.startsWith("fee.") || type.startsWith("payment.")) return "text-(--ws-emerald)";
   if (type.startsWith("report.")) return "text-cyan-300";
   if (type.startsWith("settings.")) return "text-gray-300";
   return "text-white/60";
@@ -71,7 +71,7 @@ export function ActivityFeed({
 
   if (isLoading) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <CardContent className="p-6">
           <div className="text-center text-white/60">Loading activities...</div>
         </CardContent>
@@ -81,12 +81,12 @@ export function ActivityFeed({
 
   if (activities.length === 0) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         {showHeader && (
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
-                <Clock className="h-4 w-4 text-indigo-300" />
+                <Clock className="h-4 w-4 text-(--ws-violet)" />
               </div>
               Recent Activity
             </CardTitle>
@@ -103,7 +103,7 @@ export function ActivityFeed({
   }
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
         aria-hidden="true"
@@ -112,7 +112,7 @@ export function ActivityFeed({
         <CardHeader className="relative z-10">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
-              <Clock className="h-4 w-4 text-indigo-300" />
+              <Clock className="h-4 w-4 text-(--ws-violet)" />
             </div>
             Recent Activity
           </CardTitle>

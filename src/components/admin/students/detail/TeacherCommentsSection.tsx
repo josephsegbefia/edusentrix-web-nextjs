@@ -84,7 +84,7 @@ function ProfileCommentsContent({ profile }: { profile: StudentAcademicProfileDT
           {model.sourceLabel}
         </span>
         {model.showLiveNotice ? (
-          <span className="text-[11px] text-(--ws-amber)/80">
+          <span className="text-[11px] text-(--ws-amber)">
             Provisional — not yet released to parents
           </span>
         ) : null}

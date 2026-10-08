@@ -256,7 +256,7 @@ export default function AdminLibraryCirculationPage() {
                   </div>
                   <p className="text-[11px] text-(--ws-fg-40)">
                     Keyboard wedges usually send Enter after the scan — same as Lookup.{" "}
-                    <Link href="/admin/library/scan" className="text-(--ws-cyan)/90 hover:underline">
+                    <Link href="/admin/library/scan" className="text-(--ws-cyan) hover:underline">
                       Full-screen scan helper
                     </Link>
                   </p>
@@ -580,7 +580,7 @@ function OpenLoanRow({
             <Button
               size="sm"
               variant="outline"
-              className="h-8 border-amber-400/30 text-amber-100"
+              className="h-8 border-amber-400/30 text-(--ws-amber)"
               onClick={() => void doMarkLost()}
               disabled={onMarkLost.isPending}
             >

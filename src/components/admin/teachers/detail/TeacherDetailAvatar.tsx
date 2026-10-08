@@ -165,18 +165,18 @@ export function TeacherDetailAvatar({
           dragOver && "ring-2 ring-indigo-400/50 ring-offset-2 ring-offset-slate-950"
         )}
       >
-        <Avatar className="h-20 w-20 shrink-0 rounded-2xl border border-white/15 shadow-lg transition-all group-hover:border-indigo-400/40">
+        <Avatar className="h-20 w-20 shrink-0 rounded-2xl border border-(--ws-line-strong) shadow-lg transition-all group-hover:border-indigo-400/40">
           {displayUrl ? (
             <AvatarImage src={displayUrl} alt={fullName} className="object-cover" />
           ) : null}
-          <AvatarFallback className="rounded-2xl bg-gradient-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-white">
+          <AvatarFallback className="rounded-2xl bg-linear-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-(--ws-fg)">
             {initialsFromName(firstName, lastName)}
           </AvatarFallback>
         </Avatar>
 
         <div
           className={cn(
-            "absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl bg-black/55 text-white transition-opacity",
+            "absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl bg-black/55 text-(--ws-fg) transition-opacity",
             busy || dragOver ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           )}
         >
@@ -185,7 +185,7 @@ export function TeacherDetailAvatar({
           ) : (
             <>
               <Camera className="h-5 w-5" aria-hidden />
-              <span className="px-2 text-center text-[9px] font-medium leading-tight text-white/90">
+              <span className="px-2 text-center text-[9px] font-medium leading-tight text-(--ws-fg-90)">
                 {displayUrl ? "Replace" : "Upload"}
               </span>
             </>

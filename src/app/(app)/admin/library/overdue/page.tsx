@@ -100,13 +100,13 @@ export default function AdminLibraryOverduePage() {
         <div className="space-y-8">
           <section className={`${libraryGlassPanel} space-y-4 p-5`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-base font-semibold text-amber-100">Open · overdue</h2>
+              <h2 className="text-base font-semibold text-(--ws-amber)">Open · overdue</h2>
               {overdue.length > 0 ? (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="border-amber-400/30 text-amber-100"
+                  className="border-amber-400/30 text-(--ws-amber)"
                   onClick={() => void doSendReminders()}
                   disabled={sendReminders.isPending}
                 >
@@ -142,7 +142,7 @@ export default function AdminLibraryOverduePage() {
                         <TableCell className="text-xs text-(--ws-fg-60)">
                           {format(new Date(loan.dueAt), "MMM d, yyyy")}
                         </TableCell>
-                        <TableCell className="text-xs text-amber-100/90">{loan.daysOverdue}d</TableCell>
+                        <TableCell className="text-xs text-(--ws-amber)">{loan.daysOverdue}d</TableCell>
                         <TableCell className="text-right">
                           <Button asChild size="sm" variant="outline" className="h-8 border-(--ws-line-strong) text-(--ws-fg)">
                             <Link href="/admin/library/circulation">Circulation</Link>

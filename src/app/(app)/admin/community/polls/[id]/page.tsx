@@ -55,7 +55,7 @@ import RejectPollModal from "@/components/modals/RejectPollModal";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-  pending_approval: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
   live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
   closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
@@ -263,7 +263,7 @@ export default function PollDetailPage() {
               <div>
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-gradient-to-br from-violet-500/20 to-purple-500/20 shadow-lg shadow-violet-500/10">
-                    <Vote className="h-6 w-6 text-violet-300" />
+                    <Vote className="h-6 w-6 text-(--ws-violet)" />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
@@ -361,7 +361,7 @@ export default function PollDetailPage() {
 
           {/* Stats Grid */}
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-violet-500/20">
@@ -373,7 +373,7 @@ export default function PollDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/10 via-sky-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-sky-500/20">
@@ -385,7 +385,7 @@ export default function PollDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-gradient-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+            <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line) bg-amber-500/20">

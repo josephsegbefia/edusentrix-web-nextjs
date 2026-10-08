@@ -287,7 +287,7 @@ export default function AdminLibraryNewBookPage() {
           />
         </section>
 
-        <div className="flex flex-wrap gap-3 rounded-2xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
+        <div className="flex flex-wrap gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4 shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <Button
             type="submit"
             disabled={createBook.isPending || isRedirecting}

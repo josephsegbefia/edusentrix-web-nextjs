@@ -670,7 +670,7 @@ export default function StudentsPage() {
                 <p className="text-sm font-medium text-(--ws-rose)">
                   Failed to load students
                 </p>
-                <p className="text-xs text-(--ws-rose)/60">
+                <p className="text-xs text-(--ws-rose)">
                   Please try refreshing the page
                 </p>
               </div>
@@ -717,7 +717,7 @@ export default function StudentsPage() {
           ) : (
             <div className="space-y-4 sm:space-y-5">
               {/* Results summary bar */}
-              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-(--ws-panel-from) px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-xs text-(--ws-fg-70) sm:text-sm">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/20 text-[9px] font-bold text-(--ws-teal) sm:h-6 sm:w-6 sm:text-[10px]">
                     {students.length}

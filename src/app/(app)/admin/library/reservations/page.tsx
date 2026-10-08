@@ -187,7 +187,7 @@ export default function AdminLibraryReservationsPage() {
                   </ul>
                 ) : null}
                 {selectedBorrowerHint ? (
-                  <p className="text-xs text-(--ws-emerald)/80">Selected: {selectedBorrowerHint}</p>
+                  <p className="text-xs text-(--ws-emerald)">Selected: {selectedBorrowerHint}</p>
                 ) : null}
               </div>
               <div className="space-y-2 md:col-span-2">

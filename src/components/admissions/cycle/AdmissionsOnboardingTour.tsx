@@ -105,7 +105,7 @@ export function AdmissionsOnboardingTour() {
       <button
         type="button"
         onClick={launch}
-        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full border border-white/15 bg-slate-900/80 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur transition hover:bg-slate-900"
+        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full border border-(--ws-line-strong) bg-(--ws-panel-from) px-3 py-2 text-xs font-semibold text-(--ws-fg) shadow-lg backdrop-blur transition hover:bg-(--ws-fill-strong)"
         aria-label="Open admissions onboarding tour"
       >
         <HelpCircle className="h-4 w-4" />
@@ -117,10 +117,10 @@ export function AdmissionsOnboardingTour() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="admissions-tour-title"
-          className="fixed inset-0 z-50 flex items-end justify-end bg-slate-950/40 p-4 sm:items-center sm:justify-end sm:p-6"
+          className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 p-4 sm:items-center sm:justify-end sm:p-6"
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-950 p-5 text-white shadow-2xl"
+            className="w-full max-w-sm rounded-2xl border border-(--ws-line) bg-(--ws-panel-to) p-5 text-(--ws-fg) shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <Header
@@ -154,14 +154,14 @@ function Header({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-(--ws-fg-50)">
         Step {stepIdx + 1} of {totalSteps}
       </p>
       <button
         type="button"
         onClick={onClose}
         aria-label="Close tour"
-        className="rounded-full p-1 text-white/55 hover:bg-white/10 hover:text-white"
+        className="rounded-full p-1 text-(--ws-fg-50) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
       >
         <X className="h-4 w-4" />
       </button>
@@ -173,7 +173,7 @@ function Body({ step }: { step: TourStep }) {
   const Icon = step.icon;
   return (
     <div className="space-y-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-300">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-(--ws-violet)">
         <Icon className="h-5 w-5" />
       </div>
       <h2
@@ -182,7 +182,7 @@ function Body({ step }: { step: TourStep }) {
       >
         {step.title}
       </h2>
-      <p className="text-sm leading-relaxed text-white/75">{step.body}</p>
+      <p className="text-sm leading-relaxed text-(--ws-fg-90)">{step.body}</p>
     </div>
   );
 }
@@ -207,7 +207,7 @@ function Footer({
         type="button"
         size="sm"
         variant="ghost"
-        className="text-white/60 hover:bg-white/5 hover:text-white"
+        className="text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
         onClick={stepIdx === 0 ? onSkip : onBack}
       >
         {stepIdx === 0 ? "Skip tour" : "Back"}

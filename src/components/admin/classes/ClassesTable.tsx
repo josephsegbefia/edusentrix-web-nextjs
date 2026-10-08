@@ -230,7 +230,7 @@ export function ClassesTable({
                 <td className="px-3 py-3 align-middle">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-gradient-to-br from-emerald-500/20 to-green-500/20">
-                      <School className="h-5 w-5 text-emerald-300" />
+                      <School className="h-5 w-5 text-(--ws-emerald)" />
                     </div>
                     <div>
                       <p className="font-medium text-white">{classGroup.fullLabel}</p>
@@ -294,7 +294,7 @@ export function ClassesTable({
                     className={cn(
                       "rounded-full px-2.5 py-0.5 text-[10px] font-medium",
                       classGroup.isActive
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
                         : "border-slate-500/30 bg-slate-500/10 text-slate-300"
                     )}
                   >

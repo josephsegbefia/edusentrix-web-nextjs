@@ -303,15 +303,15 @@ function RolesDutiesContent() {
     critical: {
       border: "border-rose-400/30",
       bg: "bg-rose-500/10",
-      text: "text-rose-200",
-      pill: "bg-rose-500/20 text-rose-100",
+      text: "text-(--ws-rose)",
+      pill: "bg-rose-500/20 text-(--ws-rose)",
       icon: TriangleAlert,
     },
     attention: {
       border: "border-amber-400/30",
       bg: "bg-amber-500/10",
-      text: "text-amber-100",
-      pill: "bg-amber-500/20 text-amber-100",
+      text: "text-(--ws-amber)",
+      pill: "bg-amber-500/20 text-(--ws-amber)",
       icon: Sparkles,
     },
     good: {
@@ -1112,7 +1112,7 @@ function RolesDutiesContent() {
                 ) : rolesError ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <WifiOff className="h-10 w-10 text-rose-400/70" />
-                    <p className="mt-3 text-sm font-medium text-rose-300">
+                    <p className="mt-3 text-sm font-medium text-(--ws-rose)">
                       Connection Error
                     </p>
                     <p className="mt-1 max-w-sm text-xs text-white/50">
@@ -1169,7 +1169,7 @@ function RolesDutiesContent() {
                 {rolesError ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <WifiOff className="h-8 w-8 text-rose-400/70" />
-                    <p className="mt-2 text-sm text-rose-300">Unable to load roles</p>
+                    <p className="mt-2 text-sm text-(--ws-rose)">Unable to load roles</p>
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1252,7 +1252,7 @@ function RolesDutiesContent() {
                 ) : dutiesError ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <WifiOff className="h-10 w-10 text-rose-400/70" />
-                    <p className="mt-3 text-sm font-medium text-rose-300">
+                    <p className="mt-3 text-sm font-medium text-(--ws-rose)">
                       Connection Error
                     </p>
                     <p className="mt-1 max-w-sm text-xs text-white/50">
@@ -1309,7 +1309,7 @@ function RolesDutiesContent() {
                 {dutiesError ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <WifiOff className="h-8 w-8 text-rose-400/70" />
-                    <p className="mt-2 text-sm text-rose-300">Unable to load duties</p>
+                    <p className="mt-2 text-sm text-(--ws-rose)">Unable to load duties</p>
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1420,7 +1420,7 @@ function RolesDutiesContent() {
                 ) : classRolesError ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <WifiOff className="h-10 w-10 text-rose-400/70" />
-                    <p className="mt-3 text-sm font-medium text-rose-300">
+                    <p className="mt-3 text-sm font-medium text-(--ws-rose)">
                       Connection Error
                     </p>
                     <p className="mt-1 max-w-sm text-xs text-white/50">

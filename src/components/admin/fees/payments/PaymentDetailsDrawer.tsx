@@ -31,7 +31,7 @@ function statusBadge(p: any) {
   if (p?.approvalStatus === "pending")
     return (
       <Badge
-        className="border-amber-400/25 bg-amber-500/10 text-amber-200"
+        className="border-amber-400/25 bg-amber-500/10 text-(--ws-amber)"
         variant="outline"
       >
         Pending approval
@@ -58,7 +58,7 @@ function statusBadge(p: any) {
   if (p?.status === "reversed")
     return (
       <Badge
-        className="border-white/10 bg-white/5 text-white/70"
+        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
         variant="outline"
       >
         Reversed
@@ -84,7 +84,7 @@ function statusBadge(p: any) {
     );
   return (
     <Badge
-      className="border-white/10 bg-white/5 text-white/70"
+      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
       variant="outline"
     >
       Posted
@@ -99,13 +99,13 @@ function reconciliationBadge(value: string | null | undefined) {
     fully_reconciled: "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
     bank_matched: "border-cyan-400/25 bg-cyan-500/10 text-cyan-200",
     gateway_verified: "border-blue-400/25 bg-blue-500/10 text-blue-200",
-    needs_review: "border-amber-400/25 bg-amber-500/10 text-amber-200",
-    unmatched: "border-white/10 bg-white/5 text-white/70",
+    needs_review: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
+    unmatched: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   };
 
   return (
     <Badge
-      className={classNameMap[status] || "border-white/10 bg-white/5 text-white/70"}
+      className={classNameMap[status] || "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"}
       variant="outline"
     >
       {label}
@@ -202,17 +202,17 @@ export function PaymentDetailsDrawer(props: {
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        className="max-w-[calc(100%-1rem)] border-white/10 bg-[#0b1220] p-0 text-white sm:max-w-3xl"
+        className="max-w-[calc(100%-1rem)] border-(--ws-line) bg-[#0b1220] p-0 text-(--ws-fg) sm:max-w-3xl"
         overlayClassName="bg-black/70 backdrop-blur-sm"
       >
-        <DialogHeader className="border-b border-white/10 px-4 py-4 sm:px-6">
+        <DialogHeader className="border-b border-(--ws-line) px-4 py-4 sm:px-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <ReceiptText className="h-5 w-5 text-white/70" />
+                <ReceiptText className="h-5 w-5 text-(--ws-fg-70)" />
                 Payment Details
               </DialogTitle>
-              <DialogDescription className="mt-1 text-xs text-white/60 sm:text-sm">
+              <DialogDescription className="mt-1 text-xs text-(--ws-fg-60) sm:text-sm">
                 Review payment, allocations, audit trail, and approval actions.
               </DialogDescription>
             </div>
@@ -222,7 +222,7 @@ export function PaymentDetailsDrawer(props: {
                 type="button"
                 size="sm"
                 variant="outline"
-                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 onClick={() => props.onOpenChange(false)}
               >
                 Close
@@ -233,7 +233,7 @@ export function PaymentDetailsDrawer(props: {
 
         <div className="max-h-[76vh] space-y-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {isLoading ? (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-muted-foreground">
               Loading…
             </div>
           ) : isError || !p ? (
@@ -242,170 +242,170 @@ export function PaymentDetailsDrawer(props: {
             </div>
           ) : (
             <>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-white/90">
+                  <div className="text-sm font-semibold text-(--ws-fg)">
                     Transaction Snapshot
                   </div>
                   {reconciliationBadge(p.reconciliationStatus)}
                 </div>
-                <Separator className="mb-3 bg-white/10" />
+                <Separator className="mb-3 bg-(--ws-fill-strong)" />
                 <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Amount</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Amount</div>
                     <div className="mt-1 font-semibold text-emerald-200">
                       {formatMoney(p.amountMinor)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Payment Date</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Payment Date</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {fmtDate(p.paymentDate)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Method</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Method</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {String(p.paymentMethod || "").replaceAll("_", " ") || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Internal Reference</div>
-                    <div className="mt-1 font-mono text-sm font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Internal Reference</div>
+                    <div className="mt-1 font-mono text-sm font-medium text-(--ws-fg)">
                       {p.internalReference || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Receipt / External Ref</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Receipt / External Ref</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {p.receiptNumber || p.externalReference || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Gateway Reference</div>
-                    <div className="mt-1 break-all font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Gateway Reference</div>
+                    <div className="mt-1 break-all font-medium text-(--ws-fg)">
                       {p.paystackReference || p.paystackTransactionId || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Payment ID</div>
-                    <div className="mt-1 break-all font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Payment ID</div>
+                    <div className="mt-1 break-all font-medium text-(--ws-fg)">
                       {String(p._id)}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="mb-3 text-sm font-semibold text-white/90">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <div className="mb-3 text-sm font-semibold text-(--ws-fg)">
                   Context & Audit Trail
                 </div>
-                <Separator className="mb-3 bg-white/10" />
+                <Separator className="mb-3 bg-(--ws-fill-strong)" />
                 <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Student</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Student</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {studentName || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Admission No.</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Admission No.</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {p.studentId?.admissionNo || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Bill</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Bill</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {p.invoiceId?.invoiceNumber || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Academic Period</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Academic Period</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {periodLabel}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Recorded By</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Recorded By</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {userLabel(p.receivedBy)}
                     </div>
-                    <div className="mt-1 text-[11px] text-white/50">
+                    <div className="mt-1 text-[11px] text-(--ws-fg-50)">
                       {fmtDateTime(p.createdAt)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-                    <div className="text-white/50">Reviewed By</div>
-                    <div className="mt-1 font-medium text-white/85">
+                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
+                    <div className="text-(--ws-fg-50)">Reviewed By</div>
+                    <div className="mt-1 font-medium text-(--ws-fg)">
                       {userLabel(p.reviewedBy)}
                     </div>
-                    <div className="mt-1 text-[11px] text-white/50">
+                    <div className="mt-1 text-[11px] text-(--ws-fg-50)">
                       {fmtDateTime(p.reviewedAt)}
                     </div>
                   </div>
                 </div>
                 {p.notes ? (
-                  <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-xs">
-                    <div className="text-white/50">Payment Notes</div>
-                    <div className="mt-1 whitespace-pre-wrap text-white/75">
+                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-black/20 p-3 text-xs">
+                    <div className="text-(--ws-fg-50)">Payment Notes</div>
+                    <div className="mt-1 whitespace-pre-wrap text-(--ws-fg-70)">
                       {p.notes}
                     </div>
                   </div>
                 ) : null}
                 {p.reviewNotes ? (
-                  <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-xs">
-                    <div className="text-white/50">Review Notes</div>
-                    <div className="mt-1 whitespace-pre-wrap text-white/75">
+                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-black/20 p-3 text-xs">
+                    <div className="text-(--ws-fg-50)">Review Notes</div>
+                    <div className="mt-1 whitespace-pre-wrap text-(--ws-fg-70)">
                       {p.reviewNotes}
                     </div>
                   </div>
                 ) : null}
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white/90">
-                  <History className="h-4 w-4 text-white/70" />
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
+                  <History className="h-4 w-4 text-(--ws-fg-70)" />
                   Immutable Timeline
                 </div>
-                <Separator className="mb-3 bg-white/10" />
+                <Separator className="mb-3 bg-(--ws-fill-strong)" />
                 {timeline.length > 0 ? (
                   <div className="space-y-2 text-xs">
                     {timeline.map((entry: any) => (
                       <div
                         key={entry._id}
-                        className="rounded-lg border border-white/10 bg-black/20 px-3 py-2"
+                        className="rounded-lg border border-(--ws-line) bg-black/20 px-3 py-2"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="font-medium text-white/85">
+                          <div className="font-medium text-(--ws-fg)">
                             {entry.title || "Event"}
                           </div>
-                          <div className="text-[11px] text-white/50">
+                          <div className="text-[11px] text-(--ws-fg-50)">
                             {fmtDateTime(entry.createdAt)}
                           </div>
                         </div>
                         {entry.description ? (
-                          <div className="mt-1 text-white/65">
+                          <div className="mt-1 text-(--ws-fg-60)">
                             {entry.description}
                           </div>
                         ) : null}
-                        <div className="mt-1 text-[11px] text-white/45">
+                        <div className="mt-1 text-[11px] text-(--ws-fg-40)">
                           {entry.actorLabel || "System"}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-white/55">
+                  <div className="text-xs text-(--ws-fg-50)">
                     No timeline events available for this payment yet.
                   </div>
                 )}
               </div>
 
               {attachments.length ? (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <Paperclip className="h-4 w-4 text-white/70" />
+                    <Paperclip className="h-4 w-4 text-(--ws-fg-70)" />
                     Attachments
                   </div>
                   <div className="mt-3 space-y-2">
@@ -415,10 +415,10 @@ export function PaymentDetailsDrawer(props: {
                         href={a.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="block rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/75 hover:border-white/20"
+                        className="block rounded-lg border border-(--ws-line) bg-black/10 px-3 py-2 text-xs text-(--ws-fg-70) hover:border-(--ws-line-strong)"
                       >
                         {a.label || "Proof"}{" "}
-                        <span className="text-white/30">•</span>{" "}
+                        <span className="text-(--ws-fg-40)">•</span>{" "}
                         <span className="text-muted-foreground">
                           {a.type || "file"}
                         </span>
@@ -428,12 +428,12 @@ export function PaymentDetailsDrawer(props: {
                 </div>
               ) : null}
 
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold">Allocation</div>
                   <Badge
                     variant="outline"
-                    className="border-white/10 bg-white/5 text-white/70"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                   >
                     {allocations.length
                       ? "Posted allocations"
@@ -442,18 +442,18 @@ export function PaymentDetailsDrawer(props: {
                       : "None"}
                   </Badge>
                 </div>
-                <Separator className="my-3 bg-white/10" />
+                <Separator className="my-3 bg-(--ws-fill-strong)" />
                 <div className="space-y-2 text-xs">
                   {allocationRows.length ? (
                     allocationRows.map((a: any, idx: number) => (
                       <div
                         key={a._id || idx}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2"
+                        className="flex items-center justify-between gap-3 rounded-lg border border-(--ws-line) bg-black/10 px-3 py-2"
                       >
-                        <div className="text-white/75">
+                        <div className="text-(--ws-fg-70)">
                           {a.invoiceLineItemId?.name || "Line item"}
                           {a.installmentNumber ? (
-                            <span className="text-white/30"> • </span>
+                            <span className="text-(--ws-fg-40)"> • </span>
                           ) : null}
                           {a.installmentNumber ? (
                             <span className="text-muted-foreground">
@@ -461,7 +461,7 @@ export function PaymentDetailsDrawer(props: {
                             </span>
                           ) : null}
                         </div>
-                        <div className="font-medium text-white/80">
+                        <div className="font-medium text-(--ws-fg-80)">
                           {formatMoney(a.amountMinor)}
                         </div>
                       </div>
@@ -473,9 +473,9 @@ export function PaymentDetailsDrawer(props: {
               </div>
 
               {canApprove || canReverse ? (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold">
-                    <AlertCircle className="h-4 w-4 text-white/70" />
+                    <AlertCircle className="h-4 w-4 text-(--ws-fg-70)" />
                     Actions
                   </div>
 
@@ -484,7 +484,7 @@ export function PaymentDetailsDrawer(props: {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Optional reviewer notes…"
-                      className="min-h-[90px] border-white/10 bg-black/20"
+                      className="min-h-[90px] border-(--ws-line) bg-black/20"
                     />
 
                     {canApprove ? (
@@ -526,7 +526,7 @@ export function PaymentDetailsDrawer(props: {
                       <div
                         className={cn(
                           "flex items-center justify-between gap-3",
-                          canApprove ? "pt-3 border-t border-white/10" : ""
+                          canApprove ? "pt-3 border-t border-(--ws-line)" : ""
                         )}
                       >
                         <div className="text-xs text-muted-foreground">
@@ -557,7 +557,7 @@ export function PaymentDetailsDrawer(props: {
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   onClick={() => props.onOpenChange(false)}
                 >
                   Close

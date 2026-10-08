@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { glassPanelClass } from "@/lib/ui/glass-surfaces";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/providers/auth-provider";
 import { TeacherDetailAvatar } from "@/components/admin/teachers/detail/TeacherDetailAvatar";
 import {
@@ -45,25 +47,25 @@ const statusConfig: Record<
   active: {
     bg: "bg-emerald-500/15",
     border: "border-emerald-500/40",
-    text: "text-emerald-300",
+    text: "text-(--ws-emerald)",
     dot: "bg-emerald-500",
   },
   inactive: {
     bg: "bg-slate-500/15",
     border: "border-slate-500/40",
-    text: "text-slate-300",
+    text: "text-(--ws-fg-60)",
     dot: "bg-slate-500",
   },
   on_leave: {
     bg: "bg-amber-500/15",
     border: "border-amber-500/40",
-    text: "text-amber-300",
+    text: "text-(--ws-amber)",
     dot: "bg-amber-500",
   },
   terminated: {
     bg: "bg-red-500/15",
     border: "border-red-500/40",
-    text: "text-red-300",
+    text: "text-(--ws-rose)",
     dot: "bg-red-500",
   },
 };
@@ -143,18 +145,31 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
   }, [status, leaveEndDate]);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+    <Card className={glassPanelClass}>
+      <div
+        className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-teal-500/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-cyan-500/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-teal-500/30 to-transparent"
+        aria-hidden="true"
+      />
+      <CardContent className="relative z-10 flex flex-col gap-6 p-6">
       {invitePending && (
         <div
-          className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)"
           role="status"
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
-            <Send className="h-4 w-4 text-amber-200" aria-hidden />
+            <Send className="h-4 w-4 text-(--ws-amber)" aria-hidden />
           </div>
           <div className="min-w-0 space-y-1">
-            <p className="font-semibold text-amber-100">Invitation not accepted yet</p>
-            <p className="text-xs leading-relaxed text-amber-100/85">
+            <p className="font-semibold text-(--ws-amber)">Invitation not accepted yet</p>
+            <p className="text-xs leading-relaxed text-(--ws-fg-70)">
               This teacher does not have an official platform login until they accept the
               invitation email. You can still add details, subjects, and assignments here.
             </p>
@@ -162,8 +177,7 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
         </div>
       )}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        {/* Left: Avatar + Info */}
-        <div className="flex flex-1 items-start gap-5">
+        <div className="flex flex-1 flex-col items-center gap-5 min-w-0 sm:flex-row sm:items-start">
           {schoolId ? (
             <TeacherDetailAvatar
               teacherId={id}
@@ -175,18 +189,18 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
             />
           ) : (
             <div
-              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-white"
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-(--ws-line-strong) bg-linear-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-(--ws-fg)"
               aria-hidden
             >
               {(firstName?.charAt(0) || "") + (lastName?.charAt(0) || "") || "?"}
             </div>
           )}
 
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+          <div className="min-w-0 flex-1 space-y-3 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) md:text-3xl">
                 {fullName}
-              </h2>
+              </h1>
               <span
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium capitalize",
@@ -201,36 +215,36 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
                 {status.replace("_", " ")}
               </span>
               {invitePending && (
-                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-(--ws-amber)">
                   Invite pending
                 </span>
               )}
             </div>
 
             {department && (
-              <p className="text-sm text-white/55">{department}</p>
+              <p className="text-sm text-(--ws-fg-50)">{department}</p>
             )}
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
               {homeroom && (
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-300">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-medium text-(--ws-cyan)">
                   <Home className="h-3.5 w-3.5" />
                   {homeroomLabel}
                 </span>
               )}
               {displaySubjects.length > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/25 bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-300">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-(--ws-violet)">
                   <BookOpen className="h-3.5 w-3.5" />
                   {displaySubjects.length} subject{displaySubjects.length === 1 ? "" : "s"}
                 </span>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-white/50">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-(--ws-fg-50) sm:justify-start">
               {email && (
                 <a
                   href={`mailto:${email}`}
-                  className="flex items-center gap-1.5 transition-colors hover:text-white/85"
+                  className="flex items-center gap-1.5 transition-colors hover:text-(--ws-fg-80)"
                 >
                   <Mail className="h-4 w-4 shrink-0" />
                   <span className="truncate">{email}</span>
@@ -239,7 +253,7 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
               {phone && (
                 <a
                   href={`tel:${phone}`}
-                  className="flex items-center gap-1.5 transition-colors hover:text-white/85"
+                  className="flex items-center gap-1.5 transition-colors hover:text-(--ws-fg-80)"
                 >
                   <PhoneCall className="h-4 w-4 shrink-0" />
                   <span>{phone}</span>
@@ -254,37 +268,37 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
           {leaveCountdown && (
             <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20">
-                <Clock3 className="h-5 w-5 text-amber-300" />
+                <Clock3 className="h-5 w-5 text-(--ws-amber)" />
               </div>
               <div className="text-sm">
-                <p className="font-medium text-amber-200">
+                <p className="font-medium text-(--ws-amber)">
                   {leaveCountdown.daysLabel}
                 </p>
-                <p className="text-xs text-amber-200/70">
+                <p className="text-xs text-(--ws-fg-60)">
                   Returns {leaveCountdown.returnLabel}
                 </p>
               </div>
             </div>
           )}
           {hireDateLabel && (
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
+            <div className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/15">
-                <Calendar className="h-5 w-5 text-indigo-300" />
+                <Calendar className="h-5 w-5 text-(--ws-violet)" />
               </div>
               <div className="text-sm">
-                <p className="text-xs text-white/45">Joined</p>
-                <p className="font-medium text-white/90">{hireDateLabel}</p>
+                <p className="text-xs text-(--ws-fg-40)">Joined</p>
+                <p className="font-medium text-(--ws-fg-90)">{hireDateLabel}</p>
               </div>
             </div>
           )}
           {displaySubjects.length > 0 && (
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
+            <div className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/15">
-                <BookOpen className="h-5 w-5 text-purple-300" />
+                <BookOpen className="h-5 w-5 text-(--ws-violet)" />
               </div>
               <div className="text-sm">
-                <p className="text-xs text-white/45">Teaching</p>
-                <p className="font-medium text-white/90 line-clamp-2">
+                <p className="text-xs text-(--ws-fg-40)">Teaching</p>
+                <p className="font-medium text-(--ws-fg-90) line-clamp-2">
                   {displaySubjects.slice(0, 2).map((s) => s.name).join(", ")}
                   {displaySubjects.length > 2 && ` +${displaySubjects.length - 2}`}
                 </p>
@@ -293,6 +307,7 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
           )}
         </div>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

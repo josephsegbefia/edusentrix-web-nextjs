@@ -482,7 +482,7 @@ export default function EditTeacherModal({
 
               {currentStatus === "on_leave" && (
                 <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)/80">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-(--ws-amber)">
                     Leave period
                   </p>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

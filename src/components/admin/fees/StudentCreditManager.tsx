@@ -129,19 +129,19 @@ export function StudentCreditManager({
   const getEntryIcon = (type: string) => {
     switch (type) {
       case "credit":
-        return <CheckCircle2 className="h-4 w-4 text-emerald-300" />;
+        return <CheckCircle2 className="h-4 w-4 text-(--ws-emerald)" />;
       case "application":
         return <ArrowRight className="h-4 w-4 text-blue-300" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-orange-300" />;
+        return <AlertCircle className="h-4 w-4 text-(--ws-amber)" />;
     }
   };
 
   const getEntryBadge = (type: string) => {
     const colors: Record<string, string> = {
-      credit: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+      credit: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
       application: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-      debit: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+      debit: "bg-orange-500/20 text-(--ws-amber) border-orange-500/30",
     };
     return (
       <Badge className={colors[type] || colors.credit}>
@@ -160,7 +160,7 @@ export function StudentCreditManager({
               <p className="text-sm text-white/60 mt-1">{studentName}</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold text-emerald-300">
+              <p className="text-3xl font-bold text-(--ws-emerald)">
                 {formatMoney(creditBalance)}
               </p>
               {creditBalance > 0 && (
@@ -203,10 +203,10 @@ export function StudentCreditManager({
                     <span
                       className={`text-sm font-semibold ${
                         entry.type === "credit"
-                          ? "text-emerald-300"
+                          ? "text-(--ws-emerald)"
                           : entry.type === "application"
                           ? "text-blue-300"
-                          : "text-orange-300"
+                          : "text-(--ws-amber)"
                       }`}
                     >
                       {entry.type === "credit" ? "+" : entry.type === "application" ? "-" : "-"}{" "}
@@ -232,7 +232,7 @@ export function StudentCreditManager({
             <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Available Credit
             </Label>
-            <p className="text-2xl font-bold text-emerald-300">
+            <p className="text-2xl font-bold text-(--ws-emerald)">
               {formatMoney(creditBalance)}
             </p>
           </div>

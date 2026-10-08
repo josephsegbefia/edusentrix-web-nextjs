@@ -53,7 +53,7 @@ export function AttendanceSummaryPanel({ profile }: Props) {
         <div className="flex flex-col items-end gap-1 text-right">
           {rateStat ? (
             <div className="rounded-xl border border-teal-400/25 bg-teal-500/10 px-3 py-2">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-(--ws-teal)/70">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-(--ws-teal)">
                 Attendance rate
               </p>
               <p className="text-xl font-semibold tabular-nums text-(--ws-teal)">
@@ -69,7 +69,7 @@ export function AttendanceSummaryPanel({ profile }: Props) {
 
       {model.showCompileWarning ? (
         <p
-          className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-(--ws-amber)/90"
+          className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-(--ws-amber)"
           role="status"
         >
           {model.compileWarningMessage}

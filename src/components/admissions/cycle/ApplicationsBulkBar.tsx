@@ -90,7 +90,7 @@ export function ApplicationsBulkBar({
         "sm:left-4 sm:right-4 md:left-6 md:right-6 lg:left-[260px] lg:right-6"
       )}
     >
-      <div className="mx-auto max-w-5xl rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-2xl backdrop-blur">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-(--ws-line) bg-(--ws-panel-to) p-3 shadow-2xl backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-100">
@@ -100,7 +100,7 @@ export function ApplicationsBulkBar({
             <button
               type="button"
               onClick={onClearSelection}
-              className="inline-flex items-center gap-1 text-xs text-white/55 hover:text-white"
+              className="inline-flex items-center gap-1 text-xs text-(--ws-fg-50) hover:text-(--ws-fg)"
             >
               <X className="h-3 w-3" />
               Clear
@@ -130,7 +130,7 @@ export function ApplicationsBulkBar({
               size="sm"
               onClick={handleExport}
               disabled={exporting || bulk.isPending}
-              className="h-9 border-white/10 bg-white/5 text-white"
+              className="h-9 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
             >
               {exporting ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -141,7 +141,7 @@ export function ApplicationsBulkBar({
             </Button>
           </div>
         </div>
-        <p className="mt-2 text-[11px] text-white/40">
+        <p className="mt-2 text-[11px] text-(--ws-fg-40)">
           Decisions, withdrawals and provisioning are intentionally excluded
           from bulk actions to keep the audit trail clean.
         </p>

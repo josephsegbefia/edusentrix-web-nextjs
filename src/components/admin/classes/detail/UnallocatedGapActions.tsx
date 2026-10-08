@@ -133,8 +133,8 @@ export function UnallocatedGapActions({
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] leading-snug text-white/50">
-        This slice is <span className="text-white/70">unallocated in the day model</span> for this
+      <p className="text-[11px] leading-snug text-(--ws-fg-50)">
+        This slice is <span className="text-(--ws-fg-70)">unallocated in the day model</span> for this
         class&apos;s grade: it is not a subject cell. Agree a school use below (saved for the whole
         grade for this day and time window) or change the day in{" "}
         <Link href={dailyScheduleSettingsHref} className="text-cyan-300 underline hover:text-cyan-200">
@@ -145,30 +145,30 @@ export function UnallocatedGapActions({
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="min-w-0 flex-1 space-y-1 sm:max-w-sm">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-(--ws-fg-40)">
             How we use this time (this grade) · {dayName} · {formatTimeLabel(startTime)}–
             {formatTimeLabel(endTime)}
             {minutes > 0 ? ` · ${minutes} min` : null}
           </p>
           {isLoading ? (
-            <p className="text-xs text-white/45">Loading…</p>
+            <p className="text-xs text-(--ws-fg-40)">Loading…</p>
           ) : (
             <PremiumSelect
               value={selectValue}
               onValueChange={onPresetChange}
               disabled={save.isPending}
             >
-              <PremiumSelectTrigger className="h-8 border-white/10 bg-white/5 text-left text-xs text-white">
+              <PremiumSelectTrigger className="h-8 border-(--ws-line) bg-(--ws-fill) text-left text-xs text-(--ws-fg)">
                 <PremiumSelectValue placeholder="Select a use (optional)…" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
-                <PremiumSelectItem value={CLEAR_VALUE} className="text-xs text-white/70">
+                <PremiumSelectItem value={CLEAR_VALUE} className="text-xs text-(--ws-fg-70)">
                   Not set
                 </PremiumSelectItem>
                 {UNALLOCATED_GAP_PRESET_OPTIONS.map((o) => (
                   <PremiumSelectItem key={o.code} value={o.code} className="text-left text-xs">
-                    <span className="block font-medium text-white/95">{o.label}</span>
-                    <span className="mt-0.5 block text-[10px] text-white/50">{o.description}</span>
+                    <span className="block font-medium text-(--ws-fg-90)">{o.label}</span>
+                    <span className="mt-0.5 block text-[10px] text-(--ws-fg-50)">{o.description}</span>
                   </PremiumSelectItem>
                 ))}
               </PremiumSelectContent>
@@ -182,7 +182,7 @@ export function UnallocatedGapActions({
           type="button"
           size="sm"
           variant="secondary"
-          className="h-7 border border-white/10 bg-white/5 text-[11px] text-white/80 hover:bg-white/10"
+          className="h-7 border border-(--ws-line) bg-(--ws-fill) text-[11px] text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
           asChild
         >
           <Link href={dailyScheduleSettingsHref}>Edit day structure</Link>
@@ -192,35 +192,35 @@ export function UnallocatedGapActions({
           type="button"
           size="sm"
           variant="outline"
-          className="h-7 border-amber-400/35 text-[11px] text-amber-100 hover:bg-amber-500/15"
+          className="h-7 border-amber-400/35 text-[11px] text-(--ws-amber) hover:bg-amber-500/15"
           disabled={leoLoading}
           onClick={runLeo}
         >
           {leoLoading ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
-            <Sparkles className="h-3 w-3 text-amber-200" />
+            <Sparkles className="h-3 w-3 text-(--ws-amber)" />
           )}
           <span className="ml-1">Leo: one idea</span>
         </Button>
       </div>
 
-      <p className="text-[10px] leading-relaxed text-white/35">
-        For Leo: <span className="text-white/50">After</span> {beforeBlockLabel}{" "}
-        <span className="text-white/50">· Before</span> {afterBlockLabel} · {tctx}
+      <p className="text-[10px] leading-relaxed text-(--ws-fg-40)">
+        For Leo: <span className="text-(--ws-fg-50)">After</span> {beforeBlockLabel}{" "}
+        <span className="text-(--ws-fg-50)">· Before</span> {afterBlockLabel} · {tctx}
       </p>
 
       {leoText ? (
         <div
           className={cn(
-            "relative mt-1 rounded-lg border border-amber-500/20 bg-amber-950/30 px-2.5 py-2 text-[11px] leading-relaxed text-amber-50/95"
+            "relative mt-1 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 text-[11px] leading-relaxed text-(--ws-fg-70)"
           )}
         >
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute right-0.5 top-0.5 h-7 w-7 text-amber-200/70 hover:bg-amber-500/20 hover:text-amber-50"
+            className="absolute right-0.5 top-0.5 h-7 w-7 text-(--ws-amber) hover:bg-amber-500/20 hover:text-(--ws-fg)"
             onClick={() => setLeoText(null)}
             aria-label="Dismiss"
           >

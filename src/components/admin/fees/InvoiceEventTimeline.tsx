@@ -36,13 +36,13 @@ export function InvoiceEventTimeline({ events }: Props) {
       case "created":
         return <FileText className="h-4 w-4 text-blue-300" />;
       case "issued":
-        return <CheckCircle2 className="h-4 w-4 text-emerald-300" />;
+        return <CheckCircle2 className="h-4 w-4 text-(--ws-emerald)" />;
       case "payment_recorded":
-        return <DollarSign className="h-4 w-4 text-green-300" />;
+        return <DollarSign className="h-4 w-4 text-(--ws-emerald)" />;
       case "adjusted":
-        return <Edit className="h-4 w-4 text-orange-300" />;
+        return <Edit className="h-4 w-4 text-(--ws-amber)" />;
       case "cancelled":
-        return <XCircle className="h-4 w-4 text-rose-300" />;
+        return <XCircle className="h-4 w-4 text-(--ws-rose)" />;
       case "overdue_marked":
         return <AlertCircle className="h-4 w-4 text-red-300" />;
       default:
@@ -53,10 +53,10 @@ export function InvoiceEventTimeline({ events }: Props) {
   const getEventBadge = (eventType: string) => {
     const colors: Record<string, string> = {
       created: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-      issued: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-      payment_recorded: "bg-green-500/20 text-green-300 border-green-500/30",
-      adjusted: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-      cancelled: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+      issued: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
+      payment_recorded: "bg-green-500/20 text-(--ws-emerald) border-green-500/30",
+      adjusted: "bg-orange-500/20 text-(--ws-amber) border-orange-500/30",
+      cancelled: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
       overdue_marked: "bg-red-500/20 text-red-300 border-red-500/30",
       allocation_updated: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     };
@@ -69,7 +69,7 @@ export function InvoiceEventTimeline({ events }: Props) {
 
   if (!events || events.length === 0) {
     return (
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-slate-500/5 via-slate-500/2 to-transparent"
           aria-hidden="true"
@@ -87,7 +87,7 @@ export function InvoiceEventTimeline({ events }: Props) {
   }
 
   return (
-    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-slate-500/5 via-slate-500/2 to-transparent"
         aria-hidden="true"

@@ -18,7 +18,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
 
   if (subjectsWithScores.length === 0) {
     return (
-      <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
@@ -44,7 +44,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
   const bottomSubjects = subjectsWithScores.slice(-3).reverse();
 
   return (
-    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
@@ -79,7 +79,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                       {subject.subjectName}
                     </p>
                     {subject.shortCode && (
-                      <p className="text-[10px] text-(--ws-emerald)/70">
+                      <p className="text-[10px] text-(--ws-emerald)">
                         {subject.shortCode}
                       </p>
                     )}
@@ -91,12 +91,12 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                       {subject.score.toFixed(1)}%
                     </p>
                     {subject.gradeLabel ? (
-                      <p className="text-[10px] text-(--ws-emerald)/70">
+                      <p className="text-[10px] text-(--ws-emerald)">
                         Grade {subject.gradeLabel}
                       </p>
                     ) : null}
                     {subject.sourceLabel ? (
-                      <p className="text-[10px] text-(--ws-emerald)/50">{subject.sourceLabel}</p>
+                      <p className="text-[10px] text-(--ws-emerald)">{subject.sourceLabel}</p>
                     ) : null}
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                             "text-[10px]",
                             subject.score < 50
                               ? "text-red-200/70"
-                              : "text-(--ws-amber)/70"
+                              : "text-(--ws-amber)"
                           )}
                         >
                           {subject.shortCode}
@@ -172,7 +172,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                             "text-[10px]",
                             subject.score < 50
                               ? "text-red-200/70"
-                              : "text-(--ws-amber)/70"
+                              : "text-(--ws-amber)"
                           )}
                         >
                           Grade {subject.gradeLabel}

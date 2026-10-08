@@ -91,7 +91,7 @@ export function AIInsightsPanel({
     !isError;
 
   return (
-    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -275,7 +275,7 @@ export function AIInsightsPanel({
                             {strength.score}%
                           </span>
                         </div>
-                        <p className="text-[11px] text-(--ws-emerald)/80">
+                        <p className="text-[11px] text-(--ws-emerald)">
                           {strength.reason}
                         </p>
                       </div>
@@ -315,7 +315,7 @@ export function AIInsightsPanel({
                             </span>
                           </div>
                         </div>
-                        <p className="text-[11px] text-(--ws-rose)/80">
+                        <p className="text-[11px] text-(--ws-rose)">
                           {weakness.reason}
                         </p>
                       </div>

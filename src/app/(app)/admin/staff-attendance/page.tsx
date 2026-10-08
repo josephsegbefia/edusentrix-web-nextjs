@@ -129,7 +129,7 @@ const toneConfig: Record<
     border: "border-indigo-500/30",
     bg: "from-indigo-500/10 via-indigo-500/5 to-transparent",
     iconBg: "from-indigo-500/20 to-indigo-600/20",
-    iconColor: "text-indigo-300",
+    iconColor: "text-(--ws-violet)",
     valueColor: "text-indigo-100",
     glow: "bg-indigo-500/20",
   },
@@ -137,7 +137,7 @@ const toneConfig: Record<
     border: "border-emerald-500/30",
     bg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
     iconBg: "from-emerald-500/20 to-emerald-600/20",
-    iconColor: "text-emerald-300",
+    iconColor: "text-(--ws-emerald)",
     valueColor: "text-emerald-100",
     glow: "bg-emerald-500/20",
   },
@@ -145,8 +145,8 @@ const toneConfig: Record<
     border: "border-rose-500/30",
     bg: "from-rose-500/10 via-rose-500/5 to-transparent",
     iconBg: "from-rose-500/20 to-rose-600/20",
-    iconColor: "text-rose-300",
-    valueColor: "text-rose-100",
+    iconColor: "text-(--ws-rose)",
+    valueColor: "text-(--ws-rose)",
     glow: "bg-rose-500/20",
   },
   amber: {
@@ -154,7 +154,7 @@ const toneConfig: Record<
     bg: "from-amber-500/10 via-amber-500/5 to-transparent",
     iconBg: "from-amber-500/20 to-amber-600/20",
     iconColor: "text-amber-300",
-    valueColor: "text-amber-100",
+    valueColor: "text-(--ws-amber)",
     glow: "bg-amber-500/20",
   },
   cyan: {
@@ -193,7 +193,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border bg-linear-to-br p-4 shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl",
+        "group relative overflow-hidden rounded-2xl border bg-linear-to-br p-4 shadow-[var(--ws-shadow)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl",
         config.border,
         config.bg
       )}
@@ -253,12 +253,12 @@ const statusConfig: Record<
   },
   absent: {
     label: "Absent",
-    color: "border-rose-400/50 bg-rose-500/20 text-rose-200",
+    color: "border-rose-400/50 bg-rose-500/20 text-(--ws-rose)",
     icon: <XCircle className="h-3 w-3" />,
   },
   late: {
     label: "Late",
-    color: "border-amber-400/50 bg-amber-500/20 text-amber-200",
+    color: "border-amber-400/50 bg-amber-500/20 text-(--ws-amber)",
     icon: <Clock4 className="h-3 w-3" />,
   },
   on_leave: {
@@ -519,10 +519,10 @@ function LeaveRequestCard({
               className={cn(
                 "shrink-0 rounded-full text-[10px]",
                 request.approvalStatus === "pending"
-                  ? "border-amber-400/50 bg-amber-500/20 text-amber-200"
+                  ? "border-amber-400/50 bg-amber-500/20 text-(--ws-amber)"
                   : request.approvalStatus === "approved"
                     ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-200"
-                    : "border-rose-400/50 bg-rose-500/20 text-rose-200"
+                    : "border-rose-400/50 bg-rose-500/20 text-(--ws-rose)"
               )}
             >
               {request.approvalStatus}
@@ -549,7 +549,7 @@ function LeaveRequestCard({
                 variant="outline"
                 disabled={isProcessing}
                 onClick={() => onApprove(request.id)}
-                className="h-7 gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                className="h-7 gap-1.5 border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
               >
                 <Check className="h-3 w-3" />
                 Approve
@@ -559,7 +559,7 @@ function LeaveRequestCard({
                 variant="outline"
                 disabled={isProcessing}
                 onClick={() => onReject(request.id)}
-                className="h-7 gap-1.5 border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                className="h-7 gap-1.5 border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
               >
                 <X className="h-3 w-3" />
                 Reject
@@ -757,7 +757,7 @@ export default function StaffAttendancePage() {
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
-                  <ClipboardCheck className="h-5 w-5 text-indigo-300" />
+                  <ClipboardCheck className="h-5 w-5 text-(--ws-violet)" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
@@ -768,7 +768,7 @@ export default function StaffAttendancePage() {
                   </p>
                 </div>
               </div>
-              <p className="mt-4 text-xs uppercase tracking-[0.18em] text-indigo-200/80">
+              <p className="mt-4 text-xs uppercase tracking-[0.18em] text-(--ws-violet)">
                 {formatDisplayDate(selectedDate)}
               </p>
             </div>
@@ -1002,7 +1002,7 @@ export default function StaffAttendancePage() {
             className={cn(
               "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
               activeTab === "attendance"
-                ? "border-indigo-500/40 bg-indigo-500/15 text-indigo-200 shadow-lg shadow-indigo-500/10"
+                ? "border-indigo-500/40 bg-indigo-500/15 text-(--ws-violet) shadow-lg shadow-indigo-500/10"
                 : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white"
             )}
           >
@@ -1024,7 +1024,7 @@ export default function StaffAttendancePage() {
             {leaveData?.summary?.pending ? (
               <Badge
                 variant="outline"
-                className="ml-1 border-amber-400/50 bg-amber-500/20 text-[10px] text-amber-200"
+                className="ml-1 border-amber-400/50 bg-amber-500/20 text-[10px] text-(--ws-amber)"
               >
                 {leaveData.summary.pending}
               </Badge>
@@ -1041,7 +1041,7 @@ export default function StaffAttendancePage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10">
-                    <Users className="h-4 w-4 text-indigo-300" />
+                    <Users className="h-4 w-4 text-(--ws-violet)" />
                   </span>
                   Teacher Roster
                 </CardTitle>
@@ -1128,7 +1128,7 @@ export default function StaffAttendancePage() {
                     )}
                   </p>
                   {debouncedSearch && (
-                    <p className="text-xs text-indigo-300/70">
+                    <p className="text-xs text-(--ws-violet)">
                       Searching for &quot;{debouncedSearch}&quot;
                     </p>
                   )}
@@ -1143,7 +1143,7 @@ export default function StaffAttendancePage() {
                         <Sparkles className="h-3.5 w-3.5" />
                         Smart Bulk Actions
                       </p>
-                      <p className="text-xs text-indigo-200/75">
+                      <p className="text-xs text-(--ws-violet)">
                         {bulkCandidates.length} teacher
                         {bulkCandidates.length === 1 ? "" : "s"} ready for bulk
                         update.
@@ -1262,10 +1262,10 @@ export default function StaffAttendancePage() {
                           "rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all",
                           leaveFilter === status
                             ? status === "pending"
-                              ? "border-amber-500/40 bg-amber-500/15 text-amber-200"
+                              ? "border-amber-500/40 bg-amber-500/15 text-(--ws-amber)"
                               : status === "approved"
                                 ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-200"
-                                : "border-rose-500/40 bg-rose-500/15 text-rose-200"
+                                : "border-rose-500/40 bg-rose-500/15 text-(--ws-rose)"
                             : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8"
                         )}
                       >

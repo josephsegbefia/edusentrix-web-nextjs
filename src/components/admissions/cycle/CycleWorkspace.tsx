@@ -87,7 +87,7 @@ export function CycleWorkspace({ cycle }: CycleWorkspaceProps) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-2">
+      <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-2">
         <div className="flex flex-wrap gap-1">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = id === tab;
@@ -99,8 +99,8 @@ export function CycleWorkspace({ cycle }: CycleWorkspaceProps) {
                 className={cn(
                   "inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition",
                   active
-                    ? "bg-white/10 text-white"
-                    : "text-white/55 hover:bg-white/5 hover:text-white"
+                    ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                    : "text-(--ws-fg-50) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -249,13 +249,13 @@ function CycleFeeSettingsTab({
       {/* Context panel */}
       <div className={cn(glassPanelClass, "px-5 py-4")}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
-        <p className="mb-1 text-sm font-semibold text-white/80">Application fee charge settings</p>
-        <p className="mb-4 text-xs text-white/45">
+        <p className="mb-1 text-sm font-semibold text-(--ws-fg-80)">Application fee charge settings</p>
+        <p className="mb-4 text-xs text-(--ws-fg-40)">
           Configure how EduSentrix charges applicants or the school for payment processing on this admission cycle. These override the global charge policy for this cycle only.
         </p>
 
         {!hasFee && (
-          <div className={cn(glassInsetClass, "px-4 py-3 text-sm text-white/50")}>
+          <div className={cn(glassInsetClass, "px-4 py-3 text-sm text-(--ws-fg-50)")}>
             This cycle does not have an application fee configured. Fee settings will apply when an application fee is enabled in cycle settings.
           </div>
         )}
@@ -263,27 +263,27 @@ function CycleFeeSettingsTab({
         {hasFee && (
           <div className={cn(glassInsetClass, "mb-4 px-4 py-3")}>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="text-white/55">Application fee:</span>
-              <span className="font-semibold text-white">
+              <span className="text-(--ws-fg-50)">Application fee:</span>
+              <span className="font-semibold text-(--ws-fg)">
                 {formatMinor(appFee!.amountMinor!, appFee!.currency || "GHS")}
               </span>
               {effectiveCharge && (
                 <>
-                  <span className="text-white/30">·</span>
-                  <span className="text-white/55">
+                  <span className="text-(--ws-fg-40)">·</span>
+                  <span className="text-(--ws-fg-50)">
                     Charge: {formatMinor(effectiveCharge.chargeMinor)} ({effectiveCharge.payerMode.replace("_", " ")})
                   </span>
-                  <span className="text-white/30">·</span>
-                  <span className="text-white/55">
+                  <span className="text-(--ws-fg-40)">·</span>
+                  <span className="text-(--ws-fg-50)">
                     Total payable: {formatMinor(effectiveCharge.totalPayable)}
                   </span>
                   <span className={cn(
                     "rounded-md px-2 py-0.5 text-xs",
                     effectiveCharge.source === "cycle_override"
-                      ? "border border-violet-400/25 bg-violet-500/10 text-violet-300"
+                      ? "border border-violet-400/25 bg-violet-500/10 text-(--ws-violet)"
                       : effectiveCharge.source === "global_policy"
                       ? "border border-teal-400/25 bg-teal-500/10 text-teal-300"
-                      : "border border-white/10 bg-white/5 text-white/40"
+                      : "border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)"
                   )}>
                     {effectiveCharge.source === "cycle_override"
                       ? "Cycle override"
@@ -298,7 +298,7 @@ function CycleFeeSettingsTab({
         )}
 
         {loading ? (
-          <div className="flex items-center gap-2 py-4 text-sm text-white/45">
+          <div className="flex items-center gap-2 py-4 text-sm text-(--ws-fg-40)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading fee settings…
           </div>
@@ -307,7 +307,7 @@ function CycleFeeSettingsTab({
             <div className="grid gap-4 sm:grid-cols-2">
               {/* BPS Override */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-white/55">
+                <label className="block text-xs font-medium text-(--ws-fg-50)">
                   Platform charge override (basis points)
                 </label>
                 <input
@@ -318,16 +318,16 @@ function CycleFeeSettingsTab({
                   placeholder="e.g. 150 = 1.5%"
                   value={bpsOverride}
                   onChange={(e) => setBpsOverride(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/20"
+                  className="w-full rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg) outline-none placeholder:text-(--ws-fg-40) focus:border-(--ws-line-strong)"
                 />
-                <p className="text-xs text-white/35">
+                <p className="text-xs text-(--ws-fg-40)">
                   Leave empty to use the global charge policy. 100 bps = 1%. Max 10,000 bps (100%).
                 </p>
               </div>
 
               {/* Payer mode override */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-white/55">
+                <label className="block text-xs font-medium text-(--ws-fg-50)">
                   Payer mode override
                 </label>
                 <PremiumSelect
@@ -344,7 +344,7 @@ function CycleFeeSettingsTab({
                     <PremiumSelectItem value="waived">Waived (no platform charge)</PremiumSelectItem>
                   </PremiumSelectContent>
                 </PremiumSelect>
-                <p className="text-xs text-white/35">
+                <p className="text-xs text-(--ws-fg-40)">
                   Controls whether the service fee is passed to the applicant or absorbed by the school.
                 </p>
               </div>
@@ -352,7 +352,7 @@ function CycleFeeSettingsTab({
 
             {/* Override note */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-white/55">
+              <label className="block text-xs font-medium text-(--ws-fg-50)">
                 Internal note (optional)
               </label>
               <textarea
@@ -360,7 +360,7 @@ function CycleFeeSettingsTab({
                 value={overrideNote}
                 onChange={(e) => setOverrideNote(e.target.value)}
                 placeholder="e.g. School requested fee waiver for this intake cycle"
-                className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/20"
+                className="w-full resize-none rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg) outline-none placeholder:text-(--ws-fg-40) focus:border-(--ws-line-strong)"
               />
             </div>
 
@@ -381,7 +381,7 @@ function CycleFeeSettingsTab({
             </div>
 
             {data?.feeSettings?.updatedAt && (
-              <p className="text-xs text-white/30">
+              <p className="text-xs text-(--ws-fg-40)">
                 Last updated: {new Date(data.feeSettings.updatedAt).toLocaleString("en-GH")}
               </p>
             )}

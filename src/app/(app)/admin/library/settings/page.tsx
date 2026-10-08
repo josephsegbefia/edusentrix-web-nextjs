@@ -233,7 +233,7 @@ export default function AdminLibrarySettingsPage() {
             </div>
           </section>
 
-          <div className="rounded-2xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent p-4 shadow-lg shadow-black/20 backdrop-blur-xl">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4 shadow-[var(--ws-shadow)] backdrop-blur-xl">
             <Button
               onClick={() => void save()}
               disabled={readOnlySettings || patchSettings.isPending}

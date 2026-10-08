@@ -322,7 +322,7 @@ export function TeacherCard({
             </span>
           )}
           {teacher.department && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/15 px-2.5 py-1 text-[10px] font-medium text-indigo-200">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/15 px-2.5 py-1 text-[10px] font-medium text-(--ws-violet)">
               <Briefcase className="h-3 w-3" />
               {teacher.department}
             </span>
@@ -341,11 +341,11 @@ export function TeacherCard({
                   ? "Leave ends today"
                   : `${leaveInfo.daysLeft} day${leaveInfo.daysLeft !== 1 ? "s" : ""} left`}
               </p>
-              <p className="text-[10px] text-(--ws-amber)/60 truncate">
+              <p className="text-[10px] text-(--ws-amber) truncate">
                 {leaveInfo.startLabel && `${leaveInfo.startLabel} → `}{leaveInfo.endLabel}
               </p>
             </div>
-            <Clock className="h-3.5 w-3.5 shrink-0 text-(--ws-amber)/40" />
+            <Clock className="h-3.5 w-3.5 shrink-0 text-(--ws-amber)" />
           </div>
         )}
 

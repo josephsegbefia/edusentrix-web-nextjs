@@ -91,7 +91,7 @@ export function FeesAIAccountBriefCard({ studentId, periodId }: Props) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
-              <Sparkles className="h-4 w-4 text-fuchsia-300" />
+              <Sparkles className="h-4 w-4 text-(--ws-violet)" />
               AI Account Brief
             </CardTitle>
             <p className="mt-1 text-xs text-(--ws-fg-50)">

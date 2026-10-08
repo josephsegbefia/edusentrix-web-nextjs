@@ -51,7 +51,7 @@ function StatCard({
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl transition-all hover:border-white/20",
+        "group relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl transition-all hover:border-(--ws-line-strong)",
         className
       )}
     >
@@ -62,12 +62,12 @@ function StatCard({
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wider text-white/50">
+            <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
               {title}
             </p>
-            <p className="text-3xl font-bold tabular-nums text-white">{value}</p>
+            <p className="text-3xl font-bold tabular-nums text-(--ws-fg)">{value}</p>
             {subtitle && (
-              <p className="text-xs text-white/40">{subtitle}</p>
+              <p className="text-xs text-(--ws-fg-40)">{subtitle}</p>
             )}
             {trend && (
               <div
@@ -90,7 +90,7 @@ function StatCard({
           </div>
           <div
             className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl border border-white/10",
+              "flex h-12 w-12 items-center justify-center rounded-xl border border-(--ws-line)",
               iconColor
             )}
           >
@@ -134,7 +134,7 @@ export function ClassOverviewTab({
           value={studentCount}
           subtitle={capacity ? `Capacity: ${capacity}` : undefined}
           icon={Users}
-          iconColor="bg-emerald-500/20 text-emerald-300"
+          iconColor="bg-emerald-500/20 text-(--ws-emerald)"
         />
         <StatCard
           title="Subjects"
@@ -165,9 +165,9 @@ export function ClassOverviewTab({
       {/* Quick Actions & Info */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Homeroom Teacher Card */}
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
-          <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+          <CardHeader className="border-b border-(--ws-line) pb-4">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
               <Home className="h-4 w-4 text-purple-400" />
               Homeroom Teacher
             </CardTitle>
@@ -176,20 +176,20 @@ export function ClassOverviewTab({
             {homeroomTeacher ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12 border border-white/20">
+                  <Avatar className="h-12 w-12 border border-(--ws-line-strong)">
                     <AvatarImage
                       src={homeroomTeacher.photoUrl || ""}
                       alt={homeroomTeacher.fullName}
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-violet-700 text-sm font-semibold text-white">
+                    <AvatarFallback className="bg-linear-to-br from-purple-600 to-violet-700 text-sm font-semibold text-(--ws-fg)">
                       {homeroomInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-(--ws-fg)">
                       {homeroomTeacher.fullName}
                     </p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-(--ws-fg-50)">
                       {homeroomTeacher.email || "No email"}
                     </p>
                   </div>
@@ -198,7 +198,7 @@ export function ClassOverviewTab({
                   variant="outline"
                   size="sm"
                   onClick={onAssignHomeroom}
-                  className="gap-2 border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 >
                   Change
                   <ArrowRight className="h-3 w-3" />
@@ -207,12 +207,12 @@ export function ClassOverviewTab({
             ) : (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-white/20 bg-white/5">
-                    <AlertCircle className="h-5 w-5 text-white/30" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-(--ws-line-strong) bg-(--ws-fill)">
+                    <AlertCircle className="h-5 w-5 text-(--ws-fg-40)" />
                   </div>
                   <div>
-                    <p className="font-medium text-white/60">Not Assigned</p>
-                    <p className="text-xs text-white/40">
+                    <p className="font-medium text-(--ws-fg-60)">Not Assigned</p>
+                    <p className="text-xs text-(--ws-fg-40)">
                       No homeroom teacher assigned yet
                     </p>
                   </div>
@@ -220,7 +220,7 @@ export function ClassOverviewTab({
                 <Button
                   onClick={onAssignHomeroom}
                   size="sm"
-                  className="gap-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-lg shadow-purple-500/20 hover:from-purple-600 hover:to-violet-700"
+                  className="gap-2 bg-gradient-to-r from-purple-500 to-violet-600 text-(--ws-fg) shadow-lg shadow-purple-500/20 hover:from-purple-600 hover:to-violet-700"
                 >
                   Assign
                   <ArrowRight className="h-3 w-3" />
@@ -231,9 +231,9 @@ export function ClassOverviewTab({
         </Card>
 
         {/* Quick Actions Card */}
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
-          <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="text-sm font-semibold text-white">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+          <CardHeader className="border-b border-(--ws-line) pb-4">
+            <CardTitle className="text-sm font-semibold text-(--ws-fg)">
               Quick Actions
             </CardTitle>
           </CardHeader>
@@ -242,7 +242,7 @@ export function ClassOverviewTab({
               <Button
                 variant="outline"
                 onClick={onAddStudent}
-                className="h-auto flex-col gap-2 border-white/10 bg-white/5 py-4 text-white/70 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-300"
+                className="h-auto flex-col gap-2 border-(--ws-line) bg-(--ws-fill) py-4 text-(--ws-fg-70) hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-(--ws-emerald)"
               >
                 <UserPlus className="h-5 w-5" />
                 <span className="text-xs">Add Student</span>
@@ -250,7 +250,7 @@ export function ClassOverviewTab({
               <Button
                 variant="outline"
                 onClick={onManageSubjects}
-                className="h-auto flex-col gap-2 border-white/10 bg-white/5 py-4 text-white/70 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-300"
+                className="h-auto flex-col gap-2 border-(--ws-line) bg-(--ws-fill) py-4 text-(--ws-fg-70) hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-300"
               >
                 <BookPlus className="h-5 w-5" />
                 <span className="text-xs">Manage Subjects</span>
@@ -261,34 +261,34 @@ export function ClassOverviewTab({
       </div>
 
       {/* Class Info Summary */}
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
-        <CardHeader className="border-b border-white/10 pb-4">
-          <CardTitle className="text-sm font-semibold text-white">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+        <CardHeader className="border-b border-(--ws-line) pb-4">
+          <CardTitle className="text-sm font-semibold text-(--ws-fg)">
             Class Information
           </CardTitle>
         </CardHeader>
         <CardContent className="p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-white/40">Grade</p>
-              <p className="font-medium text-white">{grade.name}</p>
+              <p className="text-xs uppercase tracking-wider text-(--ws-fg-40)">Grade</p>
+              <p className="font-medium text-(--ws-fg)">{grade.name}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-white/40">Stage</p>
-              <p className="font-medium text-white">{grade.stage || "—"}</p>
+              <p className="text-xs uppercase tracking-wider text-(--ws-fg-40)">Stage</p>
+              <p className="font-medium text-(--ws-fg)">{grade.stage || "—"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-white/40">Capacity</p>
-              <p className="font-medium text-white">{capacity || "Unlimited"}</p>
+              <p className="text-xs uppercase tracking-wider text-(--ws-fg-40)">Capacity</p>
+              <p className="font-medium text-(--ws-fg)">{capacity || "Unlimited"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-white/40">Status</p>
+              <p className="text-xs uppercase tracking-wider text-(--ws-fg-40)">Status</p>
               <Badge
                 variant="outline"
                 className={cn(
                   "rounded-full text-[10px]",
                   classData.isActive
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
                     : "border-slate-500/30 bg-slate-500/10 text-slate-300"
                 )}
               >

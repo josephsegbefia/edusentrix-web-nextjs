@@ -179,7 +179,7 @@ function NotificationItem({
               </Badge>
             )}
             {notification.actionUrl && (
-              <span className="inline-flex items-center gap-1 text-xs text-indigo-200 transition group-hover:text-indigo-100">
+              <span className="inline-flex items-center gap-1 text-xs text-(--ws-violet) transition group-hover:text-indigo-100">
                 Open
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </span>
@@ -286,7 +286,7 @@ export default function AdminNotificationsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="text-lg">Filter notifications</CardTitle>
         </CardHeader>

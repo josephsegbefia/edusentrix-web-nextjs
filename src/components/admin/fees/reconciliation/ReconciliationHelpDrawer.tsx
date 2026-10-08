@@ -78,7 +78,7 @@ function StepItem({
 }) {
   return (
     <div className="flex gap-3">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-300">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-(--ws-violet)">
         {step}
       </div>
       <div className="min-w-0 flex-1">
@@ -91,8 +91,8 @@ function StepItem({
 
 function ExampleBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mt-3 rounded-lg border border-indigo-500/15 bg-indigo-500/5 px-3 py-2.5 text-[12px] text-indigo-200/80">
-      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-indigo-300/60">
+    <div className="mt-3 rounded-lg border border-indigo-500/15 bg-indigo-500/5 px-3 py-2.5 text-[12px] text-(--ws-violet)">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-(--ws-violet)">
         <Lightbulb className="h-3 w-3" />
         Example
       </div>
@@ -187,7 +187,7 @@ export function ReconciliationHelpDrawer({
           <Section title="Understanding statuses" icon={HelpCircle}>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <StatusBadgeDemo label="Unmatched" className="border-rose-500/25 bg-rose-500/10 text-rose-300" />
+                <StatusBadgeDemo label="Unmatched" className="border-rose-500/25 bg-rose-500/10 text-(--ws-rose)" />
                 <p className="flex-1">
                   No matching payment found yet. Could mean the payment hasn&apos;t been recorded,
                   or the reference doesn&apos;t match. Needs investigation.
@@ -203,7 +203,7 @@ export function ReconciliationHelpDrawer({
               </div>
               <Separator className="bg-white/5" />
               <div className="flex items-start gap-3">
-                <StatusBadgeDemo label="Matched" className="border-emerald-500/25 bg-emerald-500/10 text-emerald-300" />
+                <StatusBadgeDemo label="Matched" className="border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)" />
                 <p className="flex-1">
                   Successfully matched to a payment record — either automatically (high
                   confidence) or manually confirmed by you.
@@ -326,7 +326,7 @@ export function ReconciliationHelpDrawer({
                   <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-full rounded-full bg-emerald-500" />
                   </div>
-                  <span className="text-xs font-semibold text-emerald-300">95–100%</span>
+                  <span className="text-xs font-semibold text-(--ws-emerald)">95–100%</span>
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">
@@ -335,7 +335,7 @@ export function ReconciliationHelpDrawer({
                   <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-[85%] rounded-full bg-emerald-500" />
                   </div>
-                  <span className="text-xs font-semibold text-emerald-300">80–95%</span>
+                  <span className="text-xs font-semibold text-(--ws-emerald)">80–95%</span>
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">
@@ -353,7 +353,7 @@ export function ReconciliationHelpDrawer({
                   <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-[40%] rounded-full bg-rose-500" />
                   </div>
-                  <span className="text-xs font-semibold text-rose-300">&lt;60%</span>
+                  <span className="text-xs font-semibold text-(--ws-rose)">&lt;60%</span>
                 </div>
               </div>
             </div>
@@ -436,7 +436,7 @@ export function ReconciliationHelpDrawer({
                   className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
-                    <code className="rounded bg-indigo-500/10 px-1.5 py-0.5 font-mono text-xs text-indigo-300">
+                    <code className="rounded bg-indigo-500/10 px-1.5 py-0.5 font-mono text-xs text-(--ws-violet)">
                       {prefix}
                     </code>
                     <span className="text-white/60">{label}</span>

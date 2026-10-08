@@ -232,7 +232,7 @@ export function StudentRolesSection({ studentId }: StudentRolesSectionProps) {
           {currentPeriod && (
             <Badge
               variant="outline"
-              className="border-violet-500/30 bg-violet-500/10 text-[10px] text-violet-300"
+              className="border-violet-500/30 bg-violet-500/10 text-[10px] text-(--ws-violet)"
             >
               {currentPeriod.yearLabel} - {currentPeriod.term}
             </Badge>

@@ -208,7 +208,7 @@ export default function AdminSchemeReviewDetailPage() {
     return (
       <WorkspaceScope>
       <div className="p-6">
-        <p className="text-rose-300">{error?.message ?? "Scheme of Learning not found"}</p>
+        <p className="text-(--ws-rose)">{error?.message ?? "Scheme of Learning not found"}</p>
         <Button variant="outline" asChild className="mt-4 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
           <Link href="/admin/schemes">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -459,7 +459,7 @@ export default function AdminSchemeReviewDetailPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2 border-rose-300/25 bg-rose-500/10 text-rose-100"
+                  className="w-full justify-start gap-2 border-rose-300/25 bg-rose-500/10 text-(--ws-rose)"
                   onClick={() => setRejectOpen(true)}
                   disabled={reviewMut.isPending}
                 >
@@ -525,7 +525,7 @@ export default function AdminSchemeReviewDetailPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-start gap-2 border-rose-300/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/15"
+                  className="w-full justify-start gap-2 border-rose-300/25 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/15"
                   onClick={() =>
                     void requestDelete({ id, title: data.scheme.title })
                   }

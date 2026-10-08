@@ -245,7 +245,7 @@ export default function AdminLibraryBooksPage() {
       </div>
 
       {pg && pg.totalPages > 1 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--ws-line) bg-linear-to-r from-(--ws-fill) to-transparent p-3 text-sm text-(--ws-fg-60) shadow-lg shadow-black/20 backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-3 text-sm text-(--ws-fg-60) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <span>
             Page {pg.page} of {pg.totalPages} ({pg.total} titles)
           </span>

@@ -158,16 +158,16 @@ export function AddStudentToClassModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl">
+      <DialogContent className="max-w-lg border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl">
         {/* Header */}
-        <DialogHeader className="border-b border-white/10 p-6 pb-4">
+        <DialogHeader className="border-b border-(--ws-line) p-6 pb-4">
           <DialogTitle className="flex items-center gap-3 text-xl font-bold">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
               <UserPlus className="h-5 w-5 text-emerald-300" />
             </div>
             Add Students to {className}
           </DialogTitle>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="mt-2 text-sm text-(--ws-fg-60)">
             Search and select students to add to this class
           </p>
         </DialogHeader>
@@ -176,19 +176,19 @@ export function AddStudentToClassModal({
         <div className="p-6 space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search students by name or admission number..."
-              className="h-10 w-full rounded-xl border border-white/15 bg-black/40 pl-10 pr-10 text-sm text-white placeholder:text-white/40 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+              className="h-10 w-full rounded-xl border border-(--ws-line-strong) bg-black/40 pl-10 pr-10 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+                className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-(--ws-fill-strong) text-(--ws-fg-60) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -196,15 +196,15 @@ export function AddStudentToClassModal({
           </div>
 
           {/* Student list */}
-          <div className="max-h-[300px] overflow-y-auto rounded-xl border border-white/10 bg-black/20">
+          <div className="max-h-[300px] overflow-y-auto rounded-xl border border-(--ws-line) bg-black/20">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
               </div>
             ) : students.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <Users className="h-8 w-8 text-white/30" />
-                <p className="mt-2 text-sm text-white/50">
+                <Users className="h-8 w-8 text-(--ws-fg-40)" />
+                <p className="mt-2 text-sm text-(--ws-fg-50)">
                   {search
                     ? "No students found matching your search"
                     : "Start typing to search for students"}
@@ -224,7 +224,7 @@ export function AddStudentToClassModal({
                         "flex w-full items-center gap-3 p-3 text-left transition-all",
                         isSelected
                           ? "bg-emerald-500/10"
-                          : "hover:bg-white/5"
+                          : "hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       <div
@@ -232,33 +232,33 @@ export function AddStudentToClassModal({
                           "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all",
                           isSelected
                             ? "border-emerald-500 bg-emerald-500"
-                            : "border-white/30 bg-transparent"
+                            : "border-(--ws-line-strong) bg-transparent"
                         )}
                       >
-                        {isSelected && <Check className="h-3 w-3 text-white" />}
+                        {isSelected && <Check className="h-3 w-3 text-(--ws-fg)" />}
                       </div>
 
-                      <Avatar className="h-9 w-9 border border-white/20">
+                      <Avatar className="h-9 w-9 border border-(--ws-line-strong)">
                         <AvatarImage
                           src={student.photoUrl || ""}
                           alt={student.fullName}
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-emerald-600 to-green-700 text-xs font-semibold text-white">
+                        <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-xs font-semibold text-(--ws-fg)">
                           {getInitials(student.firstName, student.lastName)}
                         </AvatarFallback>
                       </Avatar>
 
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white truncate">
+                        <p className="font-medium text-(--ws-fg) truncate">
                           {student.fullName}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-white/50">
+                        <div className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
                           {student.admissionNumber && (
                             <span>{student.admissionNumber}</span>
                           )}
                           {student.currentClass && (
                             <>
-                              <span className="text-white/30">•</span>
+                              <span className="text-(--ws-fg-40)">•</span>
                               <span>Currently: {student.currentClass}</span>
                             </>
                           )}
@@ -281,11 +281,11 @@ export function AddStudentToClassModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-white/10 p-6 pt-4">
+        <div className="flex items-center justify-between border-t border-(--ws-line) p-6 pt-4">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            className="text-white/60 hover:text-white"
+            className="text-(--ws-fg-60) hover:text-(--ws-fg)"
           >
             Cancel
           </Button>
@@ -293,7 +293,7 @@ export function AddStudentToClassModal({
           <Button
             onClick={handleAdd}
             disabled={selectedStudentIds.length === 0 || assignMutation.isPending}
-            className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-green-700 disabled:opacity-50"
+            className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-(--ws-fg) shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-green-700 disabled:opacity-50"
           >
             {assignMutation.isPending ? (
               <>

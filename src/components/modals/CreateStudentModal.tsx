@@ -616,7 +616,7 @@ export default function CreateStudentModal({
                         </p>
                       ) : null}
                       {patternMissingFields.length > 0 ? (
-                        <p className="mt-2 text-[11px] text-(--ws-amber)/90 sm:text-xs">
+                        <p className="mt-2 text-[11px] text-(--ws-amber) sm:text-xs">
                           Complete{" "}
                           {patternMissingFields
                             .map((field) => missingFieldLabels[field] || field)
@@ -787,7 +787,7 @@ export default function CreateStudentModal({
                       className="flex items-start gap-2 rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2"
                     >
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-400" />
-                      <div className="space-y-0.5 text-[11px] text-(--ws-teal)/80">
+                      <div className="space-y-0.5 text-[11px] text-(--ws-teal)">
                         <span className="font-medium text-(--ws-teal)">
                           Standard format breakdown:
                         </span>{" "}

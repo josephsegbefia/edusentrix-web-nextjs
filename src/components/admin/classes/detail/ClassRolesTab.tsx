@@ -93,13 +93,13 @@ function RoleCard({
     >
       <div className="flex items-start gap-3">
         {/* Student Avatar */}
-        <Avatar className="h-12 w-12 border-2 border-white/20 shadow-md">
+        <Avatar className="h-12 w-12 border-2 border-(--ws-line-strong) shadow-md">
           <AvatarImage
             src={assignment.student.photoUrl || ""}
             alt={assignment.student.fullName}
           />
           <AvatarFallback
-            className={cn("text-sm font-semibold text-white", categoryInfo.bgColor)}
+            className={cn("text-sm font-semibold text-(--ws-fg)", categoryInfo.bgColor)}
           >
             {getInitials(assignment.student.firstName, assignment.student.lastName)}
           </AvatarFallback>
@@ -108,13 +108,13 @@ function RoleCard({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-white truncate">
+            <p className="font-semibold text-(--ws-fg) truncate">
               {assignment.student.fullName}
             </p>
             {assignment.student.admissionNo && (
               <Badge
                 variant="outline"
-                className="shrink-0 border-white/20 bg-white/5 text-[10px] text-white/60"
+                className="shrink-0 border-(--ws-line-strong) bg-(--ws-fill) text-[10px] text-(--ws-fg-60)"
               >
                 {assignment.student.admissionNo}
               </Badge>
@@ -127,7 +127,7 @@ function RoleCard({
             </span>
           </div>
           {assignment.subject && (
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               Subject: {assignment.subject.name}
             </p>
           )}
@@ -139,14 +139,14 @@ function RoleCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg text-white/60 opacity-0 group-hover:opacity-100 hover:bg-white/10 hover:text-white transition-opacity"
+              className="h-8 w-8 rounded-lg text-(--ws-fg-60) opacity-0 group-hover:opacity-100 hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) transition-opacity"
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </PremiumDropdownMenuTrigger>
           <PremiumDropdownMenuContent
             align="end"
-            className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
+            className="border border-(--ws-line) bg-(--ws-panel-to) text-xs text-(--ws-fg) backdrop-blur-xl"
           >
             <PremiumDropdownMenuItem
               onClick={() => onViewStudent(assignment.student.id)}
@@ -155,7 +155,7 @@ function RoleCard({
               <ExternalLink className="h-3.5 w-3.5" />
               View Student
             </PremiumDropdownMenuItem>
-            <PremiumDropdownMenuSeparator className="bg-white/10" />
+            <PremiumDropdownMenuSeparator className="bg-(--ws-fill-strong)" />
             <PremiumDropdownMenuItem
               onClick={handleRemove}
               className="cursor-pointer gap-2 text-red-400 focus:text-red-300"
@@ -168,7 +168,7 @@ function RoleCard({
       </div>
 
       {/* Assigned date */}
-      <p className="mt-3 text-[10px] text-white/40">
+      <p className="mt-3 text-[10px] text-(--ws-fg-40)">
         Assigned {new Date(assignment.assignedAt).toLocaleDateString()}
         {assignment.assignedBy && ` by ${assignment.assignedBy.fullName}`}
       </p>
@@ -251,14 +251,14 @@ export function ClassRolesTab({
       {/* Header with Stats & Actions */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Student Roles</h2>
-          <p className="text-sm text-white/50">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Student Roles</h2>
+          <p className="text-sm text-(--ws-fg-50)">
             Manage student leadership and service roles for {className}
           </p>
           {academicPeriod && (
             <Badge
               variant="outline"
-              className="mt-2 border-violet-500/30 bg-violet-500/10 text-violet-300"
+              className="mt-2 border-violet-500/30 bg-violet-500/10 text-(--ws-violet)"
             >
               {academicPeriod.yearLabel} - {academicPeriod.term}
             </Badge>
@@ -266,7 +266,7 @@ export function ClassRolesTab({
         </div>
         <Button
           onClick={onAssignRole}
-          className="gap-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20 hover:from-amber-600 hover:to-orange-700"
+          className="gap-2 bg-gradient-to-r from-amber-500 to-orange-600 text-(--ws-fg) shadow-lg shadow-amber-500/20 hover:from-amber-600 hover:to-orange-700"
         >
           <UserPlus className="h-4 w-4" />
           Assign Role
@@ -275,36 +275,36 @@ export function ClassRolesTab({
 
       {/* Quick Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300">
               <Award className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{totalAssignments}</p>
-              <p className="text-xs text-white/50">Total Roles Assigned</p>
+              <p className="text-2xl font-bold text-(--ws-fg)">{totalAssignments}</p>
+              <p className="text-xs text-(--ws-fg-50)">Total Roles Assigned</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-300">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{uniqueStudents}</p>
-              <p className="text-xs text-white/50">Students with Roles</p>
+              <p className="text-2xl font-bold text-(--ws-fg)">{uniqueStudents}</p>
+              <p className="text-xs text-(--ws-fg-50)">Students with Roles</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-300">
               <Crown className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{leadershipCount}</p>
-              <p className="text-xs text-white/50">Leadership Positions</p>
+              <p className="text-2xl font-bold text-(--ws-fg)">{leadershipCount}</p>
+              <p className="text-xs text-(--ws-fg-50)">Leadership Positions</p>
             </div>
           </CardContent>
         </Card>
@@ -314,30 +314,30 @@ export function ClassRolesTab({
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
-          <p className="mt-3 text-sm text-white/50">Loading role assignments...</p>
+          <p className="mt-3 text-sm text-(--ws-fg-50)">Loading role assignments...</p>
         </div>
       ) : isError ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="h-8 w-8 text-rose-400" />
-          <p className="mt-3 text-sm font-medium text-white/70">
+          <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
             Failed to load role assignments
           </p>
         </div>
       ) : assignments.length === 0 ? (
-        <Card className="border border-white/10 bg-slate-950/60 backdrop-blur">
+        <Card className="border border-(--ws-line) bg-(--ws-panel-from) backdrop-blur">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-              <Crown className="h-8 w-8 text-white/30" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+              <Crown className="h-8 w-8 text-(--ws-fg-40)" />
             </div>
-            <p className="mt-4 text-sm font-medium text-white/70">
+            <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">
               No roles assigned yet
             </p>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               Assign leadership and service roles to students
             </p>
             <Button
               onClick={onAssignRole}
-              className="mt-4 gap-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+              className="mt-4 gap-2 bg-gradient-to-r from-amber-500 to-orange-600 text-(--ws-fg)"
             >
               <UserPlus className="h-4 w-4" />
               Assign First Role

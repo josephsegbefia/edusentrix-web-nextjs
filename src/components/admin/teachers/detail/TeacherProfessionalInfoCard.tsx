@@ -176,21 +176,21 @@ export function TeacherProfessionalInfoCard({
   };
 
   const inputClass =
-    "border border-white/10 bg-white/5 text-white placeholder:text-white/35 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30";
+    "border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)/35 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-white">Professional Info</h3>
-          <p className="mt-0.5 text-xs text-white/45">Employment details</p>
+          <h3 className="text-sm font-semibold text-(--ws-fg)">Professional Info</h3>
+          <p className="mt-0.5 text-xs text-(--ws-fg-40)">Employment details</p>
         </div>
         {canEdit && !editing && (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 shrink-0 gap-1.5 rounded-lg text-xs text-white/70 hover:bg-white/10 hover:text-white"
+            className="h-8 shrink-0 gap-1.5 rounded-lg text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             onClick={startEdit}
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -203,7 +203,7 @@ export function TeacherProfessionalInfoCard({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 rounded-lg text-xs text-white/70 hover:bg-white/10"
+              className="h-8 rounded-lg text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
               onClick={cancelEdit}
               disabled={updateTeacher.isPending}
             >
@@ -213,7 +213,7 @@ export function TeacherProfessionalInfoCard({
             <Button
               type="button"
               size="sm"
-              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-500"
+              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs text-(--ws-fg) hover:bg-indigo-500"
               onClick={handleSave}
               disabled={updateTeacher.isPending || suggestId.isPending}
             >
@@ -228,7 +228,7 @@ export function TeacherProfessionalInfoCard({
           <div className="space-y-2 sm:col-span-2">
             <Label
               htmlFor="pro-employee-id"
-              className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40"
+              className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)"
             >
               <Briefcase className="h-3 w-3" />
               Employee ID
@@ -243,7 +243,7 @@ export function TeacherProfessionalInfoCard({
                 autoComplete="off"
               />
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+                <div className="flex rounded-lg border border-(--ws-line) bg-(--ws-fill) p-0.5">
                   {([5, 6] as const).map((n) => (
                     <button
                       key={n}
@@ -252,8 +252,8 @@ export function TeacherProfessionalInfoCard({
                       className={cn(
                         "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                         idLength === n
-                          ? "bg-indigo-500/25 text-indigo-200"
-                          : "text-white/50 hover:text-white/80"
+                          ? "bg-indigo-500/25 text-(--ws-violet)"
+                          : "text-(--ws-fg-50) hover:text-(--ws-fg-80)"
                       )}
                     >
                       {n} digits
@@ -264,7 +264,7 @@ export function TeacherProfessionalInfoCard({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8 gap-1.5 rounded-lg border-white/15 bg-white/[0.04] text-xs text-white/85 hover:bg-white/10"
+                  className="h-8 gap-1.5 rounded-lg border-(--ws-line-strong) bg-(--ws-fill) text-xs text-(--ws-fg-90) hover:bg-(--ws-fill-strong)"
                   onClick={handleGenerateId}
                   disabled={suggestId.isPending || updateTeacher.isPending}
                 >
@@ -273,7 +273,7 @@ export function TeacherProfessionalInfoCard({
                 </Button>
               </div>
             </div>
-            <p className="text-[11px] text-white/35">
+            <p className="text-[11px] text-(--ws-fg-40)">
               Generates a unique numeric ID for this school ({idLength} digits).
             </p>
           </div>
@@ -281,7 +281,7 @@ export function TeacherProfessionalInfoCard({
           <div className="space-y-2">
             <Label
               htmlFor="pro-department"
-              className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40"
+              className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)"
             >
               <Users className="h-3 w-3" />
               Department
@@ -316,42 +316,42 @@ export function TeacherProfessionalInfoCard({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
               <Briefcase className="h-3 w-3" />
               Employee ID
             </p>
-            <p className="mt-2 text-sm font-medium text-white">
+            <p className="mt-2 text-sm font-medium text-(--ws-fg)">
               {employeeId ?? "—"}
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
               <Users className="h-3 w-3" />
               Department
             </p>
-            <p className="mt-2 text-sm font-medium text-white">
+            <p className="mt-2 text-sm font-medium text-(--ws-fg)">
               {department ?? "—"}
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
               <Calendar className="h-3 w-3" />
               Hire Date
             </p>
-            <p className="mt-2 text-sm font-medium text-white">
+            <p className="mt-2 text-sm font-medium text-(--ws-fg)">
               {formatDate(hireDate)}
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-40)">
               <Calendar className="h-3 w-3" />
               Termination
             </p>
-            <p className="mt-2 text-sm font-medium text-white">
+            <p className="mt-2 text-sm font-medium text-(--ws-fg)">
               {formatDate(terminationDate)}
             </p>
           </div>

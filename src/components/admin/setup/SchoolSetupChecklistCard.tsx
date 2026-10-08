@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import { CheckCircle2, ChevronDown, ChevronRight, Circle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { glassPanelClass } from "@/lib/ui/glass-surfaces";
 import type { SetupReadinessItem } from "@/types/admin/setup-readiness";
 import { useSetupReadinessCoach } from "@/hooks/admin/useSchoolSetupReadiness";
 
@@ -52,7 +53,7 @@ export function SchoolSetupChecklistCard({
 
   if (loading) {
     return (
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent">
+      <Card className={glassPanelClass}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold text-(--ws-fg-80) uppercase tracking-wider flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-(--ws-fg-50)" />
@@ -67,7 +68,7 @@ export function SchoolSetupChecklistCard({
     return (
       <Card className="relative overflow-hidden border border-emerald-500/20 bg-emerald-500/5">
         <CardContent className="pt-6 pb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-          <CheckCircle2 className="h-10 w-10 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="h-10 w-10 text-(--ws-emerald) shrink-0" />
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-(--ws-fg)">Setup checklist complete</h3>
             <p className="text-xs text-(--ws-fg-60) mt-1">
@@ -88,7 +89,7 @@ export function SchoolSetupChecklistCard({
   });
 
   return (
-    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-violet-500/8 via-white/5 to-transparent">
+    <Card className={glassPanelClass}>
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-transparent to-cyan-500/5"
         aria-hidden
@@ -145,9 +146,9 @@ export function SchoolSetupChecklistCard({
               aria-expanded={leoOpen}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-400/30 bg-violet-500/15">
-                <LeoIcon className="h-4 w-4 text-violet-200" />
+                <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
               </div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-200/95">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-violet)">
                 Leo
               </span>
               <span className="text-xs text-(--ws-fg-40) ml-auto">
@@ -164,7 +165,7 @@ export function SchoolSetupChecklistCard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="border-violet-400/35 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20 hover:text-(--ws-fg)"
+                    className="border-violet-400/35 bg-violet-500/10 text-(--ws-violet) hover:bg-violet-500/20 hover:text-(--ws-fg)"
                     disabled={coachMutation.isPending}
                     onClick={() =>
                       coachMutation.mutate(undefined, {
@@ -194,7 +195,7 @@ export function SchoolSetupChecklistCard({
                   ) : null}
                 </div>
                 {coachMutation.isError ? (
-                  <p className="text-xs text-rose-300/90">
+                  <p className="text-xs text-(--ws-rose)">
                     {coachMutation.error instanceof Error
                       ? coachMutation.error.message
                       : "Leo could not respond."}
@@ -219,7 +220,7 @@ export function SchoolSetupChecklistCard({
               >
                 <div className="flex items-start gap-2 min-w-0 flex-1">
                   {item.done ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-4 w-4 text-(--ws-emerald) shrink-0 mt-0.5" />
                   ) : (
                     <Circle className="h-4 w-4 text-(--ws-fg-40) shrink-0 mt-0.5" />
                   )}
@@ -237,7 +238,7 @@ export function SchoolSetupChecklistCard({
                         className={cn(
                           "text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border",
                           item.priority === "blocking"
-                            ? "border-amber-400/35 text-(--ws-amber)/90"
+                            ? "border-amber-400/35 text-(--ws-amber)"
                             : item.priority === "high"
                               ? "border-(--ws-line) text-(--ws-fg-50)"
                               : "border-(--ws-line) text-(--ws-fg-40)"
@@ -258,7 +259,7 @@ export function SchoolSetupChecklistCard({
                     <Link href={item.href}>{item.ctaLabel}</Link>
                   </Button>
                 ) : (
-                  <span className="text-[11px] text-emerald-400/90 shrink-0 sm:ml-auto">Done</span>
+                  <span className="text-[11px] text-(--ws-emerald) shrink-0 sm:ml-auto">Done</span>
                 )}
               </li>
             ))}

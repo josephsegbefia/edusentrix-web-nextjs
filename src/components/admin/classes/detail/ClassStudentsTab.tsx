@@ -146,7 +146,7 @@ export function ClassStudentsTab({
   const statusConfig = {
     active: {
       label: "Active",
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
     },
     inactive: {
       label: "Inactive",
@@ -163,10 +163,10 @@ export function ClassStudentsTab({
       {/* Header with Actions */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">
             Students in {className}
           </h2>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-(--ws-fg-50)">
             {students.length} student{students.length !== 1 ? "s" : ""} enrolled
           </p>
         </div>
@@ -176,7 +176,7 @@ export function ClassStudentsTab({
               type="button"
               variant="outline"
               onClick={onImportStudents}
-              className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+              className="gap-2 border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <Upload className="h-4 w-4" />
               Import Students
@@ -184,7 +184,7 @@ export function ClassStudentsTab({
           ) : null}
           <Button
             onClick={onAddStudent}
-            className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-green-700"
+            className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-(--ws-fg) shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-green-700"
           >
             <UserPlus className="h-4 w-4" />
             Add Student
@@ -193,23 +193,23 @@ export function ClassStudentsTab({
       </div>
 
       {/* Search & Filters */}
-      <Card className="border border-white/10 bg-slate-950/60 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-(--ws-panel-from) backdrop-blur">
         <CardContent className="p-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
             <input
               ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search students by name or admission number..."
-              className="h-10 w-full rounded-xl border border-white/15 bg-black/40 pl-10 pr-10 text-sm text-white placeholder:text-white/40 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+              className="h-10 w-full rounded-xl border border-(--ws-line-strong) bg-black/40 pl-10 pr-10 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-40) focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+                className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-(--ws-fill-strong) text-(--ws-fg-60) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -222,25 +222,25 @@ export function ClassStudentsTab({
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
-          <p className="mt-3 text-sm text-white/50">Loading students...</p>
+          <p className="mt-3 text-sm text-(--ws-fg-50)">Loading students...</p>
         </div>
       ) : isError ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="h-8 w-8 text-rose-400" />
-          <p className="mt-3 text-sm font-medium text-white/70">
+          <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
             Failed to load students
           </p>
         </div>
       ) : sortedStudents.length === 0 ? (
-        <Card className="border border-white/10 bg-slate-950/60 backdrop-blur">
+        <Card className="border border-(--ws-line) bg-(--ws-panel-from) backdrop-blur">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-              <Users className="h-8 w-8 text-white/30" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+              <Users className="h-8 w-8 text-(--ws-fg-40)" />
             </div>
-            <p className="mt-4 text-sm font-medium text-white/70">
+            <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">
               {search ? "No students found" : "No students in this class"}
             </p>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               {search
                 ? "Try adjusting your search"
                 : "Add students to get started"}
@@ -252,7 +252,7 @@ export function ClassStudentsTab({
                     type="button"
                     variant="outline"
                     onClick={onImportStudents}
-                    className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    className="gap-2 border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <Upload className="h-4 w-4" />
                     Import Students
@@ -260,7 +260,7 @@ export function ClassStudentsTab({
                 ) : null}
                 <Button
                   onClick={onAddStudent}
-                  className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white"
+                  className="gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-(--ws-fg)"
                 >
                   <UserPlus className="h-4 w-4" />
                   Add First Student
@@ -270,15 +270,15 @@ export function ClassStudentsTab({
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/10">
+        <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-black/10">
           <table className="min-w-full border-collapse text-xs md:text-sm">
             <thead>
-              <tr className="border-b border-white/10 bg-white/5 text-xs">
+              <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-xs">
                 <th className="min-w-[200px] px-4 py-3 text-left align-middle">
                   <button
                     type="button"
                     onClick={() => handleSortChange("name")}
-                    className="group inline-flex items-center gap-1 text-white/60 hover:text-white"
+                    className="group inline-flex items-center gap-1 text-(--ws-fg-60) hover:text-(--ws-fg)"
                   >
                     Student
                     {sortBy === "name" ? (
@@ -288,7 +288,7 @@ export function ClassStudentsTab({
                         <ChevronDown className="h-3.5 w-3.5 text-emerald-400" />
                       )
                     ) : (
-                      <ArrowUpDown className="h-3.5 w-3.5 text-white/40" />
+                      <ArrowUpDown className="h-3.5 w-3.5 text-(--ws-fg-40)" />
                     )}
                   </button>
                 </th>
@@ -296,7 +296,7 @@ export function ClassStudentsTab({
                   <button
                     type="button"
                     onClick={() => handleSortChange("admissionNumber")}
-                    className="group inline-flex items-center gap-1 text-white/60 hover:text-white"
+                    className="group inline-flex items-center gap-1 text-(--ws-fg-60) hover:text-(--ws-fg)"
                   >
                     Admission No.
                     {sortBy === "admissionNumber" ? (
@@ -306,7 +306,7 @@ export function ClassStudentsTab({
                         <ChevronDown className="h-3.5 w-3.5 text-emerald-400" />
                       )
                     ) : (
-                      <ArrowUpDown className="h-3.5 w-3.5 text-white/40" />
+                      <ArrowUpDown className="h-3.5 w-3.5 text-(--ws-fg-40)" />
                     )}
                   </button>
                 </th>
@@ -314,7 +314,7 @@ export function ClassStudentsTab({
                   <button
                     type="button"
                     onClick={() => handleSortChange("status")}
-                    className="group inline-flex items-center gap-1 text-white/60 hover:text-white"
+                    className="group inline-flex items-center gap-1 text-(--ws-fg-60) hover:text-(--ws-fg)"
                   >
                     Status
                     {sortBy === "status" ? (
@@ -324,12 +324,12 @@ export function ClassStudentsTab({
                         <ChevronDown className="h-3.5 w-3.5 text-emerald-400" />
                       )
                     ) : (
-                      <ArrowUpDown className="h-3.5 w-3.5 text-white/40" />
+                      <ArrowUpDown className="h-3.5 w-3.5 text-(--ws-fg-40)" />
                     )}
                   </button>
                 </th>
                 <th className="w-12 px-4 py-3 text-right align-middle">
-                  <span className="text-xs font-medium text-white/60">
+                  <span className="text-xs font-medium text-(--ws-fg-60)">
                     Actions
                   </span>
                 </th>
@@ -340,28 +340,28 @@ export function ClassStudentsTab({
                 <tr
                   key={student.id}
                   onClick={() => handleViewStudent(student.id)}
-                  className="cursor-pointer border-b border-white/5 transition-colors hover:bg-white/5"
+                  className="cursor-pointer border-b border-(--ws-line) transition-colors hover:bg-(--ws-fill-strong)"
                 >
                   <td className="px-4 py-3 align-middle">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 border border-white/20">
+                      <Avatar className="h-9 w-9 border border-(--ws-line-strong)">
                         <AvatarImage
                           src={student.photoUrl || ""}
                           alt={student.fullName}
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-emerald-600 to-green-700 text-xs font-semibold text-white">
+                        <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-xs font-semibold text-(--ws-fg)">
                           {getInitials(student.firstName, student.lastName)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-white">{student.fullName}</p>
+                        <p className="font-medium text-(--ws-fg)">{student.fullName}</p>
                         {student.email && (
-                          <p className="text-xs text-white/50">{student.email}</p>
+                          <p className="text-xs text-(--ws-fg-50)">{student.email}</p>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-middle text-white/70">
+                  <td className="px-4 py-3 align-middle text-(--ws-fg-70)">
                     {student.admissionNumber || "—"}
                   </td>
                   <td className="px-4 py-3 align-middle">
@@ -381,7 +381,7 @@ export function ClassStudentsTab({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                          className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreHorizontal className="h-4 w-4" />
@@ -389,7 +389,7 @@ export function ClassStudentsTab({
                       </PremiumDropdownMenuTrigger>
                       <PremiumDropdownMenuContent
                         align="end"
-                        className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
+                        className="border border-(--ws-line) bg-(--ws-panel-to) text-xs text-(--ws-fg) backdrop-blur-xl"
                       >
                         <PremiumDropdownMenuItem
                           onClick={(e) => {
@@ -403,7 +403,7 @@ export function ClassStudentsTab({
                         </PremiumDropdownMenuItem>
                         {student.email && (
                           <>
-                            <PremiumDropdownMenuSeparator className="bg-white/10" />
+                            <PremiumDropdownMenuSeparator className="bg-(--ws-fill-strong)" />
                             <PremiumDropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();

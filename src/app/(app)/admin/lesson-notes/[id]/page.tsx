@@ -80,7 +80,7 @@ export default function AdminLessonNoteDetailPage() {
           </Link>
         </Button>
         <Card className="relative overflow-hidden rounded-2xl border border-rose-400/25 bg-linear-to-br from-rose-950/80 to-slate-950/90 shadow-2xl shadow-rose-950/20 backdrop-blur-xl">
-          <CardContent className="p-5 text-sm text-rose-100">
+          <CardContent className="p-5 text-sm text-(--ws-rose)">
             {error.message || "Failed to load lesson note."}
           </CardContent>
         </Card>
@@ -130,7 +130,7 @@ export default function AdminLessonNoteDetailPage() {
               status: note.status as LessonNoteStatus,
             })
           }
-          className="border-rose-500/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+          className="border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Remove note

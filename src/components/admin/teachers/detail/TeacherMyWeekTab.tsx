@@ -40,20 +40,20 @@ function currentWeekAnchor(): string {
 
 function LoadingState() {
   return (
-    <Card className="overflow-hidden border-white/10 bg-white/5">
+    <Card className="overflow-hidden border-(--ws-line) bg-(--ws-fill)">
       <CardContent className="space-y-5 p-6">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 animate-pulse rounded-2xl bg-cyan-500/20" />
           <div className="space-y-2">
-            <div className="h-5 w-44 animate-pulse rounded bg-white/10" />
-            <div className="h-4 w-72 animate-pulse rounded bg-white/5" />
+            <div className="h-5 w-44 animate-pulse rounded bg-(--ws-fill-strong)" />
+            <div className="h-4 w-72 animate-pulse rounded bg-(--ws-fill)" />
           </div>
         </div>
         <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-          <div className="h-14 animate-pulse rounded-2xl bg-white/5" />
-          <div className="h-14 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-14 animate-pulse rounded-2xl bg-(--ws-fill)" />
+          <div className="h-14 animate-pulse rounded-2xl bg-(--ws-fill)" />
         </div>
-        <div className="h-[680px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
+        <div className="h-[680px] animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
       </CardContent>
     </Card>
   );
@@ -92,10 +92,10 @@ export function TeacherMyWeekTab({
             <AlertTriangle className="h-7 w-7" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-(--ws-fg)">
               Weekly schedule could not be loaded
             </h2>
-            <p className="max-w-lg text-sm text-white/60">
+            <p className="max-w-lg text-sm text-(--ws-fg-60)">
               {error instanceof Error
                 ? error.message
                 : `The weekly schedule for ${teacher.fullName} is unavailable right now.`}
@@ -105,7 +105,7 @@ export function TeacherMyWeekTab({
             type="button"
             variant="outline"
             onClick={() => void refetch()}
-            className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             <RefreshCcw className="h-4 w-4" />
             Retry
@@ -117,7 +117,7 @@ export function TeacherMyWeekTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-white/55">
+      <div className="flex items-center gap-2 text-sm text-(--ws-fg-50)">
         <CalendarDays className="h-4 w-4 text-cyan-300" />
         Teaching lessons repeat weekly from the current academic period.
         Duties remain date-aware and only show on the weeks where they are

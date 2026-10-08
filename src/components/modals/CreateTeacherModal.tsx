@@ -819,14 +819,14 @@ export default function CreateTeacherModal({
                 ) : null}
 
                 {reviewConflictError ? (
-                  <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)/90">
+                  <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)">
                     {reviewConflictError}
                   </div>
                 ) : null}
 
                 {reviewHomeroomConflict ? (
                   <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-amber)/90">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-amber)">
                       Homeroom already assigned
                     </p>
                     <p className="text-sm leading-relaxed text-amber-50/95">
@@ -888,7 +888,7 @@ export default function CreateTeacherModal({
                         : "None — assign subjects and classes later from the teacher profile"}
                     </div>
                     {reviewHomeroomConflict ? (
-                      <div className="mt-1 text-xs text-(--ws-amber)/90">
+                      <div className="mt-1 text-xs text-(--ws-amber)">
                         This will replace{" "}
                         {reviewHomeroomConflict.teacherName} as the current
                         homeroom teacher.

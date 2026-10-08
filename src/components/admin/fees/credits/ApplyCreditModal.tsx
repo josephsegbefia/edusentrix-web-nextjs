@@ -219,7 +219,7 @@ export function ApplyCreditModal(props: {
               className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
             />
             {amountMinor !== clampedMinor ? (
-              <div className="text-xs text-amber-200/80">
+              <div className="text-xs text-(--ws-amber)">
                 Clamped to available balance: {formatMoney(clampedMinor)}
               </div>
             ) : null}
@@ -358,7 +358,7 @@ export function ApplyCreditModal(props: {
                 <div
                   className={cn(
                     "font-semibold",
-                    overAlloc ? "text-amber-200" : "text-white/80"
+                    overAlloc ? "text-(--ws-amber)" : "text-white/80"
                   )}
                 >
                   {formatMoney(manualAllocatedMinor)}

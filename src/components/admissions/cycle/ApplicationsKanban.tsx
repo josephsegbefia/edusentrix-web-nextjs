@@ -50,7 +50,7 @@ const COLUMNS: Array<{
     id: "under_review",
     label: "Under review",
     helper: "Being looked at",
-    tone: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    tone: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   },
   {
     id: "interview_scheduled",
@@ -62,7 +62,7 @@ const COLUMNS: Array<{
     id: "waitlisted",
     label: "Waitlisted",
     helper: "Holding for capacity",
-    tone: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+    tone: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   },
 ];
 
@@ -178,14 +178,14 @@ export function ApplicationsKanban({ items, onOpen }: ApplicationsKanbanProps) {
       </DndContext>
 
       {overflow.length > 0 ? (
-        <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+        <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
           <div className="mb-3 flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-white/40" />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+            <ShieldAlert className="h-4 w-4 text-(--ws-fg-40)" />
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
               Locked applications ({overflow.length})
             </p>
           </div>
-          <p className="mb-3 text-xs text-white/55">
+          <p className="mb-3 text-xs text-(--ws-fg-50)">
             These have a final decision or are withdrawn / expired. They
             can&apos;t be dragged but you can still open them.
           </p>
@@ -195,20 +195,20 @@ export function ApplicationsKanban({ items, onOpen }: ApplicationsKanbanProps) {
                 key={item.id}
                 type="button"
                 onClick={() => onOpen(item.id)}
-                className="rounded-xl border border-white/10 bg-black/30 p-3 text-left text-xs text-white/70 hover:bg-white/5"
+                className="rounded-xl border border-(--ws-line) bg-black/30 p-3 text-left text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-white/90">
+                  <span className="font-semibold text-(--ws-fg-90)">
                     {item.applicant.firstName} {item.applicant.lastName}
                   </span>
                   <Badge
                     variant="outline"
-                    className="border-white/10 bg-white/5 text-[10px] uppercase tracking-wide"
+                    className="border-(--ws-line) bg-(--ws-fill) text-[10px] uppercase tracking-wide"
                   >
                     {item.status.replace("_", " ")}
                   </Badge>
                 </div>
-                <p className="mt-1 text-[11px] text-white/40">
+                <p className="mt-1 text-[11px] text-(--ws-fg-40)">
                   {item.referenceCode}
                 </p>
               </button>
@@ -236,10 +236,10 @@ function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex min-h-[280px] flex-col rounded-2xl border bg-slate-950/60 p-3 transition",
+        "flex min-h-[280px] flex-col rounded-2xl border bg-(--ws-panel-from) p-3 transition",
         isOver
           ? "border-cyan-400/50 bg-cyan-500/5"
-          : "border-white/10"
+          : "border-(--ws-line)"
       )}
     >
       <header className="mb-3 flex items-center justify-between">
@@ -247,16 +247,16 @@ function Column({
           <Badge variant="outline" className={`border ${column.tone}`}>
             {column.label}
           </Badge>
-          <p className="mt-1 text-[11px] text-white/40">{column.helper}</p>
+          <p className="mt-1 text-[11px] text-(--ws-fg-40)">{column.helper}</p>
         </div>
-        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-white/55">
+        <span className="rounded-full bg-(--ws-fill) px-2 py-0.5 text-[11px] text-(--ws-fg-50)">
           {items.length}
         </span>
       </header>
 
       <div className="flex flex-1 flex-col gap-2">
         {items.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[11px] text-white/35">
+          <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-(--ws-line) px-3 py-6 text-center text-[11px] text-(--ws-fg-40)">
             Drop cards here
           </div>
         ) : (
@@ -298,7 +298,7 @@ function DraggableCard({
       style={style}
       onDoubleClick={() => onOpen(item.id)}
       className={cn(
-        "cursor-grab active:cursor-grabbing rounded-xl border border-white/10 bg-black/40 p-2.5 text-xs transition hover:border-cyan-400/30",
+        "cursor-grab active:cursor-grabbing rounded-xl border border-(--ws-line) bg-black/40 p-2.5 text-xs transition hover:border-cyan-400/30",
         dim && "opacity-70"
       )}
     >
@@ -310,7 +310,7 @@ function DraggableCard({
           e.stopPropagation();
           onOpen(item.id);
         }}
-        className="mt-2 inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-white/70 hover:bg-white/10"
+        className="mt-2 inline-flex items-center gap-1 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] font-semibold text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
       >
         Open
       </button>
@@ -330,21 +330,21 @@ function Card({
       className={cn(
         "space-y-1.5 rounded-lg",
         dragging &&
-          "rounded-xl border border-cyan-400/30 bg-slate-950 p-2.5 shadow-2xl"
+          "rounded-xl border border-cyan-400/30 bg-(--ws-panel-to) p-2.5 shadow-2xl"
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-white">
+        <p className="font-semibold text-(--ws-fg)">
           {item.applicant.firstName} {item.applicant.lastName}
         </p>
-        <span className="font-mono text-[10px] text-white/40">
+        <span className="font-mono text-[10px] text-(--ws-fg-40)">
           {item.referenceCode}
         </span>
       </div>
-      <p className="text-[11px] text-white/55">
+      <p className="text-[11px] text-(--ws-fg-50)">
         {item.applicant.intendedGradeName ?? "Grade pending"}
       </p>
-      <div className="flex items-center justify-between text-[10px] text-white/40">
+      <div className="flex items-center justify-between text-[10px] text-(--ws-fg-40)">
         <span className="inline-flex items-center gap-1">
           <CalendarDays className="h-3 w-3" />
           {item.submittedAt
@@ -355,7 +355,7 @@ function Card({
           {item.documentsCount > 0 ? (
             <CheckCircle2 className="h-3 w-3 text-emerald-400" />
           ) : (
-            <XCircle className="h-3 w-3 text-white/40" />
+            <XCircle className="h-3 w-3 text-(--ws-fg-40)" />
           )}
           {item.documentsCount} docs
         </span>
@@ -370,7 +370,7 @@ export function KanbanLoadingSkeleton() {
       {COLUMNS.map((c) => (
         <div
           key={c.id}
-          className="flex h-64 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/60 text-sm text-white/55"
+          className="flex h-64 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) text-sm text-(--ws-fg-50)"
         >
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           {c.label}

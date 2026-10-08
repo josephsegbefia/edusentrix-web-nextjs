@@ -133,7 +133,7 @@ export function ClassesToolbar({
                 className={cn(
                   "gap-2 border-white/15 text-xs transition-all",
                   gradeFilter
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
                     : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
                 )}
               >
@@ -184,7 +184,7 @@ export function ClassesToolbar({
                 className={cn(
                   "gap-2 border-white/15 text-xs transition-all",
                   teacherFilter
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
                     : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
                 )}
               >
@@ -237,7 +237,7 @@ export function ClassesToolbar({
                 className={cn(
                   "gap-2 border-white/15 text-xs transition-all",
                   statusFilter !== "all"
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
                     : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
                 )}
               >

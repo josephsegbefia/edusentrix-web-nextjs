@@ -186,7 +186,7 @@ export default function AdminLessonAnalyticsPage() {
       </GlassPanel>
 
       {error ? (
-        <GlassPanel className="border-rose-500/30 p-4 text-sm text-rose-100" glow="none">
+        <GlassPanel className="border-rose-500/30 p-4 text-sm text-(--ws-rose)" glow="none">
           {error.message}
         </GlassPanel>
       ) : null}
@@ -448,7 +448,7 @@ export default function AdminLessonAnalyticsPage() {
         <RankingPanel
           title="Teacher activity"
           icon={Users}
-          iconClassName="text-sky-300"
+          iconClassName="text-(--ws-cyan)"
           subtitle="Lessons created in range (top 15)."
         >
           {isLoading ? (
@@ -483,7 +483,7 @@ export default function AdminLessonAnalyticsPage() {
         <RankingPanel
           title="Class coverage"
           icon={ClipboardCheck}
-          iconClassName="text-emerald-300"
+          iconClassName="text-(--ws-emerald)"
           subtitle="Published lessons per class (publish date in range)."
         >
           {isLoading ? (
@@ -522,7 +522,7 @@ export default function AdminLessonAnalyticsPage() {
         <RankingPanel
           title="Teacher task ranking"
           icon={Users}
-          iconClassName="text-sky-300"
+          iconClassName="text-(--ws-cyan)"
           subtitle="By linked lesson tasks created in range."
         >
           {isLoading ? (
@@ -567,7 +567,7 @@ export default function AdminLessonAnalyticsPage() {
         <RankingPanel
           title="Class task ranking"
           icon={ClipboardCheck}
-          iconClassName="text-emerald-300"
+          iconClassName="text-(--ws-emerald)"
           subtitle="Classes receiving the most linked lesson tasks in range."
         >
           {isLoading ? (

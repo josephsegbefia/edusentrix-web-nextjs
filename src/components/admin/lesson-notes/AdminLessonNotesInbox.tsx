@@ -171,7 +171,7 @@ export function AdminLessonNotesInbox({
               {summary?.total ?? 0} notes in view
             </Badge>
             {(summary?.openComments ?? 0) > 0 ? (
-              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-amber-100">
+              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-(--ws-amber)">
                 {summary?.openComments} open comments
               </Badge>
             ) : (
@@ -316,7 +316,7 @@ export function AdminLessonNotesInbox({
 
       {error ? (
         <Card className="relative overflow-hidden rounded-2xl border border-rose-400/25 bg-linear-to-br from-rose-950/80 to-slate-950/90 shadow-2xl shadow-rose-950/20 backdrop-blur-xl">
-          <CardContent className="p-5 text-sm text-rose-100">
+          <CardContent className="p-5 text-sm text-(--ws-rose)">
             {error.message || "Failed to load lesson notes."}
           </CardContent>
         </Card>
@@ -325,7 +325,7 @@ export function AdminLessonNotesInbox({
           {Array.from({ length: 6 }).map((_, index) => (
             <div
               key={index}
-              className="h-44 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill) shadow-lg shadow-black/20 backdrop-blur-xl"
+              className="h-44 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill) shadow-[var(--ws-shadow)] backdrop-blur-xl"
             />
           ))}
         </div>
@@ -395,7 +395,7 @@ export function AdminLessonNotesInbox({
                           status: note.status as LessonNoteStatus,
                         });
                       }}
-                      className="h-8 w-8 rounded-full border border-rose-500/30 bg-rose-500/10 p-0 text-rose-200 hover:bg-rose-500/20"
+                      className="h-8 w-8 rounded-full border border-rose-500/30 bg-rose-500/10 p-0 text-(--ws-rose) hover:bg-rose-500/20"
                       aria-label={`Remove ${note.topic}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -421,7 +421,7 @@ export function AdminLessonNotesInbox({
                     Week of {note.weekOf ? new Date(note.weekOf).toLocaleDateString("en-GB") : "—"}
                   </div>
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-(--ws-fg-40)">
-                    <Filter className="h-3 w-3 text-sky-300/50" />
+                    <Filter className="h-3 w-3 text-(--ws-cyan)" />
                     Review note
                   </div>
                 </CardContent>

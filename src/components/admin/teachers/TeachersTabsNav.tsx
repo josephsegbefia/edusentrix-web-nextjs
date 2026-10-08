@@ -27,8 +27,8 @@ const tabIcons: Record<
 
 const tabColors: Record<TeachersTabId, { active: string; icon: string }> = {
   all: {
-    active: "border-indigo-500/40 bg-indigo-500/15 text-indigo-200 shadow-indigo-500/20",
-    icon: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+    active: "border-indigo-500/40 bg-indigo-500/15 text-(--ws-violet) shadow-indigo-500/20",
+    icon: "bg-indigo-500/20 text-(--ws-violet) border-indigo-500/30",
   },
   active: {
     active: "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald) shadow-emerald-500/20",

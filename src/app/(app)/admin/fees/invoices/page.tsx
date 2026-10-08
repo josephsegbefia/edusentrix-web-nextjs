@@ -49,7 +49,7 @@ function InvoiceStatusBadge({ status }: { status: string }) {
     draft: "bg-gray-500/20 text-gray-300",
     issued: "bg-blue-500/20 text-blue-300",
     partially_paid: "bg-yellow-500/20 text-yellow-300",
-    paid: "bg-green-500/20 text-green-300",
+    paid: "bg-green-500/20 text-(--ws-emerald)",
     overdue: "bg-red-500/20 text-red-300",
     cancelled: "bg-gray-500/20 text-gray-400",
   };
@@ -186,7 +186,7 @@ export default function InvoicesPage() {
           <h1 className="text-3xl font-bold mb-2 text-(--ws-fg)">Bills</h1>
           <p className="text-muted-foreground">Manage student bills</p>
         </div>
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <CardContent className="pt-6">
             <p className="text-destructive">Failed to load bills</p>
           </CardContent>
@@ -349,7 +349,7 @@ export default function InvoicesPage() {
       <PeriodBlockedAlert operation="invoices" />
 
       {/* Filters */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
           aria-hidden="true"
@@ -379,7 +379,7 @@ export default function InvoicesPage() {
       </Card>
 
       {/* Bills List */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-purple-500/5 via-purple-500/2 to-transparent"
           aria-hidden="true"

@@ -97,8 +97,8 @@ function StatCard({
   const tones = {
     cyan: "border-cyan-300/20 bg-cyan-400/10 text-cyan-200",
     emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-200",
-    amber: "border-amber-300/20 bg-amber-400/10 text-amber-200",
-    violet: "border-violet-300/20 bg-violet-400/10 text-violet-200",
+    amber: "border-amber-300/20 bg-amber-400/10 text-(--ws-amber)",
+    violet: "border-violet-300/20 bg-violet-400/10 text-(--ws-violet)",
   };
 
   return (
@@ -122,8 +122,8 @@ function StatCard({
 
 function statusTone(status: string) {
   if (status === "paid" || status === "fulfilled") return "border-emerald-300/25 text-emerald-100 bg-emerald-400/10";
-  if (status === "pending" || status === "awaiting_payment") return "border-amber-300/25 text-amber-100 bg-amber-400/10";
-  if (status === "cancelled" || status === "failed") return "border-rose-300/25 text-rose-100 bg-rose-400/10";
+  if (status === "pending" || status === "awaiting_payment") return "border-amber-300/25 text-(--ws-amber) bg-amber-400/10";
+  if (status === "cancelled" || status === "failed") return "border-rose-300/25 text-(--ws-rose) bg-rose-400/10";
   return "border-(--ws-line-strong) text-(--ws-fg)/75 bg-(--ws-fill)";
 }
 
@@ -276,7 +276,7 @@ export default function AdminSchoolStorePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge className="border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-(--ws-fg-70)">
-              <BadgeCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-300" />
+              <BadgeCheck className="mr-1.5 h-3.5 w-3.5 text-(--ws-emerald)" />
               {activeProducts} active
             </Badge>
             <Badge className="border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-(--ws-fg-70)">
@@ -371,7 +371,7 @@ export default function AdminSchoolStorePage() {
                       onUploaded={(payload) => setImageUrl(payload.url)}
                     />
                     {imageUrl ? (
-                      <p className="mt-2 text-xs text-emerald-300/90">
+                      <p className="mt-2 text-xs text-(--ws-emerald)">
                         Image ready — will save with product.
                       </p>
                     ) : null}

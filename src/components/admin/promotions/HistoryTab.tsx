@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
   draft: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   preview_ready: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   review_in_progress: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
-  approved: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+  approved: "bg-indigo-500/20 text-(--ws-violet) border-indigo-500/30",
   finalizing: "bg-blue-500/20 text-blue-300 border-blue-500/30",
   finalized: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   finalize_failed: "bg-red-500/20 text-red-300 border-red-500/30",

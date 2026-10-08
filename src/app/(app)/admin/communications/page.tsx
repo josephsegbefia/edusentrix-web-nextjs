@@ -396,7 +396,7 @@ export default function AdminCommunicationsPage() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium text-(--ws-cyan)/80">School Communications</p>
+            <p className="text-sm font-medium text-(--ws-cyan)">School Communications</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">Communication Center</h1>
             <p className="mt-2 max-w-2xl text-sm text-(--ws-fg-50)">
               Create one official message, choose the audience and channels, preview reach, then send and track delivery.
@@ -745,19 +745,19 @@ export default function AdminCommunicationsPage() {
                         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                           <div>
                             <div className="text-xl font-semibold">{preview.summary.total}</div>
-                            <div className="text-xs text-(--ws-cyan)/60">Recipients</div>
+                            <div className="text-xs text-(--ws-cyan)">Recipients</div>
                           </div>
                           <div>
                             <div className="text-xl font-semibold">{preview.channelResults.pending}</div>
-                            <div className="text-xs text-(--ws-cyan)/60">Ready deliveries</div>
+                            <div className="text-xs text-(--ws-cyan)">Ready deliveries</div>
                           </div>
                           <div>
                             <div className="text-xl font-semibold">{preview.channelResults.skipped}</div>
-                            <div className="text-xs text-(--ws-cyan)/60">Skipped</div>
+                            <div className="text-xs text-(--ws-cyan)">Skipped</div>
                           </div>
                           <div>
                             <div className="text-xl font-semibold">{preview.summary.missingContact}</div>
-                            <div className="text-xs text-(--ws-cyan)/60">Missing contact</div>
+                            <div className="text-xs text-(--ws-cyan)">Missing contact</div>
                           </div>
                         </div>
                         <div className="mt-4 max-h-56 space-y-2 overflow-auto pr-1">

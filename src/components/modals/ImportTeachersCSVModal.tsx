@@ -369,7 +369,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                 <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-(--ws-amber) mt-0.5" />
-                    <div className="text-xs text-(--ws-amber)/80">
+                    <div className="text-xs text-(--ws-amber)">
                       <p className="font-medium mb-1">Required Columns:</p>
                       <ul className="list-disc list-inside space-y-0.5">
                         <li>firstName, lastName, email (required)</li>

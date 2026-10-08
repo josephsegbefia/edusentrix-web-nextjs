@@ -265,7 +265,7 @@ export default function AdminLibraryDashboardPage() {
             {hasLoanRead ? (
               <Link
                 href="/admin/library/overdue"
-                className="rounded-lg border border-amber-400/20 px-3 py-2 text-amber-100/90 transition-colors hover:border-amber-400/35 hover:bg-amber-400/10"
+                className="rounded-lg border border-amber-400/20 px-3 py-2 text-(--ws-amber) transition-colors hover:border-amber-400/35 hover:bg-amber-400/10"
               >
                 Overdue & fines — follow up and waive
               </Link>
@@ -325,7 +325,7 @@ export default function AdminLibraryDashboardPage() {
       {hasLoanRead && dash?.overdue && dash.overdue.length > 0 ? (
         <Card className={libraryGlassPanel}>
           <CardHeader className="relative z-10 border-b border-(--ws-line)">
-            <CardTitle className="text-base text-amber-100">Attention: overdue</CardTitle>
+            <CardTitle className="text-base text-(--ws-amber)">Attention: overdue</CardTitle>
           </CardHeader>
           <CardContent className="relative z-10">
             <ul className="divide-y divide-(--ws-line)">

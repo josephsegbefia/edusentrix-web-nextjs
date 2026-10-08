@@ -103,7 +103,7 @@ function getStatusInfo(status: PeriodStatus | undefined): {
           "Your academic period recently ended. You're in a 7-day grace period where most operations still work. Create a new period before the grace period expires.",
         Icon: AlertTriangle,
         iconBg: "bg-orange-500/20 border border-orange-400/30",
-        iconColor: "text-orange-300",
+        iconColor: "text-(--ws-amber)",
         gradientFrom: "from-orange-500/20",
       };
     case "expiring_critical":
@@ -235,7 +235,7 @@ export function PeriodExpiryModal({
                     status === "expired" || status === "no_period"
                       ? "text-(--ws-rose)"
                       : status === "grace_period"
-                      ? "text-orange-300"
+                      ? "text-(--ws-amber)"
                       : "text-(--ws-amber)"
                   )}
                 >

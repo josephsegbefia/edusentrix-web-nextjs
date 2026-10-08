@@ -58,8 +58,8 @@ const SUBJECT_STATUS_STYLES: Record<
   ReportCardRunSubjectReadinessRow["status"],
   string
 > = {
-  missing: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-  partial: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  missing: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+  partial: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   submitted: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
   approved: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
 };
@@ -243,7 +243,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
         </div>
       ) : error ? (
         <GlassPanel className="p-6 text-center">
-          <p className="text-sm text-rose-200">
+          <p className="text-sm text-(--ws-rose)">
             {error instanceof Error ? error.message : "Failed to load report run."}
           </p>
           <Button
@@ -340,7 +340,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                 {readiness?.attendanceReady ? (
                   <span className="text-emerald-200">Ready</span>
                 ) : (
-                  <span className="text-amber-200">Needs records</span>
+                  <span className="text-(--ws-amber)">Needs records</span>
                 )}
               </p>
             </GlassPanel>
@@ -418,7 +418,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                         </td>
                         <td className="px-4 py-3 text-(--ws-fg-50)">
                           {row.issues.length > 0 ? (
-                            <ul className="space-y-1 text-xs text-amber-200">
+                            <ul className="space-y-1 text-xs text-(--ws-amber)">
                               {row.issues.map((issue) => (
                                 <li key={issue}>{issue}</li>
                               ))}
@@ -445,7 +445,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                     className={cn(
                       glassInsetClass,
                       "flex items-start gap-2 px-3 py-2 text-sm",
-                      issue.severity === "error" ? "text-amber-200" : "text-(--ws-fg-60)"
+                      issue.severity === "error" ? "text-(--ws-amber)" : "text-(--ws-fg-60)"
                     )}
                   >
                     {issue.severity === "error" ? (

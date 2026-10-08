@@ -124,7 +124,7 @@ export function AcademicSummaryCards({
         gradient="from-emerald-500/10 via-emerald-500/5 shadow-emerald-500/10"
         icon={<Percent className="h-4 w-4" />}
         footer={
-          <div className="flex items-center gap-1.5 text-[11px] text-(--ws-emerald)/80">
+          <div className="flex items-center gap-1.5 text-[11px] text-(--ws-emerald)">
             <TrendIcon trend={average.trend} />
             <span className="capitalize">{average.trendLabel}</span>
           </div>

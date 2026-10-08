@@ -76,7 +76,7 @@ export function DelegationTab({
   return (
     <>
       <section className="space-y-6">
-        <div className="rounded-[1.6rem] border border-white/10 bg-slate-950/80 p-6">
+        <div className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-panel-from) p-6">
           <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-5">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
@@ -147,7 +147,7 @@ export function DelegationTab({
                     <Button
                       type="button"
                       variant="outline"
-                      className="gap-2 border-rose-500/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+                      className="gap-2 border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
                       onClick={handleRevoke}
                       disabled={revoke.isPending}
                     >

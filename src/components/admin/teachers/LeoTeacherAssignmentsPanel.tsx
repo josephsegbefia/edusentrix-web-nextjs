@@ -29,7 +29,7 @@ function LeoCallout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.07] p-4">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-500/15">
-        <LeoIcon className="h-5 w-5 text-violet-200" />
+        <LeoIcon className="h-5 w-5 text-(--ws-violet)" />
       </div>
       <div className="min-w-0 flex-1 text-sm text-white/85">{children}</div>
     </div>
@@ -328,7 +328,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
     <div className="space-y-3">
       <LeoCallout>
         <p className="mb-2 font-medium text-violet-100">
-          Hi, I&apos;m <span className="font-semibold text-violet-200">Leo</span>.
+          Hi, I&apos;m <span className="font-semibold text-(--ws-violet)">Leo</span>.
         </p>
         <p className="mb-3 text-sm text-white/80">
           Describe what {teacherName} teaches in plain language (e.g. &quot;Math in JHS 2A and B,
@@ -337,7 +337,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
           saved.
         </p>
         {!currentPeriodId && (
-          <p className="mb-3 text-xs text-amber-200/90">
+          <p className="mb-3 text-xs text-(--ws-amber)">
             Set a <strong className="font-semibold">current academic period</strong> first so
             assignments attach to the right term.
           </p>
@@ -362,7 +362,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
 
       {leoPreview && (
         <div className="space-y-3 rounded-xl border border-violet-400/30 bg-violet-500/12 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-200/90">
+          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-violet)">
             Confirm with Leo
           </div>
           <p className="text-sm leading-relaxed text-white/90">{leoPreview.confirmationText}</p>
@@ -380,7 +380,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
             </ul>
           )}
           {leoPreview.unmatched.length > 0 && (
-            <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-(--ws-amber)">
               Couldn&apos;t match: {leoPreview.unmatched.join("; ")}. Add those manually or adjust
               your note and try again.
             </div>
@@ -389,7 +389,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
           {leoClash && leoClash.rows.length > 0 && (
             <div className="rounded-lg border border-violet-400/30 bg-violet-500/15 px-3 py-3 text-sm">
               <div className="flex gap-2">
-                <Info className="h-4 w-4 shrink-0 text-violet-200 mt-0.5" />
+                <Info className="h-4 w-4 shrink-0 text-(--ws-violet) mt-0.5" />
                 <div className="min-w-0 space-y-2">
                   <p className="font-medium text-white">Another teacher is already on these slots</p>
                   <p className="text-xs text-white/70 leading-relaxed">{leoClash.summary}</p>

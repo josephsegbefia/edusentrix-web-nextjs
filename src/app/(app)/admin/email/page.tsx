@@ -13,6 +13,7 @@ import {
 } from "@/components/email/ComposeAttachmentPicker";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import {
   Mail,
   Inbox,
@@ -103,7 +104,7 @@ function ThreadList({
 }) {
   if (threads.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-white/40">
+      <div className="flex flex-col items-center justify-center py-16 text-(--ws-fg-40)">
         <Inbox className="mb-3 h-10 w-10" />
         <p className="text-sm">No conversations yet</p>
       </div>
@@ -117,8 +118,8 @@ function ThreadList({
           key={thread._id}
           onClick={() => onSelect(thread._id)}
           className={cn(
-            "w-full px-4 py-3 text-left transition-colors hover:bg-white/5",
-            selectedId === thread._id && "bg-white/10",
+            "w-full px-4 py-3 text-left transition-colors hover:bg-(--ws-fill-strong)",
+            selectedId === thread._id && "bg-(--ws-fill-strong)",
           )}
         >
           <div className="flex items-start justify-between gap-2">
@@ -131,14 +132,14 @@ function ThreadList({
                   className={cn(
                     "truncate text-sm",
                     thread.unreadCount > 0
-                      ? "font-semibold text-white"
-                      : "text-white/80",
+                      ? "font-semibold text-(--ws-fg)"
+                      : "text-(--ws-fg-80)",
                   )}
                 >
                   {thread.subject}
                 </p>
               </div>
-              <p className="mt-0.5 truncate text-xs text-white/40">
+              <p className="mt-0.5 truncate text-xs text-(--ws-fg-40)">
                 {thread.participants
                   .map((p) => p.name || p.email)
                   .slice(0, 2)
@@ -146,14 +147,14 @@ function ThreadList({
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
-              <span className="text-[10px] text-white/30">
+              <span className="text-[10px] text-(--ws-fg-40)">
                 {thread.lastMessageAt
                   ? new Date(thread.lastMessageAt).toLocaleDateString()
                   : ""}
               </span>
               <Badge
                 variant="outline"
-                className="text-[10px] border-white/10 text-white/40"
+                className="text-[10px] border-(--ws-line) text-(--ws-fg-40)"
               >
                 {thread.threadType}
               </Badge>
@@ -207,12 +208,12 @@ function MessageView({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-(--ws-line) px-4 py-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={onBack}
-          className="text-white/60 hover:text-white md:hidden"
+          className="text-(--ws-fg-60) hover:text-(--ws-fg) md:hidden"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -223,7 +224,7 @@ function MessageView({
           onClick={() =>
             updateThread.mutate({ threadId, status: "archived" })
           }
-          className="text-white/40 hover:text-white"
+          className="text-(--ws-fg-40) hover:text-(--ws-fg)"
         >
           <Archive className="mr-1 h-4 w-4" /> Archive
         </Button>
@@ -235,12 +236,12 @@ function MessageView({
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 animate-pulse rounded-lg bg-white/5"
+                className="h-20 animate-pulse rounded-lg bg-(--ws-fill)"
               />
             ))}
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-sm text-white/40 py-8">
+          <p className="text-center text-sm text-(--ws-fg-40) py-8">
             No messages in this thread
           </p>
         ) : (
@@ -251,19 +252,19 @@ function MessageView({
                 "rounded-xl border p-4",
                 msg.direction === "outbound"
                   ? "border-violet-500/20 bg-violet-500/5 ml-8"
-                  : "border-white/10 bg-white/5 mr-8",
+                  : "border-(--ws-line) bg-(--ws-fill) mr-8",
               )}
             >
               <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2 text-xs text-white/50">
+                <div className="flex items-center gap-2 text-xs text-(--ws-fg-50)">
                   {STATUS_ICON[msg.status] || null}
-                  <span className="font-medium text-white/70">
+                  <span className="font-medium text-(--ws-fg-70)">
                     {msg.fromName || msg.from}
                   </span>
                   <span>&rarr;</span>
                   <span>{msg.to}</span>
                 </div>
-                <span className="text-[10px] text-white/30">
+                <span className="text-[10px] text-(--ws-fg-40)">
                   {msg.sentAt
                     ? new Date(msg.sentAt).toLocaleString()
                     : msg.createdAt
@@ -271,16 +272,16 @@ function MessageView({
                       : ""}
                 </span>
               </div>
-              <p className="mb-2 text-xs font-medium text-white/60">
+              <p className="mb-2 text-xs font-medium text-(--ws-fg-60)">
                 {msg.subject}
               </p>
               {msg.textBody ? (
-                <p className="text-sm text-white/80 whitespace-pre-wrap">
+                <p className="text-sm text-(--ws-fg-80) whitespace-pre-wrap">
                   {msg.textBody}
                 </p>
               ) : msg.htmlBody ? (
                 <div
-                  className="prose prose-invert prose-sm max-w-none text-white/80"
+                  className="prose prose-invert prose-sm max-w-none text-(--ws-fg-80)"
                   dangerouslySetInnerHTML={{ __html: msg.htmlBody }}
                 />
               ) : null}
@@ -289,7 +290,7 @@ function MessageView({
                   {msg.attachments.map((attachment, index) => (
                     <span
                       key={`${attachment.name}-${index}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-xs text-(--ws-fg-60)"
                     >
                       <FileText className="h-3.5 w-3.5" />
                       {attachment.name}
@@ -301,13 +302,13 @@ function MessageView({
           ))
         )}
       </div>
-      <div className="border-t border-white/10 bg-black/10 p-4">
+      <div className="border-t border-(--ws-line) bg-black/10 p-4">
         {replyRecipient ? (
           <div className="space-y-3">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">Reply to {replyRecipient.name || replyRecipient.email}</p>
-                <p className="text-xs text-white/45">{replyRecipient.email}</p>
+                <p className="text-sm font-semibold text-(--ws-fg)">Reply to {replyRecipient.name || replyRecipient.email}</p>
+                <p className="text-xs text-(--ws-fg-40)">{replyRecipient.email}</p>
               </div>
               {compose.isError ? (
                 <p className="text-xs font-medium text-red-300">
@@ -327,7 +328,7 @@ function MessageView({
               <Button
                 onClick={handleReply}
                 disabled={compose.isPending || !extractPlainText(replyBody).trim()}
-                className="gap-2 bg-linear-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/15 hover:from-blue-600 hover:to-cyan-600"
+                className="gap-2 bg-linear-to-r from-blue-500 to-cyan-500 text-(--ws-fg) shadow-lg shadow-cyan-500/15 hover:from-blue-600 hover:to-cyan-600"
               >
                 {compose.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Send reply
@@ -335,7 +336,7 @@ function MessageView({
             </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/45">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-40)">
             Replies appear here when someone responds to a school email. Select a thread with an inbound message to reply.
           </div>
         )}
@@ -379,7 +380,7 @@ function ComposeView({ onSent }: { onSent: () => void }) {
   };
 
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+    <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl">
       <CardContent className="space-y-4 p-6">
         <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3">
           <p className="text-sm font-semibold text-cyan-100">
@@ -390,7 +391,7 @@ function ComposeView({ onSent }: { onSent: () => void }) {
           </p>
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Templates</Label>
+          <Label className="text-(--ws-fg-70)">Templates</Label>
           <div className="flex flex-wrap gap-2">
             {SCHOOL_EMAIL_TEMPLATES.map((template) => (
               <Button
@@ -399,7 +400,7 @@ function ComposeView({ onSent }: { onSent: () => void }) {
                 variant="outline"
                 size="sm"
                 onClick={() => applyTemplate(template)}
-                className="gap-2 border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               >
                 <FileText className="h-3.5 w-3.5" />
                 {template.label}
@@ -408,25 +409,25 @@ function ComposeView({ onSent }: { onSent: () => void }) {
           </div>
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">To</Label>
+          <Label className="text-(--ws-fg-70)">To</Label>
           <Input
             placeholder="recipient@example.com"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Subject</Label>
+          <Label className="text-(--ws-fg-70)">Subject</Label>
           <Input
             placeholder="Email subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-40)"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-white/70">Message</Label>
+          <Label className="text-(--ws-fg-70)">Message</Label>
           <RichTextEditor
             placeholder="Write your message..."
             value={body}
@@ -445,7 +446,7 @@ function ComposeView({ onSent }: { onSent: () => void }) {
           <Button
             onClick={handleSend}
             disabled={compose.isPending || !to || !subject || !body}
-            className="gap-2 bg-linear-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700"
+            className="gap-2 bg-linear-to-r from-violet-500 to-purple-600 text-(--ws-fg) shadow-lg shadow-violet-500/20 hover:from-violet-600 hover:to-purple-700"
           >
             {compose.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -478,7 +479,7 @@ function BulkSendsView() {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-16 animate-pulse rounded-lg bg-white/5"
+            className="h-16 animate-pulse rounded-lg bg-(--ws-fill)"
           />
         ))}
       </div>
@@ -487,7 +488,7 @@ function BulkSendsView() {
 
   if (batches.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-white/40">
+      <div className="flex flex-col items-center justify-center py-16 text-(--ws-fg-40)">
         <Send className="mb-3 h-10 w-10" />
         <p className="text-sm">No bulk sends yet</p>
       </div>
@@ -499,12 +500,12 @@ function BulkSendsView() {
       {batches.map((batch) => (
         <Card
           key={batch._id}
-          className="border border-white/10 bg-white/5"
+          className="border border-(--ws-line) bg-(--ws-fill)"
         >
           <CardContent className="flex items-center justify-between p-4">
             <div>
-              <p className="text-sm font-medium text-white">{batch.subject}</p>
-              <p className="mt-0.5 text-xs text-white/40">
+              <p className="text-sm font-medium text-(--ws-fg)">{batch.subject}</p>
+              <p className="mt-0.5 text-xs text-(--ws-fg-40)">
                 {batch.sentCount}/{batch.recipientCount} sent
                 {batch.failedCount > 0 &&
                   ` · ${batch.failedCount} failed`}
@@ -521,12 +522,12 @@ function BulkSendsView() {
                       ? "border-amber-500/30 text-amber-400"
                       : batch.status === "failed"
                         ? "border-red-500/30 text-red-400"
-                        : "border-white/10 text-white/40",
+                        : "border-(--ws-line) text-(--ws-fg-40)",
                 )}
               >
                 {batch.status}
               </Badge>
-              <span className="text-[10px] text-white/30">
+              <span className="text-[10px] text-(--ws-fg-40)">
                 {new Date(batch.createdAt).toLocaleDateString()}
               </span>
             </div>
@@ -560,6 +561,7 @@ export default function SchoolEmailPage() {
   ];
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6">
       {/* Page Header */}
       <div className="relative">
@@ -590,7 +592,7 @@ export default function SchoolEmailPage() {
                   Communications
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-white/60">
+              <p className="mt-1 text-sm text-(--ws-fg-60)">
                 Manage school emails, conversations, and bulk communications
               </p>
             </div>
@@ -600,7 +602,7 @@ export default function SchoolEmailPage() {
             onClick={() => inboxQuery.refetch()}
             disabled={inboxQuery.isFetching}
             variant="ghost"
-            className="gap-2 text-white/60 hover:text-white"
+            className="gap-2 text-(--ws-fg-60) hover:text-(--ws-fg)"
           >
             <RefreshCw
               className={cn(
@@ -614,7 +616,7 @@ export default function SchoolEmailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
+      <div className="flex gap-1 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -625,8 +627,8 @@ export default function SchoolEmailPage() {
             className={cn(
               "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
               activeTab === tab.id
-                ? "bg-white/10 text-white"
-                : "text-white/50 hover:text-white/80",
+                ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                : "text-(--ws-fg-50) hover:text-(--ws-fg-80)",
             )}
           >
             {tab.icon}
@@ -641,11 +643,11 @@ export default function SchoolEmailPage() {
           {/* Thread list */}
           <Card
             className={cn(
-              "border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl md:w-96 shrink-0",
+              "border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl md:w-96 shrink-0",
               selectedThreadId && "hidden md:block",
             )}
           >
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+            <div className="flex items-center gap-2 border-b border-(--ws-line) px-4 py-3">
               <div className="flex gap-1">
                 {["open", "closed", "all"].map((s) => (
                   <button
@@ -654,8 +656,8 @@ export default function SchoolEmailPage() {
                     className={cn(
                       "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                       statusFilter === s
-                        ? "bg-white/10 text-white"
-                        : "text-white/40 hover:text-white/60",
+                        ? "bg-(--ws-fill-strong) text-(--ws-fg)"
+                        : "text-(--ws-fg-40) hover:text-(--ws-fg-60)",
                     )}
                   >
                     {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -674,7 +676,7 @@ export default function SchoolEmailPage() {
                     "flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors",
                     mailboxFilter === "billing"
                       ? "bg-amber-500/20 text-amber-300"
-                      : "text-white/40 hover:text-white/60",
+                      : "text-(--ws-fg-40) hover:text-(--ws-fg-60)",
                   )}
                 >
                   Billing
@@ -688,7 +690,7 @@ export default function SchoolEmailPage() {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div
                     key={i}
-                    className="h-14 animate-pulse rounded-lg bg-white/5"
+                    className="h-14 animate-pulse rounded-lg bg-(--ws-fill)"
                   />
                 ))}
               </div>
@@ -709,7 +711,7 @@ export default function SchoolEmailPage() {
           {/* Message view */}
           <Card
             className={cn(
-              "flex-1 border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl min-h-[500px]",
+              "flex-1 border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl min-h-[500px]",
               !selectedThreadId && "hidden md:flex",
             )}
           >
@@ -719,7 +721,7 @@ export default function SchoolEmailPage() {
                 onBack={() => setSelectedThreadId(null)}
               />
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center text-white/30">
+              <div className="flex flex-1 flex-col items-center justify-center text-(--ws-fg-40)">
                 <Mail className="mb-3 h-12 w-12" />
                 <p className="text-sm">Select a conversation to view</p>
               </div>
@@ -740,6 +742,7 @@ export default function SchoolEmailPage() {
 
       {activeTab === "bulk" && <BulkSendsView />}
     </div>
+    </WorkspaceScope>
   );
 }
 
@@ -752,12 +755,12 @@ function SentView() {
 
   if (isLoading) {
     return (
-      <Card className="flex-1 border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl p-6">
+      <Card className="flex-1 border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl p-6">
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-14 animate-pulse rounded-lg bg-white/5"
+              className="h-14 animate-pulse rounded-lg bg-(--ws-fill)"
             />
           ))}
         </div>
@@ -766,29 +769,29 @@ function SentView() {
   }
 
   return (
-    <Card className="flex-1 border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+    <Card className="flex-1 border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl">
       {sentThreads.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-white/40">
+        <div className="flex flex-col items-center justify-center py-16 text-(--ws-fg-40)">
           <Send className="mb-3 h-10 w-10" />
           <p className="text-sm">No sent conversations yet</p>
         </div>
       ) : (
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-(--ws-line)">
           {sentThreads.map((thread) => (
             <div key={thread._id} className="px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-white/80">
+                  <p className="truncate text-sm text-(--ws-fg-80)">
                     {thread.subject}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/40">
+                  <p className="mt-0.5 text-xs text-(--ws-fg-40)">
                     {thread.participants
                       .map((p) => p.name || p.email)
                       .slice(0, 2)
                       .join(", ")}
                   </p>
                 </div>
-                <span className="text-[10px] text-white/30">
+                <span className="text-[10px] text-(--ws-fg-40)">
                   {thread.lastOutboundAt
                     ? new Date(thread.lastOutboundAt).toLocaleDateString()
                     : ""}

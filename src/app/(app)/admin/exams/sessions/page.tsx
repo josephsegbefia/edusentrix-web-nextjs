@@ -48,13 +48,13 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   scheduled: "border-sky-500/30 bg-sky-500/10 text-sky-100",
-  conflict_review: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  conflict_review: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   in_progress: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
   completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
   locked: "border-violet-500/30 bg-violet-500/10 text-violet-100",
   archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/45",
-  cancelled: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  cancelled: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
 const FILTER_OPTIONS = [
@@ -143,7 +143,7 @@ function SessionCard({
               type="button"
               size="sm"
               variant="outline"
-              className="border-rose-500/30 text-rose-100 hover:bg-rose-500/10"
+              className="border-rose-500/30 text-(--ws-rose) hover:bg-rose-500/10"
               onClick={onCancel}
               disabled={cancelling}
             >

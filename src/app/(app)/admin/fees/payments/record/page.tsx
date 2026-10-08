@@ -271,7 +271,7 @@ export default function RecordPaymentPage() {
         <div className="relative z-10 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill) shadow-inner">
-              <Receipt className="h-6 w-6 text-emerald-300" />
+              <Receipt className="h-6 w-6 text-(--ws-emerald)" />
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-(--ws-fg-50)">
@@ -333,7 +333,7 @@ export default function RecordPaymentPage() {
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
-                        <FileText className="h-4 w-4 text-emerald-300" />
+                        <FileText className="h-4 w-4 text-(--ws-emerald)" />
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-(--ws-fg)">
@@ -345,7 +345,7 @@ export default function RecordPaymentPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-[11px] uppercase tracking-wide text-(--ws-fg-40)">Outstanding</p>
-                        <p className="text-sm font-bold text-emerald-300">
+                        <p className="text-sm font-bold text-(--ws-emerald)">
                           {formatMoney(invoice.totalOutstandingMinor)}
                         </p>
                       </div>
@@ -485,7 +485,7 @@ export default function RecordPaymentPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveAllocation(index)}
-                            className="h-8 w-8 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-0 text-(--ws-fg-40) hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-300"
+                            className="h-8 w-8 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-0 text-(--ws-fg-40) hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-(--ws-rose)"
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </Button>
@@ -605,7 +605,7 @@ export default function RecordPaymentPage() {
                         </span>
                       </div>
                       {allocationMismatch && (
-                        <p className="mt-2 text-xs text-rose-300">
+                        <p className="mt-2 text-xs text-(--ws-rose)">
                           Allocation amounts must match payment amount
                         </p>
                       )}

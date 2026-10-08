@@ -312,10 +312,10 @@ export function ClassSubjectsTeachersTab({
       {/* Header with Stats & Actions */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-(--ws-fg)">
             Subjects & Teachers
           </h2>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-(--ws-fg-50)">
             Manage subject assignments and teaching staff for {className}
           </p>
         </div>
@@ -323,7 +323,7 @@ export function ClassSubjectsTeachersTab({
           <Button
             variant="outline"
             onClick={onManageSubjects}
-            className="gap-2 border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+            className="gap-2 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           >
             <BookPlus className="h-4 w-4" />
             Manage Subjects
@@ -340,49 +340,49 @@ export function ClassSubjectsTeachersTab({
 
       {/* Quick Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/20 text-brand">
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{subjects.length}</p>
-              <p className="text-xs text-white/50">Total Subjects</p>
+              <p className="text-2xl font-bold text-(--ws-fg)">{subjects.length}</p>
+              <p className="text-xs text-(--ws-fg-50)">Total Subjects</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-(--ws-emerald)">
               <UserCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{assignedSubjectsCount}</p>
-              <p className="text-xs text-white/50">With Teachers</p>
+              <p className="text-2xl font-bold text-(--ws-fg)">{assignedSubjectsCount}</p>
+              <p className="text-xs text-(--ws-fg-50)">With Teachers</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-300">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-2xl font-bold text-(--ws-fg)">
                 {assignedSubjectsCount - subjectsWithoutSchedules}
               </p>
-              <p className="text-xs text-white/50">On Timetable</p>
+              <p className="text-xs text-(--ws-fg-50)">On Timetable</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-300">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{totalTeachersCount}</p>
-              <p className="text-xs text-white/50">Teachers</p>
+              <p className="text-2xl font-bold text-(--ws-fg)">{totalTeachersCount}</p>
+              <p className="text-xs text-(--ws-fg-50)">Teachers</p>
             </div>
           </CardContent>
         </Card>
@@ -396,10 +396,10 @@ export function ClassSubjectsTeachersTab({
               <AlertTriangle className="h-5 w-5 text-amber-300" />
             </div>
             <div className="flex-1">
-              <p className="font-medium text-amber-200">
+              <p className="font-medium text-(--ws-amber)">
                 {unassignedSubjectsCount} subject{unassignedSubjectsCount !== 1 ? "s" : ""} without a teacher
               </p>
-              <p className="text-xs text-amber-200/70">
+              <p className="text-xs text-(--ws-amber)">
                 Assign teachers to ensure all subjects are covered
               </p>
             </div>
@@ -439,25 +439,25 @@ export function ClassSubjectsTeachersTab({
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-brand" />
-          <p className="mt-3 text-sm text-white/50">Loading assignments...</p>
+          <p className="mt-3 text-sm text-(--ws-fg-50)">Loading assignments...</p>
         </div>
       ) : isError ? (
         <div className="flex flex-col items-center justify-center py-16">
           <AlertCircle className="h-8 w-8 text-rose-400" />
-          <p className="mt-3 text-sm font-medium text-white/70">
+          <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
             Failed to load assignments
           </p>
         </div>
       ) : subjects.length === 0 ? (
-        <Card className="border border-white/10 bg-slate-950/60 backdrop-blur">
+        <Card className="border border-(--ws-line) bg-(--ws-panel-from) backdrop-blur">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-              <BookOpen className="h-8 w-8 text-white/30" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+              <BookOpen className="h-8 w-8 text-(--ws-fg-40)" />
             </div>
-            <p className="mt-4 text-sm font-medium text-white/70">
+            <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">
               No subjects assigned to this class
             </p>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-(--ws-fg-50)">
               Add subjects first to assign teachers
             </p>
             <Button
@@ -475,10 +475,10 @@ export function ClassSubjectsTeachersTab({
             <Card
               key={subject.id}
               className={cn(
-                "border bg-gradient-to-br backdrop-blur transition-all",
+                "border bg-linear-to-br backdrop-blur transition-all",
                 subject.teachers.length > 0
-                  ? "border-white/10 from-slate-900/80 to-slate-950/90"
-                  : "border-dashed border-white/10 from-slate-950/50 to-black/50"
+                  ? "border-(--ws-line) from-(--ws-panel-from) to-(--ws-panel-to)"
+                  : "border-dashed border-(--ws-line) from-(--ws-panel-via) to-(--ws-panel-to)"
               )}
             >
               <CardContent className="p-4">
@@ -490,15 +490,15 @@ export function ClassSubjectsTeachersTab({
                         "flex h-10 w-10 items-center justify-center rounded-xl",
                         subject.teachers.length > 0
                           ? "bg-brand/20 text-brand"
-                          : "bg-white/5 text-white/30"
+                          : "bg-(--ws-fill) text-(--ws-fg-40)"
                       )}
                     >
                       <BookOpen className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-white">{subject.name}</p>
+                      <p className="font-medium text-(--ws-fg)">{subject.name}</p>
                       {subject.code && (
-                        <p className="text-xs text-white/50">{subject.code}</p>
+                        <p className="text-xs text-(--ws-fg-50)">{subject.code}</p>
                       )}
                     </div>
                   </div>
@@ -520,13 +520,13 @@ export function ClassSubjectsTeachersTab({
                                   src={teacher.photoUrl || ""}
                                   alt={teacher.fullName}
                                 />
-                                <AvatarFallback className="bg-linear-to-br from-brand/60 to-brand/40 text-[10px] font-semibold text-white">
+                                <AvatarFallback className="bg-linear-to-br from-brand/60 to-brand/40 text-[10px] font-semibold text-(--ws-fg)">
                                   {getInitials(teacher.firstName, teacher.lastName)}
                                 </AvatarFallback>
                               </Avatar>
                             ))}
                             {subject.teachers.length > 3 && (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-white/10 text-[10px] font-medium text-white">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-(--ws-fill-strong) text-[10px] font-medium text-(--ws-fg)">
                                 +{subject.teachers.length - 3}
                               </div>
                             )}
@@ -534,7 +534,7 @@ export function ClassSubjectsTeachersTab({
 
                           {/* Teacher names */}
                           <div className="hidden sm:block">
-                            <p className="text-sm text-white">
+                            <p className="text-sm text-(--ws-fg)">
                               {subject.teachers
                                 .slice(0, 2)
                                 .map((t) => t.fullName)
@@ -564,13 +564,13 @@ export function ClassSubjectsTeachersTab({
                             return (
                               <div
                                 key={teacher.id}
-                                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5"
+                                className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5"
                               >
                                 <>
                                   {hasSchedule ? (
                                     <Badge
                                       variant="outline"
-                                      className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-300"
+                                      className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-[10px] text-(--ws-emerald)"
                                     >
                                       <Calendar className="h-3 w-3" />
                                       {scheduleInfo.schedulesCount} slot{scheduleInfo.schedulesCount !== 1 ? "s" : ""}
@@ -598,7 +598,7 @@ export function ClassSubjectsTeachersTab({
                                         contactHours
                                       )
                                     }
-                                    className="h-6 gap-1 border-dashed border-white/20 bg-transparent px-2 text-[10px] text-white/50 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                    className="h-6 gap-1 border-dashed border-(--ws-line-strong) bg-transparent px-2 text-[10px] text-(--ws-fg-50) hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-(--ws-emerald)"
                                   >
                                     <Clock className="h-3 w-3" />
                                     {contactHours > 0 ? "Edit hours" : "Set hours"}
@@ -614,14 +614,14 @@ export function ClassSubjectsTeachersTab({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                                className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </PremiumDropdownMenuTrigger>
                             <PremiumDropdownMenuContent
                               align="end"
-                              className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
+                              className="border border-(--ws-line) bg-(--ws-panel-to) text-xs text-(--ws-fg) backdrop-blur-xl"
                             >
                               {subject.teachers.map((teacher) => (
                                 <PremiumDropdownMenuItem
@@ -634,7 +634,7 @@ export function ClassSubjectsTeachersTab({
                                 </PremiumDropdownMenuItem>
                               ))}
                               {subject.teachers.length > 0 && (
-                                <PremiumDropdownMenuSeparator className="bg-white/10" />
+                                <PremiumDropdownMenuSeparator className="bg-(--ws-fill-strong)" />
                               )}
                               {subject.teachers.map((teacher) => (
                                 <PremiumDropdownMenuItem
@@ -646,13 +646,13 @@ export function ClassSubjectsTeachersTab({
                                       subject.name
                                     )
                                   }
-                                  className="cursor-pointer gap-2 text-rose-200 focus:text-rose-100"
+                                  className="cursor-pointer gap-2 text-(--ws-rose) focus:text-(--ws-rose)"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                   Remove {teacher.fullName}
                                 </PremiumDropdownMenuItem>
                               ))}
-                              <PremiumDropdownMenuSeparator className="bg-white/10" />
+                              <PremiumDropdownMenuSeparator className="bg-(--ws-fill-strong)" />
                               <PremiumDropdownMenuItem
                                 onClick={() => handleOpenQuickAssign(subject)}
                                 className="cursor-pointer gap-2"
@@ -669,7 +669,7 @@ export function ClassSubjectsTeachersTab({
                         variant="outline"
                         size="sm"
                         onClick={() => handleOpenQuickAssign(subject)}
-                        className="gap-2 border-dashed border-white/20 bg-transparent text-xs text-white/50 hover:border-brand/50 hover:bg-brand/10 hover:text-brand"
+                        className="gap-2 border-dashed border-(--ws-line-strong) bg-transparent text-xs text-(--ws-fg-50) hover:border-brand/50 hover:bg-brand/10 hover:text-brand"
                       >
                         <UserPlus className="h-3.5 w-3.5" />
                         Assign Teacher

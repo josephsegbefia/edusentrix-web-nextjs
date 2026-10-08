@@ -74,7 +74,7 @@ const expiryConfig = {
   expiring_soon: {
     bg: "bg-amber-500/10",
     border: "border-amber-500/30",
-    text: "text-amber-200",
+    text: "text-(--ws-amber)",
     label: "Expiring Soon",
   },
   valid: {
@@ -135,7 +135,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-amber-500/15 via-orange-500/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -147,14 +147,14 @@ export function TeacherDocumentsTab({ teacher }: Props) {
 
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-amber-500/20 to-orange-500/20 shadow-inner shadow-white/5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-amber-500/20 to-orange-500/20 shadow-inner shadow-white/5">
               <FolderOpen className="h-5 w-5 text-amber-300" />
             </div>
             <div className="space-y-0.5">
-              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+              <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
                 Documents
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {documents.length} document{documents.length !== 1 ? "s" : ""}{" "}
                 uploaded
               </p>
@@ -175,7 +175,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
       {(expiredDocs.length > 0 || expiringSoonDocs.length > 0) && (
         <div className="space-y-3">
           {expiredDocs.length > 0 && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 shadow-lg shadow-black/20">
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 shadow-[var(--ws-shadow)]">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="mt-0.5 h-5 w-5 text-red-300" />
                 <div>
@@ -191,15 +191,15 @@ export function TeacherDocumentsTab({ teacher }: Props) {
             </div>
           )}
           {expiringSoonDocs.length > 0 && (
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-lg shadow-black/20">
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-[var(--ws-shadow)]">
               <div className="flex items-start gap-3">
                 <Clock className="mt-0.5 h-5 w-5 text-amber-300" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-200">
+                  <p className="text-sm font-semibold text-(--ws-amber)">
                     {expiringSoonDocs.length} Document
                     {expiringSoonDocs.length !== 1 ? "s" : ""} Expiring Soon
                   </p>
-                  <p className="text-sm text-amber-200/70">
+                  <p className="text-sm text-(--ws-amber)">
                     These documents will expire soon. Consider renewing them.
                   </p>
                 </div>
@@ -210,7 +210,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
       )}
 
       {/* Documents list */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-transparent"
           aria-hidden="true"
@@ -223,20 +223,20 @@ export function TeacherDocumentsTab({ teacher }: Props) {
         <CardContent className="relative z-10 p-6">
           {isLoading ? (
             <div className="flex items-center justify-center gap-3 py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-amber-400" />
-              <p className="text-sm text-white/60">Loading documents...</p>
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--ws-line) border-t-amber-400" />
+              <p className="text-sm text-(--ws-fg-60)">Loading documents...</p>
             </div>
           ) : documents.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-amber-500/20 to-orange-500/20">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-amber-500/20 to-orange-500/20">
                   <FileText className="h-7 w-7 text-amber-300" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-white">
+                  <p className="text-base font-semibold text-(--ws-fg)">
                     No documents yet
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-50)">
                     Upload the first document to get started.
                   </p>
                 </div>
@@ -293,7 +293,7 @@ function DocumentCard({
   const expiryStyle = doc.expiryStatus ? expiryConfig[doc.expiryStatus] : null;
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-5 transition-all duration-200 hover:border-amber-500/30 hover:bg-white/5">
+    <div className="group relative overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5 transition-all duration-200 hover:border-amber-500/30 hover:bg-(--ws-fill-strong)">
       {/* Accent bar */}
       <div
         className={cn(
@@ -309,19 +309,19 @@ function DocumentCard({
 
       <div className="flex items-start justify-between gap-4 pl-3">
         <div className="flex items-start gap-4 flex-1 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
             <File className="h-5 w-5 text-amber-300" />
           </div>
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-(--ws-fg)">
                   {doc.name}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="rounded-lg border-white/10 bg-white/5 text-xs text-white/70"
+                    className="rounded-lg border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70)"
                   >
                     {getTypeLabel(doc.type)}
                   </Badge>
@@ -339,7 +339,7 @@ function DocumentCard({
                     </Badge>
                   )}
                   {doc.category && (
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-(--ws-fg-50)">
                       {doc.category}
                     </span>
                   )}
@@ -347,7 +347,7 @@ function DocumentCard({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs text-white/50">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-(--ws-fg-50)">
               {doc.issueDate && (
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
@@ -364,7 +364,7 @@ function DocumentCard({
             </div>
 
             {doc.notes && (
-              <p className="line-clamp-2 text-xs text-white/60">{doc.notes}</p>
+              <p className="line-clamp-2 text-xs text-(--ws-fg-60)">{doc.notes}</p>
             )}
 
             {doc.tags.length > 0 && (
@@ -373,7 +373,7 @@ function DocumentCard({
                   <Badge
                     key={idx}
                     variant="outline"
-                    className="gap-1 rounded-lg border-white/5 bg-white/5 text-[10px] text-white/50"
+                    className="gap-1 rounded-lg border-(--ws-line) bg-(--ws-fill) text-[10px] text-(--ws-fg-50)"
                   >
                     <Tag className="h-2.5 w-2.5" />
                     {tag}
@@ -388,7 +388,7 @@ function DocumentCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             onClick={() => onDownload(doc)}
             title="Download document"
           >
@@ -397,7 +397,7 @@ function DocumentCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-white/60 hover:bg-red-500/10 hover:text-red-300"
+            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-red-500/10 hover:text-red-300"
             onClick={() => onDelete(doc)}
             disabled={isDeleting}
             title="Delete document"

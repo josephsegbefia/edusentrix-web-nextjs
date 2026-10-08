@@ -31,10 +31,10 @@ function iconForSeverity(severity: AdmissionFormIssue["severity"]) {
 
 function classForSeverity(severity: AdmissionFormIssue["severity"]) {
   if (severity === "error") {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-100";
+    return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
   }
   if (severity === "warning") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-100";
+    return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
   }
   return "border-cyan-500/30 bg-cyan-500/10 text-cyan-100";
 }
@@ -65,14 +65,14 @@ export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) 
 
   const tone =
     summary.errorCount > 0
-      ? "border-rose-500/30 bg-rose-500/10 text-rose-100"
-      : "border-amber-500/30 bg-amber-500/10 text-amber-100";
+      ? "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
+      : "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
 
   return (
     <div className={cn("rounded-2xl border p-4", tone)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-black/20">
             {summary.errorCount > 0 ? (
               <AlertOctagon className="h-4 w-4" />
             ) : (
@@ -121,7 +121,7 @@ export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) 
       </div>
 
       {expanded ? (
-        <ul className="mt-3 space-y-1.5 rounded-xl border border-white/10 bg-black/15 p-3">
+        <ul className="mt-3 space-y-1.5 rounded-xl border border-(--ws-line) bg-black/15 p-3">
           {issues.map((issue) => {
             const Icon = iconForSeverity(issue.severity);
             return (

@@ -21,6 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCashClosure, useCloseCashDay } from "@/hooks/admin/useCashClosure";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 
 function parseMoneyToMinor(value: string) {
   const n = Number(String(value).replace(/,/g, "").trim());
@@ -37,6 +39,21 @@ function todayDateKey() {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(value: string): Date | null {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function formatLocalDate(date: Date | null): string {
+  if (!date) return todayDateKey();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -78,22 +95,23 @@ export default function FinanceCashClosePage() {
   }
 
   return (
+    <WorkspaceScope>
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
-      <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-(--ws-line) pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <Button asChild variant="ghost" className="mb-3 px-0 text-white/60 hover:bg-transparent hover:text-white">
+          <Button asChild variant="ghost" className="mb-3 px-0 text-(--ws-fg-60) hover:bg-transparent hover:text-(--ws-fg)">
             <Link href="/admin/finance">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Finance
             </Link>
           </Button>
           <div className="flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
               <WalletCards className="h-5 w-5 text-emerald-200" />
             </span>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-white">Cash Close</h1>
-              <p className="mt-1 text-sm text-white/55">
+              <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg)">Cash Close</h1>
+              <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Count cash collections, resolve variances, and close the day with an audit trail.
               </p>
             </div>
@@ -102,7 +120,7 @@ export default function FinanceCashClosePage() {
         <Button
           type="button"
           variant="outline"
-          className="border-white/10 bg-white/[0.04] text-white"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           onClick={() => void cashClosure.refetch()}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
@@ -124,21 +142,22 @@ export default function FinanceCashClosePage() {
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="border border-white/10 bg-slate-950/55">
-          <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
+        <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+          <CardHeader className="border-b border-(--ws-line) pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
               <CalendarCheck2 className="h-5 w-5 text-emerald-200" />
               Close selected day
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5 p-4">
             <div className="max-w-xs space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-white/45">Closure date</Label>
-              <Input
-                type="date"
-                value={closureDate}
-                onChange={(event) => setClosureDate(event.target.value)}
-                className="border-white/10 bg-white/[0.04] text-white"
+              <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Closure date</Label>
+              <CustomDatePicker
+                value={parseLocalDate(closureDate)}
+                onChange={(date) => setClosureDate(formatLocalDate(date))}
+                placeholder="Select closure date"
+                surface="theme"
+                className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
 
@@ -150,35 +169,35 @@ export default function FinanceCashClosePage() {
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs text-white/45">Expected cash</p>
-                  <p className="mt-2 text-xl font-semibold text-white">
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs text-(--ws-fg-40)">Expected cash</p>
+                  <p className="mt-2 text-xl font-semibold text-(--ws-fg)">
                     {formatMoney(expectedCashMinor)}
                   </p>
-                  <p className="mt-1 text-xs text-white/45">
+                  <p className="mt-1 text-xs text-(--ws-fg-40)">
                     {cashClosure.data?.paymentCount ?? 0} cash payment(s)
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs text-white/45">Counted cash</p>
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs text-(--ws-fg-40)">Counted cash</p>
                   <Input
                     value={recordedCashInput}
                     onChange={(event) => setRecordedCashInput(event.target.value)}
                     inputMode="decimal"
-                    className="mt-2 border-white/10 bg-black/20 text-white"
+                    className="mt-2 border-(--ws-line) bg-black/20 text-(--ws-fg)"
                   />
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs text-white/45">Variance</p>
+                <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs text-(--ws-fg-40)">Variance</p>
                   <p
                     className={cn(
                       "mt-2 text-xl font-semibold",
-                      varianceMinor === 0 ? "text-emerald-100" : "text-amber-100"
+                      varianceMinor === 0 ? "text-emerald-100" : "text-(--ws-amber)"
                     )}
                   >
                     {formatMoney(varianceMinor)}
                   </p>
-                  <p className="mt-1 text-xs text-white/45">
+                  <p className="mt-1 text-xs text-(--ws-fg-40)">
                     {varianceMinor === 0 ? "No variance" : "Requires resolution note"}
                   </p>
                 </div>
@@ -187,14 +206,14 @@ export default function FinanceCashClosePage() {
 
             {varianceMinor !== 0 ? (
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-white/45">
+                <Label className="text-xs uppercase tracking-wide text-(--ws-fg-40)">
                   Variance resolution note
                 </Label>
                 <Input
                   value={varianceNote}
                   onChange={(event) => setVarianceNote(event.target.value)}
                   placeholder="Explain the variance before closure"
-                  className="border-white/10 bg-white/[0.04] text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
             ) : null}
@@ -213,14 +232,14 @@ export default function FinanceCashClosePage() {
             ) : null}
 
             <div className="flex flex-wrap justify-end gap-2">
-              <Button asChild variant="outline" className="border-white/10 bg-white/[0.04] text-white">
+              <Button asChild variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <Link href="/admin/finance/payments">Open payment inbox</Link>
               </Button>
               <Button
                 type="button"
                 onClick={handleCloseCashDay}
                 disabled={cashClosure.isLoading || closeCashDay.isPending || !canClose}
-                className="bg-emerald-600 text-white hover:bg-emerald-500"
+                className="bg-emerald-600 text-(--ws-fg) hover:bg-emerald-500"
               >
                 {closeCashDay.isPending ? (
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -233,9 +252,9 @@ export default function FinanceCashClosePage() {
           </CardContent>
         </Card>
 
-        <Card className="border border-white/10 bg-slate-950/55">
-          <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="text-base text-white">Recent Closures</CardTitle>
+        <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+          <CardHeader className="border-b border-(--ws-line) pb-4">
+            <CardTitle className="text-base text-(--ws-fg)">Recent Closures</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 p-4">
             {cashClosure.isLoading ? (
@@ -248,27 +267,27 @@ export default function FinanceCashClosePage() {
               cashClosure.data?.recentClosures.map((entry) => (
                 <div
                   key={entry._id}
-                  className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-3"
+                  className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-3"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-white">{entry.closureDate}</p>
+                    <p className="text-sm font-medium text-(--ws-fg)">{entry.closureDate}</p>
                     <span
                       className={cn(
                         "text-sm font-semibold",
-                        entry.varianceMinor === 0 ? "text-emerald-100" : "text-amber-100"
+                        entry.varianceMinor === 0 ? "text-emerald-100" : "text-(--ws-amber)"
                       )}
                     >
                       {formatMoney(entry.varianceMinor)}
                     </span>
                   </div>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-white/45">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-(--ws-fg-40)">
                     <Clock className="h-3.5 w-3.5" />
                     {format(new Date(entry.updatedAt), "MMM d, h:mm a")}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+              <p className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-40)">
                 No previous cash closures.
               </p>
             )}
@@ -276,6 +295,7 @@ export default function FinanceCashClosePage() {
         </Card>
       </section>
     </div>
+    </WorkspaceScope>
   );
 }
 

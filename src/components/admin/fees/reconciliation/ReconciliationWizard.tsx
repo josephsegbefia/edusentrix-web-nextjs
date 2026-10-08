@@ -82,10 +82,10 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 function statusBadgeClass(status: ReconciliationStatus) {
-  if (status === "matched") return "border-emerald-500/25 bg-emerald-500/10 text-emerald-300";
+  if (status === "matched") return "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)";
   if (status === "ambiguous") return "border-amber-500/25 bg-amber-500/10 text-amber-300";
   if (status === "ignored") return "border-white/10 bg-white/5 text-white/50";
-  return "border-rose-500/25 bg-rose-500/10 text-rose-300";
+  return "border-rose-500/25 bg-rose-500/10 text-(--ws-rose)";
 }
 
 // ---------------------------------------------------------------------------
@@ -398,7 +398,7 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
                 className={cn(
                   "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
                   isCurrent
-                    ? "bg-indigo-500/30 text-indigo-200 ring-1 ring-indigo-400/50"
+                    ? "bg-indigo-500/30 text-(--ws-violet) ring-1 ring-indigo-400/50"
                     : isCompleted || isPast
                     ? "bg-emerald-500/20 text-emerald-200"
                     : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
@@ -413,7 +413,7 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
       </div>
 
       {/* Step content card */}
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <CardContent className="p-6">
           <AnimatePresence mode="wait">
             <motion.div
@@ -488,7 +488,7 @@ function NoteField({ label, value, onChange, placeholder }: { label: string; val
 }
 
 function KPI({ label, value, color = "default" }: { label: string; value: string | number; color?: "default" | "green" | "red" | "amber" }) {
-  const colors = { default: "text-white", green: "text-emerald-300", red: "text-rose-300", amber: "text-amber-300" };
+  const colors = { default: "text-white", green: "text-(--ws-emerald)", red: "text-(--ws-rose)", amber: "text-amber-300" };
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
       <p className={`text-xl font-bold ${colors[color]}`}>{value}</p>
@@ -518,12 +518,12 @@ function PrepareStep({ session, notes, onNotesChange }: { session: Reconciliatio
       </div>
 
       <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-indigo-300">Documents Needed</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-(--ws-violet)">Documents Needed</p>
         <div className="mt-3 space-y-3">
           {docs.map((doc) => (
             <div key={doc.type} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20">
-                <FileSpreadsheet className="h-4 w-4 text-indigo-300" />
+                <FileSpreadsheet className="h-4 w-4 text-(--ws-violet)" />
               </div>
               <div>
                 <p className="text-sm font-medium text-white">{doc.label}</p>
@@ -657,11 +657,11 @@ function MatchStep({
         <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/40">Match Rules (in order)</p>
         <div className="space-y-2 text-sm text-white/70">
           <div className="flex items-start gap-2">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-300">1</span>
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-(--ws-emerald)">1</span>
             <span><strong className="text-white">Exact external ID</strong> — gateway transaction reference matches a payment reference (100% confidence)</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-300">2</span>
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-(--ws-emerald)">2</span>
             <span><strong className="text-white">Exact reference token</strong> — normalized reference matches receipt/external reference (96% confidence)</span>
           </div>
           <div className="flex items-start gap-2">
@@ -742,7 +742,7 @@ function ReviewStep({
           <p className="text-xs font-medium uppercase tracking-wider text-amber-300">Active Alerts</p>
           <div className="mt-2 space-y-2">
             {alerts.map((alert, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-amber-200">
+              <div key={i} className="flex items-center gap-2 text-sm text-(--ws-amber)">
                 <Shield className="h-4 w-4 shrink-0 text-amber-400" />
                 <span>{String(alert.title || "")}: {String(alert.count || 0)} item(s)</span>
               </div>
@@ -753,7 +753,7 @@ function ReviewStep({
 
       {(summary.unmatched > 0 || summary.ambiguous > 0) && (
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3">
-          <p className="text-sm text-rose-200">
+          <p className="text-sm text-(--ws-rose)">
             {summary.ambiguous > 0 && `${summary.ambiguous} ambiguous item(s) need manual review. `}
             {summary.unmatched > 0 && `${summary.unmatched} item(s) remain unmatched.`}
             {" "}Proceed to the Resolve step for AI suggestions and manual matching.
@@ -940,7 +940,7 @@ function ResolveStep({
         </p>
         <div className="max-h-80 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-white/3 p-2">
           {totalUnresolved === 0 ? (
-            <div className="flex items-center justify-center gap-2 py-8 text-sm text-emerald-300">
+            <div className="flex items-center justify-center gap-2 py-8 text-sm text-(--ws-emerald)">
               <CheckCircle2 className="h-5 w-5" /> All items resolved
             </div>
           ) : unresolvedItems.length === 0 ? (
@@ -971,7 +971,7 @@ function ResolveStep({
                           key={cid}
                           type="button"
                           onClick={() => setManualInputs((prev) => ({ ...prev, [id]: String(cid) }))}
-                          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-white/50 hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-indigo-300"
+                          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-white/50 hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-(--ws-violet)"
                         >
                           {String(cid).slice(0, 8)}…
                         </button>
@@ -990,7 +990,7 @@ function ResolveStep({
                       size="sm"
                       disabled={isMatching || !(manualInputs[id] || "").trim()}
                       onClick={() => { void onManualMatch(id, manualInputs[id]); setManualInputs((prev) => ({ ...prev, [id]: "" })); }}
-                      className="h-8 bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30"
+                      className="h-8 bg-indigo-500/20 text-(--ws-violet) hover:bg-indigo-500/30"
                     >
                       Match
                     </Button>
@@ -1086,7 +1086,7 @@ function FinalizeStep({
             <Lock className="h-5 w-5" />
             <span className="text-sm font-medium">This session is locked.</span>
           </div>
-          {session.lockReason && <p className="mt-1 text-xs text-emerald-300/70">Reason: {session.lockReason}</p>}
+          {session.lockReason && <p className="mt-1 text-xs text-(--ws-emerald)">Reason: {session.lockReason}</p>}
         </div>
       )}
 
@@ -1148,7 +1148,7 @@ function FinalizeStep({
             ))}
             {generatedReport.exceptions.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-amber-200">Exceptions</p>
+                <p className="text-xs font-semibold text-(--ws-amber)">Exceptions</p>
                 {generatedReport.exceptions.map((e, i) => (
                   <p key={i} className="text-xs text-amber-300/70">• {e}</p>
                 ))}
@@ -1158,7 +1158,7 @@ function FinalizeStep({
               <div>
                 <p className="text-xs font-semibold text-emerald-200">Recommendations</p>
                 {generatedReport.recommendations.map((r, i) => (
-                  <p key={i} className="text-xs text-emerald-300/70">• {r}</p>
+                  <p key={i} className="text-xs text-(--ws-emerald)">• {r}</p>
                 ))}
               </div>
             )}
@@ -1182,7 +1182,7 @@ function FinalizeStep({
       {/* Lock controls */}
       {!isLocked && (
         <div className="space-y-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-indigo-300">Lock Session</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-(--ws-violet)">Lock Session</p>
           <p className="text-xs text-white/50">
             Locking confirms this reconciliation is complete. Locked sessions can only be reopened by a school administrator.
           </p>

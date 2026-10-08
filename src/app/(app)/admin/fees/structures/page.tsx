@@ -61,7 +61,7 @@ export default function FeeStructuresPage() {
   );
 
   const categoryTone: Record<string, string> = {
-    tuition: "bg-amber-500/15 text-amber-100 border-amber-500/35",
+    tuition: "bg-amber-500/15 text-(--ws-amber) border-amber-500/35",
     library: "bg-indigo-500/15 text-indigo-100 border-indigo-500/35",
     sports: "bg-emerald-500/15 text-emerald-100 border-emerald-500/35",
     uniform: "bg-sky-500/15 text-sky-100 border-sky-500/35",
@@ -183,7 +183,7 @@ export default function FeeStructuresPage() {
           <div
             className={cn(
               "relative overflow-hidden rounded-2xl border border-(--ws-line)",
-              "bg-linear-to-br from-(--ws-fill) to-transparent p-5 shadow-lg shadow-black/15 backdrop-blur"
+              "bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur-xl"
             )}
           >
             <div className="flex items-start justify-between gap-3">
@@ -231,7 +231,7 @@ export default function FeeStructuresPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-amber)">
                   Default total
                 </p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-(--ws-fg)">
@@ -239,7 +239,7 @@ export default function FeeStructuresPage() {
                 </p>
                 <p className="mt-1 text-sm text-(--ws-fg-50)">sum of default amounts</p>
               </div>
-              <div className="rounded-xl bg-amber-500/15 p-2.5 text-amber-200/90">
+              <div className="rounded-xl bg-amber-500/15 p-2.5 text-(--ws-amber)">
                 <Zap className="h-5 w-5" />
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function FeeStructuresPage() {
         </div>
 
         {/* List */}
-        <Card className="overflow-hidden border-(--ws-line) bg-linear-to-b from-(--ws-fill) to-transparent shadow-xl shadow-black/20">
+        <Card className="overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)]">
           <CardHeader className="flex flex-col gap-2 border-b border-(--ws-line) px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-lg bg-brand/15 p-2 text-brand">
@@ -366,7 +366,7 @@ export default function FeeStructuresPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-9 w-9 text-(--ws-fg-70) hover:bg-rose-500/15 hover:text-rose-200"
+                            className="h-9 w-9 text-(--ws-fg-70) hover:bg-rose-500/15 hover:text-(--ws-rose)"
                             onClick={() => handleDelete(structure._id)}
                             disabled={deleteStructure.isPending}
                             aria-label={`Deactivate ${structure.name}`}

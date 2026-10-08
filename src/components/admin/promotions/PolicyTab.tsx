@@ -285,7 +285,7 @@ export function PolicyTab() {
                   size="sm"
                   onClick={() => handleActivate(policy.id)}
                   disabled={policy.isActive || activatePolicy.isPending}
-                  className="border-indigo-500/40 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+                  className="border-indigo-500/40 bg-indigo-500/10 text-(--ws-violet) hover:bg-indigo-500/20"
                 >
                   {policy.isActive ? "Active" : "Activate for scope"}
                 </Button>
@@ -299,7 +299,7 @@ export function PolicyTab() {
         !createPolicy.data.data.isActive &&
         activePolicy?.id !== createPolicy.data.data.id && (
         <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-4">
-          <p className="mb-2 text-sm text-indigo-200">
+          <p className="mb-2 text-sm text-(--ws-violet)">
             Policy &quot;{createPolicy.data.data.name}&quot; created. Activate it to use for previews.
           </p>
           <Button
@@ -307,7 +307,7 @@ export function PolicyTab() {
             size="sm"
             onClick={() => handleActivate(createPolicy.data!.data.id)}
             disabled={activatePolicy.isPending}
-            className="border-indigo-500/40 bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30"
+            className="border-indigo-500/40 bg-indigo-500/20 text-(--ws-violet) hover:bg-indigo-500/30"
           >
             {activatePolicy.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

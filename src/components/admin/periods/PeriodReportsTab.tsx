@@ -87,29 +87,29 @@ export function PeriodReportsTab({
   return (
     <div className="space-y-6">
       {/* AI Term Report */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 to-black shadow-xl shadow-black/30 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) shadow-xl shadow-black/30 backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
             <Sparkles className="h-4 w-4 text-amber-400" />
             AI Term Report
           </CardTitle>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-50)">
             AI-generated analysis of finances, academics, staffing, and operations
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {reportQuery.isLoading ? (
-            <div className="flex items-center gap-2 py-8 text-white/60">
+            <div className="flex items-center gap-2 py-8 text-(--ws-fg-60)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading report...
             </div>
           ) : reportQuery.data ? (
             <div className="space-y-4">
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Generated {format(new Date(reportQuery.data.generatedAt), "dd MMM yyyy")}
               </p>
-              <div className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm font-medium text-white">
+              <div className="space-y-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
+                <p className="text-sm font-medium text-(--ws-fg)">
                   {reportQuery.data.content.summary}
                 </p>
                 {reportQuery.data.content.sections?.map((section, i) => (
@@ -117,11 +117,11 @@ export function PeriodReportsTab({
                     <p className="text-xs font-semibold text-cyan-300">
                       {section.title}
                     </p>
-                    <p className="mt-1 text-sm text-white/80 whitespace-pre-wrap">
+                    <p className="mt-1 text-sm text-(--ws-fg-80) whitespace-pre-wrap">
                       {section.content}
                     </p>
                     {section.highlights?.length ? (
-                      <ul className="mt-2 list-inside list-disc text-xs text-white/70">
+                      <ul className="mt-2 list-inside list-disc text-xs text-(--ws-fg-70)">
                         {section.highlights.map((h, j) => (
                           <li key={j}>{h}</li>
                         ))}
@@ -130,15 +130,15 @@ export function PeriodReportsTab({
                   </div>
                 ))}
                 {reportQuery.data.content.suggestions?.length ? (
-                  <div className="mt-4 border-t border-white/10 pt-4">
+                  <div className="mt-4 border-t border-(--ws-line) pt-4">
                     <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
                       <Lightbulb className="h-3.5 w-3.5" />
                       Suggestions for improvement
                     </p>
-                    <ul className="mt-2 space-y-1 text-xs text-white/70">
+                    <ul className="mt-2 space-y-1 text-xs text-(--ws-fg-70)">
                       {reportQuery.data.content.suggestions.map((s, i) => (
                         <li key={i} className="flex gap-2">
-                          <span className="text-white/40">•</span>
+                          <span className="text-(--ws-fg-40)">•</span>
                           {s.text}
                         </li>
                       ))}
@@ -150,7 +150,7 @@ export function PeriodReportsTab({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 border-white/20 text-white/80 hover:bg-white/10"
+                  className="flex-1 border-(--ws-line-strong) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
                   onClick={onDownloadPdf}
                   disabled={downloadingPdf}
                 >
@@ -164,7 +164,7 @@ export function PeriodReportsTab({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 border-white/20 text-white/80 hover:bg-white/10"
+                  className="flex-1 border-(--ws-line-strong) text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
                   onClick={() => onGenerateReport(true)}
                   disabled={isGeneratingReport}
                 >
@@ -195,45 +195,45 @@ export function PeriodReportsTab({
       </Card>
 
       {/* Recurring Reports */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 to-black shadow-xl shadow-black/30 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) shadow-xl shadow-black/30 backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
             <FileText className="h-4 w-4 text-cyan-400" />
             Weekly, Biweekly, Monthly Reports
           </CardTitle>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-50)">
             Generate progress reports for custom date ranges
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-5">
+          <div className="space-y-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/70">Start date</Label>
+                <Label className="text-xs text-(--ws-fg-70)">Start date</Label>
                 <Input
                   type="date"
                   value={recurringStartDate}
                   onChange={(e) => setRecurringStartDate(e.target.value)}
-                  className="border-white/20 bg-white/5 text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-white/70">End date</Label>
+                <Label className="text-xs text-(--ws-fg-70)">End date</Label>
                 <Input
                   type="date"
                   value={recurringEndDate}
                   onChange={(e) => setRecurringEndDate(e.target.value)}
-                  className="border-white/20 bg-white/5 text-white"
+                  className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-white/70">Report type</Label>
+              <Label className="text-xs text-(--ws-fg-70)">Report type</Label>
               <Select
                 value={recurringType}
                 onValueChange={(v) => setRecurringType(v as RecurringReportType)}
               >
-                <SelectTrigger className="w-full border-white/20 bg-white/5 text-white">
+                <SelectTrigger className="w-full border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg)">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -271,17 +271,17 @@ export function PeriodReportsTab({
           {recurringReportsQuery.data &&
           recurringReportsQuery.data.filter((r) => r.reportType !== "term").length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-white/60">Recent reports</p>
+              <p className="text-xs font-medium text-(--ws-fg-60)">Recent reports</p>
               <ul className="space-y-2">
                 {recurringReportsQuery.data
                   .filter((r) => r.reportType !== "term")
                   .map((r) => (
                     <li
                       key={r.id}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 p-4"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-white">
+                        <p className="text-sm font-medium text-(--ws-fg)">
                           {r.reportType.charAt(0).toUpperCase() + r.reportType.slice(1)}
                           {r.dateRange
                             ? " · " +
@@ -291,7 +291,7 @@ export function PeriodReportsTab({
                             : ""}
                         </p>
                         {r.summary ? (
-                          <p className="mt-0.5 line-clamp-2 text-xs text-white/60">
+                          <p className="mt-0.5 line-clamp-2 text-xs text-(--ws-fg-60)">
                             {r.summary}
                           </p>
                         ) : null}
@@ -299,7 +299,7 @@ export function PeriodReportsTab({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="shrink-0 text-white/80 hover:bg-white/10 hover:text-white"
+                        className="shrink-0 text-(--ws-fg-80) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                         onClick={() => onDownloadRecurringPdf(r.id)}
                         disabled={downloadingReportId === r.id}
                       >
@@ -314,7 +314,7 @@ export function PeriodReportsTab({
               </ul>
             </div>
           ) : recurringReportsQuery.isLoading ? (
-            <div className="flex items-center gap-2 py-4 text-white/60">
+            <div className="flex items-center gap-2 py-4 text-(--ws-fg-60)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading reports...
             </div>

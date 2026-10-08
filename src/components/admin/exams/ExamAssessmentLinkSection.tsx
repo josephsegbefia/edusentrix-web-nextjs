@@ -27,7 +27,7 @@ import { ExamAssessmentLinkExistingModal } from "@/components/admin/exams/ExamAs
 
 const STATUS_BADGE_STYLES = {
   linked: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  missing: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  missing: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   not_required: "border-white/10 bg-white/5 text-white/55",
 } as const;
 
@@ -195,7 +195,7 @@ export function ExamAssessmentLinkSection({
                       </p>
                     ) : null}
                     {row.validationErrors[0] ? (
-                      <p className="mt-1 text-xs text-amber-100/90">{row.validationErrors[0]}</p>
+                      <p className="mt-1 text-xs text-(--ws-amber)">{row.validationErrors[0]}</p>
                     ) : null}
                   </div>
 
@@ -231,7 +231,7 @@ export function ExamAssessmentLinkSection({
             </div>
 
             {status.validationErrors.length > 0 ? (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-(--ws-amber)">
                 {status.validationErrors[0]}
               </div>
             ) : null}

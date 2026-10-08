@@ -21,13 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   useExpiringDocuments,
   useSchoolTeacherDocuments,
   type ExpiringDocumentDTO,
@@ -35,6 +28,14 @@ import {
 } from "@/hooks/admin/useTeacherDocuments";
 import { useTeachers } from "@/hooks/admin/useTeachers";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   contract: "Contract",
@@ -61,7 +62,7 @@ function ExpiringDocumentRow({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-3 rounded-xl border p-4 transition-all hover:border-white/20",
+        "flex flex-wrap items-center gap-3 rounded-xl border p-4 transition-all hover:border-(--ws-line-strong)",
         isExpired
           ? "border-red-500/30 bg-red-500/5"
           : "border-amber-500/20 bg-amber-500/5"
@@ -76,16 +77,16 @@ function ExpiringDocumentRow({
         <FileText className={cn("h-5 w-5", isExpired ? "text-red-300" : "text-amber-300")} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-white truncate">{doc.name}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/60">
-          <Badge variant="outline" className="border-white/20 text-[10px]">
+        <p className="font-medium text-(--ws-fg) truncate">{doc.name}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-(--ws-fg-60)">
+          <Badge variant="outline" className="border-(--ws-line-strong) text-[10px]">
             {getTypeLabel(doc.type)}
           </Badge>
           {doc.teacher && (
             <button
               type="button"
               onClick={() => onViewTeacher?.(doc.teacher!.id)}
-              className="hover:text-white/90 transition-colors"
+              className="hover:text-(--ws-fg-90) transition-colors"
             >
               {doc.teacher.name}
             </button>
@@ -101,7 +102,7 @@ function ExpiringDocumentRow({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1 text-white/70 hover:text-white"
+          className="h-8 gap-1 text-(--ws-fg-70) hover:text-(--ws-fg)"
           onClick={() => window.open(doc.fileUrl, "_blank")}
         >
           <Download className="h-4 w-4" />
@@ -109,7 +110,7 @@ function ExpiringDocumentRow({
         </Button>
         {doc.teacher && (
           <Link href={`/admin/teachers/${doc.teacher.id}?tab=documents`}>
-            <Button variant="outline" size="sm" className="h-8 gap-1 border-white/20">
+            <Button variant="outline" size="sm" className="h-8 gap-1 border-(--ws-line-strong)">
               <ExternalLink className="h-4 w-4" />
               View
             </Button>
@@ -150,6 +151,7 @@ export default function DocumentsPage() {
   const expiringSoonCount = expiringDocs.filter((d) => d.daysUntilExpiry >= 0).length;
 
   return (
+    <WorkspaceScope>
     <div className="space-y-6">
       {/* Page Header */}
       <div className="relative">
@@ -161,7 +163,7 @@ export default function DocumentsPage() {
           <h1 className="bg-gradient-to-r from-violet-200 via-purple-200 to-fuchsia-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
             Documents
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-(--ws-fg-60)">
             Manage teacher documents, track expiring items, and access document management areas
           </p>
         </div>
@@ -171,90 +173,90 @@ export default function DocumentsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/admin/teachers"
-          className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-violet-500/30 hover:bg-white/10"
+          className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-violet-500/30 hover:bg-(--ws-fill-strong)"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/20">
-            <Users className="h-6 w-6 text-violet-300" />
+            <Users className="h-6 w-6 text-(--ws-violet)" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-white">Teacher Documents</p>
-            <p className="text-xs text-white/50">Upload & manage per teacher</p>
+            <p className="font-medium text-(--ws-fg)">Teacher Documents</p>
+            <p className="text-xs text-(--ws-fg-50)">Upload & manage per teacher</p>
           </div>
-          <ChevronRight className="h-5 w-5 text-white/30 group-hover:text-white/60" />
+          <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
         <Link
           href="/admin/students"
-          className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-cyan-500/30 hover:bg-white/10"
+          className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-cyan-500/30 hover:bg-(--ws-fill-strong)"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/20">
             <GraduationCap className="h-6 w-6 text-cyan-300" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-white">Student Documents</p>
-            <p className="text-xs text-white/50">In student Relationships tab</p>
+            <p className="font-medium text-(--ws-fg)">Student Documents</p>
+            <p className="text-xs text-(--ws-fg-50)">In student Relationships tab</p>
           </div>
-          <ChevronRight className="h-5 w-5 text-white/30 group-hover:text-white/60" />
+          <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
         <Link
           href="/admin/expenses"
-          className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-amber-500/30 hover:bg-white/10"
+          className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-amber-500/30 hover:bg-(--ws-fill-strong)"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
             <Receipt className="h-6 w-6 text-amber-300" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-white">Expense Receipts</p>
-            <p className="text-xs text-white/50">Attached to expense entries</p>
+            <p className="font-medium text-(--ws-fg)">Expense Receipts</p>
+            <p className="text-xs text-(--ws-fg-50)">Attached to expense entries</p>
           </div>
-          <ChevronRight className="h-5 w-5 text-white/30 group-hover:text-white/60" />
+          <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
         <Link
           href="/admin/reports"
-          className="group flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-emerald-500/30 hover:bg-white/10"
+          className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-emerald-500/30 hover:bg-(--ws-fill-strong)"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/20">
-            <FileText className="h-6 w-6 text-emerald-300" />
+            <FileText className="h-6 w-6 text-(--ws-emerald)" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-white">Reports</p>
-            <p className="text-xs text-white/50">Generate & download PDFs</p>
+            <p className="font-medium text-(--ws-fg)">Reports</p>
+            <p className="text-xs text-(--ws-fg-50)">Generate & download PDFs</p>
           </div>
-          <ChevronRight className="h-5 w-5 text-white/30 group-hover:text-white/60" />
+          <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
       </div>
 
       {/* Expiring Documents */}
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
               <Clock className="h-5 w-5 text-amber-300" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-white">
+              <CardTitle className="text-lg font-semibold text-(--ws-fg)">
                 Expiring & Expired Documents
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Teacher contracts, licenses, certificates, and IDs
               </p>
             </div>
           </div>
-          <Select value={String(daysAhead)} onValueChange={(v) => setDaysAhead(Number(v))}>
-            <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="30" className="focus:bg-white/10">
+          <PremiumSelect value={String(daysAhead)} onValueChange={(v) => setDaysAhead(Number(v))}>
+            <PremiumSelectTrigger className="w-36 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+              <PremiumSelectValue />
+            </PremiumSelectTrigger>
+            <PremiumSelectContent>
+              <PremiumSelectItem value="30" className="focus:bg-(--ws-fill-strong)">
                 Next 30 days
-              </SelectItem>
-              <SelectItem value="60" className="focus:bg-white/10">
+              </PremiumSelectItem>
+              <PremiumSelectItem value="60" className="focus:bg-(--ws-fill-strong)">
                 Next 60 days
-              </SelectItem>
-              <SelectItem value="90" className="focus:bg-white/10">
+              </PremiumSelectItem>
+              <PremiumSelectItem value="90" className="focus:bg-(--ws-fill-strong)">
                 Next 90 days
-              </SelectItem>
-            </SelectContent>
-          </Select>
+              </PremiumSelectItem>
+            </PremiumSelectContent>
+          </PremiumSelect>
         </CardHeader>
         <CardContent className="space-y-4">
           {(expiredCount > 0 || expiringSoonCount > 0) && (
@@ -270,7 +272,7 @@ export default function DocumentsPage() {
               {expiringSoonCount > 0 && (
                 <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
                   <Clock className="h-4 w-4 text-amber-300" />
-                  <span className="text-sm font-medium text-amber-200">
+                  <span className="text-sm font-medium text-(--ws-amber)">
                     {expiringSoonCount} expiring soon
                   </span>
                 </div>
@@ -281,16 +283,16 @@ export default function DocumentsPage() {
           {expiringLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 rounded-xl bg-white/5" />
+                <Skeleton key={i} className="h-20 rounded-xl bg-(--ws-fill)" />
               ))}
             </div>
           ) : expiringDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 py-12">
-              <FolderOpen className="h-12 w-12 text-white/30" />
-              <p className="mt-3 text-sm font-medium text-white/70">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) py-12">
+              <FolderOpen className="h-12 w-12 text-(--ws-fg-40)" />
+              <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
                 No expiring or expired documents
               </p>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Documents with expiry dates will appear here
               </p>
             </div>
@@ -305,68 +307,68 @@ export default function DocumentsPage() {
       </Card>
 
       {/* All Teacher Documents */}
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/20">
-              <FileText className="h-5 w-5 text-violet-300" />
+              <FileText className="h-5 w-5 text-(--ws-violet)" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-white">
+              <CardTitle className="text-lg font-semibold text-(--ws-fg)">
                 All Teacher Documents
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 {docsPagination.total} document{docsPagination.total !== 1 ? "s" : ""} total
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={docTypeFilter} onValueChange={setDocTypeFilter}>
-              <SelectTrigger className="w-36 border-white/10 bg-white/5 text-white">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="focus:bg-white/10">
+            <PremiumSelect value={docTypeFilter} onValueChange={setDocTypeFilter}>
+              <PremiumSelectTrigger className="w-36 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                <PremiumSelectValue placeholder="Type" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all" className="focus:bg-(--ws-fill-strong)">
                   All types
-                </SelectItem>
+                </PremiumSelectItem>
                 {Object.entries(DOCUMENT_TYPE_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value} className="focus:bg-white/10">
+                  <PremiumSelectItem key={value} value={value} className="focus:bg-(--ws-fill-strong)">
                     {label}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-            <Select value={teacherFilter} onValueChange={(v) => { setTeacherFilter(v); setDocumentsPage(1); }}>
-              <SelectTrigger className="w-44 border-white/10 bg-white/5 text-white">
-                <SelectValue placeholder="Teacher" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="focus:bg-white/10">
+              </PremiumSelectContent>
+            </PremiumSelect>
+            <PremiumSelect value={teacherFilter} onValueChange={(v) => { setTeacherFilter(v); setDocumentsPage(1); }}>
+              <PremiumSelectTrigger className="w-44 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                <PremiumSelectValue placeholder="Teacher" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all" className="focus:bg-(--ws-fill-strong)">
                   All teachers
-                </SelectItem>
+                </PremiumSelectItem>
                 {teachers.map((t) => (
-                  <SelectItem key={t.id} value={t.id} className="focus:bg-white/10">
+                  <PremiumSelectItem key={t.id} value={t.id} className="focus:bg-(--ws-fill-strong)">
                     {t.fullName}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
         </CardHeader>
         <CardContent>
           {docsLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-16 rounded-xl bg-white/5" />
+                <Skeleton key={i} className="h-16 rounded-xl bg-(--ws-fill)" />
               ))}
             </div>
           ) : allDocs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 py-12">
-              <FolderOpen className="h-12 w-12 text-white/30" />
-              <p className="mt-3 text-sm font-medium text-white/70">
+            <div className="flex flex-col items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) py-12">
+              <FolderOpen className="h-12 w-12 text-(--ws-fg-40)" />
+              <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
                 No documents found
               </p>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Upload documents from a teacher&apos;s profile
               </p>
             </div>
@@ -376,21 +378,21 @@ export default function DocumentsPage() {
                 {allDocs.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20"
+                    className="flex flex-wrap items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong)"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/20">
-                      <FileText className="h-5 w-5 text-violet-300" />
+                      <FileText className="h-5 w-5 text-(--ws-violet)" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-white truncate">{doc.name}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/60">
-                        <Badge variant="outline" className="border-white/20 text-[10px]">
+                      <p className="font-medium text-(--ws-fg) truncate">{doc.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-(--ws-fg-60)">
+                        <Badge variant="outline" className="border-(--ws-line-strong) text-[10px]">
                           {getTypeLabel(doc.type)}
                         </Badge>
                         {doc.teacher && (
                           <Link
                             href={`/admin/teachers/${doc.teacher.id}?tab=documents`}
-                            className="hover:text-white/90 transition-colors"
+                            className="hover:text-(--ws-fg-90) transition-colors"
                           >
                             {doc.teacher.name}
                           </Link>
@@ -402,7 +404,7 @@ export default function DocumentsPage() {
                               "text-[10px]",
                               doc.expiryStatus === "expired" && "border-red-500/30 text-red-300",
                               doc.expiryStatus === "expiring_soon" && "border-amber-500/30 text-amber-300",
-                              doc.expiryStatus === "valid" && "border-emerald-500/30 text-emerald-300"
+                              doc.expiryStatus === "valid" && "border-emerald-500/30 text-(--ws-emerald)"
                             )}
                           >
                             {doc.expiryStatus === "expired"
@@ -418,7 +420,7 @@ export default function DocumentsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 gap-1 text-white/70 hover:text-white"
+                        className="h-8 gap-1 text-(--ws-fg-70) hover:text-(--ws-fg)"
                         onClick={() => window.open(doc.fileUrl, "_blank")}
                       >
                         <Download className="h-4 w-4" />
@@ -426,7 +428,7 @@ export default function DocumentsPage() {
                       </Button>
                       {doc.teacher && (
                         <Link href={`/admin/teachers/${doc.teacher.id}?tab=documents`}>
-                          <Button variant="outline" size="sm" className="h-8 gap-1 border-white/20">
+                          <Button variant="outline" size="sm" className="h-8 gap-1 border-(--ws-line-strong)">
                             <ExternalLink className="h-4 w-4" />
                             View
                           </Button>
@@ -438,7 +440,7 @@ export default function DocumentsPage() {
               </div>
               {docsPagination.totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-(--ws-fg-50)">
                     Page {docsPagination.page} of {docsPagination.totalPages}
                   </p>
                   <div className="flex gap-2">
@@ -447,7 +449,7 @@ export default function DocumentsPage() {
                       size="sm"
                       disabled={docsPagination.page <= 1}
                       onClick={() => setDocumentsPage((p) => Math.max(1, p - 1))}
-                      className="border-white/10"
+                      className="border-(--ws-line)"
                     >
                       Previous
                     </Button>
@@ -456,7 +458,7 @@ export default function DocumentsPage() {
                       size="sm"
                       disabled={docsPagination.page >= docsPagination.totalPages}
                       onClick={() => setDocumentsPage((p) => p + 1)}
-                      className="border-white/10"
+                      className="border-(--ws-line)"
                     >
                       Next
                     </Button>
@@ -468,5 +470,6 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
     </div>
+    </WorkspaceScope>
   );
 }

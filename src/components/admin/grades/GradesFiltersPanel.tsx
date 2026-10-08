@@ -85,7 +85,7 @@ export function GradesFiltersPanel({
     <div
       className={cn(
         "animate-in slide-in-from-top-2 fade-in-0 duration-200",
-        "rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from)/95 via-(--ws-panel-via)/95 to-black/95 p-5 shadow-xl shadow-black/20 backdrop-blur-xl"
+        "rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur-xl"
       )}
     >
       {/* Header */}

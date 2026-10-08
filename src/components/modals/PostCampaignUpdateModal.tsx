@@ -104,7 +104,7 @@ export function PostCampaignUpdateModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 shadow-2xl sm:max-w-lg">
+      <DialogContent className="max-w-md gap-0 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 shadow-2xl sm:max-w-lg">
         {/* Ambient gradient */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-violet-500/10 via-transparent to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-(--ws-shine) to-transparent" />

@@ -71,7 +71,7 @@ export default function AdminLessonAuditLogPage() {
         </div>
       </div>
 
-      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <CardHeader>
           <CardTitle className="text-lg text-(--ws-fg)">Filter</CardTitle>
         </CardHeader>
@@ -97,11 +97,11 @@ export default function AdminLessonAuditLogPage() {
 
       {error && (
         <Card className="border border-rose-500/30 bg-rose-500/10">
-          <CardContent className="p-4 text-sm text-rose-100">{error.message}</CardContent>
+          <CardContent className="p-4 text-sm text-(--ws-rose)">{error.message}</CardContent>
         </Card>
       )}
 
-      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg text-(--ws-fg)">Events</CardTitle>
           <div className="flex gap-2">
@@ -162,7 +162,7 @@ export default function AdminLessonAuditLogPage() {
                           {row.action}
                         </Badge>
                       </td>
-                      <td className="max-w-[140px] py-3 pr-4 align-top font-mono text-xs break-all text-violet-200/90">
+                      <td className="max-w-[140px] py-3 pr-4 align-top font-mono text-xs break-all text-(--ws-violet)">
                         {row.lessonId}
                       </td>
                       <td className="max-w-[200px] py-3 pr-4 align-top text-sm text-(--ws-fg-80)">

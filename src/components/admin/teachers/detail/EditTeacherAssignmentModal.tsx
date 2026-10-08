@@ -131,20 +131,20 @@ function Callout({
 }) {
   const Icon = tone === "warning" ? AlertTriangle : tone === "success" ? Check : Info;
   const colorClass = tone === "warning"
-    ? "border-amber-400/20 bg-amber-500/10 text-amber-100"
+    ? "border-amber-400/20 bg-amber-500/10 text-(--ws-amber)"
     : tone === "success"
     ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
     : "border-sky-400/20 bg-sky-500/10 text-sky-100";
   return (
     <div className={cn("rounded-2xl border p-4 backdrop-blur", colorClass)}>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+        <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
           <Icon className="h-4.5 w-4.5" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-semibold">{title}</p>
           {children ? (
-            <div className="text-sm text-white/80">{children}</div>
+            <div className="text-sm text-(--ws-fg-80)">{children}</div>
           ) : null}
         </div>
       </div>
@@ -185,12 +185,12 @@ function Combobox({
           <Button
             type="button"
             variant="outline"
-            className="h-10 w-full justify-between border-white/10 bg-white/5 hover:bg-white/8"
+            className="h-10 w-full justify-between border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
           >
             <span
               className={cn(
                 "truncate",
-                valueLabel ? "text-white" : "text-muted-foreground"
+                valueLabel ? "text-(--ws-fg)" : "text-muted-foreground"
               )}
             >
               {valueLabel || placeholder}
@@ -505,7 +505,7 @@ export function EditTeacherAssignmentModal({
               transition={{ duration: 0.2 }}
               className={cn(
                 // SOLID dark panel (like CreateStudentModal vibe)
-                "w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+                "w-full max-w-[860px] overflow-hidden rounded-2xl border border-(--ws-line) bg-neutral-950 text-(--ws-fg) shadow-2xl shadow-black/40"
               )}
             >
             {/* Header (clear + underlined) */}
@@ -513,9 +513,9 @@ export function EditTeacherAssignmentModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <h1 className="text-lg font-semibold">Edit Assignment</h1>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-(--ws-fg-60)">
                     Update assignment for{" "}
-                    <span className="font-medium text-white/85">
+                    <span className="font-medium text-(--ws-fg-90)">
                       {teacher.fullName}
                     </span>
                     .
@@ -527,14 +527,14 @@ export function EditTeacherAssignmentModal({
                   variant="ghost"
                   size="icon"
                   disabled={isPending}
-                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  className="h-9 w-9 rounded-full text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   onClick={() => onOpenChange(false)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="mt-5 h-px bg-white/10" />
+              <div className="mt-5 h-px bg-(--ws-fill-strong)" />
             </div>
 
             {/* Body (scrollable) */}
@@ -544,7 +544,7 @@ export function EditTeacherAssignmentModal({
             {conflict ? (
               <Callout tone="warning" title="Schedule conflict detected">
                 <div className="space-y-1">
-                  <p className="text-white/80">
+                  <p className="text-(--ws-fg-80)">
                     Overlaps with:{" "}
                     <b>
                       {conflict.subject?.name ?? "Subject"} •{" "}
@@ -554,14 +554,14 @@ export function EditTeacherAssignmentModal({
                   {conflict.schedule?.dayOfWeek != null &&
                   conflict.schedule?.startTime &&
                   conflict.schedule?.endTime ? (
-                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs text-(--ws-fg-80)">
                       <Clock className="h-3.5 w-3.5" />
                       {DOW[Number(conflict.schedule.dayOfWeek)]?.label ??
                         `Day ${conflict.schedule.dayOfWeek}`}{" "}
                       • {conflict.schedule.startTime}-{conflict.schedule.endTime}
                     </div>
                   ) : null}
-                  <p className="text-white/70">
+                  <p className="text-(--ws-fg-70)">
                     Adjust the day/time or remove schedule from this assignment.
                   </p>
                 </div>
@@ -572,16 +572,16 @@ export function EditTeacherAssignmentModal({
             {result ? (
               <div className="space-y-4">
                 <Callout tone="success" title="Assignment updated">
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-(--ws-fg-80)">
                     {periodLabel(form.getValues("academicPeriodId"))} •{" "}
                     {selectedSubjectLabel ?? "—"} • {selectedClassLabel ?? "—"}
                   </p>
                   {warnings.length ? (
                     <div className="mt-2 space-y-1">
-                      <p className="text-xs font-semibold text-white/80">
+                      <p className="text-xs font-semibold text-(--ws-fg-80)">
                         Warnings
                       </p>
-                      <ul className="list-disc space-y-1 pl-5 text-sm text-white/75">
+                      <ul className="list-disc space-y-1 pl-5 text-sm text-(--ws-fg-90)">
                         {warnings.map((w, idx) => (
                           <li key={idx}>{w}</li>
                         ))}
@@ -593,7 +593,7 @@ export function EditTeacherAssignmentModal({
                 <div className="flex items-center justify-end pt-2">
                   <Button
                     variant="outline"
-                    className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     onClick={() => onOpenChange(false)}
                   >
                     Close
@@ -616,7 +616,7 @@ export function EditTeacherAssignmentModal({
                         })
                       }
                     >
-                      <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
+                      <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
                         <SelectValue
                           placeholder={
                             periodsLoading ? "Loading…" : "Select academic period"
@@ -665,7 +665,7 @@ export function EditTeacherAssignmentModal({
                         })
                       }
                     >
-                      <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
+                      <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent className={premiumSelectContent}>
@@ -697,13 +697,13 @@ export function EditTeacherAssignmentModal({
                       min={0}
                       max={80}
                       step={1}
-                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       {...form.register("workloadHours")}
                     />
                   </div>
                 </div>
 
-                <Separator className="bg-white/10" />
+                <Separator className="bg-(--ws-fill-strong)" />
 
                 <div className="grid gap-4 md:grid-cols-2">
                   {/* Subject */}
@@ -761,7 +761,7 @@ export function EditTeacherAssignmentModal({
                 <Accordion
                   type="single"
                   collapsible
-                  className="hidden rounded-2xl border border-white/10 bg-white/5"
+                  className="hidden rounded-2xl border border-(--ws-line) bg-(--ws-fill)"
                   defaultValue={existingSchedules.length > 0 ? "schedule" : undefined}
                   onValueChange={(v) =>
                     form.setValue("includeSchedule", v === "schedule")
@@ -777,7 +777,7 @@ export function EditTeacherAssignmentModal({
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full border-dashed border-white/20 hover:border-white/30"
+                            className="w-full border-dashed border-(--ws-line-strong) hover:border-(--ws-line-strong)"
                             onClick={() => {
                               form.setValue(
                                 "schedules",
@@ -809,7 +809,7 @@ export function EditTeacherAssignmentModal({
                           return (
                             <div
                               key={idx}
-                              className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                              className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4"
                             >
                               <div className="flex items-center justify-between">
                                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
@@ -849,7 +849,7 @@ export function EditTeacherAssignmentModal({
                                       });
                                     }}
                                   >
-                                    <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
+                                    <SelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
                                       <SelectValue placeholder="Select day" />
                                     </SelectTrigger>
                                     <SelectContent className={premiumSelectContent}>
@@ -915,7 +915,7 @@ export function EditTeacherAssignmentModal({
                                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Start time</Label>
                                   <Input
                                     type="time"
-                                    className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                                     value={schedule.startTime || ""}
                                     onChange={(e) => {
                                       const current = form.getValues("schedules") || [];
@@ -942,7 +942,7 @@ export function EditTeacherAssignmentModal({
                                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">End time</Label>
                                   <Input
                                     type="time"
-                                    className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) focus:border-brand focus:ring-1 focus:ring-brand"
                                     value={schedule.endTime || ""}
                                     onChange={(e) => {
                                       const current = form.getValues("schedules") || [];
@@ -973,7 +973,7 @@ export function EditTeacherAssignmentModal({
                           <Button
                             type="button"
                             variant="outline"
-                            className="w-full border-dashed border-white/20 hover:border-white/30"
+                            className="w-full border-dashed border-(--ws-line-strong) hover:border-(--ws-line-strong)"
                             onClick={() => {
                               const current = form.getValues("schedules") || [];
                               form.setValue(
@@ -1003,7 +1003,7 @@ export function EditTeacherAssignmentModal({
                 <div className="space-y-2">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Notes (optional)</Label>
                   <Textarea
-                    className="min-h-[90px] border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="min-h-[90px] border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     {...form.register("notes")}
                   />
                 </div>
@@ -1021,13 +1021,13 @@ export function EditTeacherAssignmentModal({
             )}
 
             {!result && (
-              <div className="flex items-center justify-between pt-6 border-t border-white/10">
+              <div className="flex items-center justify-between pt-6 border-t border-(--ws-line)">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isPending}
-                  className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   Cancel
                 </Button>

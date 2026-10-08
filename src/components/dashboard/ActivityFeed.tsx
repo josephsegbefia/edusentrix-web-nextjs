@@ -43,7 +43,7 @@ function getActivityColor(type: string) {
   if (type.includes("teacher")) return "text-(--ws-violet)";
   if (type.includes("class_group")) return "text-(--ws-emerald)";
   if (type.includes("invitation")) return "text-(--ws-amber)";
-  if (type.includes("academic_period")) return "text-fuchsia-300";
+  if (type.includes("academic_period")) return "text-(--ws-violet)";
   return "text-(--ws-fg-60)";
 }
 
@@ -55,7 +55,7 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
 
   if (isLoading) {
     return (
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
           aria-hidden="true"
@@ -63,7 +63,7 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
         <CardHeader className="relative z-10">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
-              <Clock className="h-4 w-4 text-indigo-300" />
+              <Clock className="h-4 w-4 text-(--ws-violet)" />
             </div>
             Recent Activity
           </CardTitle>
@@ -76,7 +76,7 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
   }
 
   return (
-    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
         aria-hidden="true"
@@ -84,7 +84,7 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
       <CardHeader className="relative z-10 flex items-center justify-between">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
-            <Clock className="h-4 w-4 text-indigo-300" />
+            <Clock className="h-4 w-4 text-(--ws-violet)" />
           </div>
           Recent Activity
         </CardTitle>

@@ -85,7 +85,7 @@ export function StudentDangerZoneSection({
   return (
     <>
       <section
-        className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-linear-to-br from-rose-950/30 via-slate-950/80 to-black p-6 shadow-[var(--ws-shadow)] backdrop-blur-xl"
+        className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-linear-to-br from-rose-500/10 via-(--ws-panel-via) to-(--ws-panel-to) p-6 shadow-[var(--ws-shadow)] backdrop-blur-xl"
         aria-labelledby="student-danger-zone-heading"
       >
         <div
@@ -148,7 +148,7 @@ export function StudentDangerZoneSection({
               <PowerOff className="h-4 w-4 shrink-0" />
               <span>
                 <span className="block text-sm font-semibold">Mark inactive</span>
-                <span className="block text-xs font-normal text-(--ws-amber)/70">
+                <span className="block text-xs font-normal text-(--ws-amber)">
                   Pause participation; keep all records
                 </span>
               </span>
@@ -174,7 +174,7 @@ export function StudentDangerZoneSection({
               <LogOut className="h-4 w-4 shrink-0" />
               <span>
                 <span className="block text-sm font-semibold">Mark withdrawn</span>
-                <span className="block text-xs font-normal text-(--ws-rose)/70">
+                <span className="block text-xs font-normal text-(--ws-rose)">
                   Left school; records retained
                 </span>
               </span>
@@ -212,7 +212,7 @@ export function StudentDangerZoneSection({
                 <span className="block text-sm font-semibold">
                   {status === "graduated" ? "Re-enroll as active" : "Reactivate"}
                 </span>
-                <span className="block text-xs font-normal text-(--ws-emerald)/70">
+                <span className="block text-xs font-normal text-(--ws-emerald)">
                   Return to current student lists
                 </span>
               </span>
@@ -221,7 +221,7 @@ export function StudentDangerZoneSection({
         </div>
 
         <div className="relative z-10 mt-5 flex items-start gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-xs text-(--ws-fg-50)">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-amber)/80" />
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-amber)" />
           <p>
             Permanent deletion is not available. Use inactive or withdrawn, and contact
             support if a record was created by mistake.

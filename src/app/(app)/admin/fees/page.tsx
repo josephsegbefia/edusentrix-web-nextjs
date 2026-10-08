@@ -78,7 +78,7 @@ function MetricCard({
       onClick={onClick}
       className={[
         "relative w-full overflow-hidden rounded-2xl border border-(--ws-line)",
-        "bg-linear-to-br from-(--ws-fill) to-transparent p-5 lg:p-6",
+        "bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] backdrop-blur-xl lg:p-6",
         "shadow-[var(--ws-shadow)] backdrop-blur",
         onClick
           ? "text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
@@ -431,7 +431,7 @@ export default function FeesPage() {
       </div>
 
       {/* Status overview */}
-      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
           aria-hidden="true"
@@ -504,7 +504,7 @@ export default function FeesPage() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-4 shadow-md backdrop-blur"
+                  className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-4 shadow-md backdrop-blur"
                 >
                   <div
                     className={`pointer-events-none absolute inset-0 bg-linear-to-br ${item.accent}`}
@@ -530,7 +530,7 @@ export default function FeesPage() {
 
       {/* Upcoming dues & defaulters */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/5 via-amber-500/2 to-transparent"
             aria-hidden="true"
@@ -596,7 +596,7 @@ export default function FeesPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-500/5 via-red-500/2 to-transparent"
             aria-hidden="true"
@@ -667,7 +667,7 @@ export default function FeesPage() {
       {/* Recent Payments & Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Recent Payments */}
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/5 via-emerald-500/2 to-transparent"
             aria-hidden="true"
@@ -731,7 +731,7 @@ export default function FeesPage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
             aria-hidden="true"

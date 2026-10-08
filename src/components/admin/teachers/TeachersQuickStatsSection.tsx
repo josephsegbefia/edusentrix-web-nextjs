@@ -39,7 +39,7 @@ const toneConfig: Record<
     border: "border-indigo-500/30",
     bg: "from-indigo-500/10 via-indigo-500/5 to-transparent",
     iconBg: "from-indigo-500/20 to-indigo-600/20",
-    iconColor: "text-indigo-300",
+    iconColor: "text-(--ws-violet)",
     valueColor: "text-indigo-100",
     glow: "bg-indigo-500/20",
   },

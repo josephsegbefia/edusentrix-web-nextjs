@@ -29,8 +29,8 @@ type Props = {
 
 function statusTone(status: string) {
   if (status === "present") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
-  if (status === "late") return "border-amber-500/30 bg-amber-500/10 text-amber-200";
-  if (status === "absent") return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+  if (status === "late") return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
+  if (status === "absent") return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
   return "border-slate-500/30 bg-slate-500/10 text-slate-200";
 }
 
@@ -89,7 +89,7 @@ export function ClassAttendanceTab({ classId, className }: Props) {
 
   return (
     <div className="space-y-6">
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/30 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/30 backdrop-blur-xl">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-emerald-500/18 via-cyan-500/8 to-transparent blur-3xl"
           aria-hidden="true"
@@ -100,26 +100,26 @@ export function ClassAttendanceTab({ classId, className }: Props) {
               <CalendarCheck2 className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-white">
+              <CardTitle className="text-lg font-semibold text-(--ws-fg)">
                 Attendance Overview
               </CardTitle>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-50)">
                 Habitual latecomers, truants, steady attenders, and class trends for {className}.
               </p>
             </div>
           </div>
           {analytics?.filters.academicPeriodLabel ? (
-            <Badge className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/70">
+            <Badge className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] text-(--ws-fg-70)">
               {analytics.filters.academicPeriodLabel}
             </Badge>
           ) : null}
         </CardHeader>
       </Card>
 
-      <Card className="border border-white/10 bg-slate-950/60 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-(--ws-panel-from) backdrop-blur-xl">
         <CardContent className="grid gap-4 p-4 lg:grid-cols-3">
           <div className="space-y-2">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+            <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
               Academic Period
             </label>
             <PremiumSelect
@@ -161,8 +161,8 @@ export function ClassAttendanceTab({ classId, className }: Props) {
 
       {attendanceQuery.isLoading && !analytics ? (
         <div className="flex items-center justify-center gap-3 py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-emerald-300" />
-          <p className="text-sm text-white/60">Loading class attendance analytics...</p>
+          <Loader2 className="h-6 w-6 animate-spin text-(--ws-emerald)" />
+          <p className="text-sm text-(--ws-fg-60)">Loading class attendance analytics...</p>
         </div>
       ) : attendanceQuery.isError ? (
         <EmptyAnalyticsState
@@ -212,12 +212,12 @@ export function ClassAttendanceTab({ classId, className }: Props) {
           <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <LeoSignalsCard leo={analytics.leo} title="Leo Attendance Signals" />
 
-            <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-black backdrop-blur-xl">
-              <CardHeader className="border-b border-white/5 pb-4">
-                <CardTitle className="text-base font-semibold text-white">
+            <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+              <CardHeader className="border-b border-(--ws-line) pb-4">
+                <CardTitle className="text-base font-semibold text-(--ws-fg)">
                   Attendance Buckets
                 </CardTitle>
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-40)">
                   Quick class segmentation based on the selected attendance window.
                 </p>
               </CardHeader>
@@ -225,8 +225,8 @@ export function ClassAttendanceTab({ classId, className }: Props) {
                 {segmentCards.map((segment) => (
                   <div key={segment.title} className={`rounded-2xl border ${segment.tone} p-3.5`}>
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-white">{segment.title}</p>
-                      <Badge className="rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 text-[10px] text-white/70">
+                      <p className="text-sm font-semibold text-(--ws-fg)">{segment.title}</p>
+                      <Badge className="rounded-full border border-(--ws-line) bg-black/20 px-2.5 py-0.5 text-[10px] text-(--ws-fg-70)">
                         {segment.rows.length}
                       </Badge>
                     </div>
@@ -239,7 +239,7 @@ export function ClassAttendanceTab({ classId, className }: Props) {
                               photoUrl={row.photoUrl}
                               secondary={row.admissionNo ? `Adm. ${row.admissionNo}` : null}
                             />
-                            <span className="text-xs text-white/55">
+                            <span className="text-xs text-(--ws-fg-50)">
                               {segment.title === "Regular Students"
                                 ? `${row.attendanceRate}%`
                                 : segment.title === "Habitual Latecomers"
@@ -249,27 +249,27 @@ export function ClassAttendanceTab({ classId, className }: Props) {
                           </div>
                         ))
                       ) : (
-                        <p className="text-sm text-white/45">{segment.empty}</p>
+                        <p className="text-sm text-(--ws-fg-40)">{segment.empty}</p>
                       )}
                     </div>
                   </div>
                 ))}
 
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3.5">
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">Recent Daily Pulse</p>
-                    <p className="text-[11px] text-white/45">Latest recorded days</p>
+                    <p className="text-sm font-semibold text-(--ws-fg)">Recent Daily Pulse</p>
+                    <p className="text-[11px] text-(--ws-fg-40)">Latest recorded days</p>
                   </div>
                   <div className="space-y-2">
                     {analytics.dailySummary.slice(0, 5).map((day) => (
-                      <div key={day.date} className="flex items-center justify-between gap-3 rounded-xl border border-white/6 bg-black/10 px-3 py-2.5">
+                      <div key={day.date} className="flex items-center justify-between gap-3 rounded-xl border border-(--ws-line) bg-black/10 px-3 py-2.5">
                         <div>
-                          <p className="text-sm text-white">{prettyDate(day.date)}</p>
-                          <p className="text-[11px] text-white/45">
+                          <p className="text-sm text-(--ws-fg)">{prettyDate(day.date)}</p>
+                          <p className="text-[11px] text-(--ws-fg-40)">
                             {day.presentCount} present, {day.lateCount} late, {day.absentCount} absent
                           </p>
                         </div>
-                        <span className="text-sm font-semibold text-emerald-300">
+                        <span className="text-sm font-semibold text-(--ws-emerald)">
                           {day.attendanceRate}%
                         </span>
                       </div>
@@ -280,12 +280,12 @@ export function ClassAttendanceTab({ classId, className }: Props) {
             </Card>
           </div>
 
-          <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-black backdrop-blur-xl">
-            <CardHeader className="border-b border-white/5 pb-4">
-              <CardTitle className="text-base font-semibold text-white">
+          <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
+              <CardTitle className="text-base font-semibold text-(--ws-fg)">
                 Student Attendance Drilldown
               </CardTitle>
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-40)">
                 Detailed attendance behaviour for every active student in {className}.
               </p>
             </CardHeader>
@@ -293,7 +293,7 @@ export function ClassAttendanceTab({ classId, className }: Props) {
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/8 bg-white/5 text-left text-[11px] uppercase tracking-[0.18em] text-white/45">
+                    <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-left text-[11px] uppercase tracking-[0.18em] text-(--ws-fg-40)">
                       <th className="px-4 py-3">Student</th>
                       <th className="px-4 py-3">Bucket</th>
                       <th className="px-4 py-3 text-right">Attendance</th>
@@ -304,7 +304,7 @@ export function ClassAttendanceTab({ classId, className }: Props) {
                   </thead>
                   <tbody>
                     {analytics.students.map((row) => (
-                      <tr key={row.studentId} className="border-b border-white/6 last:border-0">
+                      <tr key={row.studentId} className="border-b border-(--ws-line) last:border-0">
                         <td className="px-4 py-3.5">
                           <StudentIdentity
                             fullName={row.fullName}
@@ -313,22 +313,22 @@ export function ClassAttendanceTab({ classId, className }: Props) {
                           />
                         </td>
                         <td className="px-4 py-3.5">
-                          <Badge className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/75">
+                          <Badge className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-90)">
                             {bucketLabel(row.bucket)}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3.5 text-right font-semibold text-white">
+                        <td className="px-4 py-3.5 text-right font-semibold text-(--ws-fg)">
                           {row.attendanceRate}%
                         </td>
-                        <td className="px-4 py-3.5 text-right text-amber-200">
+                        <td className="px-4 py-3.5 text-right text-(--ws-amber)">
                           {row.lateCount}
                           {row.lateCount > 0 ? (
-                            <span className="ml-1 text-[11px] text-white/40">
+                            <span className="ml-1 text-[11px] text-(--ws-fg-40)">
                               ({row.averageLateMinutes}m avg)
                             </span>
                           ) : null}
                         </td>
-                        <td className="px-4 py-3.5 text-right text-rose-200">{row.absentCount}</td>
+                        <td className="px-4 py-3.5 text-right text-(--ws-rose)">{row.absentCount}</td>
                         <td className="px-4 py-3.5">
                           <div className="flex flex-wrap gap-1.5">
                             {row.recentStatuses.length > 0 ? (
@@ -341,7 +341,7 @@ export function ClassAttendanceTab({ classId, className }: Props) {
                                 </span>
                               ))
                             ) : (
-                              <span className="text-xs text-white/40">No records yet</span>
+                              <span className="text-xs text-(--ws-fg-40)">No records yet</span>
                             )}
                           </div>
                         </td>

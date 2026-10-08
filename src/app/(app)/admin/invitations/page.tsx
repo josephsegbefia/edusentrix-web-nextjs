@@ -61,7 +61,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
     },
     accepted: {
       icon: CheckCircle2,
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
       label: "Accepted",
     },
     expired: {
@@ -71,7 +71,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
     },
     revoked: {
       icon: Ban,
-      className: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+      className: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
       label: "Revoked",
     },
     failed: {
@@ -124,7 +124,7 @@ function RoleBadge({
     },
     parent: {
       label: "Parent",
-      className: "border-green-500/30 bg-green-500/10 text-green-300",
+      className: "border-green-500/30 bg-green-500/10 text-(--ws-emerald)",
     },
     bursar: {
       label: "Bursar",
@@ -165,22 +165,22 @@ function StatCard({
 }) {
   const toneMap = {
     indigo:
-      "border-indigo-500/30 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent text-indigo-200",
+      "border-indigo-500/30 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent text-(--ws-violet)",
     amber:
-      "border-amber-500/30 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent text-amber-200",
+      "border-amber-500/30 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent text-(--ws-amber)",
     emerald:
       "border-emerald-500/30 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent text-emerald-200",
     slate:
       "border-slate-500/30 bg-linear-to-br from-slate-500/15 via-slate-500/5 to-transparent text-slate-200",
     rose:
-      "border-rose-500/30 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent text-rose-200",
+      "border-rose-500/30 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent text-(--ws-rose)",
     red: "border-red-500/30 bg-linear-to-br from-red-500/15 via-red-500/5 to-transparent text-red-200",
   } as const;
 
   return (
     <Card
       className={cn(
-        "relative overflow-hidden border shadow-lg shadow-black/20 backdrop-blur",
+        "relative overflow-hidden border shadow-[var(--ws-shadow)] backdrop-blur",
         toneMap[tone]
       )}
     >
@@ -366,7 +366,7 @@ export default function InvitationsPage() {
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15">
-                <ShieldCheck className="h-5 w-5 text-indigo-200" />
+                <ShieldCheck className="h-5 w-5 text-(--ws-violet)" />
               </div>
               <div>
                 <h1 className="text-3xl font-extrabold tracking-tight text-(--ws-fg) sm:text-4xl">
@@ -554,7 +554,7 @@ export default function InvitationsPage() {
         <CardHeader className="border-b border-(--ws-line) pb-4">
           <CardTitle className="flex items-center justify-between gap-3 text-lg font-semibold text-(--ws-fg)">
             <span className="inline-flex items-center gap-2">
-              <Mail className="h-4 w-4 text-indigo-300" />
+              <Mail className="h-4 w-4 text-(--ws-violet)" />
               Invitations
             </span>
             {!isLoading && (
@@ -658,7 +658,7 @@ export default function InvitationsPage() {
                           variant="outline"
                           onClick={() => handleDelete(invitation._id)}
                           disabled={isActionBusy}
-                          className="h-8 border-(--ws-line) bg-(--ws-fill) text-rose-300 hover:bg-(--ws-fill-strong) hover:text-rose-200"
+                          className="h-8 border-(--ws-line) bg-(--ws-fill) text-(--ws-rose) hover:bg-(--ws-fill-strong) hover:text-(--ws-rose)"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

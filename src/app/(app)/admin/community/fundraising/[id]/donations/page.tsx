@@ -52,9 +52,9 @@ import { toast } from "sonner";
 // ============================================================================
 
 const STATUS_STYLES: Record<DonationStatus, string> = {
-  pending: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  pending: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  failed: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+  failed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   refunded: "border-slate-500/30 bg-slate-500/10 text-slate-300",
 };
 
@@ -270,7 +270,7 @@ export default function CampaignDonationsPage() {
           Stats Cards
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
           <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">Total Raised</p>
@@ -279,14 +279,14 @@ export default function CampaignDonationsPage() {
             </p>
           </div>
         </div>
-        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
           <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">Total Donors</p>
             <p className="mt-1 text-3xl font-bold text-(--ws-fg)">{totals?.donorCount || 0}</p>
           </div>
         </div>
-        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent p-5">
+        <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5">
           <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
           <div className="relative z-10">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">Avg. Donation</p>

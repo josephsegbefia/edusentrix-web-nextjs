@@ -596,7 +596,7 @@ export function PromotionPreviewWizard({
                       </p>
                     </div>
                     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-emerald)/70">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-emerald)">
                         Promote
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-(--ws-emerald)">
@@ -604,7 +604,7 @@ export function PromotionPreviewWizard({
                       </p>
                     </div>
                     <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-amber)/70">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-amber)">
                         Repeat
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-(--ws-amber)">

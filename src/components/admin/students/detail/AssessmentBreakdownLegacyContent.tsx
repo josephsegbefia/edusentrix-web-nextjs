@@ -34,7 +34,7 @@ type LegacyBreakdownData = {
 export function AssessmentBreakdownLegacyContent({ data }: { data: LegacyBreakdownData }) {
   return (
     <div className="space-y-4">
-      <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-(--ws-amber)/90">
+      <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-(--ws-amber)">
         Showing legacy gradebook assessments. Migrate to the assessment engine for full
         component and contribution detail.
       </p>
@@ -90,7 +90,7 @@ export function AssessmentBreakdownLegacyContent({ data }: { data: LegacyBreakdo
                 <Card
                   key={assessment.id}
                   className={cn(
-                    "border-(--ws-line) bg-linear-to-br from-(--ws-fill) to-transparent",
+                    "border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)",
                     colorClass
                   )}
                 >

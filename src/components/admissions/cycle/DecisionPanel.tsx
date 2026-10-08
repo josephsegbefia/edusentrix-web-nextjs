@@ -173,11 +173,11 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
   if (isWithdrawn) {
     return (
       <Wrapper>
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-(--ws-amber)">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-medium">Application withdrawn</p>
-            <p className="mt-0.5 text-amber-100/80">
+            <p className="mt-0.5 text-(--ws-amber)">
               This application has been withdrawn and cannot receive a decision.
             </p>
           </div>
@@ -231,8 +231,8 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
             outcome === "accepted"
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
               : outcome === "waitlisted"
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-100"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-100"
+                ? "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
+                : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
           }`}
         >
           <div className="flex items-center justify-between gap-3">
@@ -248,25 +248,25 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
             </div>
             <Badge
               variant="outline"
-              className="border-white/15 bg-white/10 text-[11px] text-white/85"
+              className="border-(--ws-line-strong) bg-(--ws-fill-strong) text-[11px] text-(--ws-fg-90)"
             >
               {format(new Date(detail.decision.decidedAt), "MMM d, yyyy")}
             </Badge>
           </div>
           {detail.decision.notes ? (
-            <p className="mt-2 text-[12px] text-white/70">
+            <p className="mt-2 text-[12px] text-(--ws-fg-70)">
               {detail.decision.notes}
             </p>
           ) : null}
         </div>
 
         {outcome === "accepted" ? (
-          <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <UserPlus className="h-4 w-4 text-white/70" />
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
+              <UserPlus className="h-4 w-4 text-(--ws-fg-70)" />
               Provision student now
             </div>
-            <p className="mt-1 text-xs text-white/60">
+            <p className="mt-1 text-xs text-(--ws-fg-60)">
               Confirm the placement and we&apos;ll create the Student, link the
               Guardian, and (optionally) invite the parent to set up their
               account.
@@ -293,7 +293,7 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
               <Button
                 onClick={provisionNow}
                 disabled={provision.isPending}
-                className="bg-emerald-500/90 text-white hover:bg-emerald-500"
+                className="bg-emerald-500/90 text-(--ws-fg) hover:bg-emerald-500"
               >
                 {provision.isPending ? (
                   <>
@@ -316,7 +316,7 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
             variant="outline"
             size="sm"
             onClick={() => setMode("accept")}
-            className="border-white/10 bg-white/5 text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
           >
             Change decision
           </Button>
@@ -404,10 +404,10 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+    <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
       <div className="mb-3 flex items-center gap-2">
-        <GraduationCap className="h-4 w-4 text-white/40" />
-        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+        <GraduationCap className="h-4 w-4 text-(--ws-fg-40)" />
+        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-50)">
           Decision
         </h3>
       </div>
@@ -431,8 +431,8 @@ function ActionCard({
     tone === "emerald"
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20"
       : tone === "amber"
-        ? "border-amber-500/30 bg-amber-500/10 text-amber-100 hover:bg-amber-500/20"
-        : "border-rose-500/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20";
+        ? "border-amber-500/30 bg-amber-500/10 text-(--ws-amber) hover:bg-amber-500/20"
+        : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20";
   return (
     <button
       type="button"
@@ -502,9 +502,9 @@ function DecisionForm(props: {
         : "border-rose-500/25";
 
   return (
-    <div className={`space-y-3 rounded-2xl border bg-white/3 p-4 ${accent}`}>
+    <div className={`space-y-3 rounded-2xl border bg-(--ws-fill) p-4 ${accent}`}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold capitalize text-white">
+        <p className="text-sm font-semibold capitalize text-(--ws-fg)">
           {mode === "accept"
             ? "Accept application"
             : mode === "waitlist"
@@ -515,7 +515,7 @@ function DecisionForm(props: {
           variant="ghost"
           size="sm"
           onClick={onCancel}
-          className="text-white/60 hover:text-white"
+          className="text-(--ws-fg-60) hover:text-(--ws-fg)"
         >
           Cancel
         </Button>
@@ -540,7 +540,7 @@ function DecisionForm(props: {
       ) : null}
 
       <div className="space-y-1.5">
-        <Label className="text-[11px] uppercase tracking-wide text-white/50">
+        <Label className="text-[11px] uppercase tracking-wide text-(--ws-fg-50)">
           {outcome === "accepted"
             ? "Personal note (optional)"
             : outcome === "waitlisted"
@@ -562,12 +562,12 @@ function DecisionForm(props: {
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/3 px-3 py-2">
+      <div className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
         <div>
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-(--ws-fg)">
             Send email to {`${"guardian"}`} now
           </p>
-          <p className="text-[11px] text-white/55">
+          <p className="text-[11px] text-(--ws-fg-50)">
             Uses the cycle&apos;s {outcome === "accepted" ? "acceptance" : "rejection"}
             {" "}template; falls back to a default if not customised.
           </p>
@@ -581,10 +581,10 @@ function DecisionForm(props: {
           disabled={isPending || (outcome === "accepted" && !gradeId)}
           className={
             outcome === "accepted"
-              ? "bg-emerald-500/90 text-white hover:bg-emerald-500"
+              ? "bg-emerald-500/90 text-(--ws-fg) hover:bg-emerald-500"
               : outcome === "waitlisted"
-                ? "bg-amber-500/90 text-white hover:bg-amber-500"
-                : "bg-rose-500/90 text-white hover:bg-rose-500"
+                ? "bg-amber-500/90 text-(--ws-fg) hover:bg-amber-500"
+                : "bg-rose-500/90 text-(--ws-fg) hover:bg-rose-500"
           }
         >
           {isPending ? (
@@ -613,7 +613,7 @@ function GradeSelect(props: {
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] uppercase tracking-wide text-white/50">
+      <Label className="text-[11px] uppercase tracking-wide text-(--ws-fg-50)">
         Target grade
       </Label>
       <PremiumSelect value={props.value} onValueChange={props.onChange}>
@@ -649,9 +649,9 @@ function ClassGroupSelect(props: {
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] uppercase tracking-wide text-white/50">
+      <Label className="text-[11px] uppercase tracking-wide text-(--ws-fg-50)">
         Class group{" "}
-        <span className="text-white/40 normal-case">
+        <span className="text-(--ws-fg-40) normal-case">
           (optional — auto-picks least-loaded if blank)
         </span>
       </Label>

@@ -205,26 +205,26 @@ function ClassModeModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 shadow-2xl"
+          className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-(--ws-line) bg-neutral-950 shadow-2xl"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 p-6">
+          <div className="flex items-center justify-between border-b border-(--ws-line) p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
                 <UserCheck className="h-5 w-5 text-emerald-300" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-(--ws-fg)">
                   Assign Homeroom Teacher
                 </h2>
-                <p className="text-sm text-white/60">{classGroup.fullLabel}</p>
+                <p className="text-sm text-(--ws-fg-60)">{classGroup.fullLabel}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -235,29 +235,29 @@ function ClassModeModal({
             <div className="space-y-6">
               {/* Current homeroom teacher */}
               {classGroup.homeroomTeacher && (
-                <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-white/50">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-(--ws-fg-50)">
                     Current Homeroom Teacher
                   </p>
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-white/20">
+                    <Avatar className="h-10 w-10 border border-(--ws-line-strong)">
                       {classGroup.homeroomTeacher.photoUrl ? (
                         <AvatarImage
                           src={classGroup.homeroomTeacher.photoUrl}
                           alt={classGroup.homeroomTeacher.fullName}
                         />
                       ) : (
-                        <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-xs font-semibold text-white">
+                        <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-xs font-semibold text-(--ws-fg)">
                           {classGroup.homeroomTeacher.firstName?.charAt(0) || ""}
                           {classGroup.homeroomTeacher.lastName?.charAt(0) || ""}
                         </AvatarFallback>
                       )}
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-(--ws-fg)">
                         {classGroup.homeroomTeacher.fullName}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-(--ws-fg-50)">
                         {classGroup.homeroomTeacher.email}
                       </p>
                     </div>
@@ -267,7 +267,7 @@ function ClassModeModal({
 
               {/* Teacher selection */}
               <div className="space-y-2">
-                <Label htmlFor="teacherId" className="text-white">
+                <Label htmlFor="teacherId" className="text-(--ws-fg)">
                   Select Teacher
                 </Label>
                 <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -276,20 +276,20 @@ function ClassModeModal({
                       type="button"
                       variant="outline"
                       className={cn(
-                        "h-12 w-full cursor-pointer justify-between rounded-xl border border-white/10 bg-black/30 px-3 text-white shadow-inner shadow-black/20 hover:border-emerald-300/25 hover:bg-black/40 hover:text-white",
+                        "h-12 w-full cursor-pointer justify-between rounded-xl border border-(--ws-line) bg-black/30 px-3 text-(--ws-fg) shadow-inner shadow-black/20 hover:border-emerald-300/25 hover:bg-black/40 hover:text-(--ws-fg)",
                         "focus-visible:border-emerald-300/60 focus-visible:ring-emerald-400/20 data-[state=open]:border-emerald-300/40 data-[state=open]:bg-emerald-400/10"
                       )}
                     >
                       {selectedTeacher ? (
                         <div className="flex min-w-0 items-center gap-2 text-left">
-                          <Avatar className="h-7 w-7 shrink-0 border border-white/20">
+                          <Avatar className="h-7 w-7 shrink-0 border border-(--ws-line-strong)">
                             {selectedTeacher.photoUrl ? (
                               <AvatarImage
                                 src={selectedTeacher.photoUrl}
                                 alt={selectedTeacher.fullName}
                               />
                             ) : (
-                              <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-[10px] font-semibold text-white">
+                              <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-[10px] font-semibold text-(--ws-fg)">
                                 {selectedTeacher.firstName?.charAt(0) || ""}
                                 {selectedTeacher.lastName?.charAt(0) || ""}
                               </AvatarFallback>
@@ -297,36 +297,36 @@ function ClassModeModal({
                           </Avatar>
                           <span className="min-w-0">
                             <span className="block truncate font-medium">{selectedTeacher.fullName}</span>
-                            <span className="block truncate text-xs text-white/45">
+                            <span className="block truncate text-xs text-(--ws-fg-40)">
                               {selectedTeacher.email || "Teacher profile"}
                             </span>
                           </span>
                         </div>
                       ) : (
-                        <span className="text-white/50">Select a teacher...</span>
+                        <span className="text-(--ws-fg-50)">Select a teacher...</span>
                       )}
                       <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-white/10 bg-slate-950/98 p-0 text-white shadow-2xl shadow-black/50 backdrop-blur-xl"
+                    className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl shadow-black/50 backdrop-blur-xl"
                     align="start"
                     sideOffset={8}
                   >
                     <Command
                       shouldFilter={false}
-                      className="bg-transparent text-white [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-emerald-200/70 [&_[cmdk-list]]:max-h-96"
+                      className="bg-transparent text-(--ws-fg) [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-(--ws-line) [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-emerald-200/70 [&_[cmdk-list]]:max-h-96"
                     >
                       <CommandInput
                         placeholder="Type teacher name, email, or staff ID..."
                         value={query}
                         onValueChange={setQuery}
-                        className="text-white placeholder:text-white/35"
+                        className="text-(--ws-fg) placeholder:text-(--ws-fg-40)/35"
                       />
                       <CommandList>
                         {isLoadingTeachers ? (
                           <CommandEmpty>
-                            <span className="inline-flex items-center gap-2 text-white/55">
+                            <span className="inline-flex items-center gap-2 text-(--ws-fg-50)">
                               <Loader2 className="h-4 w-4 animate-spin text-emerald-200" />
                               Searching teachers...
                             </span>
@@ -335,16 +335,16 @@ function ClassModeModal({
                           <>
                             <CommandEmpty className="py-0">
                               <div className="px-4 py-5 text-center">
-                                <Search className="mx-auto h-7 w-7 text-white/25" />
-                                <p className="mt-2 font-medium text-white/75">No teachers found</p>
-                                <p className="mt-1 text-xs leading-5 text-white/45">
+                                <Search className="mx-auto h-7 w-7 text-(--ws-fg-40)" />
+                                <p className="mt-2 font-medium text-(--ws-fg-90)">No teachers found</p>
+                                <p className="mt-1 text-xs leading-5 text-(--ws-fg-40)">
                                   Try a shorter name, email address, or staff identifier.
                                 </p>
                               </div>
                             </CommandEmpty>
                             <CommandGroup
                               heading="Available teachers"
-                              className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
+                              className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-(--ws-fg-40)"
                             >
                               <CommandItem
                                 value="none"
@@ -352,7 +352,7 @@ function ClassModeModal({
                                   setValue("teacherId", null);
                                   setPickerOpen(false);
                                 }}
-                                className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-rose-400/10 data-[selected=true]:text-white"
+                                className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-(--ws-fg-80) data-[selected=true]:bg-rose-400/10 data-[selected=true]:text-(--ws-fg)"
                               >
                                 <Check
                                   className={cn(
@@ -361,8 +361,8 @@ function ClassModeModal({
                                   )}
                                 />
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-medium text-white/80">Remove homeroom teacher</p>
-                                  <p className="mt-1 text-xs text-white/45">
+                                  <p className="font-medium text-(--ws-fg-80)">Remove homeroom teacher</p>
+                                  <p className="mt-1 text-xs text-(--ws-fg-40)">
                                     Leave this class without a homeroom teacher.
                                   </p>
                                 </div>
@@ -380,7 +380,7 @@ function ClassModeModal({
                                     setValue("teacherId", teacher.id);
                                     setPickerOpen(false);
                                   }}
-                                  className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-emerald-400/10 data-[selected=true]:text-white"
+                                  className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-(--ws-fg-80) data-[selected=true]:bg-emerald-400/10 data-[selected=true]:text-(--ws-fg)"
                                 >
                                   <Check
                                     className={cn(
@@ -389,14 +389,14 @@ function ClassModeModal({
                                     )}
                                   />
                                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                                    <Avatar className="h-10 w-10 shrink-0 border border-white/20">
+                                    <Avatar className="h-10 w-10 shrink-0 border border-(--ws-line-strong)">
                                       {teacher.photoUrl ? (
                                         <AvatarImage
                                           src={teacher.photoUrl}
                                           alt={teacher.fullName}
                                         />
                                       ) : (
-                                        <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-[10px] font-semibold text-white">
+                                        <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-[10px] font-semibold text-(--ws-fg)">
                                           {teacher.firstName?.charAt(0) || ""}
                                           {teacher.lastName?.charAt(0) || ""}
                                         </AvatarFallback>
@@ -411,7 +411,7 @@ function ClassModeModal({
                                           </span>
                                         ) : null}
                                       </div>
-                                      <p className="mt-1 truncate text-xs text-white/48">
+                                      <p className="mt-1 truncate text-xs text-(--ws-fg-50)">
                                         {teacher.email || "No email on profile"}
                                       </p>
                                     </div>
@@ -437,14 +437,14 @@ function ClassModeModal({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-emerald-500 text-white hover:bg-emerald-600"
+                className="bg-emerald-500 text-(--ws-fg) hover:bg-emerald-600"
               >
                 {isSubmitting ? (
                   <>
@@ -618,25 +618,25 @@ function TeacherModeModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl"
+          className="relative z-10 w-full max-w-md rounded-2xl border border-(--ws-line) bg-neutral-950 shadow-2xl"
         >
-          <div className="flex items-center justify-between border-b border-white/10 p-6">
+          <div className="flex items-center justify-between border-b border-(--ws-line) p-6">
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/10">
                 <Home className="h-5 w-5 text-violet-300" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-white truncate">
+                <h2 className="text-lg font-semibold text-(--ws-fg) truncate">
                   Homeroom class
                 </h2>
-                <p className="text-sm text-white/60 truncate">{teacherName}</p>
+                <p className="text-sm text-(--ws-fg-60) truncate">{teacherName}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 shrink-0 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 shrink-0 rounded-lg text-(--ws-fg-60) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -648,9 +648,9 @@ function TeacherModeModal({
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-500/15">
                   <Home className="h-5 w-5 text-violet-200" />
                 </div>
-                <div className="min-w-0 text-sm text-white/85">
+                <div className="min-w-0 text-sm text-(--ws-fg-90)">
                   <p className="font-medium text-violet-100">Pick a class in seconds</p>
-                  <p className="mt-1 text-xs text-white/65 leading-relaxed">
+                  <p className="mt-1 text-xs text-(--ws-fg-90) leading-relaxed">
                     Search by stream name or grade. Homeroom is the teacher who leads this class day to day
                     (attendance, notices). You can change this anytime.
                   </p>
@@ -658,7 +658,7 @@ function TeacherModeModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="classGroupId" className="text-white">
+                <Label htmlFor="classGroupId" className="text-(--ws-fg)">
                   Class
                 </Label>
                 <Popover open={pickerOpen} onOpenChange={handlePickerOpenChange}>
@@ -667,7 +667,7 @@ function TeacherModeModal({
                       type="button"
                       variant="outline"
                       className={cn(
-                        "h-11 w-full min-w-0 cursor-pointer justify-between rounded-xl border-white/10 bg-black/30 px-3 text-white shadow-inner shadow-black/20 hover:border-cyan-300/25 hover:bg-black/40 hover:text-white",
+                        "h-11 w-full min-w-0 cursor-pointer justify-between rounded-xl border-(--ws-line) bg-black/30 px-3 text-(--ws-fg) shadow-inner shadow-black/20 hover:border-cyan-300/25 hover:bg-black/40 hover:text-(--ws-fg)",
                         "focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20 data-[state=open]:border-cyan-300/40 data-[state=open]:bg-cyan-400/10"
                       )}
                     >
@@ -676,7 +676,7 @@ function TeacherModeModal({
                         <span
                           className={cn(
                             "truncate",
-                            selectedClass ? "text-white" : "text-white/40"
+                            selectedClass ? "text-(--ws-fg)" : "text-(--ws-fg-40)"
                           )}
                         >
                           {selectedClass
@@ -684,28 +684,28 @@ function TeacherModeModal({
                             : "Search and select a class…"}
                         </span>
                       </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-white/40" />
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-(--ws-fg-40)" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-white/10 bg-slate-950/98 p-0 text-white shadow-2xl shadow-black/50 backdrop-blur-xl"
+                    className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl shadow-black/50 backdrop-blur-xl"
                     align="start"
                     sideOffset={8}
                   >
                     <Command
                       shouldFilter={false}
-                      className="bg-transparent text-white [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-cyan-200/70 [&_[cmdk-list]]:max-h-80"
+                      className="bg-transparent text-(--ws-fg) [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-(--ws-line) [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-cyan-200/70 [&_[cmdk-list]]:max-h-80"
                     >
                       <CommandInput
                         placeholder="Type a grade, stream, or class name…"
                         value={query}
                         onValueChange={setQuery}
-                        className="text-white placeholder:text-white/35"
+                        className="text-(--ws-fg) placeholder:text-(--ws-fg-40)/35"
                       />
                       <CommandList>
                         {isLoadingClasses ? (
                           <CommandEmpty>
-                            <span className="inline-flex items-center gap-2 text-white/55">
+                            <span className="inline-flex items-center gap-2 text-(--ws-fg-50)">
                               <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
                               Searching classes…
                             </span>
@@ -713,9 +713,9 @@ function TeacherModeModal({
                         ) : classes.length === 0 ? (
                           <CommandEmpty>
                             <div className="px-4 py-3 text-center">
-                              <Search className="mx-auto h-7 w-7 text-white/25" />
-                              <p className="mt-2 font-medium text-white/75">No classes found</p>
-                              <p className="mt-1 text-xs leading-5 text-white/45">
+                              <Search className="mx-auto h-7 w-7 text-(--ws-fg-40)" />
+                              <p className="mt-2 font-medium text-(--ws-fg-90)">No classes found</p>
+                              <p className="mt-1 text-xs leading-5 text-(--ws-fg-40)">
                                 {query.trim()
                                   ? "Try the grade name, stream letter, or full class label."
                                   : "Start typing to filter, or browse the list when classes load."}
@@ -725,7 +725,7 @@ function TeacherModeModal({
                         ) : (
                           <CommandGroup
                             heading="Matching class groups"
-                            className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
+                            className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-(--ws-fg-40)"
                           >
                             {classes.map((cls) => {
                               const selected = selectedClassId === cls.id;
@@ -739,7 +739,7 @@ function TeacherModeModal({
                                     });
                                     setPickerOpen(false);
                                   }}
-                                  className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-cyan-400/10 data-[selected=true]:text-white"
+                                  className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-(--ws-fg-80) data-[selected=true]:bg-cyan-400/10 data-[selected=true]:text-(--ws-fg)"
                                 >
                                   <Check
                                     className={cn(
@@ -759,7 +759,7 @@ function TeacherModeModal({
                                       ) : null}
                                     </div>
                                     {cls.name ? (
-                                      <p className="mt-1 truncate text-xs text-white/48">
+                                      <p className="mt-1 truncate text-xs text-(--ws-fg-50)">
                                         Stream {cls.name}
                                       </p>
                                     ) : null}
@@ -783,15 +783,15 @@ function TeacherModeModal({
                   <div className="flex gap-2">
                     <Info className="h-4 w-4 shrink-0 text-violet-200 mt-0.5" />
                     <div className="min-w-0 space-y-3">
-                      <p className="font-medium text-white">This class already has a homeroom teacher</p>
-                      <p className="text-xs text-white/70 leading-relaxed">{homeroomConflict.message}</p>
-                      <p className="text-xs text-white/55">
+                      <p className="font-medium text-(--ws-fg)">This class already has a homeroom teacher</p>
+                      <p className="text-xs text-(--ws-fg-70) leading-relaxed">{homeroomConflict.message}</p>
+                      <p className="text-xs text-(--ws-fg-50)">
                         Choose whether {teacherName} should take over as the only homeroom teacher for this class.
                       </p>
                       <div className="flex w-full min-w-0 flex-col gap-2 pt-1">
                         <Button
                           type="button"
-                          className="h-auto min-h-8 w-full max-w-full whitespace-normal px-3 py-2.5 text-center leading-snug bg-violet-500 text-white hover:bg-violet-600"
+                          className="h-auto min-h-8 w-full max-w-full whitespace-normal px-3 py-2.5 text-center leading-snug bg-violet-500 text-(--ws-fg) hover:bg-violet-600"
                           disabled={assignHomeroom.isPending}
                           onClick={() => void onReplaceExisting()}
                         >
@@ -800,7 +800,7 @@ function TeacherModeModal({
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-auto min-h-8 w-full max-w-full whitespace-normal border-white/15 bg-white/5 px-3 py-2.5 text-center leading-snug text-white hover:bg-white/10"
+                          className="h-auto min-h-8 w-full max-w-full whitespace-normal border-(--ws-line-strong) bg-(--ws-fill) px-3 py-2.5 text-center leading-snug text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                           onClick={() => setHomeroomConflict(null)}
                         >
                           Choose a different class
@@ -817,14 +817,14 @@ function TeacherModeModal({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10 w-full sm:w-auto"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting || !selectedClassId || assignHomeroom.isPending}
-                className="bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 w-full sm:w-auto"
+                className="bg-violet-500 text-(--ws-fg) hover:bg-violet-600 disabled:opacity-50 w-full sm:w-auto"
               >
                 {isSubmitting || assignHomeroom.isPending ? (
                   <>

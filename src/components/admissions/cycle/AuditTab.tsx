@@ -53,12 +53,12 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "cycle.updated": {
     Icon: Settings2,
-    iconClass: "text-white/70",
+    iconClass: "text-(--ws-fg-70)",
     title: "Cycle settings updated",
   },
   "cycle.published": {
     Icon: PlayCircle,
-    iconClass: "text-emerald-300",
+    iconClass: "text-(--ws-emerald)",
     title: "Cycle published",
   },
   "cycle.paused": {
@@ -68,12 +68,12 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "cycle.closed": {
     Icon: XCircle,
-    iconClass: "text-rose-300",
+    iconClass: "text-(--ws-rose)",
     title: "Cycle closed",
   },
   "cycle.archived": {
     Icon: Archive,
-    iconClass: "text-white/60",
+    iconClass: "text-(--ws-fg-60)",
     title: "Cycle archived",
     detail: (e) => {
       const n = (e.metadata?.applicationCount as number | undefined) ?? 0;
@@ -82,7 +82,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "cycle.deleted": {
     Icon: Trash2,
-    iconClass: "text-rose-300/90",
+    iconClass: "text-(--ws-rose)",
     title: "Cycle draft deleted",
     detail: (e) => {
       const slug = (e.metadata?.slug as string | undefined) ?? "";
@@ -97,7 +97,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "cycle.delegate_revoked": {
     Icon: UserX,
-    iconClass: "text-rose-300",
+    iconClass: "text-(--ws-rose)",
     title: "Delegate revoked",
   },
   "form.updated": {
@@ -120,7 +120,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "application.viewed_by_admin": {
     Icon: ClipboardList,
-    iconClass: "text-white/55",
+    iconClass: "text-(--ws-fg-50)",
     title: "Application viewed",
   },
   "application.note_added": {
@@ -130,7 +130,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "application.status_changed": {
     Icon: ClipboardList,
-    iconClass: "text-white/70",
+    iconClass: "text-(--ws-fg-70)",
     title: "Status updated",
     detail: (e) => {
       const from = (e.metadata?.from as string) ?? null;
@@ -142,7 +142,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "application.decision_recorded": {
     Icon: CheckCircle2,
-    iconClass: "text-emerald-300",
+    iconClass: "text-(--ws-emerald)",
     title: "Decision recorded",
     detail: (e) => {
       const outcome = (e.metadata?.outcome as string) ?? null;
@@ -157,17 +157,17 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "application.provisioned": {
     Icon: UserPlus,
-    iconClass: "text-emerald-300",
+    iconClass: "text-(--ws-emerald)",
     title: "Student provisioned",
   },
   "application.withdrawn": {
     Icon: UserX,
-    iconClass: "text-rose-300",
+    iconClass: "text-(--ws-rose)",
     title: "Application withdrawn",
   },
   "application.expired": {
     Icon: XCircle,
-    iconClass: "text-white/55",
+    iconClass: "text-(--ws-fg-50)",
     title: "Application expired",
   },
 };
@@ -208,7 +208,7 @@ function visualFor(kind: string): EventVisual {
   return (
     EVENT_VISUALS[kind] ?? {
       Icon: ClipboardList,
-      iconClass: "text-white/55",
+      iconClass: "text-(--ws-fg-50)",
       title: kind.replace(/[._]/g, " "),
     }
   );
@@ -227,11 +227,11 @@ export function AuditTab({ cycleId }: AuditTabProps) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+      <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-white">Audit timeline</p>
-            <p className="text-xs text-white/55">
+            <p className="text-sm font-semibold text-(--ws-fg)">Audit timeline</p>
+            <p className="text-xs text-(--ws-fg-50)">
               Every meaningful change in this cycle is recorded here. Read-only.
             </p>
           </div>
@@ -247,7 +247,7 @@ export function AuditTab({ cycleId }: AuditTabProps) {
                     "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                     isActive
                       ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
-                      : "border-white/10 bg-white/5 text-white/55 hover:bg-white/10 hover:text-white"
+                      : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   )}
                 >
                   <f.Icon className="h-3 w-3" />
@@ -259,58 +259,58 @@ export function AuditTab({ cycleId }: AuditTabProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+      <div className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
         {isLoading ? (
-          <div className="flex items-center justify-center text-sm text-white/55">
+          <div className="flex items-center justify-center text-sm text-(--ws-fg-50)">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Loading timeline…
           </div>
         ) : isError ? (
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-(--ws-rose)">
             {error instanceof Error ? error.message : "Failed to load events"}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <ClipboardList className="h-8 w-8 text-white/25" />
-            <p className="text-sm font-medium text-white">No events yet</p>
-            <p className="max-w-xs text-xs text-white/55">
+            <ClipboardList className="h-8 w-8 text-(--ws-fg-40)" />
+            <p className="text-sm font-medium text-(--ws-fg)">No events yet</p>
+            <p className="max-w-xs text-xs text-(--ws-fg-50)">
               Activity from delegates, applicants, and decisions will appear
               here as the cycle progresses.
             </p>
           </div>
         ) : (
           <div className="relative">
-            <div className="absolute left-4 top-2 bottom-2 w-px bg-white/10" />
+            <div className="absolute left-4 top-2 bottom-2 w-px bg-(--ws-fill-strong)" />
             <ul className="space-y-4">
               {filtered.map((e) => {
                 const v = visualFor(e.kind);
                 const detail = v.detail?.(e);
                 return (
                   <li key={e.id} className="relative flex items-start gap-3">
-                    <div className="relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-950">
+                    <div className="relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-panel-to)">
                       <v.Icon className={cn("h-4 w-4", v.iconClass)} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-(--ws-fg)">
                           {v.title}
                         </p>
                         {detail ? (
                           <Badge
                             variant="outline"
-                            className="border-white/10 bg-white/5 text-[10px] font-medium text-white/70"
+                            className="border-(--ws-line) bg-(--ws-fill) text-[10px] font-medium text-(--ws-fg-70)"
                           >
                             {detail}
                           </Badge>
                         ) : null}
                       </div>
-                      <p className="mt-0.5 text-xs text-white/55">
+                      <p className="mt-0.5 text-xs text-(--ws-fg-50)">
                         <span title={format(new Date(e.at), "PPpp")}>
                           {formatDistanceToNow(new Date(e.at), {
                             addSuffix: true,
                           })}
                         </span>
-                        <span className="mx-2 text-white/20">·</span>
+                        <span className="mx-2 text-(--ws-fg-40)">·</span>
                         <span>{e.actor.label}</span>
                       </p>
                     </div>

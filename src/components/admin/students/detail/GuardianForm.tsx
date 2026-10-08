@@ -4,6 +4,7 @@ import * as React from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
 import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { useAuth } from "@/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import {
   AlertCircle,
   ChevronLeft,
@@ -47,7 +47,7 @@ const GuardianFormSchema = z.object({
     "other",
   ]),
   occupation: z.string().optional().nullable(),
-  photoUrl: z.string().url().optional().nullable(),
+  photoUrl: optionalPhotoUrlSchema,
   isPrimary: z.boolean(),
 });
 
@@ -395,13 +395,11 @@ export function GuardianForm({
                             transition={{ duration: 0.2 }}
                             className="relative w-full h-full"
                           >
-                            <Image
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
                               src={photoUrl}
                               alt="Guardian photo"
-                              fill
-                              className="object-cover rounded-full"
-                              sizes="144px"
-                              priority
+                              className="h-full w-full rounded-full object-cover"
                             />
                           </motion.div>
                         ) : (

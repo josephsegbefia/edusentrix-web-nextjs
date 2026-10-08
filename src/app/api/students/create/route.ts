@@ -16,6 +16,8 @@ import {
   requireSchoolWriteAccess,
   SchoolWriteAccessError,
 } from "@/lib/billing/require-school-write-access";
+import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { StorageValidationError } from "@/lib/storage/types";
 import {
   buildDefaultStudentIdPattern,
   buildStudentIdPatternDraft,
@@ -147,7 +149,11 @@ export async function POST(req: NextRequest) {
       admissionNo: body.admissionNo?.trim() || null,
       sex: body.sex || undefined,
       dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
-      photoUrl: body.photoUrl || null,
+      photoUrl:
+        (await resolvePersistedPhotoUrl({
+          schoolId: schoolIdObj,
+          photoUrl: body.photoUrl,
+        })) || null,
       status: body.status || "active",
       enrolledAt: body.enrolledAt ? new Date(body.enrolledAt) : null,
       subjectAddIds: subjectAddIds.length > 0 ? subjectAddIds : undefined,
@@ -219,6 +225,9 @@ export async function POST(req: NextRequest) {
     );
   } catch (e: unknown) {
     if (e instanceof Response) return e;
+    if (e instanceof StorageValidationError) {
+      return new Response(e.message, { status: 400 });
+    }
     if (e instanceof SchoolWriteAccessError) {
       return Response.json(
         { success: false, error: e.message, accessMode: e.accessMode },

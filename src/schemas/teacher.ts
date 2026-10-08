@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
 
 /** Form row: gradeId is UI-only (filters class groups); strip before POST body if needed. */
 const TeachingAssignmentFormRowSchema = z.object({
@@ -13,12 +14,7 @@ export const CreateTeacherSchema = z
     lastName: z.string().trim().min(1, "Last name is required"),
     email: z.string().email("Invalid email address"),
     phone: z.string().trim().optional(),
-    photoUrl: z
-      .union([
-        z.string().url("Invalid photo URL"),
-        z.literal(""),
-      ])
-      .optional(),
+    photoUrl: optionalPhotoUrlSchema,
     /** Extra subject capabilities without a class assignment (optional). */
     subjectIds: z.array(z.string().trim()).optional().default([]),
     /** Subject + class group pairs for the current academic term (creates TeacherAssignment rows). */
@@ -63,10 +59,7 @@ export const UpdateTeacherSchema = z.object({
   lastName: z.string().trim().min(1, "Last name is required").optional(),
   email: z.string().email("Invalid email address").optional(),
   phone: z.string().trim().optional().nullable(),
-  photoUrl: z
-    .union([z.string().url("Invalid photo URL"), z.literal("")])
-    .optional()
-    .nullable(),
+  photoUrl: optionalPhotoUrlSchema,
   /** Stored asset id when replacing EduSentrix-owned avatars. */
   avatarPublicId: z.string().trim().max(240).optional().nullable(),
 

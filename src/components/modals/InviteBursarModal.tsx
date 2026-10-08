@@ -4,6 +4,7 @@ import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
@@ -20,7 +21,7 @@ const InviteBursarSchema = z.object({
   lastName: z.string().trim().min(1, "Last name is required"),
   email: z.string().trim().email("Invalid email address"),
   phone: z.string().trim().max(30, "Phone is too long").optional(),
-  photoUrl: z.string().url("Invalid photo URL").optional().nullable(),
+  photoUrl: optionalPhotoUrlSchema,
 });
 
 export type InviteBursarInput = {

@@ -11,6 +11,9 @@ import { recordActivity } from "@/lib/audit/recordActivity";
 import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import mongoose from "mongoose";
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
+import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { StorageValidationError } from "@/lib/storage/types";
 
 const UpdateGuardianSchema = z.object({
   firstName: z.string().min(1).optional(),
@@ -32,7 +35,7 @@ const UpdateGuardianSchema = z.object({
     ])
     .optional(),
   occupation: z.string().optional().nullable(),
-  photoUrl: z.string().url().optional().nullable(),
+  photoUrl: optionalPhotoUrlSchema,
   isPrimary: z.boolean().optional(),
 });
 
@@ -105,6 +108,13 @@ export async function PATCH(
 
     const body = await req.json();
     const validated = UpdateGuardianSchema.parse(body);
+    const photoUrl =
+      validated.photoUrl !== undefined
+        ? await resolvePersistedPhotoUrl({
+            schoolId: schoolIdObj,
+            photoUrl: validated.photoUrl,
+          })
+        : undefined;
 
     const studentIdObj = new mongoose.Types.ObjectId(id);
     const guardianIdObj = new mongoose.Types.ObjectId(guardianId);
@@ -156,8 +166,7 @@ export async function PATCH(
       updateData.occupation = validated.occupation?.trim() || null;
     if (validated.phone !== undefined)
       updateData.phone = validated.phone?.trim() || null;
-    if (validated.photoUrl !== undefined)
-      updateData.photoUrl = validated.photoUrl || null;
+    if (validated.photoUrl !== undefined) updateData.photoUrl = photoUrl || null;
     if (validated.isPrimary !== undefined)
       updateData.isPrimary = validated.isPrimary;
 
@@ -180,7 +189,7 @@ export async function PATCH(
     if (validated.phone !== undefined)
       userUpdateData.phone = validated.phone?.trim() || undefined;
     if (validated.photoUrl !== undefined)
-      userUpdateData.avatarUrl = validated.photoUrl || undefined;
+      userUpdateData.avatarUrl = photoUrl || undefined;
 
     if (Object.keys(userUpdateData).length > 0) {
       await User.updateOne({ _id: userIdObj }, { $set: userUpdateData });
@@ -251,6 +260,12 @@ export async function PATCH(
           error: "Validation error",
           details: error.issues,
         },
+        { status: 400 }
+      );
+    }
+    if (error instanceof StorageValidationError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
         { status: 400 }
       );
     }

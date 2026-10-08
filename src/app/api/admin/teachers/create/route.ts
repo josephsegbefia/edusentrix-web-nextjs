@@ -27,6 +27,9 @@ import {
 } from "@/lib/admin/teacher-assignment-slot";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 import { attachClerkUserIdToUser } from "@/lib/auth/resolveTenantUserForClerkSession";
+import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { StorageValidationError } from "@/lib/storage/types";
+
 type Body = {
   firstName: string;
   lastName: string;
@@ -240,6 +243,12 @@ export async function POST(req: NextRequest) {
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
+
+    normalizedBody.photoUrl =
+      (await resolvePersistedPhotoUrl({
+        schoolId: schoolIdObj,
+        photoUrl: normalizedBody.photoUrl,
+      })) || undefined;
 
     if (!normalizedBody.email?.trim()) {
       return new Response(
@@ -752,6 +761,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (e: any) {
     if (e instanceof Response) return e;
+    if (e instanceof StorageValidationError) {
+      return new Response(JSON.stringify({ error: e.message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     if (e instanceof SchoolWriteAccessError) {
       return Response.json(
         { success: false, error: e.message, accessMode: e.accessMode },

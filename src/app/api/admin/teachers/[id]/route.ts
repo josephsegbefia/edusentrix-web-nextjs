@@ -15,6 +15,8 @@ import { UpdateTeacherSchema } from "@/schemas/teacher";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { createTeacherNotification } from "@/lib/teachers/teacherNotifications";
 import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { StorageValidationError } from "@/lib/storage/types";
 import mongoose from "mongoose";
 
 function startOfDay(d: Date) {
@@ -295,6 +297,13 @@ export async function PATCH(
     }
 
     const input = parsed.data;
+    const photoUrl =
+      input.photoUrl !== undefined
+        ? await resolvePersistedPhotoUrl({
+            schoolId: schoolIdObj,
+            photoUrl: input.photoUrl,
+          })
+        : undefined;
 
     // Find teacher
     const teacher = await Teacher.findOne({
@@ -349,7 +358,7 @@ export async function PATCH(
       changes.push("phone");
     }
     if (input.photoUrl !== undefined) {
-      userUpdates.avatarUrl = input.photoUrl || null;
+      userUpdates.avatarUrl = photoUrl || null;
       changes.push("photoUrl");
     }
     if (input.avatarPublicId !== undefined) {
@@ -361,7 +370,7 @@ export async function PATCH(
     }
 
     if (input.photoUrl !== undefined && existingUser?.avatarUrl) {
-      const nextAvatarUrl = input.photoUrl || null;
+      const nextAvatarUrl = photoUrl || null;
       if (existingUser.avatarUrl !== nextAvatarUrl) {
         await deleteUploadedFile(existingUser.avatarUrl);
       }
@@ -627,6 +636,9 @@ export async function PATCH(
       },
     });
   } catch (e) {
+    if (e instanceof StorageValidationError) {
+      return Response.json({ error: e.message }, { status: 400 });
+    }
     console.error("Teacher update error:", e);
     return Response.json(
       { error: "Failed to update teacher" },

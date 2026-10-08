@@ -20,6 +20,9 @@ import {
 } from "@/lib/audit/fromApiRoute";
 import mongoose from "mongoose";
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
+import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { StorageValidationError } from "@/lib/storage/types";
 import { issueInvitation } from "@/lib/invitations/issue-invitation";
 import { ensureCanonicalUserForEmail, ensureMembershipForUser } from "@/lib/auth/canonical-user";
 import {
@@ -45,7 +48,7 @@ const CreateGuardianSchema = z.object({
     "other",
   ]),
   occupation: z.string().optional().nullable(),
-  photoUrl: z.string().url().optional().nullable(),
+  photoUrl: optionalPhotoUrlSchema,
   isPrimary: z.boolean().default(false),
 });
 
@@ -337,6 +340,10 @@ export async function POST(
     }
 
     const validated = CreateGuardianSchema.parse(body);
+    const photoUrl = await resolvePersistedPhotoUrl({
+      schoolId: schoolIdObj,
+      photoUrl: validated.photoUrl,
+    });
 
     // Verify student belongs to admin's school
     const student = await Student.findOne({
@@ -406,7 +413,7 @@ export async function POST(
       firstName: validated.firstName.trim(),
       lastName: validated.lastName.trim(),
       phone: validated.phone?.trim() || undefined,
-      avatarUrl: validated.photoUrl || undefined,
+      avatarUrl: photoUrl || undefined,
       role: "parent",
       schoolId: schoolIdObj,
       pendingOnboarding: false,
@@ -464,7 +471,7 @@ export async function POST(
       isPrimary: validated.isPrimary,
       phone: validated.phone?.trim() || null,
       email: emailLower,
-      photoUrl: validated.photoUrl || null,
+      photoUrl: photoUrl || null,
     });
 
     await guardian.save();
@@ -567,6 +574,12 @@ export async function POST(
           error: "Validation error",
           details: error.issues,
         },
+        { status: 400 }
+      );
+    }
+    if (error instanceof StorageValidationError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
         { status: 400 }
       );
     }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
 
 export const CreateStudentSchema = z
   .object({
@@ -11,7 +12,7 @@ export const CreateStudentSchema = z
 
     sex: z.enum(["male", "female"]).optional(),
     dateOfBirth: z.date().optional(), // ISO "YYYY-MM-DD"
-    photoUrl: z.url().optional(),
+    photoUrl: optionalPhotoUrlSchema,
     status: z.enum(["active", "inactive", "withdrawn", "graduated"]),
     enrolledAt: z.string().optional(), // ISO "YYYY-MM-DD"
 

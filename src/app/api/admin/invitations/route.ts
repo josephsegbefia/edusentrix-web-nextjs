@@ -1,5 +1,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { optionalPhotoUrlSchema } from "@/schemas/photoUrl";
+import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { StorageValidationError } from "@/lib/storage/types";
 import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
@@ -21,7 +24,7 @@ const createInvitationSchema = z.object({
   firstName: z.string().trim().max(80).optional(),
   lastName: z.string().trim().max(80).optional(),
   phone: z.string().trim().max(30).optional(),
-  photoUrl: z.string().url().optional(),
+  photoUrl: optionalPhotoUrlSchema,
 });
 
 type InvitationInvitedBy = {
@@ -170,6 +173,10 @@ export async function POST(req: NextRequest) {
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
 
+    const photoUrl = await resolvePersistedPhotoUrl({
+      schoolId: schoolIdObj,
+      photoUrl: parsed.data.photoUrl,
+    });
     const effectiveEmail = parsed.data.email.toLowerCase().trim();
 
     const existingPending = await Invitation.findOne({
@@ -216,7 +223,7 @@ export async function POST(req: NextRequest) {
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
         phone: parsed.data.phone,
-        photoUrl: parsed.data.photoUrl,
+        photoUrl,
       },
     });
 
@@ -297,6 +304,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (e: unknown) {
     if (e instanceof Response) return e;
+    if (e instanceof StorageValidationError) {
+      return new Response(JSON.stringify({ success: false, error: e.message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     if (e instanceof SchoolWriteAccessError) {
       return Response.json(
         { success: false, error: e.message, accessMode: e.accessMode },

@@ -863,21 +863,21 @@ export function ReconciliationIngestionModal(props: {
               </Button>
             </div>
           </div>
-          <ul className="mt-2 space-y-1 text-xs text-white/65">
+          <ul className="mt-2 space-y-1 text-xs text-(--ws-fg-70)">
             {COLUMN_HINTS.map((hint) => (
               <li key={hint}>• {hint}</li>
             ))}
           </ul>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-white/60">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-(--ws-fg-70)">
             Bank Header Quick Map
           </p>
-          <div className="max-h-48 overflow-y-auto rounded-lg border border-white/10">
+          <div className="max-h-48 overflow-y-auto rounded-lg border border-(--ws-line)">
             <table className="w-full text-[11px]">
               <thead>
-                <tr className="border-b border-white/10 bg-white/5 text-left text-white/55">
+                <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-left text-(--ws-fg-70)">
                   <th className="px-2.5 py-2 font-medium">Canonical Field</th>
                   <th className="px-2.5 py-2 font-medium">Required</th>
                   <th className="px-2.5 py-2 font-medium">Common Header Aliases</th>
@@ -887,11 +887,11 @@ export function ReconciliationIngestionModal(props: {
                 {BANK_MAPPING_GUIDE_ROWS.map((row) => (
                   <tr
                     key={row.field}
-                    className="border-b border-white/5 align-top last:border-b-0"
+                    className="border-b border-(--ws-line) align-top last:border-b-0"
                   >
-                    <td className="px-2.5 py-2 font-mono text-white/80">{row.field}</td>
-                    <td className="px-2.5 py-2 text-white/70">{row.required}</td>
-                    <td className="px-2.5 py-2 text-white/55">{row.aliases.join(", ")}</td>
+                    <td className="px-2.5 py-2 font-mono text-(--ws-fg-70)">{row.field}</td>
+                    <td className="px-2.5 py-2 text-(--ws-fg-70)">{row.required}</td>
+                    <td className="px-2.5 py-2 text-(--ws-fg-70)">{row.aliases.join(", ")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -901,7 +901,7 @@ export function ReconciliationIngestionModal(props: {
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_1fr]">
           <div className="space-y-2">
-            <Label className="text-xs text-white/65">Source Type</Label>
+            <Label className="text-xs text-(--ws-fg-70)">Source Type</Label>
             <PremiumSelect
               value={sourceType}
               onValueChange={(value) =>
@@ -919,15 +919,15 @@ export function ReconciliationIngestionModal(props: {
             </PremiumSelect>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs text-white/65">Input Method</Label>
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 p-1">
+            <Label className="text-xs text-(--ws-fg-70)">Input Method</Label>
+            <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-1">
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
                 onClick={() => setMode("upload")}
                 className={`h-8 flex-1 text-xs ${
-                  mode === "upload" ? "bg-white/10 text-white" : "text-white/60"
+                  mode === "upload" ? "bg-(--ws-fill-strong) text-(--ws-fg)" : "text-(--ws-fg-70)"
                 }`}
               >
                 <Upload className="mr-1 h-3.5 w-3.5" />
@@ -939,7 +939,7 @@ export function ReconciliationIngestionModal(props: {
                 variant="ghost"
                 onClick={() => setMode("paste")}
                 className={`h-8 flex-1 text-xs ${
-                  mode === "paste" ? "bg-white/10 text-white" : "text-white/60"
+                  mode === "paste" ? "bg-(--ws-fill-strong) text-(--ws-fg)" : "text-(--ws-fg-70)"
                 }`}
               >
                 <FileSpreadsheet className="mr-1 h-3.5 w-3.5" />
@@ -950,7 +950,7 @@ export function ReconciliationIngestionModal(props: {
         </div>
 
         {mode === "upload" ? (
-          <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-4">
+          <div className="rounded-xl border border-dashed border-(--ws-line) bg-(--ws-fill) p-4">
             <input
               ref={fileInputRef}
               type="file"
@@ -965,7 +965,7 @@ export function ReconciliationIngestionModal(props: {
                 type="button"
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 disabled={isReadingFile}
               >
                 {isReadingFile ? (
@@ -980,7 +980,7 @@ export function ReconciliationIngestionModal(props: {
                   </>
                 )}
               </Button>
-              <p className="text-xs text-white/55">
+              <p className="text-xs text-(--ws-fg-70)">
                 {fileName
                   ? `Loaded file: ${fileName}`
                   : "Choose a file, then parse and preview before ingesting."}
@@ -990,7 +990,7 @@ export function ReconciliationIngestionModal(props: {
         ) : null}
 
         <div className="space-y-2">
-          <Label className="text-xs text-white/65">
+          <Label className="text-xs text-(--ws-fg-70)">
             Rows ({parsed?.delimiter === "tab" ? "tab-separated" : "comma-separated"})
           </Label>
           <Textarea
@@ -1001,7 +1001,7 @@ export function ReconciliationIngestionModal(props: {
               setParsed(null);
             }}
             placeholder="Paste CSV or tab-separated rows here..."
-            className="border-white/10 bg-black/20 text-xs text-white placeholder:text-white/40"
+            className="border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg) placeholder:text-(--ws-fg-50)"
           />
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -1010,7 +1010,7 @@ export function ReconciliationIngestionModal(props: {
               variant="outline"
               onClick={handleParse}
               disabled={rawInput.trim().length === 0 || isReadingFile}
-              className="h-8 border-white/15 bg-white/5 text-xs text-white hover:bg-white/10"
+              className="h-8 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               Parse & Preview
             </Button>
@@ -1035,9 +1035,9 @@ export function ReconciliationIngestionModal(props: {
 
         {parsed ? (
           <div className="space-y-3">
-            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-white/65">
+                <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-70)">
                   Header Auto-Mapping Confidence
                 </p>
                 <Badge
@@ -1048,29 +1048,29 @@ export function ReconciliationIngestionModal(props: {
                   {parsed.mappingConfidence.score}%
                 </Badge>
               </div>
-              <p className="mt-1 text-xs text-white/60">
+              <p className="mt-1 text-xs text-(--ws-fg-70)">
                 {parsed.mappingConfidence.summary}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] md:grid-cols-4">
-                <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white/75">
+                <div className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1.5 text-(--ws-fg-70)">
                   Required: {parsed.mappingConfidence.matchedRequired}/
                   {parsed.mappingConfidence.totalRequired}
                 </div>
-                <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white/75">
+                <div className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1.5 text-(--ws-fg-70)">
                   Optional: {parsed.mappingConfidence.matchedOptional}/
                   {parsed.mappingConfidence.totalOptional}
                 </div>
-                <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white/75">
+                <div className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1.5 text-(--ws-fg-70)">
                   Headers detected: {parsed.detectedHeaders.length}
                 </div>
-                <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-white/75">
+                <div className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1.5 text-(--ws-fg-70)">
                   Delimiter: {parsed.delimiter}
                 </div>
               </div>
-              <div className="mt-2 max-h-36 overflow-y-auto rounded-md border border-white/10 bg-white/5">
+              <div className="mt-2 max-h-36 overflow-y-auto rounded-md border border-(--ws-line) bg-(--ws-fill)">
                 <table className="w-full text-[11px]">
                   <thead>
-                    <tr className="border-b border-white/10 text-left text-white/55">
+                    <tr className="border-b border-(--ws-line) text-left text-(--ws-fg-70)">
                       <th className="px-2.5 py-1.5 font-medium">Field</th>
                       <th className="px-2.5 py-1.5 font-medium">Mapped Header</th>
                       <th className="px-2.5 py-1.5 font-medium">Status</th>
@@ -1080,13 +1080,13 @@ export function ReconciliationIngestionModal(props: {
                     {parsed.mappingConfidence.details.map((detail) => (
                       <tr
                         key={detail.key}
-                        className="border-b border-white/5 last:border-b-0"
+                        className="border-b border-(--ws-line) last:border-b-0"
                       >
-                        <td className="px-2.5 py-1.5 text-white/70">
+                        <td className="px-2.5 py-1.5 text-(--ws-fg-70)">
                           {detail.label}
                           {detail.required ? " *" : ""}
                         </td>
-                        <td className="px-2.5 py-1.5 text-white/55">
+                        <td className="px-2.5 py-1.5 text-(--ws-fg-70)">
                           {detail.matchedHeader || "—"}
                         </td>
                         <td className="px-2.5 py-1.5">
@@ -1112,19 +1112,19 @@ export function ReconciliationIngestionModal(props: {
             </div>
 
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <p className="mb-2 text-xs font-medium text-white/75">Preview (first 5)</p>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="mb-2 text-xs font-medium text-(--ws-fg-70)">Preview (first 5)</p>
                 {parsed.entries.length === 0 ? (
-                  <p className="text-xs text-white/50">No valid rows parsed.</p>
+                  <p className="text-xs text-(--ws-fg-70)">No valid rows parsed.</p>
                 ) : (
                   <div className="space-y-2">
                     {parsed.entries.slice(0, 5).map((entry, index) => (
                       <div
                         key={`${entry.externalTxnId}-${index}`}
-                        className="rounded-md border border-white/10 bg-white/5 p-2 text-xs text-white/75"
+                        className="rounded-md border border-(--ws-line) bg-(--ws-fill) p-2 text-xs text-(--ws-fg-70)"
                       >
-                        <p className="font-medium text-white">{entry.externalTxnId}</p>
-                        <p className="mt-0.5 text-white/60">
+                        <p className="font-medium text-(--ws-fg)">{entry.externalTxnId}</p>
+                        <p className="mt-0.5 text-(--ws-fg-70)">
                           {formatCurrency(entry.amountMinor)} •{" "}
                           {new Date(entry.transactionDate).toLocaleDateString("en-GH")}
                           {entry.reference ? ` • ${entry.reference}` : ""}
@@ -1134,8 +1134,8 @@ export function ReconciliationIngestionModal(props: {
                   </div>
                 )}
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <p className="mb-2 text-xs font-medium text-white/75">Validation Notes</p>
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="mb-2 text-xs font-medium text-(--ws-fg-70)">Validation Notes</p>
                 {parsed.errors.length === 0 ? (
                   <div className="flex items-start gap-2 text-xs text-(--ws-emerald)">
                     <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -1171,7 +1171,7 @@ export function ReconciliationIngestionModal(props: {
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           >
             Cancel
           </Button>
@@ -1179,7 +1179,7 @@ export function ReconciliationIngestionModal(props: {
             type="button"
             onClick={() => void handleIngest()}
             disabled={!canSubmit}
-            className="bg-brand text-black hover:bg-brand/90"
+            className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
           >
             {ingestMutation.isPending ? (
               <>

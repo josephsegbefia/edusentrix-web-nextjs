@@ -1,4 +1,5 @@
 import { ExamPaperDetailPage } from "@/components/examinations/ExamPaperDetailPage";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default async function AdminExamPaperDetailPage({
   params,
@@ -6,5 +7,9 @@ export default async function AdminExamPaperDetailPage({
   params: Promise<{ examPaperId: string }>;
 }) {
   const { examPaperId } = await params;
-  return <ExamPaperDetailPage role="admin" examPaperId={examPaperId} />;
+  return (
+    <WorkspaceScope>
+      <ExamPaperDetailPage role="admin" examPaperId={examPaperId} />
+    </WorkspaceScope>
+  );
 }

@@ -185,7 +185,7 @@ export function MeetingRoomClient({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-sm text-white/60">
+      <div className="flex items-center gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-8 text-sm text-(--ws-fg-70)">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading meeting room...
       </div>
@@ -195,13 +195,13 @@ export function MeetingRoomClient({
   if (error && !meeting) {
     return (
       <div className="space-y-4">
-        <Button asChild variant="ghost" className="px-0 text-white/70 hover:bg-transparent hover:text-white">
+        <Button asChild variant="ghost" className="px-0 text-(--ws-fg-70) hover:bg-transparent hover:text-(--ws-fg)">
           <Link href={backHref}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {backLabel}
           </Link>
         </Button>
-        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-6 text-sm text-rose-100/85">
+        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-6 text-sm text-(--ws-rose)">
           {error}
         </div>
       </div>
@@ -215,19 +215,19 @@ export function MeetingRoomClient({
       <div className="space-y-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <Button asChild variant="ghost" className="mb-2 px-0 text-white/70 hover:bg-transparent hover:text-white">
+            <Button asChild variant="ghost" className="mb-2 px-0 text-(--ws-fg-70) hover:bg-transparent hover:text-(--ws-fg)">
               <Link href={backHref}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 {backLabel}
               </Link>
             </Button>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold text-white">{meeting.title}</h1>
-              <Badge className="border border-emerald-400/25 bg-emerald-500/10 text-emerald-100">
+              <h1 className="text-2xl font-semibold text-(--ws-fg)">{meeting.title}</h1>
+              <Badge className="border border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)">
                 Live now
               </Badge>
             </div>
-            <p className="mt-1 text-sm text-white/55">{formatMeetingRange(meeting.startsAt, meeting.endsAt)}</p>
+            <p className="mt-1 text-sm text-(--ws-fg-70)">{formatMeetingRange(meeting.startsAt, meeting.endsAt)}</p>
           </div>
         </div>
 
@@ -238,7 +238,7 @@ export function MeetingRoomClient({
           audio
           video
           data-lk-theme="default"
-          className="lk-room-container h-[calc(100vh-12rem)] overflow-hidden rounded-[30px] border border-white/10 bg-black/40 shadow-[0_24px_80px_-40px_rgba(14,165,233,0.45)]"
+          className="lk-room-container h-[calc(100vh-12rem)] overflow-hidden rounded-[30px] border border-(--ws-line) bg-(--ws-fill-strong) shadow-[0_24px_80px_-40px_rgba(14,165,233,0.45)]"
           onDisconnected={() => {
             setSession(null);
             toast.message("You left the meeting room.");
@@ -257,29 +257,29 @@ export function MeetingRoomClient({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <Button asChild variant="ghost" className="mb-2 px-0 text-white/70 hover:bg-transparent hover:text-white">
+          <Button asChild variant="ghost" className="mb-2 px-0 text-(--ws-fg-70) hover:bg-transparent hover:text-(--ws-fg)">
             <Link href={backHref}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               {backLabel}
             </Link>
           </Button>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-semibold text-white">{meeting.title}</h1>
+            <h1 className="text-3xl font-semibold text-(--ws-fg)">{meeting.title}</h1>
             <Badge
               className={cn(
                 "border",
                 meeting.status === "cancelled"
-                  ? "border-rose-400/25 bg-rose-500/10 text-rose-100"
-                  : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
+                  ? "border-rose-400/25 bg-rose-500/10 text-(--ws-rose)"
+                  : "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)"
               )}
             >
               {meeting.status}
             </Badge>
-            <Badge className="border border-white/10 bg-white/10 text-white/75">
+            <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
               {kindLabel(meeting.kind)}
             </Badge>
           </div>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-(--ws-fg-70)">
             {meeting.description || "Private in-app meeting room for invited school members only."}
           </p>
         </div>
@@ -287,7 +287,7 @@ export function MeetingRoomClient({
         <Button
           onClick={handleJoin}
           disabled={!meeting.viewer.canJoin || joining}
-          className="rounded-full bg-brand px-5 text-brand-foreground hover:bg-brand/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/45"
+          className="rounded-full bg-cyan-600 px-5 text-white hover:bg-cyan-500 hover:text-white disabled:cursor-not-allowed disabled:bg-(--ws-fill-strong) disabled:text-(--ws-fg-70)"
         >
           {joining ? (
             <>
@@ -304,44 +304,44 @@ export function MeetingRoomClient({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <Card className="border-white/10 bg-white/[0.03]">
+        <Card className="border-(--ws-line) bg-(--ws-fill)">
           <CardHeader>
-            <CardTitle className="text-white">Before you join</CardTitle>
+            <CardTitle className="text-(--ws-fg)">Before you join</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-              <p className="text-sm font-medium text-white">{formatMeetingRange(meeting.startsAt, meeting.endsAt)}</p>
-              <p className="mt-1 text-sm text-white/55">{meeting.calendar.name}</p>
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-sm font-medium text-(--ws-fg)">{formatMeetingRange(meeting.startsAt, meeting.endsAt)}</p>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">{meeting.calendar.name}</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <div className="flex items-center gap-2 text-sm text-white/80">
-                  <ShieldCheck className="h-4 w-4 text-white/35" />
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
+                  <ShieldCheck className="h-4 w-4 text-(--ws-fg-70)" />
                   <span>Invite-only access</span>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-white/45">
+                <p className="mt-2 text-xs leading-5 text-(--ws-fg-70)">
                   Only authenticated school members who were invited can enter this room.
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <div className="flex items-center gap-2 text-sm text-white/80">
-                  <Mic className="h-4 w-4 text-white/35" />
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
+                  <Mic className="h-4 w-4 text-(--ws-fg-70)" />
                   <span>Device access</span>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-white/45">
+                <p className="mt-2 text-xs leading-5 text-(--ws-fg-70)">
                   Joining requests microphone and camera access directly from your browser.
                 </p>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/85">
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)/85">
               {providerMessage(meeting)}
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100/85">
+              <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-(--ws-rose)">
                 {error}
               </div>
             ) : null}
@@ -349,45 +349,45 @@ export function MeetingRoomClient({
         </Card>
 
         <div className="space-y-6">
-          <Card className="border-white/10 bg-white/[0.03]">
+          <Card className="border-(--ws-line) bg-(--ws-fill)">
             <CardHeader>
-              <CardTitle className="text-white">Host</CardTitle>
+              <CardTitle className="text-(--ws-fg)">Host</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border border-white/10">
+                <Avatar className="h-10 w-10 border border-(--ws-line)">
                   <AvatarImage src="" alt={meeting.host.name} />
                   <AvatarFallback className="bg-linear-to-br from-sky-600 to-cyan-700 text-xs font-semibold text-white">
                     {getInitials(meeting.host.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium text-white">{meeting.host.name}</p>
-                  <p className="text-xs text-white/45">{meeting.host.role.replace("_", " ")}</p>
+                  <p className="text-sm font-medium text-(--ws-fg)">{meeting.host.name}</p>
+                  <p className="text-xs text-(--ws-fg-70)">{meeting.host.role.replace("_", " ")}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/[0.03]">
+          <Card className="border-(--ws-line) bg-(--ws-fill)">
             <CardHeader>
-              <CardTitle className="text-white">Participants</CardTitle>
+              <CardTitle className="text-(--ws-fg)">Participants</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {meeting.participants.map((participant) => (
                 <div
                   key={`${participant.userId}:${participant.role}`}
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/10 px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5"
                 >
-                  <Avatar className="h-9 w-9 border border-white/10">
+                  <Avatar className="h-9 w-9 border border-(--ws-line)">
                     <AvatarImage src={participant.avatarUrl || ""} alt={participant.name} />
                     <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-xs font-semibold text-white">
                       {getInitials(participant.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">{participant.name}</p>
-                    <p className="truncate text-xs text-white/45">
+                    <p className="truncate text-sm font-medium text-(--ws-fg)">{participant.name}</p>
+                    <p className="truncate text-xs text-(--ws-fg-70)">
                       {participant.wardNames.length > 0
                         ? participant.wardNames.join(", ")
                         : participant.role}

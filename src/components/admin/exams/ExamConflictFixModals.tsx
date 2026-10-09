@@ -151,7 +151,7 @@ function EntryPicker({
 }) {
   if (entryIds.length <= 1) {
     return (
-      <div className={cn(glassInsetClass, "p-3 text-sm text-white/80")}>
+      <div className={cn(glassInsetClass, "p-3 text-sm text-(--ws-fg-70)")}>
         {resolveEntryLabel(entryId)}
       </div>
     );
@@ -252,7 +252,7 @@ function ExamConflictTimeModal({
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-white/70">Exam paper</Label>
+          <Label className="text-(--ws-fg-70)">Exam paper</Label>
           <EntryPicker
             entryId={entryId}
             entryIds={fixRequest.conflict.affectedEntryIds}
@@ -264,6 +264,7 @@ function ExamConflictTimeModal({
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-1">
             <CustomDatePicker
+              surface="theme"
               label="Date"
               value={date ? new Date(`${date}T00:00:00`) : null}
               onChange={(value) => setDate(value ? value.toISOString().slice(0, 10) : "")}
@@ -401,7 +402,7 @@ function ExamConflictVenueModal({
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-white/70">Exam paper</Label>
+          <Label className="text-(--ws-fg-70)">Exam paper</Label>
           <EntryPicker
             entryId={entryId}
             entryIds={fixRequest.conflict.affectedEntryIds}
@@ -590,7 +591,7 @@ function ExamConflictInvigilatorModal({
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-white/70">Exam paper</Label>
+          <Label className="text-(--ws-fg-70)">Exam paper</Label>
           <EntryPicker
             entryId={entryId}
             entryIds={fixRequest.conflict.affectedEntryIds}
@@ -606,7 +607,7 @@ function ExamConflictInvigilatorModal({
         ) : null}
 
         <div className="space-y-2">
-          <Label className="text-white/70">Teacher</Label>
+          <Label className="text-(--ws-fg-70)">Teacher</Label>
           <Popover open={teacherOpen} onOpenChange={setTeacherOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -685,7 +686,7 @@ function ExamConflictInvigilatorModal({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white/70">Role</Label>
+          <Label className="text-(--ws-fg-70)">Role</Label>
           <PremiumSelect
             value={role}
             onValueChange={(value) => setRole(value as ExamInvigilatorRole)}

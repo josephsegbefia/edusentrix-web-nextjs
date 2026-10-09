@@ -64,7 +64,7 @@ export default function CreateClassModal({
       <div className="flex items-center gap-2 rounded-xl border border-teal-500/20 bg-teal-500/10 px-4 py-3">
         <School className="h-5 w-5 text-teal-300" />
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-(--ws-fg-70)">
             Adding class to
           </p>
           <p className="text-sm font-semibold text-teal-200">
@@ -73,7 +73,7 @@ export default function CreateClassModal({
         </div>
       </div>
 
-      <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/55">
+      <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs leading-relaxed text-(--ws-fg-70)">
         Subjects and learning areas already used in this grade are applied to this class
         automatically (same set as your other classes). The first class in a grade starts
         with none until you assign them in the grade or class subject flows.
@@ -83,7 +83,7 @@ export default function CreateClassModal({
       <div className="space-y-2">
         <Label
           htmlFor="name"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)"
         >
           Class name *
         </Label>
@@ -91,7 +91,7 @@ export default function CreateClassModal({
           id="name"
           {...register("name")}
           placeholder="e.g. A, B, 1, Alpha"
-          className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+          className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
         />
         {errors.name && (
           <p className="text-xs text-rose-300">{errors.name.message}</p>
@@ -102,7 +102,7 @@ export default function CreateClassModal({
       <div className="space-y-2">
         <Label
           htmlFor="capacity"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)"
         >
           Capacity (optional)
         </Label>
@@ -125,7 +125,7 @@ export default function CreateClassModal({
                 const parsed = Number(v);
                 field.onChange(Number.isFinite(parsed) ? parsed : undefined);
               }}
-              className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
             />
           )}
         />
@@ -141,7 +141,7 @@ export default function CreateClassModal({
           variant="outline"
           size="sm"
           onClick={onClose}
-          className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
         >
           <X className="h-4 w-4" />
           Cancel

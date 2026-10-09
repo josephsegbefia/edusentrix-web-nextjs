@@ -123,9 +123,9 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
     .filter((value): value is number => value !== null);
 
   return (
-    <div className="space-y-4 mt-4 pt-4 border-t border-white/10">
+    <div className="space-y-4 mt-4 pt-4 border-t border-(--ws-line)">
       <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">
           Installment Schedule ({numberOfInstallments} installments)
         </Label>
         {difference > 0.01 && (
@@ -143,10 +143,10 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-3"
+              className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-white/80">
+                <span className="text-sm font-medium text-(--ws-fg)">
                   Installment {index + 1}
                 </span>
                 {fields.length > 1 && (
@@ -169,19 +169,20 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
                     name={`lineItems.${lineItemIndex}.installmentSchedule.${index}.dueDate` as any}
                     render={({ field }) => (
                       <CustomDatePicker
+                        surface="theme"
                         label="Due Date"
                         value={parseLocalDate(field.value)}
                         onChange={(date) => field.onChange(formatLocalDate(date))}
                         placeholder="Select due date"
                         maxDate={maxDueDate ?? undefined}
-                        className="h-9 border-white/10 bg-white/5 text-sm text-white"
+                        className="text-sm"
                         triggerAriaLabel={`Installment ${index + 1} due date`}
                       />
                     )}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-white/60">Amount (GHS)</Label>
+                  <Label className="text-xs text-(--ws-fg-70)">Amount (GHS)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -191,7 +192,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
                         valueAsNumber: true,
                       }
                     )}
-                    className="border border-white/10 bg-white/5 text-white text-sm h-9"
+                    className="h-9 border border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg)"
                   />
                 </div>
               </div>
@@ -216,7 +217,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
               amount: 0,
             } as any);
           }}
-          className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+          className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Installment
@@ -224,10 +225,10 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
       )}
 
       {fields.length > 0 && (
-        <div className="pt-2 border-t border-white/10">
+        <div className="pt-2 border-t border-(--ws-line)">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/60">Total Scheduled:</span>
-            <span className={`font-semibold ${difference > 0.01 ? "text-(--ws-rose)" : "text-white"}`}>
+            <span className="text-(--ws-fg-70)">Total Scheduled:</span>
+            <span className={`font-semibold ${difference > 0.01 ? "text-(--ws-rose)" : "text-(--ws-fg)"}`}>
               GHS {totalScheduled.toFixed(2)} / GHS {totalAmount.toFixed(2)}
             </span>
           </div>

@@ -180,8 +180,8 @@ function StatSummaryCard({
           {icon}
         </span>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">{label}</p>
-          <p className="text-2xl font-semibold text-white">{value}</p>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-(--ws-fg-70)">{label}</p>
+          <p className="text-2xl font-semibold text-(--ws-fg)">{value}</p>
         </div>
       </div>
     </div>
@@ -273,13 +273,13 @@ export function MeetingsInbox({
       />
 
       <div className="flex flex-wrap gap-2">
-        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-(--ws-emerald)">
           {stats.ready} ready now
         </Badge>
         <Badge className="border border-sky-400/20 bg-sky-500/15 text-sky-200">
           {stats.upcoming} upcoming
         </Badge>
-        <Badge className="border border-white/10 bg-white/5 text-white/70">
+        <Badge className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
           {stats.hosted} hosted by you
         </Badge>
       </div>
@@ -289,7 +289,7 @@ export function MeetingsInbox({
           label="Ready now"
           value={stats.ready}
           icon={<Video className="h-4 w-4" />}
-          iconClassName="border-emerald-400/30 bg-emerald-500/20 text-emerald-100"
+          iconClassName="border-emerald-400/30 bg-emerald-500/20 text-(--ws-emerald)"
         />
         <StatSummaryCard
           label="Upcoming"
@@ -309,20 +309,20 @@ export function MeetingsInbox({
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle className="text-white">Your meeting queue</CardTitle>
-              <p className="mt-1 text-sm text-white/50">
+              <CardTitle className="text-(--ws-fg)">Your meeting queue</CardTitle>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Private, invite-only school calls and parent conversations.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 md:flex-row">
               <div className="relative w-full md:w-72">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search meetings"
-                  className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
+                  className={cn(glassInsetClass, "pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-70)")}
                 />
               </div>
 
@@ -347,21 +347,21 @@ export function MeetingsInbox({
             <div
               className={cn(
                 glassInsetClass,
-                "flex items-center gap-3 rounded-2xl px-4 py-8 text-sm text-white/55"
+                "flex items-center gap-3 rounded-2xl px-4 py-8 text-sm text-(--ws-fg-70)"
               )}
             >
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading meetings...
             </div>
           ) : error ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-6 text-sm text-rose-100/85">
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-6 text-sm text-(--ws-rose)">
               {error}
             </div>
           ) : meetings.length === 0 ? (
             <div
               className={cn(
                 glassInsetClass,
-                "rounded-2xl border-dashed px-4 py-10 text-center text-sm text-white/45"
+                "rounded-2xl border-dashed px-4 py-10 text-center text-sm text-(--ws-fg-70)"
               )}
             >
               No meetings matched this filter.
@@ -372,34 +372,34 @@ export function MeetingsInbox({
                 key={meeting.id}
                 className={cn(
                   glassPanelClass,
-                  "rounded-2xl p-4 transition hover:border-white/20 hover:-translate-y-0.5"
+                  "rounded-2xl p-4 transition hover:border-(--ws-line) hover:-translate-y-0.5"
                 )}
               >
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-semibold text-white">{meeting.title}</h2>
+                        <h2 className="text-lg font-semibold text-(--ws-fg)">{meeting.title}</h2>
                         <Badge
                           className={cn(
                             "border",
                             meeting.status === "cancelled"
-                              ? "border-rose-400/25 bg-rose-500/10 text-rose-100"
-                              : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100"
+                              ? "border-rose-400/25 bg-rose-500/10 text-(--ws-rose)"
+                              : "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)"
                           )}
                         >
                           {meeting.status}
                         </Badge>
-                        <Badge className="border border-white/10 bg-white/10 text-white/75">
+                        <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
                           {kindLabel(meeting.kind)}
                         </Badge>
-                        <Badge className="border border-white/10 bg-white/10 text-white/75">
+                        <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
                           {viewerRoleLabel(meeting.viewer.role)}
                         </Badge>
                       </div>
 
                       {meeting.description ? (
-                        <p className="max-w-3xl text-sm leading-6 text-white/60">
+                        <p className="max-w-3xl text-sm leading-6 text-(--ws-fg-70)">
                           {meeting.description}
                         </p>
                       ) : null}
@@ -418,34 +418,34 @@ export function MeetingsInbox({
                   <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr]">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className={cn(glassInsetClass, "p-3")}>
-                        <div className="flex items-center gap-2 text-white/75">
-                          <CalendarDays className="h-4 w-4 text-white/35" />
+                        <div className="flex items-center gap-2 text-(--ws-fg-70)">
+                          <CalendarDays className="h-4 w-4 text-(--ws-fg-70)" />
                           <span className="text-sm">
                             {formatMeetingRange(meeting.startsAt, meeting.endsAt)}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-white/40">{meeting.calendar.name}</p>
+                        <p className="mt-2 text-xs text-(--ws-fg-70)">{meeting.calendar.name}</p>
                       </div>
 
                       <div className={cn(glassInsetClass, "p-3")}>
-                        <div className="flex items-center gap-2 text-white/75">
-                          <Clock3 className="h-4 w-4 text-white/35" />
+                        <div className="flex items-center gap-2 text-(--ws-fg-70)">
+                          <Clock3 className="h-4 w-4 text-(--ws-fg-70)" />
                           <span className="text-sm">{providerMessage(meeting)}</span>
                         </div>
-                        <p className="mt-2 text-xs text-white/40">
+                        <p className="mt-2 text-xs text-(--ws-fg-70)">
                           Provider state: {meeting.providerStatus}
                         </p>
                       </div>
                     </div>
 
                     <div className={cn(glassInsetClass, "p-3")}>
-                      <div className="flex items-center gap-2 text-sm text-white/80">
-                        <Users className="h-4 w-4 text-white/35" />
+                      <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
+                        <Users className="h-4 w-4 text-(--ws-fg-70)" />
                         <span>
                           {countLabel(meeting.counts) || `${meeting.participantCount} invited`}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs text-white/40">Hosted by {meeting.host.name}</p>
+                      <p className="mt-2 text-xs text-(--ws-fg-70)">Hosted by {meeting.host.name}</p>
                     </div>
                   </div>
 
@@ -458,17 +458,17 @@ export function MeetingsInbox({
                           "inline-flex items-center gap-2 rounded-full px-2.5 py-1"
                         )}
                       >
-                        <Avatar className="h-7 w-7 border border-white/10">
+                        <Avatar className="h-7 w-7 border border-(--ws-line)">
                           <AvatarImage src={participant.avatarUrl || ""} alt={participant.name} />
                           <AvatarFallback className="bg-linear-to-br from-sky-600 to-cyan-700 text-[10px] font-semibold text-white">
                             {getInitials(participant.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-white/75">{participant.name}</span>
+                        <span className="text-xs text-(--ws-fg-70)">{participant.name}</span>
                       </div>
                     ))}
                     {meeting.participants.length > 6 ? (
-                      <Badge className="border border-white/10 bg-white/10 text-white/60">
+                      <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
                         +{meeting.participants.length - 6} more
                       </Badge>
                     ) : null}

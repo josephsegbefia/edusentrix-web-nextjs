@@ -220,7 +220,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
   if (sessionLoading) {
     return (
       <WorkspacePageShell>
-        <div className="flex items-center justify-center py-24 text-white/60">
+        <div className="flex items-center justify-center py-24 text-(--ws-fg-70)">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Loading exam session…
         </div>
@@ -232,7 +232,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
     return (
       <WorkspacePageShell>
         <div className={cn(glassInsetClass, "mx-auto max-w-lg p-8 text-center")}>
-          <h2 className="text-lg font-semibold text-white">Exam session not found</h2>
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Exam session not found</h2>
           <Button asChild className={cn(glassPrimaryButtonClass, "mt-4")}>
             <Link href="/admin/exams/sessions">Back to exam sessions</Link>
           </Button>
@@ -275,14 +275,14 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
       />
 
       {conflictsLoading ? (
-        <div className="flex items-center justify-center py-20 text-white/60">
+        <div className="flex items-center justify-center py-20 text-(--ws-fg-70)">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Running conflict review…
         </div>
       ) : conflictError ? (
         <GlassPanel className="p-8 text-center">
           <AlertTriangle className="mx-auto h-10 w-10 text-(--ws-rose)" />
-          <p className="mt-4 text-sm text-white/70">
+          <p className="mt-4 text-sm text-(--ws-fg-70)">
             {conflictError instanceof Error
               ? conflictError.message
               : "Could not run conflict review."}
@@ -299,14 +299,14 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
         <>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <GlassPanel className="p-6">
-              <p className="text-xs uppercase tracking-wide text-white/45">Publish readiness</p>
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Publish readiness</p>
               <div className="mt-4 flex items-end gap-3">
                 <p className={cn("text-5xl font-semibold tabular-nums", readinessTone(readinessScore))}>
                   {readinessScore}
                 </p>
-                <p className="pb-1 text-sm text-white/50">/ 100</p>
+                <p className="pb-1 text-sm text-(--ws-fg-70)">/ 100</p>
               </div>
-              <p className="mt-3 text-sm text-white/70">
+              <p className="mt-3 text-sm text-(--ws-fg-70)">
                 {readinessLabel(
                   readinessScore,
                   summary?.errors ?? 0,
@@ -314,7 +314,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                 )}
               </p>
               {result?.checkedAt ? (
-                <p className="mt-4 text-xs text-white/40">
+                <p className="mt-4 text-xs text-(--ws-fg-70)">
                   Last checked{" "}
                   {new Date(result.checkedAt).toLocaleString(undefined, {
                     dateStyle: "medium",
@@ -336,13 +336,13 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                   label: "Warnings",
                   value: summary?.warnings ?? 0,
                   icon: AlertTriangle,
-                  tone: (summary?.warnings ?? 0) > 0 ? "text-(--ws-amber)" : "text-white/70",
+                  tone: (summary?.warnings ?? 0) > 0 ? "text-(--ws-amber)" : "text-(--ws-fg-70)",
                 },
                 {
                   label: "Overridden",
                   value: summary?.overridden ?? 0,
                   icon: CheckCircle2,
-                  tone: (summary?.overridden ?? 0) > 0 ? "text-(--ws-emerald)" : "text-white/70",
+                  tone: (summary?.overridden ?? 0) > 0 ? "text-(--ws-emerald)" : "text-(--ws-fg-70)",
                 },
                 {
                   label: "Info notices",
@@ -354,7 +354,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                 <GlassPanel key={card.label} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-white/45">
+                      <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                         {card.label}
                       </p>
                       <p className={cn("mt-2 text-2xl font-semibold", card.tone)}>
@@ -381,13 +381,13 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                     className={cn(
                       "inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition",
                       active
-                        ? "border-white/15 bg-white/10 text-white"
-                        : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                        ? "border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg)"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                     )}
                   >
                     <tab.icon className={cn("h-4 w-4", tab.tone)} />
                     {tab.label}
-                    <Badge variant="outline" className="border-white/10 bg-black/20 text-white/70">
+                    <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
                       {count}
                     </Badge>
                   </button>
@@ -402,14 +402,14 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                 ) : (
                   <CalendarRange className="mx-auto h-10 w-10 text-(--ws-cyan)" />
                 )}
-                <h3 className="mt-4 text-lg font-semibold text-white">
+                <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">
                   {activeTab === "error"
                     ? "No blocking errors found"
                     : activeTab === "warning"
                       ? "No warnings right now"
                       : "No info notices right now"}
                 </h3>
-                <p className="mx-auto mt-2 max-w-xl text-sm text-white/60">
+                <p className="mx-auto mt-2 max-w-xl text-sm text-(--ws-fg-70)">
                   {activeTab === "error"
                     ? "This session has no blocking scheduling issues in the current review."
                     : "Check the other tabs if you are preparing to publish."}
@@ -517,7 +517,7 @@ function ConflictCard({
               </Badge>
             ) : null}
           </div>
-          <p className="text-sm leading-relaxed text-white">{conflict.message}</p>
+          <p className="text-sm leading-relaxed text-(--ws-fg)">{conflict.message}</p>
           {isOverridden && conflict.overrideReason ? (
             <p className="text-sm text-(--ws-emerald)">
               Override reason: {conflict.overrideReason}
@@ -528,16 +528,16 @@ function ConflictCard({
 
       {affectedEntries.length > 0 ? (
         <div>
-          <p className="text-xs uppercase tracking-wide text-white/45">Affected exam papers</p>
+          <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Affected exam papers</p>
           <ul className="mt-2 space-y-2">
             {affectedEntries.map((entry) => (
               <li
                 key={entry.id}
-                className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/85"
+                className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-70)"
               >
                 <p>{entry.label}</p>
                 {entry.schedule ? (
-                  <p className="mt-1 text-xs text-white/45">{entry.schedule}</p>
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">{entry.schedule}</p>
                 ) : null}
               </li>
             ))}

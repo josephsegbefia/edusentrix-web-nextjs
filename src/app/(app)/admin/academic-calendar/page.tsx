@@ -25,17 +25,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Modal } from "@/components/ui/responsive-modal";
-import { premiumMenuItem, premiumSelectContent } from "@/components/ui/premium";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
@@ -121,10 +121,10 @@ const DEFAULT_COLORS = [
 ];
 
 const glassPanel =
-  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+  "relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl";
 
 const frostedInset =
-  "rounded-xl border border-white/10 bg-white/4 backdrop-blur-md";
+  "rounded-xl border border-(--ws-line) bg-(--ws-fill) backdrop-blur-md";
 
 type CalendarSummary = {
   id: string;
@@ -1121,25 +1121,25 @@ export default function AcademicCalendarPage() {
   const selectedCalendarEvents = inPeriodEvents.length;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+    <WorkspaceScope className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-8">
         <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-blue-600/10 blur-3xl" />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70 backdrop-blur-sm">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs font-medium text-(--ws-fg-70) backdrop-blur-sm">
               <CalendarRange className="h-3.5 w-3.5 text-(--ws-cyan)" />
               School schedule
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg) sm:text-3xl">
                 Academic Calendar
               </h1>
-              <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+              <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
                 Premium
               </Badge>
             </div>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-(--ws-fg-70)">
               Build, publish, and delegate your school&apos;s academic calendar. Events stay grouped
               by academic period.
             </p>
@@ -1152,11 +1152,11 @@ export default function AcademicCalendarPage() {
             ].map((step) => (
               <div
                 key={step.label}
-                className="rounded-xl border border-white/10 bg-white/4 p-3 backdrop-blur-sm"
+                className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 backdrop-blur-sm"
               >
                 <step.icon className="h-4 w-4 text-(--ws-cyan)" />
-                <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
-                <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
+                <p className="mt-2 text-sm font-medium text-(--ws-fg)">{step.label}</p>
+                <p className="mt-0.5 text-xs text-(--ws-fg-70)">{step.text}</p>
               </div>
             ))}
           </div>
@@ -1170,23 +1170,23 @@ export default function AcademicCalendarPage() {
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-2">
               <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">What admins do here</h2>
-              <p className="mt-1 text-sm leading-6 text-white/55">
+              <h2 className="text-sm font-semibold text-(--ws-fg)">What admins do here</h2>
+              <p className="mt-1 text-sm leading-6 text-(--ws-fg-70)">
                 Choose the academic period, add exams, holidays, and school activities, then publish
                 when parents and staff should see the live calendar.
               </p>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
+        <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+            <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
               {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} in period
             </Badge>
             {activeCalendar?.isPublished ? (
@@ -1199,7 +1199,7 @@ export default function AcademicCalendarPage() {
               </Badge>
             )}
           </div>
-          <p className="mt-3 text-xs leading-5 text-white/45">
+          <p className="mt-3 text-xs leading-5 text-(--ws-fg-70)">
             When you change period, Leo can surface recurring events from the previous term to
             recreate if needed.
           </p>
@@ -1209,7 +1209,7 @@ export default function AcademicCalendarPage() {
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 School Calendar
               </CardTitle>
@@ -1218,10 +1218,10 @@ export default function AcademicCalendarPage() {
               <div className={cn(frostedInset, "p-4")}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-white">
+                    <div className="text-sm font-semibold text-(--ws-fg)">
                       {activeCalendar?.name || "Academic Calendar"}
                     </div>
-                    <div className="mt-1 text-xs text-white/50">
+                    <div className="mt-1 text-xs text-(--ws-fg-70)">
                       One school-wide calendar, organised by academic period.
                     </div>
                   </div>
@@ -1234,7 +1234,7 @@ export default function AcademicCalendarPage() {
           </Card>
 
           <Card className={glassPanel}>
-            <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-(--ws-line) pb-4">
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Filters
               </CardTitle>
@@ -1242,28 +1242,28 @@ export default function AcademicCalendarPage() {
             </CardHeader>
             <CardContent className="space-y-3 pt-4">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/45">Academic period</label>
-                <Select
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Academic period</label>
+                <PremiumSelect
                   value={selectedPeriodId || "none"}
                   onValueChange={(value) => setSelectedPeriodId(value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                    <SelectValue placeholder="Select period" />
-                  </SelectTrigger>
-                  <SelectContent className={premiumSelectContent}>
-                    <SelectItem value="none" className={premiumMenuItem}>
+                  <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                    <PremiumSelectValue placeholder="Select period" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="none">
                       {periodOptions.length === 0 ? "No periods available" : "Select period"}
-                    </SelectItem>
+                    </PremiumSelectItem>
                     {periodOptions.map((period) => (
-                      <SelectItem key={period.id} value={period.id} className={premiumMenuItem}>
+                      <PremiumSelectItem key={period.id} value={period.id}>
                         {period.yearLabel} · {period.term}
                         {period.isCurrent ? " · Current" : ""}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
-              <div className={cn(frostedInset, "p-3 text-sm text-white/60")}>
+              <div className={cn(frostedInset, "p-3 text-sm text-(--ws-fg-70)")}>
                 {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} inside this period
               </div>
               {outsidePeriodEvents.length > 0 && (
@@ -1272,8 +1272,8 @@ export default function AcademicCalendarPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/45">Jump to month</label>
-                <CustomDatePicker
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Jump to month</label>
+                <CustomDatePicker surface="theme"
                   value={rangeStart}
                   onChange={(date) => date && setMonth(startOfMonth(date))}
                 />
@@ -1283,7 +1283,7 @@ export default function AcademicCalendarPage() {
 
           {previousRecurringEvents.length > 0 &&
             dismissedCarryoverKey !== `${previousPeriod?.id}:${selectedPeriodId}` && (
-              <Card className="relative overflow-hidden rounded-2xl border border-emerald-400/25 bg-linear-to-br from-emerald-950/70 via-slate-950/90 to-black shadow-2xl shadow-emerald-950/20 backdrop-blur-xl">
+              <Card className="relative overflow-hidden rounded-2xl border border-emerald-400/25 bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-[var(--ws-shadow)] backdrop-blur-xl">
                 <CardHeader className="border-b border-emerald-400/15 pb-4">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold text-emerald-50">
                     <Sparkles className="h-4 w-4" />
@@ -1300,10 +1300,10 @@ export default function AcademicCalendarPage() {
                         key={event.id}
                         type="button"
                         onClick={() => openCarryoverEvent(event)}
-                        className="w-full rounded-xl border border-emerald-300/20 bg-white/4 px-3 py-2 text-left text-sm text-white backdrop-blur-sm hover:border-emerald-200/40"
+                        className="w-full rounded-xl border border-emerald-300/20 bg-(--ws-fill) px-3 py-2 text-left text-sm text-(--ws-fg) backdrop-blur-sm hover:border-emerald-200/40"
                       >
                         <span className="block font-semibold">{event.title}</span>
-                        <span className="block text-xs text-white/45">
+                        <span className="block text-xs text-(--ws-fg-70)">
                           Opens with editable dates, times, audience, and recurrence.
                         </span>
                       </button>
@@ -1312,7 +1312,7 @@ export default function AcademicCalendarPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     onClick={() =>
                       setDismissedCarryoverKey(`${previousPeriod?.id}:${selectedPeriodId}`)
                     }
@@ -1324,7 +1324,7 @@ export default function AcademicCalendarPage() {
             )}
 
           <Card className={glassPanel}>
-            <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-(--ws-line) pb-4">
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Publishing
               </CardTitle>
@@ -1334,7 +1334,7 @@ export default function AcademicCalendarPage() {
               {activeCalendar ? (
                 <>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-white/70">Published</span>
+                    <span className="text-sm text-(--ws-fg-70)">Published</span>
                     <Switch
                       checked={activeCalendar.isPublished}
                       disabled={publishingCalendarId === activeCalendar.id}
@@ -1343,12 +1343,12 @@ export default function AcademicCalendarPage() {
                       }
                     />
                   </div>
-                  <div className={cn(frostedInset, "p-3 text-xs text-white/50")}>
+                  <div className={cn(frostedInset, "p-3 text-xs text-(--ws-fg-70)")}>
                     Events are filtered by academic period. Past periods remain available from the period selector.
                   </div>
                 </>
               ) : (
-                <div className="text-sm text-white/50">Calendar is loading.</div>
+                <div className="text-sm text-(--ws-fg-70)">Calendar is loading.</div>
               )}
             </CardContent>
           </Card>
@@ -1356,20 +1356,20 @@ export default function AcademicCalendarPage() {
 
         <div className="space-y-4">
           <Card className={glassPanel}>
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-(--ws-line) pb-4">
               <div>
-                <CardTitle className="text-lg text-white">{format(month, "MMMM yyyy")}</CardTitle>
-                <p className="text-sm text-white/55">
+                <CardTitle className="text-lg text-(--ws-fg)">{format(month, "MMMM yyyy")}</CardTitle>
+                <p className="text-sm text-(--ws-fg-70)">
                   {describePeriod(selectedPeriod)}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/6 p-1 backdrop-blur-md">
+                <div className="flex items-center gap-1 rounded-full border border-(--ws-line) bg-(--ws-fill) p-1 backdrop-blur-md">
                   <button
                     onClick={() => setView("month")}
                     className={cn(
                       "px-3 py-1 text-xs font-semibold rounded-full",
-                      view === "month" ? "bg-white/10 text-white" : "text-white/50"
+                      view === "month" ? "bg-(--ws-fill-strong) text-(--ws-fg)" : "text-(--ws-fg-70)"
                     )}
                   >
                     Month
@@ -1378,7 +1378,7 @@ export default function AcademicCalendarPage() {
                     onClick={() => setView("agenda")}
                     className={cn(
                       "px-3 py-1 text-xs font-semibold rounded-full",
-                      view === "agenda" ? "bg-white/10 text-white" : "text-white/50"
+                      view === "agenda" ? "bg-(--ws-fill-strong) text-(--ws-fg)" : "text-(--ws-fg-70)"
                     )}
                   >
                     Agenda
@@ -1388,7 +1388,7 @@ export default function AcademicCalendarPage() {
                   <Button
                     size="icon"
                     variant="outline"
-                    className="border-white/10"
+                    className="border-(--ws-line)"
                     onClick={() => setMonth(addMonths(month, -1))}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -1396,7 +1396,7 @@ export default function AcademicCalendarPage() {
                   <Button
                     size="icon"
                     variant="outline"
-                    className="border-white/10"
+                    className="border-(--ws-line)"
                     onClick={() => setMonth(addMonths(month, 1))}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -1406,7 +1406,7 @@ export default function AcademicCalendarPage() {
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
               {loading && (
-                <div className="rounded-2xl border border-white/10 bg-white/6 p-6 text-center text-white/50 backdrop-blur-xl">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center text-(--ws-fg-70) backdrop-blur-xl">
                   Loading calendar...
                 </div>
               )}
@@ -1443,13 +1443,13 @@ export default function AcademicCalendarPage() {
                         key={event.id}
                         type="button"
                         onClick={() => openEventModal(event)}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/20 bg-white/4 px-3 py-2 text-left backdrop-blur-sm hover:border-amber-200/40"
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/20 bg-(--ws-fill) px-3 py-2 text-left backdrop-blur-sm hover:border-amber-200/40"
                       >
                         <span>
-                          <span className="block text-sm font-semibold text-white">
+                          <span className="block text-sm font-semibold text-(--ws-fg)">
                             {event.title}
                           </span>
-                          <span className="block text-xs text-white/50">
+                          <span className="block text-xs text-(--ws-fg-70)">
                             {format(new Date(event.startDate), "MMM d, yyyy")}
                             {" - "}
                             {format(new Date(event.endDate), "MMM d, yyyy")}
@@ -1478,28 +1478,28 @@ export default function AcademicCalendarPage() {
       >
         <div className="space-y-6">
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Name *</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Name *</Label>
             <Input
               value={calendarForm.name}
               onChange={(e) => setCalendarForm((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="2025/2026 Academic Calendar"
-              className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Description</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Description</Label>
             <Textarea
               value={calendarForm.description}
               onChange={(e) => setCalendarForm((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Term dates, holidays, and key activities"
               rows={3}
-              className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Academic Period</Label>
-              <Select
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Academic Period</Label>
+              <PremiumSelect
                 value={calendarForm.academicPeriodId || "none"}
                 onValueChange={(value) =>
                   setCalendarForm((prev) => ({
@@ -1508,23 +1508,23 @@ export default function AcademicCalendarPage() {
                   }))
                 }
               >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
-                  <SelectItem value="none" className={premiumMenuItem}>
+                <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                  <PremiumSelectValue placeholder="Select period" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="none">
                     None
-                  </SelectItem>
+                  </PremiumSelectItem>
                   {periodOptions.map((period) => (
-                    <SelectItem key={period.id} value={period.id} className={premiumMenuItem}>
+                    <PremiumSelectItem key={period.id} value={period.id}>
                       {period.yearLabel} · {period.term}
-                    </SelectItem>
+                    </PremiumSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Theme Color</Label>
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Theme Color</Label>
               <div className="flex flex-wrap gap-2">
                 {DEFAULT_COLORS.map((color) => (
                   <button
@@ -1532,10 +1532,10 @@ export default function AcademicCalendarPage() {
                     type="button"
                     onClick={() => setCalendarForm((prev) => ({ ...prev, color }))}
                     className={cn(
-                      "h-8 w-8 rounded-full border border-white/10 transition-all hover:scale-105",
+                      "h-8 w-8 rounded-full border border-(--ws-line) transition-all hover:scale-105",
                       calendarForm.color === color
                         ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-transparent"
-                        : "hover:border-white/30"
+                        : "hover:border-(--ws-line)"
                     )}
                     style={{ backgroundColor: color }}
                   />
@@ -1543,11 +1543,11 @@ export default function AcademicCalendarPage() {
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
             <div className="space-y-3">
               <div>
-                <div className="text-sm font-semibold text-white">Calendar Visibility</div>
-                <div className="text-xs text-white/50">
+                <div className="text-sm font-semibold text-(--ws-fg)">Calendar Visibility</div>
+                <div className="text-xs text-(--ws-fg-70)">
                   This controls whether the calendar is visible to parents and teachers.
                 </div>
               </div>
@@ -1556,10 +1556,10 @@ export default function AcademicCalendarPage() {
                   type="button"
                   variant={calendarForm.isPublished ? "outline" : "default"}
                   className={cn(
-                    "border-white/10",
+                    "border-(--ws-line)",
                     !calendarForm.isPublished
-                      ? "bg-white text-black hover:bg-white/90"
-                      : "bg-white/5 text-white hover:bg-white/10"
+                      ? "bg-(--ws-fill-strong) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
+                      : "bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   )}
                   onClick={() =>
                     setCalendarForm((prev) => ({ ...prev, isPublished: false }))
@@ -1571,10 +1571,10 @@ export default function AcademicCalendarPage() {
                   type="button"
                   variant={calendarForm.isPublished ? "default" : "outline"}
                   className={cn(
-                    "border-white/10",
+                    "border-(--ws-line)",
                     calendarForm.isPublished
-                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                      : "bg-white/5 text-white hover:bg-white/10"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-500 hover:text-white"
+                      : "bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   )}
                   onClick={() =>
                     setCalendarForm((prev) => ({ ...prev, isPublished: true }))
@@ -1582,20 +1582,20 @@ export default function AcademicCalendarPage() {
                 >
                   Published
                 </Button>
-                <Badge className="ml-auto bg-white/10 text-white/70">
+                <Badge className="ml-auto bg-(--ws-fill-strong) text-(--ws-fg-70)">
                   {calendarForm.isPublished ? "Visible" : "Hidden"}
                 </Badge>
               </div>
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Delegated editors</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Delegated editors</Label>
             {editorOptions.length === 0 ? (
-              <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/50">
+              <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-70)">
                 No editors available yet.
               </div>
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2 max-h-56 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="grid gap-2 sm:grid-cols-2 max-h-56 overflow-y-auto rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 {editorOptions.map((editor) => {
                   const isSelected = calendarForm.editors.includes(editor.id);
 
@@ -1605,8 +1605,8 @@ export default function AcademicCalendarPage() {
                       className={cn(
                         "flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-all",
                         isSelected
-                          ? "border-brand/40 bg-brand/10 text-white"
-                          : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                          ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       <Checkbox
@@ -1619,29 +1619,29 @@ export default function AcademicCalendarPage() {
                               : prev.editors.filter((id) => id !== editor.id),
                           }));
                         }}
-                        className="h-4 w-4 border-white/30 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                        className="h-4 w-4 border-(--ws-line) data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                       />
                       <span className="flex-1 truncate">{editor.fullName}</span>
-                      <Badge className="bg-white/10 text-white/60">{editor.role}</Badge>
+                      <Badge className="bg-(--ws-fill-strong) text-(--ws-fg-70)">{editor.role}</Badge>
                     </label>
                   );
                 })}
               </div>
             )}
           </div>
-          <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-white/10">
+          <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-(--ws-line)">
             <Button
               type="button"
               variant="outline"
               onClick={() => setCalendarModalOpen(false)}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               Cancel
             </Button>
             <Button
               type="button"
               onClick={handleSaveCalendar}
-              className="bg-brand text-black hover:opacity-90"
+              className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
             >
               Save Calendar
             </Button>
@@ -1659,17 +1659,17 @@ export default function AcademicCalendarPage() {
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Title *</Label>
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Title *</Label>
               <Input
                 value={eventForm.title}
                 onChange={(e) => setEventForm((prev) => ({ ...prev, title: e.target.value }))}
                 placeholder="Mid-term exams"
-                className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Event Type</Label>
-              <Select
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Event Type</Label>
+              <PremiumSelect
                 value={eventForm.eventType}
                 onValueChange={(value) =>
                   setEventForm((prev) => ({
@@ -1680,34 +1680,34 @@ export default function AcademicCalendarPage() {
                   }))
                 }
               >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
+                <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                  <PremiumSelectValue placeholder="Select type" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
                   {EVENT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value} className={premiumMenuItem}>
+                    <PremiumSelectItem key={type.value} value={type.value}>
                       {type.label}
-                    </SelectItem>
+                    </PremiumSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Description</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Description</Label>
             <Textarea
               value={eventForm.description}
               onChange={(e) => setEventForm((prev) => ({ ...prev, description: e.target.value }))}
               rows={3}
-              className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Academic Period</Label>
-              <Select
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Academic Period</Label>
+              <PremiumSelect
                 value={eventForm.academicPeriodId || "none"}
                 onValueChange={(value) =>
                   setEventForm((prev) => ({
@@ -1716,31 +1716,31 @@ export default function AcademicCalendarPage() {
                   }))
                 }
               >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
-                  <SelectItem value="none" className={premiumMenuItem}>
+                <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                  <PremiumSelectValue placeholder="Select period" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="none">
                     Select period
-                  </SelectItem>
+                  </PremiumSelectItem>
                   {periodOptions.map((period) => (
-                    <SelectItem key={period.id} value={period.id} className={premiumMenuItem}>
+                    <PremiumSelectItem key={period.id} value={period.id}>
                       {period.yearLabel} · {period.term}
                       {period.isCurrent ? " · Current" : ""}
-                    </SelectItem>
+                    </PremiumSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/55">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-xs text-(--ws-fg-70)">
               Leo checks this period before saving. Events outside the period can still be saved, but they are shown in a separate section.
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Start</Label>
-              <CustomDatePicker
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Start</Label>
+              <CustomDatePicker surface="theme"
                 value={parseLocalInput(eventForm.startDate)}
                 onChange={(date) => {
                   if (!date) return;
@@ -1769,13 +1769,13 @@ export default function AcademicCalendarPage() {
                       ),
                     }))
                   }
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               )}
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">End</Label>
-              <CustomDatePicker
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">End</Label>
+              <CustomDatePicker surface="theme"
                 value={parseLocalInput(eventForm.endDate)}
                 onChange={(date) => {
                   if (!date) return;
@@ -1804,7 +1804,7 @@ export default function AcademicCalendarPage() {
                       ),
                     }))
                   }
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               )}
             </div>
@@ -1823,7 +1823,7 @@ export default function AcademicCalendarPage() {
                   setEventForm((prev) => ({ ...prev, allDay: !prev.allDay }));
                 }
               }}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3"
             >
               <Switch
                 id="event-all-day"
@@ -1833,7 +1833,7 @@ export default function AcademicCalendarPage() {
               />
               <div className="select-none">
                 <div className="text-sm font-semibold">All day event</div>
-                <div className="text-xs text-white/50">Event spans the full day.</div>
+                <div className="text-xs text-(--ws-fg-70)">Event spans the full day.</div>
               </div>
             </div>
             <div
@@ -1866,7 +1866,7 @@ export default function AcademicCalendarPage() {
                   }));
                 }
               }}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3"
             >
               {/*
                 Keep event type in sync when toggling non-teaching:
@@ -1892,38 +1892,38 @@ export default function AcademicCalendarPage() {
               />
               <div className="select-none">
                 <div className="text-sm font-semibold">Non-teaching day</div>
-                <div className="text-xs text-white/50">Marks a no-class day.</div>
+                <div className="text-xs text-(--ws-fg-70)">Marks a no-class day.</div>
               </div>
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Location</Label>
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Location</Label>
               <Input
                 value={eventForm.location}
                 onChange={(e) => setEventForm((prev) => ({ ...prev, location: e.target.value }))}
                 placeholder="Main Hall"
-                className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Status</Label>
-              <Select
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Status</Label>
+              <PremiumSelect
                 value={eventForm.status}
                 onValueChange={(value) => setEventForm((prev) => ({ ...prev, status: value as CalendarEventStatus }))}
               >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
+                <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                  <PremiumSelectValue placeholder="Status" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
                   {EVENT_STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value} className={premiumMenuItem}>
+                    <PremiumSelectItem key={status.value} value={status.value}>
                       {status.label}
-                    </SelectItem>
+                    </PremiumSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
           </div>
 
@@ -1936,7 +1936,7 @@ export default function AcademicCalendarPage() {
           )}
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Cover Image</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Cover Image</Label>
             <ImageUpload
               value={eventForm.coverImageUrl}
               onChange={(url) => setEventForm((prev) => ({ ...prev, coverImageUrl: url }))}
@@ -1944,7 +1944,7 @@ export default function AcademicCalendarPage() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Theme Color</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Theme Color</Label>
             <div className="flex flex-wrap gap-2">
               {DEFAULT_COLORS.map((color) => (
                 <button
@@ -1952,10 +1952,10 @@ export default function AcademicCalendarPage() {
                   type="button"
                   onClick={() => setEventForm((prev) => ({ ...prev, color }))}
                   className={cn(
-                    "h-8 w-8 rounded-full border border-white/10 transition-all hover:scale-105",
+                    "h-8 w-8 rounded-full border border-(--ws-line) transition-all hover:scale-105",
                     eventForm.color === color
                       ? "ring-2 ring-white ring-offset-2 ring-offset-slate-900 border-transparent"
-                      : "hover:border-white/30"
+                      : "hover:border-(--ws-line)"
                   )}
                   style={{ backgroundColor: color }}
                 />
@@ -1964,15 +1964,15 @@ export default function AcademicCalendarPage() {
           </div>
 
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
             <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Audience & Roles
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Audience Scope</Label>
-                <Select
+                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Audience Scope</Label>
+                <PremiumSelect
                   value={eventForm.audience.scope}
                   onValueChange={(value) =>
                     setEventForm((prev) => ({
@@ -1981,22 +1981,22 @@ export default function AcademicCalendarPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                    <SelectValue placeholder="Select scope" />
-                  </SelectTrigger>
-                  <SelectContent className={premiumSelectContent}>
+                  <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                    <PremiumSelectValue placeholder="Select scope" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {AUDIENCE_SCOPES.map((scope) => (
-                      <SelectItem key={scope.value} value={scope.value} className={premiumMenuItem}>
+                      <PremiumSelectItem key={scope.value} value={scope.value}>
                         {scope.label}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
 
               {eventForm.audience.scope === "grades" && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Grades</Label>
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Grades</Label>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {gradeOptions.map((grade) => {
                       const isSelected = eventForm.audience.gradeIds?.includes(grade.id);
@@ -2007,8 +2007,8 @@ export default function AcademicCalendarPage() {
                           className={cn(
                             "flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-all",
                             isSelected
-                              ? "border-brand/40 bg-brand/10 text-white"
-                              : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                              ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                           )}
                         >
                           <Checkbox
@@ -2024,7 +2024,7 @@ export default function AcademicCalendarPage() {
                                 },
                               }));
                             }}
-                            className="h-4 w-4 border-white/30 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                            className="h-4 w-4 border-(--ws-line) data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                           />
                           {grade.name}
                         </label>
@@ -2036,7 +2036,7 @@ export default function AcademicCalendarPage() {
 
               {eventForm.audience.scope === "classes" && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Classes</Label>
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Classes</Label>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {classOptions.map((cls) => {
                       const isSelected = eventForm.audience.classGroupIds?.includes(cls.id);
@@ -2047,8 +2047,8 @@ export default function AcademicCalendarPage() {
                           className={cn(
                             "flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-all",
                             isSelected
-                              ? "border-brand/40 bg-brand/10 text-white"
-                              : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                              ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                           )}
                         >
                           <Checkbox
@@ -2064,7 +2064,7 @@ export default function AcademicCalendarPage() {
                                 },
                               }));
                             }}
-                            className="h-4 w-4 border-white/30 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                            className="h-4 w-4 border-(--ws-line) data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                           />
                           <span className="truncate">{cls.fullLabel}</span>
                         </label>
@@ -2081,7 +2081,7 @@ export default function AcademicCalendarPage() {
               )}
 
               <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Visible To</Label>
+                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Visible To</Label>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {AUDIENCE_ROLES.map((role) => {
                     const isSelected = eventForm.audience.roles?.includes(role.value);
@@ -2092,8 +2092,8 @@ export default function AcademicCalendarPage() {
                         className={cn(
                           "flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-all",
                           isSelected
-                            ? "border-brand/40 bg-brand/10 text-white"
-                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                            ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         <Checkbox
@@ -2109,7 +2109,7 @@ export default function AcademicCalendarPage() {
                               },
                             }));
                           }}
-                          className="h-4 w-4 border-white/30 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                          className="h-4 w-4 border-(--ws-line) data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                         />
                         {role.label}
                       </label>
@@ -2121,7 +2121,7 @@ export default function AcademicCalendarPage() {
           </Card>
 
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
             <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Recurrence
               </CardTitle>
@@ -2129,8 +2129,8 @@ export default function AcademicCalendarPage() {
             <CardContent className="space-y-4 pt-4">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Repeats</Label>
-                  <Select
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Repeats</Label>
+                  <PremiumSelect
                     value={eventForm.recurrence?.frequency || "none"}
                     onValueChange={(value) =>
                       setEventForm((prev) => ({
@@ -2142,20 +2142,20 @@ export default function AcademicCalendarPage() {
                       }))
                     }
                   >
-                    <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                      <SelectValue placeholder="Frequency" />
-                    </SelectTrigger>
-                    <SelectContent className={premiumSelectContent}>
+                    <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                      <PremiumSelectValue placeholder="Frequency" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
                       {RECURRENCE_OPTIONS.map((rec) => (
-                        <SelectItem key={rec.value} value={rec.value} className={premiumMenuItem}>
+                        <PremiumSelectItem key={rec.value} value={rec.value}>
                           {rec.label}
-                        </SelectItem>
+                        </PremiumSelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Interval</Label>
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Interval</Label>
                   <Input
                     type="number"
                     min={1}
@@ -2169,12 +2169,12 @@ export default function AcademicCalendarPage() {
                         },
                       }))
                     }
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Until</Label>
-                  <CustomDatePicker
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Until</Label>
+                  <CustomDatePicker surface="theme"
                     value={eventForm.recurrence?.until ? new Date(eventForm.recurrence.until) : null}
                     onChange={(date) =>
                       setEventForm((prev) => ({
@@ -2191,7 +2191,7 @@ export default function AcademicCalendarPage() {
 
               {eventForm.recurrence?.frequency === "weekly" && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Repeat On</Label>
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">Repeat On</Label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {WEEKDAYS.map((day) => (
                       <button
@@ -2215,8 +2215,8 @@ export default function AcademicCalendarPage() {
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-xs transition-all",
                           eventForm.recurrence?.byWeekday?.includes(day.value)
-                            ? "border-brand/40 bg-brand/10 text-white"
-                            : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:bg-white/10"
+                            ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         {day.label}
@@ -2228,7 +2228,7 @@ export default function AcademicCalendarPage() {
 
               {eventForm.recurrence?.frequency === "monthly" && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-(--ws-fg-70)">
                     Day Of Month (Comma-Separated)
                   </Label>
                   <Input
@@ -2247,7 +2247,7 @@ export default function AcademicCalendarPage() {
                       }));
                     }}
                     placeholder="e.g. 1,15,28"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
               )}
@@ -2255,7 +2255,7 @@ export default function AcademicCalendarPage() {
           </Card>
 
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
             <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Reminders
               </CardTitle>
@@ -2286,8 +2286,8 @@ export default function AcademicCalendarPage() {
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-xs transition-all",
                         active
-                          ? "border-brand/40 bg-brand/10 text-white"
-                          : "border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:bg-white/10"
+                          ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       {preset.label}
@@ -2295,22 +2295,22 @@ export default function AcademicCalendarPage() {
                   );
                 })}
               </div>
-              <div className="text-xs text-white/40">Reminders are delivered as in-app notifications.</div>
+              <div className="text-xs text-(--ws-fg-70)">Reminders are delivered as in-app notifications.</div>
             </CardContent>
           </Card>
 
           <Card className={glassPanel}>
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Editor Delegation
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-4">
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                <Users className="h-4 w-4 text-white/50" />
+              <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
+                <Users className="h-4 w-4 text-(--ws-fg-70)" />
                 Admin can delegate at calendar or event level.
               </div>
-              <Select
+              <PremiumSelect
                 value={eventForm.editorScope}
                 onValueChange={(value) =>
                   setEventForm((prev) => ({
@@ -2319,23 +2319,23 @@ export default function AcademicCalendarPage() {
                   }))
                 }
               >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                  <SelectValue placeholder="Delegation scope" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
-                  <SelectItem value="calendar" className={premiumMenuItem}>
+                <PremiumSelectTrigger className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) focus:ring-1 focus:ring-brand">
+                  <PremiumSelectValue placeholder="Delegation scope" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="calendar">
                     Use calendar editors
-                  </SelectItem>
-                  <SelectItem value="event" className={premiumMenuItem}>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="event">
                     Set event-specific editors
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                  </PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
 
               {eventForm.editorScope === "event" && (
                 <div className="space-y-2">
                   {editorOptions.length === 0 ? (
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/50">
+                    <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-70)">
                       No editors available yet.
                     </div>
                   ) : (
@@ -2349,8 +2349,8 @@ export default function AcademicCalendarPage() {
                             className={cn(
                               "flex items-center gap-3 rounded-lg border p-2.5 text-sm transition-all",
                               isSelected
-                                ? "border-brand/40 bg-brand/10 text-white"
-                                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                                ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-fg)"
+                                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                             )}
                           >
                             <Checkbox
@@ -2363,10 +2363,10 @@ export default function AcademicCalendarPage() {
                                     : prev.editorIds.filter((id) => id !== editor.id),
                                 }));
                               }}
-                              className="h-4 w-4 border-white/30 data-[state=checked]:bg-brand data-[state=checked]:border-brand"
+                              className="h-4 w-4 border-(--ws-line) data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600"
                             />
                             <span className="flex-1 truncate">{editor.fullName}</span>
-                            <Badge className="bg-white/10 text-white/60">{editor.role}</Badge>
+                            <Badge className="bg-(--ws-fill-strong) text-(--ws-fg-70)">{editor.role}</Badge>
                           </label>
                         );
                       })}
@@ -2377,7 +2377,7 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-wrap justify-between gap-2 border-t border-white/10 pt-4">
+          <div className="flex flex-wrap justify-between gap-2 border-t border-(--ws-line) pt-4">
             <div className="flex items-center gap-2">
               {isEditingEvent && (
                 <Button
@@ -2396,14 +2396,14 @@ export default function AcademicCalendarPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setEventModalOpen(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 Cancel
               </Button>
               <Button
                 type="button"
                 onClick={handleSaveEvent}
-                className="bg-brand text-black hover:opacity-90"
+                className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
               >
                 {isEditingEvent ? "Save Changes" : "Create Event"}
               </Button>
@@ -2411,6 +2411,6 @@ export default function AcademicCalendarPage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </WorkspaceScope>
   );
 }

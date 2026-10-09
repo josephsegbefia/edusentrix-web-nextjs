@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -72,7 +74,7 @@ export default function NewReconciliationSessionPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen p-6 md:p-8">
       <div className="mx-auto max-w-2xl">
         {/* Header */}
         <div className="mb-8">
@@ -80,38 +82,38 @@ export default function NewReconciliationSessionPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.push("/admin/finance/reconciliation/sessions")}
-            className="mb-4 text-white/50 hover:text-white/80"
+            className="mb-4 text-(--ws-fg-70) hover:text-(--ws-fg)"
           >
             <ChevronLeft className="mr-1 h-4 w-4" /> Back to Sessions
           </Button>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500/20 to-violet-600/20">
-              <Shield className="h-6 w-6 text-indigo-400" />
+              <Shield className="h-6 w-6 text-(--ws-violet)" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">New Reconciliation Session</h1>
-              <p className="mt-1 text-sm text-white/50">Set up a guided reconciliation workflow.</p>
+              <h1 className="text-2xl font-bold text-(--ws-fg)">New Reconciliation Session</h1>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">Set up a guided reconciliation workflow.</p>
             </div>
           </div>
         </div>
 
-        <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 shadow-lg">
+        <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-lg">
           <CardContent className="space-y-6 p-6">
             {/* Label */}
             <div className="space-y-2">
-              <Label className="text-sm text-white/70">Session Label</Label>
+              <Label className="text-sm text-(--ws-fg-70)">Session Label</Label>
               <Input
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="e.g. February 2026 Bank Reconciliation"
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 maxLength={200}
               />
             </div>
 
             {/* Source types */}
             <div className="space-y-2">
-              <Label className="text-sm text-white/70">Source Types</Label>
+              <Label className="text-sm text-(--ws-fg-70)">Source Types</Label>
               <div className="grid gap-3 sm:grid-cols-3">
                 {SOURCE_OPTIONS.map((option) => {
                   const selected = sourceTypes.includes(option.value);
@@ -123,16 +125,16 @@ export default function NewReconciliationSessionPage() {
                       className={`rounded-xl border p-3 text-left transition-all ${
                         selected
                           ? "border-indigo-500/40 bg-indigo-500/10 ring-1 ring-indigo-400/30"
-                          : "border-white/10 bg-white/5 hover:border-white/20"
+                          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <FileSearch className={`h-4 w-4 ${selected ? "text-(--ws-violet)" : "text-white/40"}`} />
-                        <span className={`text-sm font-medium ${selected ? "text-(--ws-violet)" : "text-white/70"}`}>
+                        <FileSearch className={`h-4 w-4 ${selected ? "text-(--ws-violet)" : "text-(--ws-fg-70)"}`} />
+                        <span className={`text-sm font-medium ${selected ? "text-(--ws-violet)" : "text-(--ws-fg-70)"}`}>
                           {option.label}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-white/40">{option.description}</p>
+                      <p className="mt-1 text-xs text-(--ws-fg-70)">{option.description}</p>
                     </button>
                   );
                 })}
@@ -141,25 +143,24 @@ export default function NewReconciliationSessionPage() {
 
             {/* Date range */}
             <div className="space-y-2">
-              <Label className="text-sm text-white/70">Reconciliation period (optional)</Label>
+              <Label className="text-sm text-(--ws-fg-70)">Reconciliation period (optional)</Label>
               <DateRangePicker
                 startDate={startDate}
                 endDate={endDate}
                 onStartDateChange={setStartDate}
                 onEndDateChange={setEndDate}
                 startLabel="Period start"
-                endLabel="Period end"
-              />
+                endLabel="Period end" surface="theme" />
             </div>
 
             {/* Notes */}
             <div className="space-y-2">
-              <Label className="text-sm text-white/70">Preparation Notes (optional)</Label>
+              <Label className="text-sm text-(--ws-fg-70)">Preparation Notes (optional)</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any context or objectives for this session…"
-                className="min-h-[80px] border-white/10 bg-white/5 text-sm text-white placeholder:text-white/30"
+                className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 maxLength={2000}
               />
             </div>
@@ -169,7 +170,7 @@ export default function NewReconciliationSessionPage() {
               <Button
                 variant="outline"
                 onClick={() => router.push("/admin/finance/reconciliation/sessions")}
-                className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
               >
                 Cancel
               </Button>
@@ -187,6 +188,6 @@ export default function NewReconciliationSessionPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </WorkspaceScope>
   );
 }

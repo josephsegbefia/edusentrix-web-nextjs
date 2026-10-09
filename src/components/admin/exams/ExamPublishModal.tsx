@@ -102,7 +102,7 @@ export function ExamPublishModal({
     >
       <div className="space-y-4">
         {(isLoading) && !readiness ? (
-          <div className="flex items-center gap-2 py-8 text-sm text-white/50">
+          <div className="flex items-center gap-2 py-8 text-sm text-(--ws-fg-70)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Checking publish readiness…
           </div>
@@ -110,14 +110,14 @@ export function ExamPublishModal({
           <>
             <div className={cn(glassInsetClass, "grid gap-3 p-4 sm:grid-cols-2")}>
               <div>
-                <p className="text-xs uppercase tracking-wide text-white/45">Readiness score</p>
-                <p className="mt-1 text-2xl font-semibold text-white">
+                <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Readiness score</p>
+                <p className="mt-1 text-2xl font-semibold text-(--ws-fg)">
                   {readiness.summary.readinessScore}%
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-white/45">Exam papers</p>
-                <p className="mt-1 text-sm text-white/80">
+                <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Exam papers</p>
+                <p className="mt-1 text-sm text-(--ws-fg-70)">
                   {readiness.summary.entryCount} total · {readiness.summary.scheduledEntryCount}{" "}
                   scheduled
                 </p>
@@ -168,7 +168,7 @@ export function ExamPublishModal({
                     </div>
                   ))}
                 </div>
-                <label className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/75">
+                <label className="flex items-start gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -189,7 +189,7 @@ export function ExamPublishModal({
           </>
         ) : null}
 
-        <label className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/75">
+        <label className="flex items-start gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
           <input
             type="checkbox"
             className="mt-1"
@@ -207,7 +207,7 @@ export function ExamPublishModal({
         ) : null}
 
         <div className="space-y-2">
-          <Label className="text-white/70">Change summary (required)</Label>
+          <Label className="text-(--ws-fg-70)">Change summary (required)</Label>
           <Textarea
             value={changeSummary}
             onChange={(event) => setChangeSummary(event.target.value)}
@@ -216,12 +216,12 @@ export function ExamPublishModal({
                 ? "Describe what changed in this republish, e.g. moved Basic 6 Mathematics to Tuesday."
                 : "Describe this publish, e.g. Initial end-of-term exam timetable."
             }
-            className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+            className="min-h-[120px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-70)"
           />
         </div>
 
         {!readiness?.canPublish ? (
-          <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">
+          <div className="flex items-start gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-amber)" />
             <span>
               Publishing is blocked until all required issues are resolved. Use conflict review and

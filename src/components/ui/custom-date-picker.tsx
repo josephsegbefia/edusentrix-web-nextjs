@@ -207,7 +207,12 @@ export function CustomDatePicker({
   return (
     <div className={cn("relative", className)}>
       {label && (
-        <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-muted mb-2">
+        <label
+          className={cn(
+            "mb-2 block text-xs font-semibold uppercase tracking-[0.2em]",
+            themed ? "text-(--ws-fg-70)" : "text-muted"
+          )}
+        >
           {label}
         </label>
       )}
@@ -244,7 +249,7 @@ export function CustomDatePicker({
         onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <div className="flex items-center gap-2">
-          <CalendarIcon className={cn("h-4 w-4", themed ? "m-faint" : "text-white/40")} />
+          <CalendarIcon className={cn("h-4 w-4", themed ? "text-(--ws-fg-60)" : "text-white/40")} />
           <span className={cn(!value && (themed ? "m-faint" : "text-white/40"))}>
             {value ? formatDate(value) : placeholder}
           </span>

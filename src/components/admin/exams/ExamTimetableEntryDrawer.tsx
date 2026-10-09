@@ -261,7 +261,7 @@ export function ExamTimetableEntryDrawer({
         <div className="space-y-2">
           <Label>Subject</Label>
           {subjectsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading subjects…
             </div>
@@ -288,12 +288,12 @@ export function ExamTimetableEntryDrawer({
         <div className="space-y-2">
           <Label>Class groups</Label>
           {classGroupsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading class groups…
             </div>
           ) : classGroups.length === 0 ? (
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-(--ws-fg-70)">
               No class groups found for this exam session scope.
             </p>
           ) : (
@@ -310,7 +310,7 @@ export function ExamTimetableEntryDrawer({
                       "rounded-full border px-3 py-1.5 text-sm transition disabled:opacity-50",
                       selected
                         ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
-                        : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:text-(--ws-fg)"
                     )}
                   >
                     {group.label || group.name}
@@ -324,6 +324,7 @@ export function ExamTimetableEntryDrawer({
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2 sm:col-span-1">
             <CustomDatePicker
+              surface="theme"
               label="Date"
               value={form.date ? new Date(`${form.date}T00:00:00`) : null}
               onChange={(date) =>
@@ -419,7 +420,7 @@ export function ExamTimetableEntryDrawer({
           />
         </div>
       ) : (
-        <div className={cn(glassInsetClass, "mt-4 p-4 text-sm text-white/55")}>
+        <div className={cn(glassInsetClass, "mt-4 p-4 text-sm text-(--ws-fg-70)")}>
           Save this exam paper first, then link assessment items from the gradebook.
         </div>
       )}

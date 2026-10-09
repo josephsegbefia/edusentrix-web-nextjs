@@ -1,4 +1,5 @@
 import { MeetingRoomClient } from "@/components/meetings/meeting-room-client";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 export default async function BursarMeetingRoomPage({
   params,
@@ -8,10 +9,12 @@ export default async function BursarMeetingRoomPage({
   const { meetingId } = await params;
 
   return (
-    <MeetingRoomClient
-      meetingId={meetingId}
-      backHref="/admin/finance/meetings"
-      backLabel="Back to finance meetings"
-    />
+    <WorkspaceScope>
+      <MeetingRoomClient
+        meetingId={meetingId}
+        backHref="/admin/finance/meetings"
+        backLabel="Back to finance meetings"
+      />
+    </WorkspaceScope>
   );
 }

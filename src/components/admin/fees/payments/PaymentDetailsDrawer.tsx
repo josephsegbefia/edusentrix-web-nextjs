@@ -202,7 +202,7 @@ export function PaymentDetailsDrawer(props: {
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        className="max-w-[calc(100%-1rem)] border-(--ws-line) bg-[#0b1220] p-0 text-(--ws-fg) sm:max-w-3xl"
+        className="max-w-[calc(100%-1rem)] border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 text-(--ws-fg) sm:max-w-3xl"
         overlayClassName="bg-black/70 backdrop-blur-sm"
       >
         <DialogHeader className="border-b border-(--ws-line) px-4 py-4 sm:px-6">
@@ -237,7 +237,7 @@ export function PaymentDetailsDrawer(props: {
               Loading…
             </div>
           ) : isError || !p ? (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm text-(--ws-rose)">
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-(--ws-rose)">
               Unable to load payment.
             </div>
           ) : (
@@ -251,44 +251,44 @@ export function PaymentDetailsDrawer(props: {
                 </div>
                 <Separator className="mb-3 bg-(--ws-fill-strong)" />
                 <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Amount</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Amount</div>
                     <div className="mt-1 font-semibold text-(--ws-emerald)">
                       {formatMoney(p.amountMinor)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Payment Date</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Payment Date</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {fmtDate(p.paymentDate)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Method</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Method</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {String(p.paymentMethod || "").replaceAll("_", " ") || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Internal Reference</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Internal Reference</div>
                     <div className="mt-1 font-mono text-sm font-medium text-(--ws-fg)">
                       {p.internalReference || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Receipt / External Ref</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Receipt / External Ref</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {p.receiptNumber || p.externalReference || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Gateway Reference</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Gateway Reference</div>
                     <div className="mt-1 break-all font-medium text-(--ws-fg)">
                       {p.paystackReference || p.paystackTransactionId || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Payment ID</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Payment ID</div>
                     <div className="mt-1 break-all font-medium text-(--ws-fg)">
                       {String(p._id)}
                     </div>
@@ -302,60 +302,60 @@ export function PaymentDetailsDrawer(props: {
                 </div>
                 <Separator className="mb-3 bg-(--ws-fill-strong)" />
                 <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Student</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Student</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {studentName || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Admission No.</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Admission No.</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {p.studentId?.admissionNo || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Bill</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Bill</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {p.invoiceId?.invoiceNumber || "—"}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Academic Period</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Academic Period</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {periodLabel}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Recorded By</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Recorded By</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {userLabel(p.receivedBy)}
                     </div>
-                    <div className="mt-1 text-[11px] text-(--ws-fg-50)">
+                    <div className="mt-1 text-[11px] text-(--ws-fg-70)">
                       {fmtDateTime(p.createdAt)}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
-                    <div className="text-(--ws-fg-50)">Reviewed By</div>
+                  <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <div className="text-(--ws-fg-70)">Reviewed By</div>
                     <div className="mt-1 font-medium text-(--ws-fg)">
                       {userLabel(p.reviewedBy)}
                     </div>
-                    <div className="mt-1 text-[11px] text-(--ws-fg-50)">
+                    <div className="mt-1 text-[11px] text-(--ws-fg-70)">
                       {fmtDateTime(p.reviewedAt)}
                     </div>
                   </div>
                 </div>
                 {p.notes ? (
-                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-black/20 p-3 text-xs">
-                    <div className="text-(--ws-fg-50)">Payment Notes</div>
+                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-xs">
+                    <div className="text-(--ws-fg-70)">Payment Notes</div>
                     <div className="mt-1 whitespace-pre-wrap text-(--ws-fg-70)">
                       {p.notes}
                     </div>
                   </div>
                 ) : null}
                 {p.reviewNotes ? (
-                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-black/20 p-3 text-xs">
-                    <div className="text-(--ws-fg-50)">Review Notes</div>
+                  <div className="mt-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-xs">
+                    <div className="text-(--ws-fg-70)">Review Notes</div>
                     <div className="mt-1 whitespace-pre-wrap text-(--ws-fg-70)">
                       {p.reviewNotes}
                     </div>
@@ -374,13 +374,13 @@ export function PaymentDetailsDrawer(props: {
                     {timeline.map((entry: any) => (
                       <div
                         key={entry._id}
-                        className="rounded-lg border border-(--ws-line) bg-black/20 px-3 py-2"
+                        className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="font-medium text-(--ws-fg)">
                             {entry.title || "Event"}
                           </div>
-                          <div className="text-[11px] text-(--ws-fg-50)">
+                          <div className="text-[11px] text-(--ws-fg-70)">
                             {fmtDateTime(entry.createdAt)}
                           </div>
                         </div>
@@ -389,14 +389,14 @@ export function PaymentDetailsDrawer(props: {
                             {entry.description}
                           </div>
                         ) : null}
-                        <div className="mt-1 text-[11px] text-(--ws-fg-40)">
+                        <div className="mt-1 text-[11px] text-(--ws-fg-70)">
                           {entry.actorLabel || "System"}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-(--ws-fg-50)">
+                  <div className="text-xs text-(--ws-fg-70)">
                     No timeline events available for this payment yet.
                   </div>
                 )}
@@ -415,10 +415,10 @@ export function PaymentDetailsDrawer(props: {
                         href={a.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="block rounded-lg border border-(--ws-line) bg-black/10 px-3 py-2 text-xs text-(--ws-fg-70) hover:border-(--ws-line-strong)"
+                        className="block rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-xs text-(--ws-fg-70) hover:border-(--ws-line-strong)"
                       >
                         {a.label || "Proof"}{" "}
-                        <span className="text-(--ws-fg-40)">•</span>{" "}
+                        <span className="text-(--ws-fg-70)">•</span>{" "}
                         <span className="text-muted-foreground">
                           {a.type || "file"}
                         </span>
@@ -448,12 +448,12 @@ export function PaymentDetailsDrawer(props: {
                     allocationRows.map((a: any, idx: number) => (
                       <div
                         key={a._id || idx}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-(--ws-line) bg-black/10 px-3 py-2"
+                        className="flex items-center justify-between gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                       >
                         <div className="text-(--ws-fg-70)">
                           {a.invoiceLineItemId?.name || "Line item"}
                           {a.installmentNumber ? (
-                            <span className="text-(--ws-fg-40)"> • </span>
+                            <span className="text-(--ws-fg-70)"> • </span>
                           ) : null}
                           {a.installmentNumber ? (
                             <span className="text-muted-foreground">
@@ -484,7 +484,7 @@ export function PaymentDetailsDrawer(props: {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Optional reviewer notes…"
-                      className="min-h-[90px] border-(--ws-line) bg-black/20"
+                      className="min-h-[90px] border-(--ws-line) bg-(--ws-fill)"
                     />
 
                     {canApprove ? (

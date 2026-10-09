@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+
 import * as React from "react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -286,7 +288,7 @@ function AudienceRoleCard({
         "rounded-2xl border p-4 text-left transition",
         active
           ? "border-emerald-400/35 bg-emerald-500/10 shadow-[0_18px_40px_rgba(16,185,129,0.12)]"
-          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
+          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -296,14 +298,14 @@ function AudienceRoleCard({
               "flex size-11 shrink-0 items-center justify-center rounded-full border",
               active
                 ? "border-emerald-400/30 bg-emerald-500/15"
-                : "border-white/10 bg-white/5"
+                : "border-(--ws-line) bg-(--ws-fill)"
             )}
           >
-            <Icon className={cn("h-5 w-5", active ? "text-(--ws-emerald)" : "text-white/70")} />
+            <Icon className={cn("h-5 w-5", active ? "text-(--ws-emerald)" : "text-(--ws-fg-70)")} />
           </div>
           <div className="min-w-0 flex-1 space-y-1 pr-1">
-            <div className="text-sm font-semibold text-white">{config.label}</div>
-            <div className="text-xs leading-5 text-white/55">{config.description}</div>
+            <div className="text-sm font-semibold text-(--ws-fg)">{config.label}</div>
+            <div className="text-xs leading-5 text-(--ws-fg-70)">{config.description}</div>
           </div>
         </div>
 
@@ -311,8 +313,8 @@ function AudienceRoleCard({
           className={cn(
             "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
             active
-              ? "border-emerald-300/40 bg-emerald-400 text-black"
-              : "border-white/10 bg-white/5 text-white/30"
+              ? "border-emerald-300/40 bg-emerald-600 text-white"
+              : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
           )}
         >
           <Check className="h-3.5 w-3.5" />
@@ -320,10 +322,10 @@ function AudienceRoleCard({
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
+        <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-(--ws-fg-70)">
           Selected
         </span>
-        <span className="text-sm font-semibold text-white">{selectedCount}</span>
+        <span className="text-sm font-semibold text-(--ws-fg)">{selectedCount}</span>
       </div>
     </button>
   );
@@ -339,11 +341,11 @@ function InviteSummaryStat({
   accent?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-(--ws-fg-70)">
         {label}
       </div>
-      <div className={cn("mt-1 text-xl font-semibold text-white", accent)}>{value}</div>
+      <div className={cn("mt-1 text-xl font-semibold text-(--ws-fg)", accent)}>{value}</div>
     </div>
   );
 }
@@ -363,16 +365,16 @@ function RecipientResultCard({
         "flex cursor-pointer items-start gap-3 rounded-2xl border px-4 py-3 transition",
         checked
           ? "border-emerald-400/30 bg-emerald-500/10"
-          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
+          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
       )}
     >
       <Checkbox
         checked={checked}
         onCheckedChange={() => onToggle(recipient)}
-        className="mt-0.5 border-white/30 data-[state=checked]:border-emerald-400 data-[state=checked]:bg-emerald-500"
+        className="mt-0.5 border-(--ws-line) data-[state=checked]:border-emerald-400 data-[state=checked]:bg-emerald-500"
       />
 
-      <Avatar className="mt-0.5 h-11 w-11 border border-white/10">
+      <Avatar className="mt-0.5 h-11 w-11 border border-(--ws-line)">
         <AvatarImage src={recipient.avatarUrl || ""} alt={recipient.name} />
         <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-xs font-semibold text-white">
           {getInitials(recipient.name)}
@@ -382,8 +384,8 @@ function RecipientResultCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white">{recipient.name}</div>
-            <div className="truncate text-xs text-white/50">
+            <div className="truncate text-sm font-semibold text-(--ws-fg)">{recipient.name}</div>
+            <div className="truncate text-xs text-(--ws-fg-70)">
               {recipient.email || "No email on file"}
             </div>
           </div>
@@ -395,7 +397,7 @@ function RecipientResultCard({
         </div>
 
         {recipient.role === "parent" && recipient.wardNames.length > 0 && (
-          <div className="mt-2 text-xs text-white/60">
+          <div className="mt-2 text-xs text-(--ws-fg-70)">
             Wards: {recipient.wardNames.join(", ")}
           </div>
         )}
@@ -411,19 +413,19 @@ function SelectedParticipantPreview({
 }) {
   if (participants.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-3 text-sm text-white/45">
+      <div className="rounded-2xl border border-dashed border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-sm text-(--ws-fg-70)">
         No invitees selected yet.
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+    <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/40">
+        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-(--ws-fg-70)">
           Selected People
         </div>
-        <div className="text-xs text-white/55">
+        <div className="text-xs text-(--ws-fg-70)">
           {participants.length} ready for private visibility
         </div>
       </div>
@@ -432,7 +434,7 @@ function SelectedParticipantPreview({
           {participants.slice(0, 6).map((participant) => (
             <Avatar
               key={`${participant.role}:${participant.userId}`}
-              className="h-10 w-10 border-2 border-[#0d1322]"
+              className="h-10 w-10 border-2 border-(--ws-panel-to)"
             >
               <AvatarImage src={participant.avatarUrl || ""} alt={participant.name} />
               <AvatarFallback className="bg-linear-to-br from-emerald-600 to-green-700 text-[11px] font-semibold text-white">
@@ -441,7 +443,7 @@ function SelectedParticipantPreview({
             </Avatar>
           ))}
         </div>
-        <div className="min-w-0 text-sm text-white/70">
+        <div className="min-w-0 text-sm text-(--ws-fg-70)">
           {participants
             .slice(0, 3)
             .map((participant) => participant.name)
@@ -981,19 +983,19 @@ export default function AdminMeetingsPage() {
     capabilities !== null && !capabilities.canStart;
 
   return (
-    <div className="space-y-6">
+    <WorkspaceScope className="space-y-6">
       {showDelegateBanner ? <DelegateModuleBanner /> : null}
-      <section className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_38%),linear-gradient(180deg,rgba(8,12,22,0.98),rgba(5,9,19,1))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
+      <section className="rounded-[28px] border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-6 shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
             <Badge className="border border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)">
               Meetings MVP
             </Badge>
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-white">
+              <h1 className="text-3xl font-semibold tracking-tight text-(--ws-fg)">
                 In-App Meetings
               </h1>
-              <p className="max-w-3xl text-sm text-white/65">
+              <p className="max-w-3xl text-sm text-(--ws-fg-70)">
                 Schedule invite-only meetings for parents, teachers, and bursars.
                 This slice publishes private meeting entries into the school calendar.
                 When LiveKit env vars are set, a room is created automatically; you can
@@ -1003,25 +1005,25 @@ export default function AdminMeetingsPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-70)">
                 Linked Calendars
               </div>
-              <div className="mt-1 text-xl font-semibold text-white">
+              <div className="mt-1 text-xl font-semibold text-(--ws-fg)">
                 {loadingCalendars ? "..." : calendars.length}
               </div>
-              <div className="text-xs text-white/55">
+              <div className="text-xs text-(--ws-fg-70)">
                 {publishedCalendarCount} published
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-70)">
                 Meetings In Scope
               </div>
-              <div className="mt-1 text-xl font-semibold text-white">
+              <div className="mt-1 text-xl font-semibold text-(--ws-fg)">
                 {meetings.length}
               </div>
-              <div className="text-xs text-white/55">
+              <div className="text-xs text-(--ws-fg-70)">
                 scheduled, cancelled, and completed
               </div>
             </div>
@@ -1030,13 +1032,13 @@ export default function AdminMeetingsPage() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="border-white/10 bg-[#0d1322] text-white">
+        <Card className="border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg)">
           <CardHeader className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Video className="h-5 w-5 text-(--ws-emerald)" />
               Schedule A Meeting
             </CardTitle>
-            <p className="text-sm text-white/55">
+            <p className="text-sm text-(--ws-fg-70)">
               {scheduleReadOnly
                 ? "Scheduling is disabled for your current delegation."
                 : "Pick a calendar, set the date and time, then search one audience at a time to build an invite-only meeting."}
@@ -1044,9 +1046,9 @@ export default function AdminMeetingsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {scheduleReadOnly ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-10 text-center">
-                <p className="text-sm font-medium text-white/85">View-only access</p>
-                <p className="mt-2 text-sm text-white/55">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-10 text-center">
+                <p className="text-sm font-medium text-(--ws-fg-70)">View-only access</p>
+                <p className="mt-2 text-sm text-(--ws-fg-70)">
                   Your delegation lets you review meetings but not schedule or change
                   them. Ask a school admin if you need organizer permissions.
                 </p>
@@ -1072,7 +1074,7 @@ export default function AdminMeetingsPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-[0.2em] text-white/45">
+                <Label className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   Linked Calendar
                 </Label>
                 <PremiumSelect
@@ -1081,7 +1083,7 @@ export default function AdminMeetingsPage() {
                     setForm((current) => ({ ...current, calendarId: value }))
                   }
                 >
-                  <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <PremiumSelectValue placeholder="Select calendar" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -1096,7 +1098,7 @@ export default function AdminMeetingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-[0.2em] text-white/45">
+                <Label className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   Meeting Type
                 </Label>
                 <PremiumSelect
@@ -1108,7 +1110,7 @@ export default function AdminMeetingsPage() {
                     }))
                   }
                 >
-                  <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <PremiumSelectValue placeholder="Select type" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -1122,7 +1124,7 @@ export default function AdminMeetingsPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-xs uppercase tracking-[0.2em] text-white/45">
+                <Label className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   Title
                 </Label>
                 <Input
@@ -1131,17 +1133,18 @@ export default function AdminMeetingsPage() {
                     setForm((current) => ({ ...current, title: event.target.value }))
                   }
                   placeholder="e.g. Grade 5 parent conference"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-white/45">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-(--ws-fg-70)">
                   <CalendarDays className="h-3.5 w-3.5" />
                   Starts
                 </div>
                 <div className="space-y-3">
                   <CustomDatePicker
+                    surface="theme"
                     value={form.startDate}
                     onChange={(date) =>
                       setForm((current) => ({
@@ -1161,7 +1164,7 @@ export default function AdminMeetingsPage() {
                       setForm((current) => ({ ...current, startTime: value }))
                     }
                   >
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Select start time" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -1175,13 +1178,14 @@ export default function AdminMeetingsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-white/45">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-(--ws-fg-70)">
                   <Clock className="h-3.5 w-3.5" />
                   Ends
                 </div>
                 <div className="space-y-3">
                   <CustomDatePicker
+                    surface="theme"
                     value={form.endDate}
                     onChange={(date) =>
                       setForm((current) => ({ ...current, endDate: date }))
@@ -1195,7 +1199,7 @@ export default function AdminMeetingsPage() {
                       setForm((current) => ({ ...current, endTime: value }))
                     }
                   >
-                    <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                       <PremiumSelectValue placeholder="Select end time" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -1210,7 +1214,7 @@ export default function AdminMeetingsPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-xs uppercase tracking-[0.2em] text-white/45">
+                <Label className="text-xs uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   Notes
                 </Label>
                 <Textarea
@@ -1222,25 +1226,25 @@ export default function AdminMeetingsPage() {
                     }))
                   }
                   placeholder="Optional context, agenda, or preparation notes"
-                  className="min-h-[96px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                  className="min-h-[96px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
             </div>
 
-            <div className="space-y-4 rounded-[26px] border border-white/10 bg-white/[0.03] p-5">
+            <div className="space-y-4 rounded-[26px] border border-(--ws-line) bg-(--ws-fill) p-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
                     <Sparkles className="h-4 w-4 text-(--ws-emerald)" />
                     Invite Summary
                   </div>
-                  <div className="text-xs text-white/50">
+                  <div className="text-xs text-(--ws-fg-70)">
                     Invite-only calendar visibility is based on the counts below. Use
                     the role cards to switch the active search directory.
                   </div>
                 </div>
 
-                <Badge variant="secondary" className="bg-white/10 text-white/80">
+                <Badge variant="secondary" className="bg-(--ws-fill-strong) text-(--ws-fg-70)">
                   {selectedRecipients.length} selected
                 </Badge>
               </div>
@@ -1264,7 +1268,7 @@ export default function AdminMeetingsPage() {
                   variant="outline"
                   onClick={() => handleSelectEntireRole(activeRecipientRole)}
                   disabled={bulkSelecting !== null}
-                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   {bulkSelecting === activeRecipientRole ? (
                     <>
@@ -1283,7 +1287,7 @@ export default function AdminMeetingsPage() {
                   variant="outline"
                   onClick={handleSelectEveryone}
                   disabled={bulkSelecting !== null}
-                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   {bulkSelecting === "all" ? (
                     <>
@@ -1299,7 +1303,7 @@ export default function AdminMeetingsPage() {
                   variant="outline"
                   onClick={() => removeRecipientsByRole(activeRecipientRole)}
                   disabled={selectedCounts[activeRecipientRole] === 0}
-                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   Clear {activeRoleConfig.label.toLowerCase()}
                 </Button>
@@ -1308,7 +1312,7 @@ export default function AdminMeetingsPage() {
                   variant="outline"
                   onClick={() => setSelectedRecipients([])}
                   disabled={selectedRecipients.length === 0}
-                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  className="border-(--ws-line) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   Clear all
                 </Button>
@@ -1317,8 +1321,8 @@ export default function AdminMeetingsPage() {
 
             <div className="space-y-4">
               <div>
-                <div className="text-sm font-semibold text-white">Choose An Audience</div>
-                <div className="mt-1 text-xs text-white/50">
+                <div className="text-sm font-semibold text-(--ws-fg)">Choose An Audience</div>
+                <div className="mt-1 text-xs text-(--ws-fg-70)">
                   Switch between teachers, parents, and bursars. The search box below
                   changes based on the card you select.
                 </div>
@@ -1336,25 +1340,25 @@ export default function AdminMeetingsPage() {
                 ))}
               </div>
 
-              <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-5">
+              <div className="rounded-[26px] border border-(--ws-line) bg-(--ws-fill) p-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-1">
-                    <div className="text-sm font-semibold text-white">
+                    <div className="text-sm font-semibold text-(--ws-fg)">
                       {activeRoleConfig.label} Directory
                     </div>
-                    <div className="text-xs text-white/50">
+                    <div className="text-xs text-(--ws-fg-70)">
                       Search the active audience and tick the people you want to
                       invite.
                     </div>
                   </div>
-                  <Badge variant="secondary" className="bg-white/10 text-white/75">
+                  <Badge variant="secondary" className="bg-(--ws-fill-strong) text-(--ws-fg-70)">
                     {selectedCounts[activeRecipientRole]} selected in this group
                   </Badge>
                 </div>
 
                 <div className="mt-4 space-y-4">
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                     <Input
                       value={activeSearchValue}
                       onChange={(event) =>
@@ -1364,18 +1368,18 @@ export default function AdminMeetingsPage() {
                         }))
                       }
                       placeholder={activeRoleConfig.searchPlaceholder}
-                      className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                      className="border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                     />
                   </div>
 
                   <div className="max-h-[24rem] space-y-3 overflow-y-auto pr-1">
                     {recipientLoading[activeRecipientRole] ? (
-                      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/60">
+                      <div className="flex items-center gap-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-4 text-sm text-(--ws-fg-70)">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Loading {activeRoleConfig.label.toLowerCase()}...
                       </div>
                     ) : activeRecipientOptions.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-6 text-sm text-white/45">
+                      <div className="rounded-2xl border border-dashed border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-sm text-(--ws-fg-70)">
                         {activeRoleConfig.emptyLabel}
                       </div>
                     ) : (
@@ -1440,8 +1444,8 @@ export default function AdminMeetingsPage() {
               );
             })()}
 
-            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
-              <div className="text-sm text-white/55">
+            <div className="flex flex-col gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-(--ws-fg-70)">
                 Meetings created here are private by default. Invitees will see them
                 in their calendar. Video join links remain pending until provider
                 provisioning is added.
@@ -1455,7 +1459,7 @@ export default function AdminMeetingsPage() {
                   loadingCalendars ||
                   !canSchedule
                 }
-                className="min-w-[180px] bg-emerald-500 text-black hover:bg-emerald-400"
+                className="min-w-[180px] bg-emerald-600 text-white hover:bg-emerald-500 hover:text-white"
               >
                 {saving ? (
                   <>
@@ -1475,35 +1479,35 @@ export default function AdminMeetingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-[#0b1120] text-white">
+        <Card className="border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg)">
           <CardHeader className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle className="text-xl">Meeting Queue</CardTitle>
-                <p className="mt-1 text-sm text-white/55">
+                <p className="mt-1 text-sm text-(--ws-fg-70)">
                   Review meetings, cancel when plans change, or delete cancelled rows
                   to clear the queue.
                 </p>
               </div>
               <div className="relative w-full max-w-[220px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                 <Input
                   value={meetingSearch}
                   onChange={(event) => setMeetingSearch(event.target.value)}
                   placeholder="Search meetings"
-                  className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                  className="border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
             </div>
           </CardHeader>
           <CardContent>
             {loadingPage ? (
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-sm text-white/60">
+              <div className="flex items-center gap-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-sm text-(--ws-fg-70)">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading meetings...
               </div>
             ) : meetings.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-8 text-center text-sm text-white/45">
+              <div className="rounded-2xl border border-dashed border-(--ws-line) bg-(--ws-fill) px-4 py-8 text-center text-sm text-(--ws-fg-70)">
                 No meetings scheduled yet.
               </div>
             ) : (
@@ -1511,13 +1515,13 @@ export default function AdminMeetingsPage() {
                 {meetings.map((meeting) => (
                   <div
                     key={meeting.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+                    className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4"
                   >
                     <div className="flex flex-col gap-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="truncate text-base font-semibold text-white">
+                            <h3 className="truncate text-base font-semibold text-(--ws-fg)">
                               {meeting.title}
                             </h3>
                             <Badge
@@ -1530,12 +1534,12 @@ export default function AdminMeetingsPage() {
                             >
                               {meeting.status}
                             </Badge>
-                            <Badge className="border border-white/10 bg-white/10 text-white/75">
+                            <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
                               {kindLabel(meeting.kind)}
                             </Badge>
                           </div>
                           {meeting.description && (
-                            <p className="mt-1 text-sm text-white/55">
+                            <p className="mt-1 text-sm text-(--ws-fg-70)">
                               {meeting.description}
                             </p>
                           )}
@@ -1549,7 +1553,7 @@ export default function AdminMeetingsPage() {
                                 <Button
                                   asChild
                                   size="sm"
-                                  className="bg-brand text-brand-foreground hover:bg-brand/90"
+                                  className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
                                 >
                                   <Link href={`/admin/meetings/${meeting.id}`}>Join room</Link>
                                 </Button>
@@ -1564,7 +1568,7 @@ export default function AdminMeetingsPage() {
                                     blockStart || retryingLiveKitId === meeting.id
                                   }
                                   onClick={() => handleRetryLiveKitProvision(meeting.id)}
-                                  className="border border-white/10 bg-white/10 text-white hover:bg-white/15"
+                                  className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                                 >
                                   {retryingLiveKitId === meeting.id ? (
                                     <>
@@ -1586,7 +1590,7 @@ export default function AdminMeetingsPage() {
                                   blockCancel || cancellingId === meeting.id
                                 }
                                 onClick={() => handleCancelMeeting(meeting.id)}
-                                className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                                className="border-(--ws-line) bg-transparent text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                               >
                                 {cancellingId === meeting.id ? (
                                   <>
@@ -1626,9 +1630,9 @@ export default function AdminMeetingsPage() {
                         </div>
                       </div>
 
-                      <div className="grid gap-2 text-sm text-white/65">
+                      <div className="grid gap-2 text-sm text-(--ws-fg-70)">
                         <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-white/35" />
+                          <CalendarDays className="h-4 w-4 text-(--ws-fg-70)" />
                           <span>{meeting.calendar.name}</span>
                           {!meeting.calendar.isPublished && (
                             <Badge className="border border-amber-400/25 bg-amber-500/10 text-(--ws-amber)">
@@ -1637,10 +1641,10 @@ export default function AdminMeetingsPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-white/35" />
+                          <Clock className="h-4 w-4 text-(--ws-fg-70)" />
                           <span>{formatMeetingRange(meeting.startsAt, meeting.endsAt)}</span>
                         </div>
-                        <div className="text-xs text-white/45">
+                        <div className="text-xs text-(--ws-fg-70)">
                           {countLabel(meeting.counts) || `${meeting.participantCount} invited`}
                         </div>
                       </div>
@@ -1660,7 +1664,7 @@ export default function AdminMeetingsPage() {
                         {meeting.provider === "livekit" &&
                           meeting.providerStatus === "failed" &&
                           meeting.providerLastError ? (
-                          <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-black/25 p-2 font-mono text-[11px] text-white/80">
+                          <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-(--ws-fill) p-2 font-mono text-[11px] text-(--ws-fg-70)">
                             {meeting.providerLastError}
                           </pre>
                         ) : null}
@@ -1670,9 +1674,9 @@ export default function AdminMeetingsPage() {
                         {meeting.participants.slice(0, 5).map((participant) => (
                           <div
                             key={`${meeting.id}:${participant.role}:${participant.userId}`}
-                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-white/80"
+                            className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill-strong) px-2.5 py-1 text-(--ws-fg-70)"
                           >
-                            <Avatar className="h-6 w-6 border border-white/10">
+                            <Avatar className="h-6 w-6 border border-(--ws-line)">
                               <AvatarImage
                                 src={participant.avatarUrl || ""}
                                 alt={participant.name}
@@ -1685,7 +1689,7 @@ export default function AdminMeetingsPage() {
                           </div>
                         ))}
                         {meeting.participants.length > 5 && (
-                          <Badge className="border border-white/10 bg-white/10 text-white/60">
+                          <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)">
                             +{meeting.participants.length - 5} more
                           </Badge>
                         )}
@@ -1706,6 +1710,6 @@ export default function AdminMeetingsPage() {
         </Card>
       </div>
       {confirmationDialog}
-    </div>
+    </WorkspaceScope>
   );
 }

@@ -20,13 +20,13 @@ export function ClassDistributionList({
   const items = distribution ?? [];
   if (loading) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="text-xs font-semibold text-white/80 uppercase tracking-wider">
+          <CardTitle className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wider">
             Class Distribution
           </CardTitle>
         </CardHeader>
@@ -34,10 +34,10 @@ export function ClassDistributionList({
           {Array.from({ length: 4 }).map((_, idx) => (
             <div key={idx} className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-32 animate-pulse rounded bg-white/10" />
-                <div className="h-1.5 w-full animate-pulse rounded-full bg-white/5" />
+                <div className="h-3 w-32 animate-pulse rounded bg-(--ws-fill-strong)" />
+                <div className="h-1.5 w-full animate-pulse rounded-full bg-(--ws-fill)" />
               </div>
-              <div className="h-4 w-8 animate-pulse rounded bg-white/10" />
+              <div className="h-4 w-8 animate-pulse rounded bg-(--ws-fill-strong)" />
             </div>
           ))}
         </CardContent>
@@ -47,18 +47,18 @@ export function ClassDistributionList({
 
   if (!items.length) {
     return (
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="text-xs font-semibold text-white/80 uppercase tracking-wider">
+          <CardTitle className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wider">
             Class Distribution
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-70)">
             No students found yet. Once students are assigned to classes,
             you&apos;ll see their distribution here.
           </p>
@@ -70,13 +70,13 @@ export function ClassDistributionList({
   const max = Math.max(...items.map((d) => d.count || 0));
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
         aria-hidden="true"
       />
       <CardHeader className="relative z-10 pb-3">
-        <CardTitle className="text-xs font-semibold text-white/80 uppercase tracking-wider">
+        <CardTitle className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wider">
           Class Distribution
         </CardTitle>
       </CardHeader>
@@ -96,14 +96,14 @@ export function ClassDistributionList({
             <div key={key} className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <p className="truncate text-xs font-medium text-white/90">
+                  <p className="truncate text-xs font-medium text-(--ws-fg-70)">
                     {label}
                   </p>
-                  <span className="shrink-0 text-xs font-semibold text-white/70">
+                  <span className="shrink-0 text-xs font-semibold text-(--ws-fg-70)">
                     {item.count}
                   </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-(--ws-fill-strong) overflow-hidden">
                   <div
                     className={cn(
                       "h-full rounded-full bg-linear-to-r from-cyan-400/80 via-cyan-500/80 to-cyan-400/80 transition-all duration-500"

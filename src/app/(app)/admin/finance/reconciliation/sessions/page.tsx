@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -65,14 +67,14 @@ function statusBadge(status: SessionStatus) {
     locked: { label: "Locked", class: "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)" },
     reopened: { label: "Reopened", class: "border-orange-500/25 bg-orange-500/10 text-(--ws-amber)" },
   };
-  const s = map[status] || { label: status, class: "border-white/10 bg-white/5 text-white/50" };
+  const s = map[status] || { label: status, class: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)" };
   return <Badge variant="outline" className={`text-[10px] ${s.class}`}>{s.label}</Badge>;
 }
 
 function statusIcon(status: SessionStatus) {
-  if (status === "locked") return <Lock className="h-5 w-5 text-emerald-400" />;
+  if (status === "locked") return <Lock className="h-5 w-5 text-(--ws-emerald)" />;
   if (status === "reopened") return <LockOpen className="h-5 w-5 text-orange-400" />;
-  if (status === "review") return <Shield className="h-5 w-5 text-indigo-400" />;
+  if (status === "review") return <Shield className="h-5 w-5 text-(--ws-violet)" />;
   if (status === "in_progress") return <RefreshCw className="h-5 w-5 text-amber-400" />;
   return <Clock className="h-5 w-5 text-sky-400" />;
 }
@@ -134,16 +136,16 @@ export default function ReconciliationSessionsPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500/20 to-violet-600/20">
-            <Shield className="h-6 w-6 text-indigo-400" />
+            <Shield className="h-6 w-6 text-(--ws-violet)" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white md:text-3xl">Reconciliation Sessions</h1>
-            <p className="mt-1 text-sm text-white/50">View all reconciliation sessions, filter by status, and manage locks.</p>
+            <h1 className="text-2xl font-bold text-(--ws-fg) md:text-3xl">Reconciliation Sessions</h1>
+            <p className="mt-1 text-sm text-(--ws-fg-70)">View all reconciliation sessions, filter by status, and manage locks.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -157,10 +159,10 @@ export default function ReconciliationSessionsPage() {
       </div>
 
       {/* Tools previously on the standalone reconciliation page: export, help, run, recent runs */}
-      <Card className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-        <CardHeader className="border-b border-white/5 pb-3">
-          <CardTitle className="text-sm font-semibold text-white">Reconciliation tools</CardTitle>
-          <p className="text-xs text-white/45">
+      <Card className="mb-6 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+        <CardHeader className="border-b border-(--ws-line) pb-3">
+          <CardTitle className="text-sm font-semibold text-(--ws-fg)">Reconciliation tools</CardTitle>
+          <p className="text-xs text-(--ws-fg-70)">
             Export audit CSV, run deterministic matching across the school, or review how matching works. Open a session to work the full guided flow.
           </p>
         </CardHeader>
@@ -170,7 +172,7 @@ export default function ReconciliationSessionsPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               asChild
             >
               <a href="/api/admin/fees/reconciliation/export?format=csv" download target="_blank" rel="noopener noreferrer">
@@ -181,7 +183,7 @@ export default function ReconciliationSessionsPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={() => setHelpOpen(true)}
             >
               <HelpCircle className="mr-1.5 h-3.5 w-3.5" /> Help
@@ -192,7 +194,7 @@ export default function ReconciliationSessionsPage() {
               size="sm"
               disabled={runReconciliation.isPending}
               onClick={() => void handleRunReconciliation()}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               {runReconciliation.isPending ? (
                 <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -203,15 +205,15 @@ export default function ReconciliationSessionsPage() {
             </Button>
           </div>
           <div className="min-w-0 flex-1 sm:max-w-md">
-            <p className="mb-1 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-white/40">
+            <p className="mb-1 flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-(--ws-fg-70)">
               <TrendingUp className="h-3 w-3" /> Recent runs
             </p>
             {runsQuery.isLoading ? (
               <Skeleton className="h-8 w-full rounded-lg" />
             ) : (runsQuery.data || []).length === 0 ? (
-              <p className="text-xs text-white/35">No runs yet.</p>
+              <p className="text-xs text-(--ws-fg-70)">No runs yet.</p>
             ) : (
-              <div className="space-y-1 text-xs text-white/55">
+              <div className="space-y-1 text-xs text-(--ws-fg-70)">
                 {(runsQuery.data || []).slice(0, 3).map((run) => (
                   <div key={run.id} className="flex justify-between gap-2">
                     <span className="truncate">{formatDateTime(run.startedAt)}</span>
@@ -225,16 +227,16 @@ export default function ReconciliationSessionsPage() {
       </Card>
 
       {/* Filters */}
-      <Card className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+      <Card className="mb-6 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/30" />
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-(--ws-fg-70)" />
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search sessions…"
-                className="h-9 border-white/10 bg-white/5 pl-9 text-sm text-white placeholder:text-white/30"
+                className="h-9 border-(--ws-line) bg-(--ws-fill) pl-9 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50)"
               />
             </div>
             <PremiumSelect value={statusFilter} onValueChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}>
@@ -254,7 +256,7 @@ export default function ReconciliationSessionsPage() {
               variant="outline"
               size="icon"
               onClick={() => void sessionsQuery.refetch()}
-              className="h-9 w-9 border-white/10 bg-white/5 hover:bg-white/10"
+              className="h-9 w-9 border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
             >
               <RefreshCw className={`h-4 w-4 ${sessionsQuery.isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -263,15 +265,15 @@ export default function ReconciliationSessionsPage() {
       </Card>
 
       {/* Sessions list */}
-      <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-        <CardHeader className="border-b border-white/5 pb-4">
-          <CardTitle className="text-base font-semibold text-white">
+      <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+        <CardHeader className="border-b border-(--ws-line) pb-4">
+          <CardTitle className="text-base font-semibold text-(--ws-fg)">
             {pagination ? `${pagination.total} session(s)` : "Sessions"}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {sessionsQuery.isLoading ? (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-(--ws-line)">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4 px-5 py-4">
                   <Skeleton className="h-10 w-10 rounded-xl" />
@@ -285,15 +287,15 @@ export default function ReconciliationSessionsPage() {
             </div>
           ) : sessions.length === 0 ? (
             <div className="py-16 text-center">
-              <Shield className="mx-auto h-10 w-10 text-white/15" />
-              <p className="mt-3 text-sm text-white/40">No sessions found</p>
-              <p className="mt-1 text-xs text-white/25">Create a new reconciliation session to get started</p>
+              <Shield className="mx-auto h-10 w-10 text-(--ws-fg-70)" />
+              <p className="mt-3 text-sm text-(--ws-fg-70)">No sessions found</p>
+              <p className="mt-1 text-xs text-(--ws-fg-70)">Create a new reconciliation session to get started</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-(--ws-line)">
               {sessions.map((session) => (
-                <div key={session.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-white/2">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                <div key={session.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-(--ws-fill-strong)">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-(--ws-fill)">
                     {statusIcon(session.status)}
                   </div>
                   <button
@@ -302,16 +304,16 @@ export default function ReconciliationSessionsPage() {
                     onClick={() => router.push(`/admin/finance/reconciliation/sessions/${session.id}`)}
                   >
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-medium text-white">{session.label}</p>
+                      <p className="truncate text-sm font-medium text-(--ws-fg)">{session.label}</p>
                       {statusBadge(session.status)}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/40">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-(--ws-fg-70)">
                       <span>{formatDateTime(session.createdAt)}</span>
                       <span>by {userName(session.createdBy)}</span>
                       <span>{session.sourceTypes.join(", ")}</span>
                     </div>
                   </button>
-                  <div className="hidden gap-3 text-right text-xs text-white/50 sm:flex">
+                  <div className="hidden gap-3 text-right text-xs text-(--ws-fg-70) sm:flex">
                     <div>
                       <p className="font-semibold text-(--ws-emerald)">{session.summary.matched}</p>
                       <p>matched</p>
@@ -328,7 +330,7 @@ export default function ReconciliationSessionsPage() {
                         size="sm"
                         variant="outline"
                         onClick={(e) => { e.stopPropagation(); setReopenTarget(session); }}
-                        className="h-8 border-white/10 text-xs text-white/60 hover:bg-white/10"
+                        className="h-8 border-(--ws-line) text-xs text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                       >
                         <LockOpen className="mr-1 h-3 w-3" /> Reopen
                       </Button>
@@ -350,15 +352,15 @@ export default function ReconciliationSessionsPage() {
           )}
 
           {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between border-t border-white/5 px-5 py-3">
-              <p className="text-xs text-white/40">
+            <div className="flex items-center justify-between border-t border-(--ws-line) px-5 py-3">
+              <p className="text-xs text-(--ws-fg-70)">
                 Page {pagination.page} of {pagination.pages} ({pagination.total} total)
               </p>
               <div className="flex items-center gap-1">
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-white/5 text-white hover:bg-white/10" disabled={pagination.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <Button size="sm" variant="outline" className="h-8 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)" disabled={pagination.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
-                <Button size="sm" variant="outline" className="h-8 border-white/10 bg-white/5 text-white hover:bg-white/10" disabled={pagination.page >= pagination.pages} onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}>
+                <Button size="sm" variant="outline" className="h-8 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)" disabled={pagination.page >= pagination.pages} onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -382,11 +384,11 @@ export default function ReconciliationSessionsPage() {
             value={reopenReason}
             onChange={(e) => setReopenReason(e.target.value)}
             placeholder="Reason for reopening (required)…"
-            className="min-h-[80px] border-white/10 bg-white/5 text-sm text-white placeholder:text-white/30"
+            className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50)"
             maxLength={500}
           />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => { setReopenTarget(null); setReopenReason(""); }} className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
+            <Button variant="outline" onClick={() => { setReopenTarget(null); setReopenReason(""); }} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)">
               Cancel
             </Button>
             <Button
@@ -401,6 +403,6 @@ export default function ReconciliationSessionsPage() {
       </ResponsiveModal>
 
       <ReconciliationHelpDrawer open={helpOpen} onOpenChange={setHelpOpen} />
-    </div>
+    </WorkspaceScope>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -75,19 +77,19 @@ function getStatusConfig(status: TransactionStatus) {
     },
     processing: {
       label: "Processing",
-      color: "text-blue-400",
+      color: "text-(--ws-cyan)",
       bgColor: "bg-blue-500/10",
       icon: <RefreshCw className="h-5 w-5 animate-spin" />,
     },
     success: {
       label: "Success",
-      color: "text-emerald-400",
+      color: "text-(--ws-emerald)",
       bgColor: "bg-emerald-500/10",
       icon: <CheckCircle2 className="h-5 w-5" />,
     },
     failed: {
       label: "Failed",
-      color: "text-red-400",
+      color: "text-(--ws-rose)",
       bgColor: "bg-red-500/10",
       icon: <XCircle className="h-5 w-5" />,
     },
@@ -111,7 +113,7 @@ function getStatusConfig(status: TransactionStatus) {
     },
     disputed: {
       label: "Disputed",
-      color: "text-red-400",
+      color: "text-(--ws-rose)",
       bgColor: "bg-red-500/10",
       icon: <AlertCircle className="h-5 w-5" />,
     },
@@ -243,11 +245,11 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <Icon className="h-5 w-5 text-white/40 mt-0.5 shrink-0" />
+      <Icon className="h-5 w-5 text-(--ws-fg-70) mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-white/40">{label}</p>
-        <p className="text-white">{value}</p>
-        {subValue && <p className="text-xs text-white/50 mt-0.5">{subValue}</p>}
+        <p className="text-xs text-(--ws-fg-70)">{label}</p>
+        <p className="text-(--ws-fg)">{value}</p>
+        {subValue && <p className="text-xs text-(--ws-fg-70) mt-0.5">{subValue}</p>}
       </div>
     </div>
   );
@@ -386,7 +388,7 @@ export default function TransactionDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-6 md:p-8">
+      <WorkspaceScope className="min-h-screen p-6 md:p-8">
         <Skeleton className="h-8 w-48 mb-6" />
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
@@ -395,16 +397,16 @@ export default function TransactionDetailPage() {
           </div>
           <Skeleton className="h-96 rounded-2xl" />
         </div>
-      </div>
+      </WorkspaceScope>
     );
   }
 
   if (!transaction) {
     return (
-      <div className="min-h-screen p-6 md:p-8">
+      <WorkspaceScope className="min-h-screen p-6 md:p-8">
         <div className="text-center py-12">
-          <DollarSign className="mx-auto h-12 w-12 text-white/30" />
-          <h2 className="mt-4 text-lg font-medium text-white">Transaction not found</h2>
+          <DollarSign className="mx-auto h-12 w-12 text-(--ws-fg-70)" />
+          <h2 className="mt-4 text-lg font-medium text-(--ws-fg)">Transaction not found</h2>
           <Button
             variant="outline"
             className="mt-4"
@@ -414,7 +416,7 @@ export default function TransactionDetailPage() {
             Back to Transactions
           </Button>
         </div>
-      </div>
+      </WorkspaceScope>
     );
   }
 
@@ -423,7 +425,7 @@ export default function TransactionDetailPage() {
   const sourceLink = getSourceModuleLink(transaction.sourceModule, transaction.sourceId);
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
         <Button
@@ -436,14 +438,14 @@ export default function TransactionDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white md:text-2xl">
+            <h1 className="text-xl font-bold text-(--ws-fg) md:text-2xl">
               Transaction Details
             </h1>
             {transaction.reference && (
-              <span className="text-sm text-white/40">{transaction.reference}</span>
+              <span className="text-sm text-(--ws-fg-70)">{transaction.reference}</span>
             )}
           </div>
-          <p className="mt-1 text-sm text-white/50">
+          <p className="mt-1 text-sm text-(--ws-fg-70)">
             {format(new Date(transaction.occurredAt), "MMMM d, yyyy 'at' h:mm a")}
           </p>
         </div>
@@ -454,7 +456,7 @@ export default function TransactionDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Approval Action Card */}
           {needsApproval && (
-            <Card className="overflow-hidden rounded-2xl border border-amber-500/30 bg-linear-to-br from-amber-500/10 via-amber-600/5 to-black/60">
+            <Card className="overflow-hidden rounded-2xl border border-amber-500/30 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-(--ws-panel-to)">
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-400" />
@@ -464,7 +466,7 @@ export default function TransactionDetailPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-2">
-                <p className="text-sm text-white/60 mb-4">
+                <p className="text-sm text-(--ws-fg-70) mb-4">
                   This manual transaction requires review and approval before it becomes finalized.
                 </p>
                 {dualControlRequired && (
@@ -515,7 +517,7 @@ export default function TransactionDetailPage() {
                         setShowApprovalForm(true);
                       }}
                       disabled={dualControlHardBlock}
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      className="border-red-500/30 text-(--ws-rose) hover:bg-red-500/10"
                     >
                       <XCircle className="mr-2 h-4 w-4" />
                       Reject
@@ -524,7 +526,7 @@ export default function TransactionDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm text-white/60 mb-2 block">
+                      <label className="text-sm text-(--ws-fg-70) mb-2 block">
                         Review Notes {approvalAction === "reject" && "(recommended for rejection)"}
                       </label>
                       <Textarea
@@ -535,7 +537,7 @@ export default function TransactionDetailPage() {
                             ? "Optional notes..."
                             : "Reason for rejection..."
                         }
-                        className="min-h-[80px] border-white/10 bg-white/5 text-white"
+                        className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
                     </div>
                     <div className="flex gap-3">
@@ -574,7 +576,7 @@ export default function TransactionDetailPage() {
           )}
 
           {/* Status and Amount Card */}
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 {/* Status */}
@@ -583,7 +585,7 @@ export default function TransactionDetailPage() {
                     <span className={statusConfig.color}>{statusConfig.icon}</span>
                   </div>
                   <div>
-                    <p className="text-sm text-white/50">Status</p>
+                    <p className="text-sm text-(--ws-fg-70)">Status</p>
                     <p className={`text-lg font-semibold ${statusConfig.color}`}>
                       {statusConfig.label}
                     </p>
@@ -592,19 +594,19 @@ export default function TransactionDetailPage() {
 
                 {/* Amount */}
                 <div className="text-right">
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-70)">
                     {isInflow ? "Received" : "Spent"}
                   </p>
                   <p
                     className={`text-3xl font-bold ${
-                      isInflow ? "text-emerald-400" : "text-red-400"
+                      isInflow ? "text-(--ws-emerald)" : "text-(--ws-rose)"
                     }`}
                   >
                     {isInflow ? "+" : "-"}
                     {formatCurrency(transaction.netAmountMinor, transaction.currency)}
                   </p>
                   {transaction.feeAmountMinor > 0 && (
-                    <p className="text-xs text-white/40 mt-1">
+                    <p className="text-xs text-(--ws-fg-70) mt-1">
                       Gross: {formatCurrency(transaction.grossAmountMinor)} |{" "}
                       Fee: {formatCurrency(transaction.feeAmountMinor)}
                     </p>
@@ -618,8 +620,8 @@ export default function TransactionDetailPage() {
                   variant="outline"
                   className={`gap-1.5 ${
                     isInflow
-                      ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                      : "border-red-500/30 text-red-400 bg-red-500/10"
+                      ? "border-emerald-500/30 text-(--ws-emerald) bg-emerald-500/10"
+                      : "border-red-500/30 text-(--ws-rose) bg-red-500/10"
                   }`}
                 >
                   {isInflow ? (
@@ -634,7 +636,7 @@ export default function TransactionDetailPage() {
                 </Badge>
                 {sourceLink && (
                   <Link href={sourceLink}>
-                    <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-white/10">
+                    <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-(--ws-fill-strong)">
                       View Source
                       <ExternalLink className="h-3 w-3" />
                     </Badge>
@@ -645,9 +647,9 @@ export default function TransactionDetailPage() {
           </Card>
 
           {/* Details Card */}
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-            <CardHeader className="border-b border-white/5">
-              <CardTitle className="text-lg text-white">Details</CardTitle>
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line)">
+              <CardTitle className="text-lg text-(--ws-fg)">Details</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -702,10 +704,10 @@ export default function TransactionDetailPage() {
               {/* Description */}
               {transaction.description && (
                 <>
-                  <Separator className="my-4 bg-white/5" />
+                  <Separator className="my-4 bg-(--ws-fill)" />
                   <div>
-                    <p className="text-xs text-white/40 mb-2">Description</p>
-                    <p className="text-white/80">{transaction.description}</p>
+                    <p className="text-xs text-(--ws-fg-70) mb-2">Description</p>
+                    <p className="text-(--ws-fg-70)">{transaction.description}</p>
                   </div>
                 </>
               )}
@@ -713,10 +715,10 @@ export default function TransactionDetailPage() {
               {/* Notes */}
               {transaction.notes && (
                 <>
-                  <Separator className="my-4 bg-white/5" />
+                  <Separator className="my-4 bg-(--ws-fill)" />
                   <div>
-                    <p className="text-xs text-white/40 mb-2">Internal Notes</p>
-                    <p className="text-white/60 italic">{transaction.notes}</p>
+                    <p className="text-xs text-(--ws-fg-70) mb-2">Internal Notes</p>
+                    <p className="text-(--ws-fg-70) italic">{transaction.notes}</p>
                   </div>
                 </>
               )}
@@ -725,24 +727,24 @@ export default function TransactionDetailPage() {
 
           {/* Party Card */}
           {transaction.party && (
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5">
-                <CardTitle className="text-lg text-white">
+            <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+              <CardHeader className="border-b border-(--ws-line)">
+                <CardTitle className="text-lg text-(--ws-fg)">
                   {isInflow ? "From" : "To"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--ws-fill)">
                     {transaction.party.type === "vendor" ? (
-                      <Building2 className="h-6 w-6 text-white/40" />
+                      <Building2 className="h-6 w-6 text-(--ws-fg-70)" />
                     ) : (
-                      <User className="h-6 w-6 text-white/40" />
+                      <User className="h-6 w-6 text-(--ws-fg-70)" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-white">{transaction.party.name}</p>
-                    <p className="text-sm text-white/50 capitalize">
+                    <p className="font-medium text-(--ws-fg)">{transaction.party.name}</p>
+                    <p className="text-sm text-(--ws-fg-70) capitalize">
                       {transaction.party.type}
                     </p>
                   </div>
@@ -751,14 +753,14 @@ export default function TransactionDetailPage() {
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {transaction.party.contact.phone && (
                       <div className="text-sm">
-                        <span className="text-white/40">Phone: </span>
-                        <span className="text-white">{transaction.party.contact.phone}</span>
+                        <span className="text-(--ws-fg-70)">Phone: </span>
+                        <span className="text-(--ws-fg)">{transaction.party.contact.phone}</span>
                       </div>
                     )}
                     {transaction.party.contact.email && (
                       <div className="text-sm">
-                        <span className="text-white/40">Email: </span>
-                        <span className="text-white">{transaction.party.contact.email}</span>
+                        <span className="text-(--ws-fg-70)">Email: </span>
+                        <span className="text-(--ws-fg)">{transaction.party.contact.email}</span>
                       </div>
                     )}
                   </div>
@@ -769,9 +771,9 @@ export default function TransactionDetailPage() {
 
           {/* Attachments Card */}
           {transaction.attachments && transaction.attachments.length > 0 && (
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5">
-                <CardTitle className="text-lg text-white">
+            <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+              <CardHeader className="border-b border-(--ws-line)">
+                <CardTitle className="text-lg text-(--ws-fg)">
                   Attachments ({transaction.attachments.length})
                 </CardTitle>
               </CardHeader>
@@ -783,22 +785,22 @@ export default function TransactionDetailPage() {
                       href={att.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                      className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill-strong)"
                     >
                       {att.type === "image" ? (
-                        <ImageIcon className="h-8 w-8 text-white/40" />
+                        <ImageIcon className="h-8 w-8 text-(--ws-fg-70)" />
                       ) : (
-                        <File className="h-8 w-8 text-white/40" />
+                        <File className="h-8 w-8 text-(--ws-fg-70)" />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">
+                        <p className="text-sm text-(--ws-fg) truncate">
                           {att.name || `Attachment ${idx + 1}`}
                         </p>
-                        <p className="text-xs text-white/40">
+                        <p className="text-xs text-(--ws-fg-70)">
                           {format(new Date(att.uploadedAt), "MMM d, yyyy")}
                         </p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-white/40" />
+                      <ExternalLink className="h-4 w-4 text-(--ws-fg-70)" />
                     </a>
                   ))}
                 </div>
@@ -810,9 +812,9 @@ export default function TransactionDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Reconciliation Card */}
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-            <CardHeader className="border-b border-white/5">
-              <CardTitle className="text-lg text-white">Reconciliation</CardTitle>
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line)">
+              <CardTitle className="text-lg text-(--ws-fg)">Reconciliation</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               {dualControlRequired && (
@@ -844,35 +846,35 @@ export default function TransactionDetailPage() {
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-white/50">Status</span>
+                <span className="text-sm text-(--ws-fg-70)">Status</span>
                 {getReconciliationStatusBadge(reconciliationStatus)}
               </div>
               {transaction.reconciliation?.provider && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/50">Provider</span>
-                  <span className="text-sm text-white capitalize">
+                  <span className="text-sm text-(--ws-fg-70)">Provider</span>
+                  <span className="text-sm text-(--ws-fg) capitalize">
                     {transaction.reconciliation.provider.replace("_", " ")}
                   </span>
                 </div>
               )}
               {transaction.reconciliation?.providerReference && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/50">Reference</span>
-                  <span className="max-w-[180px] truncate text-sm font-mono text-white">
+                  <span className="text-sm text-(--ws-fg-70)">Reference</span>
+                  <span className="max-w-[180px] truncate text-sm font-mono text-(--ws-fg)">
                     {transaction.reconciliation.providerReference}
                   </span>
                 </div>
               )}
               {transaction.reconciliation?.settlementBatchId && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/50">Settlement Batch</span>
-                  <span className="max-w-[180px] truncate text-sm font-mono text-white">
+                  <span className="text-sm text-(--ws-fg-70)">Settlement Batch</span>
+                  <span className="max-w-[180px] truncate text-sm font-mono text-(--ws-fg)">
                     {transaction.reconciliation.settlementBatchId}
                   </span>
                 </div>
               )}
 
-              <Separator className="bg-white/5" />
+              <Separator className="bg-(--ws-fill)" />
 
               {!showReconciliationForm ? (
                 <div className="flex flex-wrap gap-2">
@@ -925,7 +927,7 @@ export default function TransactionDetailPage() {
                   {reconciliationAction === "match" && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-xs text-white/50">Provider</label>
+                        <label className="text-xs text-(--ws-fg-70)">Provider</label>
                         <PremiumSelect
                           value={provider}
                           onValueChange={(value) =>
@@ -949,7 +951,7 @@ export default function TransactionDetailPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-xs text-white/50">
+                        <label className="text-xs text-(--ws-fg-70)">
                           Provider reference
                         </label>
                         <Input
@@ -958,12 +960,12 @@ export default function TransactionDetailPage() {
                             setProviderReference(event.target.value)
                           }
                           placeholder="Gateway or bank reference"
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-xs text-white/50">
+                        <label className="text-xs text-(--ws-fg-70)">
                           Settlement batch ID (optional)
                         </label>
                         <Input
@@ -972,7 +974,7 @@ export default function TransactionDetailPage() {
                             setSettlementBatchId(event.target.value)
                           }
                           placeholder="Batch or statement ID"
-                          className="border-white/10 bg-white/5 text-white"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
                       </div>
                     </>
@@ -982,7 +984,7 @@ export default function TransactionDetailPage() {
                     reconciliationAction === "ignore" ||
                     reconciliationAction === "unmatch") && (
                     <div className="space-y-2">
-                      <label className="text-xs text-white/50">
+                      <label className="text-xs text-(--ws-fg-70)">
                         Reason
                         {(reconciliationAction === "dispute" ||
                           reconciliationAction === "ignore") &&
@@ -994,7 +996,7 @@ export default function TransactionDetailPage() {
                           setReconciliationReason(event.target.value)
                         }
                         placeholder="Add context for audit and review"
-                        className="min-h-[88px] border-white/10 bg-white/5 text-white"
+                        className="min-h-[88px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
                     </div>
                   )}
@@ -1028,33 +1030,33 @@ export default function TransactionDetailPage() {
           </Card>
 
           {/* Audit Info Card */}
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-            <CardHeader className="border-b border-white/5">
-              <CardTitle className="text-lg text-white">Audit Trail</CardTitle>
+          <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line)">
+              <CardTitle className="text-lg text-(--ws-fg)">Audit Trail</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div>
-                <p className="text-xs text-white/40">Created</p>
-                <p className="text-sm text-white">
+                <p className="text-xs text-(--ws-fg-70)">Created</p>
+                <p className="text-sm text-(--ws-fg)">
                   {format(new Date(transaction.createdAt), "MMM d, yyyy 'at' h:mm a")}
                 </p>
                 {transaction.createdBy && (
-                  <p className="text-xs text-white/50 mt-0.5">
+                  <p className="text-xs text-(--ws-fg-70) mt-0.5">
                     by {transaction.createdBy.name}
                   </p>
                 )}
               </div>
               {transaction.finalizedAt && (
                 <div>
-                  <p className="text-xs text-white/40">Finalized</p>
-                  <p className="text-sm text-white">
+                  <p className="text-xs text-(--ws-fg-70)">Finalized</p>
+                  <p className="text-sm text-(--ws-fg)">
                     {format(new Date(transaction.finalizedAt), "MMM d, yyyy 'at' h:mm a")}
                   </p>
                 </div>
               )}
               <div>
-                <p className="text-xs text-white/40">Transaction ID</p>
-                <p className="text-xs text-white/60 font-mono break-all">
+                <p className="text-xs text-(--ws-fg-70)">Transaction ID</p>
+                <p className="text-xs text-(--ws-fg-70) font-mono break-all">
                   {transaction._id}
                 </p>
               </div>
@@ -1063,40 +1065,40 @@ export default function TransactionDetailPage() {
 
           {/* Related Transactions */}
           {(transaction._original || transaction._correction) && (
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5">
-                <CardTitle className="text-lg text-white">Related Transactions</CardTitle>
+            <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+              <CardHeader className="border-b border-(--ws-line)">
+                <CardTitle className="text-lg text-(--ws-fg)">Related Transactions</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-3">
                 {transaction._original && (
                   <Link
                     href={`/admin/finance/transactions/${transaction._original._id}`}
-                    className="block rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                    className="block rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill-strong)"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-white/40">Original Transaction</p>
-                        <p className="text-sm text-white">
+                        <p className="text-xs text-(--ws-fg-70)">Original Transaction</p>
+                        <p className="text-sm text-(--ws-fg)">
                           {transaction._original.reference}
                         </p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-white/40" />
+                      <ExternalLink className="h-4 w-4 text-(--ws-fg-70)" />
                     </div>
                   </Link>
                 )}
                 {transaction._correction && (
                   <Link
                     href={`/admin/finance/transactions/${transaction._correction._id}`}
-                    className="block rounded-xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                    className="block rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-colors hover:bg-(--ws-fill-strong)"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-white/40">Corrected By</p>
-                        <p className="text-sm text-white">
+                        <p className="text-xs text-(--ws-fg-70)">Corrected By</p>
+                        <p className="text-sm text-(--ws-fg)">
                           {transaction._correction.reference}
                         </p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-white/40" />
+                      <ExternalLink className="h-4 w-4 text-(--ws-fg-70)" />
                     </div>
                   </Link>
                 )}
@@ -1105,6 +1107,6 @@ export default function TransactionDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    </WorkspaceScope>
   );
 }

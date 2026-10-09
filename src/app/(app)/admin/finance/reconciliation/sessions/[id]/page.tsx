@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -21,25 +23,25 @@ export default function ReconciliationSessionDetailPage() {
 
   if (sessionQuery.isLoading) {
     return (
-      <div className="min-h-screen p-6 md:p-8">
+      <WorkspaceScope className="min-h-screen p-6 md:p-8">
         <div className="mx-auto max-w-4xl space-y-6">
           <Skeleton className="h-12 w-64" />
           <Skeleton className="h-8 w-full" />
           <Skeleton className="h-96 w-full rounded-2xl" />
         </div>
-      </div>
+      </WorkspaceScope>
     );
   }
 
   if (sessionQuery.error || !sessionQuery.data) {
     return (
-      <div className="min-h-screen p-6 md:p-8">
+      <WorkspaceScope className="min-h-screen p-6 md:p-8">
         <div className="mx-auto max-w-4xl">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push("/admin/finance/reconciliation/sessions")}
-            className="mb-4 text-white/50 hover:text-white/80"
+            className="mb-4 text-(--ws-fg-70) hover:text-(--ws-fg)"
           >
             <ChevronLeft className="mr-1 h-4 w-4" /> Back to Sessions
           </Button>
@@ -52,20 +54,20 @@ export default function ReconciliationSessionDetailPage() {
               variant="outline"
               size="sm"
               onClick={() => void sessionQuery.refetch()}
-              className="mt-4 border-white/10 text-white/60 hover:bg-white/10"
+              className="mt-4 border-(--ws-line) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
             >
               <RefreshCw className="mr-1 h-3.5 w-3.5" /> Retry
             </Button>
           </div>
         </div>
-      </div>
+      </WorkspaceScope>
     );
   }
 
   const session = sessionQuery.data;
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen p-6 md:p-8">
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="mb-6">
@@ -73,17 +75,17 @@ export default function ReconciliationSessionDetailPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.push("/admin/finance/reconciliation/sessions")}
-            className="mb-4 text-white/50 hover:text-white/80"
+            className="mb-4 text-(--ws-fg-70) hover:text-(--ws-fg)"
           >
             <ChevronLeft className="mr-1 h-4 w-4" /> Back to Sessions
           </Button>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500/20 to-violet-600/20">
-              <Shield className="h-6 w-6 text-indigo-400" />
+              <Shield className="h-6 w-6 text-(--ws-violet)" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{session.label}</h1>
-              <p className="mt-1 text-sm text-white/50">
+              <h1 className="text-2xl font-bold text-(--ws-fg)">{session.label}</h1>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 {session.status.replace("_", " ")} · {session.sourceTypes.join(", ")}
               </p>
             </div>
@@ -100,6 +102,6 @@ export default function ReconciliationSessionDetailPage() {
           onCancel={() => router.push("/admin/finance/reconciliation/sessions")}
         />
       </div>
-    </div>
+    </WorkspaceScope>
   );
 }

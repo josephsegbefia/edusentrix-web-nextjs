@@ -105,7 +105,7 @@ export function GradeDetailTabs({
               "group relative inline-flex items-center gap-2.5 whitespace-nowrap rounded-xl border px-4 py-2.5 text-xs font-medium transition-all duration-200",
               active
                 ? cn("shadow-lg", colors.active)
-                : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white/80"
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
             aria-pressed={active}
           >
@@ -119,7 +119,7 @@ export function GradeDetailTabs({
                 "flex h-7 w-7 items-center justify-center rounded-lg border transition-all duration-200",
                 active
                   ? colors.icon
-                  : "border-white/10 bg-white/5 text-white/50 group-hover:border-white/15 group-hover:bg-white/8 group-hover:text-white/70"
+                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) group-hover:border-(--ws-line) group-hover:bg-(--ws-fill-strong) group-hover:text-(--ws-fg)"
               )}
             >
               <Icon className="h-3.5 w-3.5" />

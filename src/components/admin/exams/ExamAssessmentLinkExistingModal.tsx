@@ -91,12 +91,12 @@ export function ExamAssessmentLinkExistingModal({
     >
       <div className={cn(glassInsetClass, "space-y-3 p-4")}>
         {isLoading ? (
-          <div className="flex items-center gap-2 py-8 text-sm text-white/50">
+          <div className="flex items-center gap-2 py-8 text-sm text-(--ws-fg-70)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading assessment items…
           </div>
         ) : candidates.length === 0 ? (
-          <p className="py-6 text-sm text-white/60">
+          <p className="py-6 text-sm text-(--ws-fg-70)">
             No assessment items were found for this class, subject, and term.
           </p>
         ) : (
@@ -115,13 +115,13 @@ export function ExamAssessmentLinkExistingModal({
                     "w-full rounded-xl border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-50",
                     selected
                       ? "border-cyan-500/40 bg-cyan-500/10"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
+                      : "border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-white">{item.title}</p>
-                      <p className="mt-1 text-xs text-white/50">
+                      <p className="text-sm font-medium text-(--ws-fg)">{item.title}</p>
+                      <p className="mt-1 text-xs text-(--ws-fg-70)">
                         {item.assessmentType} · Max {item.maxScore}
                         {item.componentKey ? ` · ${item.componentKey}` : ""}
                       </p>

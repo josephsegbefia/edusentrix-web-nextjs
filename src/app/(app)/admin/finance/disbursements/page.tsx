@@ -16,12 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/fees/money";
 
@@ -164,7 +165,7 @@ function statusTone(status: DisbursementRecord["status"]) {
     return "border-red-400/20 bg-red-400/10 text-(--ws-rose)";
   }
   if (status === "cancelled") {
-    return "border-white/10 bg-white/5 text-white/70";
+    return "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)";
   }
   return "border-amber-400/20 bg-amber-400/10 text-(--ws-amber)";
 }
@@ -542,14 +543,14 @@ export default function FinanceDisbursementsPage() {
   );
 
   return (
-    <div className="min-h-screen space-y-6 p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen space-y-6 p-6 md:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <Button
             asChild
             variant="ghost"
             size="sm"
-            className="w-fit px-0 text-white/70 hover:text-white"
+            className="w-fit px-0 text-(--ws-fg-70) hover:text-(--ws-fg)"
           >
             <Link href="/admin/finance">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -558,13 +559,13 @@ export default function FinanceDisbursementsPage() {
           </Button>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-blue-500/20 to-indigo-600/20">
-              <Landmark className="h-6 w-6 text-blue-400" />
+              <Landmark className="h-6 w-6 text-(--ws-cyan)" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white md:text-3xl">
+              <h1 className="text-2xl font-bold text-(--ws-fg) md:text-3xl">
                 Disbursements
               </h1>
-              <p className="mt-1 text-sm text-white/50">
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Pay teachers and vendors through EduSentrix, with outbound transaction fees tracked.
               </p>
             </div>
@@ -574,7 +575,7 @@ export default function FinanceDisbursementsPage() {
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             onClick={() => void runBatchAction("retry_send")}
             disabled={batchingAction !== null}
           >
@@ -587,7 +588,7 @@ export default function FinanceDisbursementsPage() {
           </Button>
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             onClick={() => void runBatchAction("reconcile")}
             disabled={batchingAction !== null}
           >
@@ -600,7 +601,7 @@ export default function FinanceDisbursementsPage() {
           </Button>
           <Button
             variant="outline"
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             onClick={() => void loadData()}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -616,7 +617,7 @@ export default function FinanceDisbursementsPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white shadow-2xl">
+        <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg) shadow-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Send className="h-5 w-5 text-(--ws-cyan)" />
@@ -626,10 +627,10 @@ export default function FinanceDisbursementsPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Recipient Type
                 </label>
-                <Select
+                <PremiumSelect
                   value={form.recipientType}
                   onValueChange={(value) =>
                     setForm((current) => ({
@@ -641,21 +642,21 @@ export default function FinanceDisbursementsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-white/10 bg-slate-950 text-white">
-                    <SelectItem value="vendor">Vendor</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
+                    <PremiumSelectItem value="vendor">Vendor</PremiumSelectItem>
+                    <PremiumSelectItem value="teacher">Teacher</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Payment Rail
                 </label>
-                <Select
+                <PremiumSelect
                   value={form.paymentRail}
                   onValueChange={(value) =>
                     setForm((current) => ({
@@ -664,47 +665,47 @@ export default function FinanceDisbursementsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-white/10 bg-slate-950 text-white">
-                    <SelectItem value="manual">Queue Manually</SelectItem>
-                    <SelectItem value="paystack">Send via Paystack</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
+                    <PremiumSelectItem value="manual">Queue Manually</PremiumSelectItem>
+                    <PremiumSelectItem value="paystack">Send via Paystack</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             </div>
 
             {form.recipientType === "vendor" ? (
               <>
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-white/50">
+                  <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                     Vendor
                   </label>
-                  <Select
+                  <PremiumSelect
                     value={form.vendorId}
                     onValueChange={(value) =>
                       setForm((current) => ({ ...current, vendorId: value }))
                     }
                   >
-                    <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                      <SelectValue placeholder="Select vendor" />
-                    </SelectTrigger>
-                    <SelectContent className="border-white/10 bg-slate-950 text-white">
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                      <PremiumSelectValue placeholder="Select vendor" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
                       {(lookups?.vendors || []).map((vendor) => (
-                        <SelectItem key={vendor.id} value={vendor.id}>
+                        <PremiumSelectItem key={vendor.id} value={vendor.id}>
                           {vendor.name}
-                        </SelectItem>
+                        </PremiumSelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-white/50">
+                  <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                     Approved Expense (Optional)
                   </label>
-                  <Select
+                  <PremiumSelect
                     value={form.schoolExpenseId || "none"}
                     onValueChange={(value) =>
                       setForm((current) => ({
@@ -713,26 +714,26 @@ export default function FinanceDisbursementsPage() {
                       }))
                     }
                   >
-                    <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                      <SelectValue placeholder="Link approved expense" />
-                    </SelectTrigger>
-                    <SelectContent className="border-white/10 bg-slate-950 text-white">
-                      <SelectItem value="none">No linked expense</SelectItem>
+                    <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                      <PremiumSelectValue placeholder="Link approved expense" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
+                      <PremiumSelectItem value="none">No linked expense</PremiumSelectItem>
                       {filteredExpenses.map((expense) => (
-                        <SelectItem key={expense.id} value={expense.id}>
+                        <PremiumSelectItem key={expense.id} value={expense.id}>
                           {expense.expenseNumber} • {expense.title}
-                        </SelectItem>
+                        </PremiumSelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
                 </div>
               </>
             ) : (
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Teacher
                 </label>
-                <Select
+                <PremiumSelect
                   value={form.teacherId}
                   onValueChange={(value) =>
                     setForm((current) => ({
@@ -749,23 +750,23 @@ export default function FinanceDisbursementsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue placeholder="Select teacher" />
-                  </SelectTrigger>
-                  <SelectContent className="border-white/10 bg-slate-950 text-white">
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                    <PremiumSelectValue placeholder="Select teacher" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
                     {(lookups?.teachers || []).map((teacher) => (
-                      <SelectItem key={teacher.id} value={teacher.id}>
+                      <PremiumSelectItem key={teacher.id} value={teacher.id}>
                         {teacher.name}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Amount (Minor Units)
                 </label>
                 <Input
@@ -779,16 +780,16 @@ export default function FinanceDisbursementsPage() {
                       amountMinor: event.target.value,
                     }))
                   }
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   placeholder="e.g. 250000"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Destination Method
                 </label>
-                <Select
+                <PremiumSelect
                   value={form.destinationMethod}
                   onValueChange={(value) =>
                     setForm((current) => ({
@@ -797,19 +798,19 @@ export default function FinanceDisbursementsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-white/10 bg-slate-950 text-white">
-                    <SelectItem value="bank">Bank</SelectItem>
-                    <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
+                    <PremiumSelectItem value="bank">Bank</PremiumSelectItem>
+                    <PremiumSelectItem value="mobile_money">Mobile Money</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-white/50">
+              <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                 Purpose
               </label>
               <Input
@@ -817,14 +818,14 @@ export default function FinanceDisbursementsPage() {
                 onChange={(event) =>
                   setForm((current) => ({ ...current, purpose: event.target.value }))
                 }
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 placeholder="Salary advance, vendor settlement, logistics payment"
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Account Name
                 </label>
                 <Input
@@ -835,12 +836,12 @@ export default function FinanceDisbursementsPage() {
                       accountName: event.target.value,
                     }))
                   }
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
+                <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                   Account Number
                 </label>
                 <Input
@@ -851,7 +852,7 @@ export default function FinanceDisbursementsPage() {
                       accountNumber: event.target.value,
                     }))
                   }
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
             </div>
@@ -859,7 +860,7 @@ export default function FinanceDisbursementsPage() {
             {form.destinationMethod === "bank" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-white/50">
+                  <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                     Bank Name
                   </label>
                   <Input
@@ -870,12 +871,12 @@ export default function FinanceDisbursementsPage() {
                         bankName: event.target.value,
                       }))
                     }
-                    className="border-white/10 bg-white/5 text-white"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-white/50">
+                  <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                     Routing Code
                   </label>
                   <Input
@@ -886,7 +887,7 @@ export default function FinanceDisbursementsPage() {
                         bankCode: event.target.value,
                       }))
                     }
-                    className="border-white/10 bg-white/5 text-white"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     placeholder="Required for Paystack payouts"
                   />
                 </div>
@@ -894,7 +895,7 @@ export default function FinanceDisbursementsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-white/50">
+                  <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                     Provider Name
                   </label>
                   <Input
@@ -905,13 +906,13 @@ export default function FinanceDisbursementsPage() {
                         providerName: event.target.value,
                       }))
                     }
-                    className="border-white/10 bg-white/5 text-white"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     placeholder="MTN, Telecel, AirtelTigo"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs uppercase tracking-wide text-white/50">
+                  <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                     Provider Code
                   </label>
                   <Input
@@ -922,7 +923,7 @@ export default function FinanceDisbursementsPage() {
                         bankCode: event.target.value,
                       }))
                     }
-                    className="border-white/10 bg-white/5 text-white"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     placeholder="Required for Paystack payouts"
                   />
                 </div>
@@ -930,7 +931,7 @@ export default function FinanceDisbursementsPage() {
             )}
 
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wide text-white/50">
+              <label className="text-xs uppercase tracking-wide text-(--ws-fg-70)">
                 Internal Notes
               </label>
               <Textarea
@@ -938,13 +939,13 @@ export default function FinanceDisbursementsPage() {
                 onChange={(event) =>
                   setForm((current) => ({ ...current, notes: event.target.value }))
                 }
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 placeholder="Optional internal note for finance review."
               />
             </div>
 
             {form.recipientType === "teacher" ? (
-              <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75">
+              <label className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-70)">
                 <input
                   type="checkbox"
                   checked={form.saveTeacherPayoutProfile}
@@ -954,7 +955,7 @@ export default function FinanceDisbursementsPage() {
                       saveTeacherPayoutProfile: event.target.checked,
                     }))
                   }
-                  className="h-4 w-4 rounded border-white/20 bg-transparent"
+                  className="h-4 w-4 rounded border-(--ws-line) bg-transparent"
                 />
                 Save this destination as the teacher payout profile
               </label>
@@ -964,7 +965,7 @@ export default function FinanceDisbursementsPage() {
               type="button"
               onClick={submitDisbursement}
               disabled={saving || loading}
-              className="bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
+              className="bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 hover:text-white"
             >
               {saving ? (
                 <>
@@ -981,11 +982,11 @@ export default function FinanceDisbursementsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-white/5 text-white">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Recent Disbursements</CardTitle>
             {loading ? (
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading
               </div>
@@ -993,7 +994,7 @@ export default function FinanceDisbursementsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {!loading && rows.length === 0 ? (
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-(--ws-fg-70)">
                 No disbursements have been created yet.
               </p>
             ) : null}
@@ -1001,12 +1002,12 @@ export default function FinanceDisbursementsPage() {
             {rows.map((row) => (
               <div
                 key={row.id}
-                className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-white">{row.recipientName}</p>
+                      <p className="font-medium text-(--ws-fg)">{row.recipientName}</p>
                       <span
                         className={`rounded-full px-3 py-1 text-[11px] ${statusTone(
                           row.status
@@ -1014,7 +1015,7 @@ export default function FinanceDisbursementsPage() {
                       >
                         {row.status}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/65">
+                      <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] text-(--ws-fg-70)">
                         {row.paymentRail}
                       </span>
                       {row.paymentRail === "paystack" &&
@@ -1024,8 +1025,8 @@ export default function FinanceDisbursementsPage() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="text-sm text-white/60">{row.purpose}</p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-sm text-(--ws-fg-70)">{row.purpose}</p>
+                    <p className="text-xs text-(--ws-fg-70)">
                       {row.reference} • {row.recipientType}
                     </p>
                     {row.gateway?.lastError ? (
@@ -1034,15 +1035,15 @@ export default function FinanceDisbursementsPage() {
                   </div>
 
                   <div className="text-right">
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-(--ws-fg)">
                       {formatMoney(row.amountMinor)}
                     </p>
-                    <p className="mt-1 text-xs text-white/50">
+                    <p className="mt-1 text-xs text-(--ws-fg-70)">
                       Platform Fee {formatMoney(row.platformFeeMinor)} • Processor Fee{" "}
                       {formatMoney(row.processorFeeMinor)} • Total{" "}
                       {formatMoney(row.totalDebitMinor)}
                     </p>
-                    <p className="mt-1 text-xs text-white/50">
+                    <p className="mt-1 text-xs text-(--ws-fg-70)">
                       {row.createdAt
                         ? format(new Date(row.createdAt), "MMM d, yyyy h:mm a")
                         : "No timestamp"}
@@ -1058,7 +1059,7 @@ export default function FinanceDisbursementsPage() {
                         size="sm"
                         disabled={approvingId === row.id}
                         onClick={() => void approveDisbursement(row.id)}
-                        className="bg-linear-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700"
+                        className="bg-linear-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700 hover:text-white"
                       >
                         {approvingId === row.id ? (
                           <>
@@ -1083,7 +1084,7 @@ export default function FinanceDisbursementsPage() {
                       size="sm"
                       disabled={reconcilingId === row.id}
                       onClick={() => void reconcileDisbursement(row.id)}
-                      className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       {reconcilingId === row.id ? (
                         <>
@@ -1105,6 +1106,6 @@ export default function FinanceDisbursementsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </WorkspaceScope>
   );
 }

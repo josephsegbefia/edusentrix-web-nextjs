@@ -22,7 +22,7 @@ type ExamVersionHistoryDrawerProps = {
 
 const VERSION_STATUS_STYLES: Record<string, string> = {
   published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
-  superseded: "border-white/10 bg-white/5 text-white/55",
+  superseded: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   rolled_back: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
@@ -43,7 +43,7 @@ function VersionRow({ version, isCurrent }: { version: ExamTimetableVersionDTO; 
   return (
     <div className={cn(glassInsetClass, "space-y-3 p-4")}>
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-semibold text-white">Version {version.versionNumber}</p>
+        <p className="text-sm font-semibold text-(--ws-fg)">Version {version.versionNumber}</p>
         <Badge variant="outline" className={VERSION_STATUS_STYLES[version.status]}>
           {version.status.replace("_", " ")}
         </Badge>
@@ -53,8 +53,8 @@ function VersionRow({ version, isCurrent }: { version: ExamTimetableVersionDTO; 
           </Badge>
         ) : null}
       </div>
-      <p className="text-sm text-white/75">{version.changeSummary}</p>
-      <div className="flex flex-wrap gap-3 text-xs text-white/50">
+      <p className="text-sm text-(--ws-fg-70)">{version.changeSummary}</p>
+      <div className="flex flex-wrap gap-3 text-xs text-(--ws-fg-70)">
         <span>{formatPublishedAt(version.publishedAt)}</span>
         <span>{entryCount} papers</span>
         <span>{invigilatorCount} invigilator assignments</span>
@@ -81,14 +81,14 @@ export function ExamVersionHistoryDrawer({
       description={`Published timetable versions for ${sessionName}.`}
     >
       {isLoading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-white/50">
+        <div className="flex items-center gap-2 py-10 text-sm text-(--ws-fg-70)">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading versions…
         </div>
       ) : versions.length === 0 ? (
         <div className={cn(glassInsetClass, "px-6 py-10 text-center")}>
-          <History className="mx-auto h-8 w-8 text-white/35" />
-          <p className="mt-3 text-sm text-white/60">
+          <History className="mx-auto h-8 w-8 text-(--ws-fg-70)" />
+          <p className="mt-3 text-sm text-(--ws-fg-70)">
             No published versions yet. Publish the timetable to create the first snapshot.
           </p>
         </div>

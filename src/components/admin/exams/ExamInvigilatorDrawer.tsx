@@ -74,7 +74,7 @@ const STATUS_STYLES: Record<ExamInvigilatorStatus, string> = {
   assigned: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
   acknowledged: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   declined: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
-  replaced: "border-white/10 bg-white/5 text-white/50",
+  replaced: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   completed: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   missed: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
@@ -229,32 +229,32 @@ export function ExamInvigilatorDrawer({
     >
       <div className="space-y-6">
         <div className={cn(glassInsetClass, "space-y-2 p-4")}>
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-(--ws-fg)">
             {subjectLabel ?? entry.title ?? "Exam paper"}
           </p>
-          <p className="text-sm text-white/60">{formatEntrySchedule(entry)}</p>
+          <p className="text-sm text-(--ws-fg-70)">{formatEntrySchedule(entry)}</p>
           {classLabels ? (
-            <p className="text-sm text-white/60">Class: {classLabels}</p>
+            <p className="text-sm text-(--ws-fg-70)">Class: {classLabels}</p>
           ) : null}
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <Label className="text-white/80">Assigned invigilators</Label>
-            <Badge variant="outline" className="border-white/10 bg-white/5 text-white/60">
+            <Label className="text-(--ws-fg-70)">Assigned invigilators</Label>
+            <Badge variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)">
               {activeAssignments.length} active
             </Badge>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-8 text-white/60">
+            <div className="flex items-center justify-center py-8 text-(--ws-fg-70)">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Loading assignments…
             </div>
           ) : activeAssignments.length === 0 ? (
             <div className={cn(glassInsetClass, "px-4 py-8 text-center")}>
-              <Users className="mx-auto h-8 w-8 text-white/30" />
-              <p className="mt-3 text-sm text-white/60">
+              <Users className="mx-auto h-8 w-8 text-(--ws-fg-70)" />
+              <p className="mt-3 text-sm text-(--ws-fg-70)">
                 No invigilators assigned yet.
               </p>
             </div>
@@ -272,7 +272,7 @@ export function ExamInvigilatorDrawer({
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-medium text-white">{name}</p>
+                        <p className="truncate text-sm font-medium text-(--ws-fg)">{name}</p>
                         <Badge
                           variant="outline"
                           className="border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)"
@@ -307,14 +307,14 @@ export function ExamInvigilatorDrawer({
         </div>
 
         {canMutate ? (
-          <div className="space-y-4 border-t border-white/10 pt-4">
+          <div className="space-y-4 border-t border-(--ws-line) pt-4">
             <div className="flex items-center gap-2">
               <UserPlus className="h-4 w-4 text-(--ws-cyan)" />
-              <Label className="text-white/80">Assign invigilator</Label>
+              <Label className="text-(--ws-fg-70)">Assign invigilator</Label>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">Teacher</Label>
+              <Label className="text-(--ws-fg-70)">Teacher</Label>
               <Popover open={teacherOpen} onOpenChange={setTeacherOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -410,7 +410,7 @@ export function ExamInvigilatorDrawer({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">Role</Label>
+              <Label className="text-(--ws-fg-70)">Role</Label>
               <PremiumSelect
                 value={role}
                 onValueChange={(value) => setRole(value as ExamInvigilatorRole)}
@@ -429,12 +429,12 @@ export function ExamInvigilatorDrawer({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">Notes (optional)</Label>
+              <Label className="text-(--ws-fg-70)">Notes (optional)</Label>
               <Textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Add any notes for this assignment"
-                className="min-h-[80px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-70)"
               />
             </div>
 

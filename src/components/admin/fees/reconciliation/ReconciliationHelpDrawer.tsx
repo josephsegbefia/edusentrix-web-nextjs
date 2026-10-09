@@ -44,22 +44,22 @@ function Section({
   const [open, setOpen] = React.useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/2">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill)">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/3"
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-(--ws-fill-strong)"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
-          <Icon className="h-4 w-4 text-indigo-400" />
+          <Icon className="h-4 w-4 text-(--ws-violet)" />
         </div>
-        <span className="flex-1 text-sm font-medium text-white">{title}</span>
+        <span className="flex-1 text-sm font-medium text-(--ws-fg)">{title}</span>
         <ChevronDown
-          className={`h-4 w-4 text-white/30 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 text-(--ws-fg-70) transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
       {open && (
-        <div className="border-t border-white/5 px-4 py-4 text-[13px] leading-relaxed text-white/60">
+        <div className="border-t border-(--ws-line) px-4 py-4 text-[13px] leading-relaxed text-(--ws-fg-70)">
           {children}
         </div>
       )}
@@ -82,8 +82,8 @@ function StepItem({
         {step}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-white/80">{title}</p>
-        <div className="mt-1 text-[13px] text-white/50">{children}</div>
+        <p className="text-sm font-medium text-(--ws-fg-70)">{title}</p>
+        <div className="mt-1 text-[13px] text-(--ws-fg-70)">{children}</div>
       </div>
     </div>
   );
@@ -124,15 +124,15 @@ export function ReconciliationHelpDrawer({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto border-white/10 bg-black/90 backdrop-blur sm:max-w-xl">
+      <SheetContent className="w-full overflow-y-auto border-(--ws-line) bg-(--ws-popover) backdrop-blur sm:max-w-xl">
         <SheetHeader className="pb-2">
-          <SheetTitle className="flex items-center gap-2.5 text-white">
+          <SheetTitle className="flex items-center gap-2.5 text-(--ws-fg)">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500/20 to-violet-600/20">
-              <BookOpen className="h-5 w-5 text-indigo-400" />
+              <BookOpen className="h-5 w-5 text-(--ws-violet)" />
             </div>
             Reconciliation Help
           </SheetTitle>
-          <p className="text-sm text-white/40">
+          <p className="text-sm text-(--ws-fg-70)">
             Learn how to match your payment records against external evidence.
           </p>
         </SheetHeader>
@@ -141,7 +141,7 @@ export function ReconciliationHelpDrawer({
           {/* What is Reconciliation */}
           <Section title="What is reconciliation?" icon={Shield} defaultOpen>
             <p>
-              Reconciliation is the process of <span className="text-white/80">verifying that the payments recorded in
+              Reconciliation is the process of <span className="text-(--ws-fg-70)">verifying that the payments recorded in
               your system match the actual money received</span> in your bank account or payment
               gateway (like Paystack).
             </p>
@@ -161,7 +161,7 @@ export function ReconciliationHelpDrawer({
             <div className="space-y-4">
               <StepItem step={1} title="Import external evidence">
                 Upload data from Paystack settlements, bank statements, or mobile money
-                records. Use the <strong className="text-white/70">Import Data</strong> button to
+                records. Use the <strong className="text-(--ws-fg-70)">Import Data</strong> button to
                 upload a CSV file or paste entries manually.
               </StepItem>
               <StepItem step={2} title="Automatic matching runs">
@@ -193,7 +193,7 @@ export function ReconciliationHelpDrawer({
                   or the reference doesn&apos;t match. Needs investigation.
                 </p>
               </div>
-              <Separator className="bg-white/5" />
+              <Separator className="bg-(--ws-fill)" />
               <div className="flex items-start gap-3">
                 <StatusBadgeDemo label="Needs review" className="border-amber-500/25 bg-amber-500/10 text-(--ws-amber)" />
                 <p className="flex-1">
@@ -201,7 +201,7 @@ export function ReconciliationHelpDrawer({
                   candidates and manually select the correct one.
                 </p>
               </div>
-              <Separator className="bg-white/5" />
+              <Separator className="bg-(--ws-fill)" />
               <div className="flex items-start gap-3">
                 <StatusBadgeDemo label="Matched" className="border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)" />
                 <p className="flex-1">
@@ -209,9 +209,9 @@ export function ReconciliationHelpDrawer({
                   confidence) or manually confirmed by you.
                 </p>
               </div>
-              <Separator className="bg-white/5" />
+              <Separator className="bg-(--ws-fill)" />
               <div className="flex items-start gap-3">
-                <StatusBadgeDemo label="Ignored" className="border-white/10 bg-white/5 text-white/50" />
+                <StatusBadgeDemo label="Ignored" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)" />
                 <p className="flex-1">
                   Deliberately excluded from reconciliation — e.g., a test transaction,
                   a refund already handled, or a duplicate row.
@@ -222,20 +222,20 @@ export function ReconciliationHelpDrawer({
 
           {/* Importing Data */}
           <Section title="Importing data" icon={FileSpreadsheet}>
-            <p>Click <strong className="text-white/70">Import Data</strong> in the header to open the import modal.</p>
-            <p className="mt-2 font-medium text-white/70">Supported sources:</p>
+            <p>Click <strong className="text-(--ws-fg-70)">Import Data</strong> in the header to open the import modal.</p>
+            <p className="mt-2 font-medium text-(--ws-fg-70)">Supported sources:</p>
             <ul className="mt-1.5 list-inside list-disc space-y-1">
-              <li><strong className="text-white/70">Paystack</strong> — Export your settlement report from the Paystack dashboard as CSV</li>
-              <li><strong className="text-white/70">Bank statement</strong> — Download your bank statement in CSV format</li>
-              <li><strong className="text-white/70">Manual</strong> — Enter individual transaction details directly</li>
+              <li><strong className="text-(--ws-fg-70)">Paystack</strong> — Export your settlement report from the Paystack dashboard as CSV</li>
+              <li><strong className="text-(--ws-fg-70)">Bank statement</strong> — Download your bank statement in CSV format</li>
+              <li><strong className="text-(--ws-fg-70)">Manual</strong> — Enter individual transaction details directly</li>
             </ul>
-            <p className="mt-3 font-medium text-white/70">CSV format:</p>
+            <p className="mt-3 font-medium text-(--ws-fg-70)">CSV format:</p>
             <p className="mt-1">
               Your CSV should include columns for: transaction ID, reference, amount, date,
               and optionally payer name. The system will guide you through column mapping.
             </p>
             <ExampleBox>
-              <code className="block rounded bg-black/40 px-2 py-1.5 font-mono text-[11px] text-white/60">
+              <code className="block rounded bg-(--ws-fill-strong) px-2 py-1.5 font-mono text-[11px] text-(--ws-fg-70)">
                 txn_id,reference,amount,date,payer{"\n"}
                 PSK_abc123,PSK-26-000042,50000,2026-02-20,Jane Doe{"\n"}
                 PSK_def456,PSK-26-000043,75000,2026-02-20,John Smith
@@ -250,12 +250,12 @@ export function ReconciliationHelpDrawer({
             <div className="mt-3 space-y-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                  <Sparkles className="h-3.5 w-3.5 text-(--ws-violet)" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white/70">Manual</p>
+                  <p className="text-sm font-medium text-(--ws-fg-70)">Manual</p>
                   <p className="mt-0.5">
-                    Click <strong className="text-white/70">Run Reconciliation</strong> to
+                    Click <strong className="text-(--ws-fg-70)">Run Reconciliation</strong> to
                     immediately process all unmatched items. You can add an optional note
                     in the Run History tab.
                   </p>
@@ -263,10 +263,10 @@ export function ReconciliationHelpDrawer({
               </div>
               <div className="flex items-start gap-3">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10">
-                  <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                  <Clock className="h-3.5 w-3.5 text-(--ws-violet)" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white/70">Scheduled</p>
+                  <p className="text-sm font-medium text-(--ws-fg-70)">Scheduled</p>
                   <p className="mt-0.5">
                     A scheduled job runs automatically (if configured by your administrator)
                     to keep the queue fresh without manual intervention.
@@ -294,15 +294,15 @@ export function ReconciliationHelpDrawer({
                 payment ID from the Fees section and paste it into the input field.
               </StepItem>
               <StepItem step={3} title="Confirm the match">
-                Click the <strong className="text-white/70">Match</strong> button. The item turns
+                Click the <strong className="text-(--ws-fg-70)">Match</strong> button. The item turns
                 green and the payment&apos;s reconciliation status updates accordingly.
               </StepItem>
             </div>
-            <Separator className="my-3 bg-white/5" />
-            <p className="font-medium text-white/70">Removing a match:</p>
+            <Separator className="my-3 bg-(--ws-fill)" />
+            <p className="font-medium text-(--ws-fg-70)">Removing a match:</p>
             <p className="mt-1">
               If a match was made in error, expand the matched item and click{" "}
-              <strong className="text-white/70">Remove match</strong>. The item returns to the
+              <strong className="text-(--ws-fg-70)">Remove match</strong>. The item returns to the
               unmatched state so you can re-match it correctly.
             </p>
             <ExampleBox>
@@ -320,37 +320,37 @@ export function ReconciliationHelpDrawer({
               identifiers align between the ingested row and the payment:
             </p>
             <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">
-                <span className="text-white/70">Exact reference match</span>
+              <div className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                <span className="text-(--ws-fg-70)">Exact reference match</span>
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div className="h-full w-full rounded-full bg-emerald-500" />
                   </div>
                   <span className="text-xs font-semibold text-(--ws-emerald)">95–100%</span>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">
-                <span className="text-white/70">Reference token + amount match</span>
+              <div className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                <span className="text-(--ws-fg-70)">Reference token + amount match</span>
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div className="h-full w-[85%] rounded-full bg-emerald-500" />
                   </div>
                   <span className="text-xs font-semibold text-(--ws-emerald)">80–95%</span>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">
-                <span className="text-white/70">Amount + date window match</span>
+              <div className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                <span className="text-(--ws-fg-70)">Amount + date window match</span>
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div className="h-full w-[65%] rounded-full bg-amber-500" />
                   </div>
                   <span className="text-xs font-semibold text-(--ws-amber)">60–80%</span>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">
-                <span className="text-white/70">Multiple candidates (ambiguous)</span>
+              <div className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+                <span className="text-(--ws-fg-70)">Multiple candidates (ambiguous)</span>
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 w-12 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                     <div className="h-full w-[40%] rounded-full bg-rose-500" />
                   </div>
                   <span className="text-xs font-semibold text-(--ws-rose)">&lt;60%</span>
@@ -369,7 +369,7 @@ export function ReconciliationHelpDrawer({
               <div className="flex items-start gap-2.5">
                 <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
                 <div>
-                  <p className="text-sm font-medium text-white/70">Critical</p>
+                  <p className="text-sm font-medium text-(--ws-fg-70)">Critical</p>
                   <p className="mt-0.5">
                     Items unmatched for more than 48 hours, or large discrepancies in
                     amounts. Requires immediate investigation.
@@ -379,7 +379,7 @@ export function ReconciliationHelpDrawer({
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 <div>
-                  <p className="text-sm font-medium text-white/70">Warning</p>
+                  <p className="text-sm font-medium text-(--ws-fg-70)">Warning</p>
                   <p className="mt-0.5">
                     Ambiguous matches or items that have been pending for over 24 hours.
                     Should be reviewed soon.
@@ -387,9 +387,9 @@ export function ReconciliationHelpDrawer({
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
-                <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+                <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
                 <div>
-                  <p className="text-sm font-medium text-white/70">Info</p>
+                  <p className="text-sm font-medium text-(--ws-fg-70)">Info</p>
                   <p className="mt-0.5">
                     General notifications — e.g., a scheduled run completed, or new
                     ingestion data was imported.
@@ -402,7 +402,7 @@ export function ReconciliationHelpDrawer({
           {/* Export */}
           <Section title="Exporting reports" icon={Download}>
             <p>
-              Click <strong className="text-white/70">Export</strong> in the header to download a
+              Click <strong className="text-(--ws-fg-70)">Export</strong> in the header to download a
               CSV report of your reconciliation data. The export includes:
             </p>
             <ul className="mt-2 list-inside list-disc space-y-1">
@@ -420,7 +420,7 @@ export function ReconciliationHelpDrawer({
           {/* Internal References */}
           <Section title="Payment references explained" icon={BookOpen}>
             <p>
-              Every payment in Edusentrix gets an <strong className="text-white/70">internal reference</strong> that
+              Every payment in Edusentrix gets an <strong className="text-(--ws-fg-70)">internal reference</strong> that
               helps you quickly identify the payment type and trace it:
             </p>
             <div className="mt-3 space-y-1.5">
@@ -433,20 +433,20 @@ export function ReconciliationHelpDrawer({
               ].map(({ prefix, label, example }) => (
                 <div
                   key={prefix}
-                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                 >
                   <div className="flex items-center gap-2">
                     <code className="rounded bg-indigo-500/10 px-1.5 py-0.5 font-mono text-xs text-(--ws-violet)">
                       {prefix}
                     </code>
-                    <span className="text-white/60">{label}</span>
+                    <span className="text-(--ws-fg-70)">{label}</span>
                   </div>
-                  <code className="font-mono text-xs text-white/40">{example}</code>
+                  <code className="font-mono text-xs text-(--ws-fg-70)">{example}</code>
                 </div>
               ))}
             </div>
             <p className="mt-3">
-              The format is <code className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-xs text-white/60">PREFIX-YY-SEQUENCE</code> where
+              The format is <code className="rounded bg-(--ws-fill) px-1.5 py-0.5 font-mono text-xs text-(--ws-fg-70)">PREFIX-YY-SEQUENCE</code> where
               YY is the two-digit year and SEQUENCE is a 6-digit school-specific counter.
             </p>
           </Section>
@@ -455,41 +455,41 @@ export function ReconciliationHelpDrawer({
           <Section title="Tips for best results" icon={Lightbulb}>
             <div className="space-y-3">
               <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
                 <p>
-                  <strong className="text-white/70">Import regularly.</strong> Upload gateway
+                  <strong className="text-(--ws-fg-70)">Import regularly.</strong> Upload gateway
                   and bank data at least weekly. The fresher your data, the faster
                   discrepancies are caught.
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
                 <p>
-                  <strong className="text-white/70">Always include references.</strong> When
+                  <strong className="text-(--ws-fg-70)">Always include references.</strong> When
                   recording manual payments, enter the bank or mobile money reference.
                   This dramatically improves automatic matching.
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
                 <p>
-                  <strong className="text-white/70">Resolve alerts promptly.</strong> Critical
+                  <strong className="text-(--ws-fg-70)">Resolve alerts promptly.</strong> Critical
                   alerts older than 48 hours may indicate missing payments. Don&apos;t
                   let them pile up.
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
                 <p>
-                  <strong className="text-white/70">Use the export for audits.</strong> Download
+                  <strong className="text-(--ws-fg-70)">Use the export for audits.</strong> Download
                   a reconciliation report before your monthly or term-end financial review
                   to have a clean paper trail.
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
                 <p>
-                  <strong className="text-white/70">Check Paystack dashboard.</strong> If an
+                  <strong className="text-(--ws-fg-70)">Check Paystack dashboard.</strong> If an
                   item is unmatched from a gateway import, verify the transaction status
                   directly in Paystack before investigating further.
                 </p>

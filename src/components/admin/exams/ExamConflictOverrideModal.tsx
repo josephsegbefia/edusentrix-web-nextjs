@@ -78,21 +78,21 @@ export function ExamConflictOverrideModal({
     >
       <div className="space-y-4">
         <div className={cn(glassInsetClass, "space-y-2 p-4")}>
-          <p className="text-sm font-medium text-white">
+          <p className="text-sm font-medium text-(--ws-fg)">
             {formatExamConflictType(conflict.type)}
           </p>
-          <p className="text-sm text-white/70">{conflict.message}</p>
+          <p className="text-sm text-(--ws-fg-70)">{conflict.message}</p>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white/70">
+          <Label className="text-(--ws-fg-70)">
             Override reason{requireReason ? " (required)" : " (optional)"}
           </Label>
           <Textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Explain why this conflict is acceptable for this exam session."
-            className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+            className="min-h-[120px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-70)"
           />
         </div>
       </div>

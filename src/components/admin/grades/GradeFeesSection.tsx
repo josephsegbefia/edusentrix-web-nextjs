@@ -75,7 +75,7 @@ function MetricBlock({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-(--ws-fg-70)">
             {label}
           </p>
           <p
@@ -85,7 +85,7 @@ function MetricBlock({
             )}
           >
             {loading ? (
-              <span className="inline-block h-6 w-20 animate-pulse rounded bg-white/10" />
+              <span className="inline-block h-6 w-20 animate-pulse rounded bg-(--ws-fill-strong)" />
             ) : (
               value
             )}
@@ -185,13 +185,13 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
 
       {/* By class breakdown */}
       {fees && fees.byClass.length > 0 && (
-        <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
-          <CardHeader className="border-b border-white/5">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+        <Card className="overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+          <CardHeader className="border-b border-(--ws-line)">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
               <Users className="h-4 w-4 text-(--ws-teal)" />
               Fees by class
             </CardTitle>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-(--ws-fg-70)">
               Collection breakdown per class in {gradeName}
             </p>
           </CardHeader>
@@ -199,20 +199,20 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5">
-                    <th className="px-4 py-3 text-left font-medium text-white/70">
+                  <tr className="border-b border-(--ws-line) bg-(--ws-fill)">
+                    <th className="px-4 py-3 text-left font-medium text-(--ws-fg-70)">
                       Class
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-white/70">
+                    <th className="px-4 py-3 text-right font-medium text-(--ws-fg-70)">
                       Billed
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-white/70">
+                    <th className="px-4 py-3 text-right font-medium text-(--ws-fg-70)">
                       Collected
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-white/70">
+                    <th className="px-4 py-3 text-right font-medium text-(--ws-fg-70)">
                       Outstanding
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-white/70">
+                    <th className="px-4 py-3 text-right font-medium text-(--ws-fg-70)">
                       Rate
                     </th>
                   </tr>
@@ -221,17 +221,17 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
                   {fees.byClass.map((row) => (
                     <tr
                       key={row.classGroupId}
-                      className="border-b border-white/5 last:border-0"
+                      className="border-b border-(--ws-line) last:border-0"
                     >
                       <td className="px-4 py-3">
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-(--ws-fg)">
                           {row.className}
                         </span>
-                        <span className="ml-2 text-xs text-white/50">
+                        <span className="ml-2 text-xs text-(--ws-fg-70)">
                           ({row.studentCount} students)
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-white/90 tabular-nums">
+                      <td className="px-4 py-3 text-right text-(--ws-fg-70) tabular-nums">
                         {formatMoney(row.totalBilledMinor)}
                       </td>
                       <td className="px-4 py-3 text-right text-(--ws-emerald) tabular-nums">
@@ -264,13 +264,13 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
 
       {/* Empty state */}
       {!isLoading && !hasData && (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-white/10 bg-white/5 py-16">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
-            <DollarSign className="h-7 w-7 text-white/40" />
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) py-16">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-fill)">
+            <DollarSign className="h-7 w-7 text-(--ws-fg-70)" />
           </div>
           <div className="text-center">
-            <p className="font-medium text-white/80">No fee data yet</p>
-            <p className="mt-1 text-sm text-white/50">
+            <p className="font-medium text-(--ws-fg-70)">No fee data yet</p>
+            <p className="mt-1 text-sm text-(--ws-fg-70)">
               Fee analytics will appear once invoices are issued for students in{" "}
               {gradeName}
             </p>

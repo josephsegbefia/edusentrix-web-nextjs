@@ -1,5 +1,7 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
+
 import * as React from "react";
 import Link from "next/link";
 import { format } from "date-fns/format";
@@ -108,19 +110,19 @@ function WorkflowCard({
   return (
     <Link
       href={href}
-      className="group block rounded-xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 hover:bg-white/[0.07]"
+      className="group block rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/60">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-popover)/60">
           <Icon className="h-5 w-5 text-(--ws-cyan)" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-white">{title}</p>
-            <ArrowRight className="h-4 w-4 shrink-0 text-white/30 transition group-hover:text-white/65" />
+            <p className="text-sm font-semibold text-(--ws-fg)">{title}</p>
+            <ArrowRight className="h-4 w-4 shrink-0 text-(--ws-fg-70) transition group-hover:text-(--ws-fg)" />
           </div>
-          <p className="mt-1 text-xs leading-5 text-white/50">{description}</p>
-          {metric ? <p className="mt-3 text-sm font-medium text-white/80">{metric}</p> : null}
+          <p className="mt-1 text-xs leading-5 text-(--ws-fg-70)">{description}</p>
+          {metric ? <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">{metric}</p> : null}
           <p className="mt-3 text-xs font-medium text-(--ws-cyan)">{cta}</p>
         </div>
       </div>
@@ -153,9 +155,9 @@ function KpiTile({
   }[tone];
 
   const body = (
-    <div className="rounded-xl border border-white/10 bg-slate-950/55 p-4">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-panel-to) p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-70)">{label}</p>
         <Icon className={cn("h-4 w-4", toneClass)} />
       </div>
       {loading ? (
@@ -165,8 +167,8 @@ function KpiTile({
         </div>
       ) : (
         <>
-          <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
-          <p className="mt-1 text-xs leading-5 text-white/45">{helper}</p>
+          <p className="mt-3 text-2xl font-semibold text-(--ws-fg)">{value}</p>
+          <p className="mt-1 text-xs leading-5 text-(--ws-fg-70)">{helper}</p>
         </>
       )}
     </div>
@@ -180,7 +182,7 @@ function RecentTransaction({ transaction }: { transaction: TransactionDTO }) {
   return (
     <Link
       href={`/admin/finance/transactions/${transaction._id}`}
-      className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-3 transition hover:bg-white/[0.06]"
+      className="flex items-center gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-3 transition hover:bg-(--ws-fill-strong)"
     >
       <div
         className={cn(
@@ -191,10 +193,10 @@ function RecentTransaction({ transaction }: { transaction: TransactionDTO }) {
         {inflow ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-white">
+        <p className="truncate text-sm font-medium text-(--ws-fg)">
           {transaction.description || transaction.reference || transaction.category}
         </p>
-        <p className="mt-0.5 text-xs text-white/45">
+        <p className="mt-0.5 text-xs text-(--ws-fg-70)">
           {transaction.method.replaceAll("_", " ")} · {format(new Date(transaction.occurredAt), "MMM d")}
         </p>
       </div>
@@ -412,11 +414,11 @@ export default function FinanceCommandCenterPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-4 md:p-6">
-      <section className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
+    <WorkspaceScope className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-4 md:p-6">
+      <section className="flex flex-col gap-4 border-b border-(--ws-line) pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/60">
+            <span className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs font-medium text-(--ws-fg-70)">
               <Landmark className="h-3.5 w-3.5 text-(--ws-cyan)" />
               Finance Command Center
             </span>
@@ -438,17 +440,17 @@ export default function FinanceCommandCenterPage() {
                   : "Needs review"}
             </span>
           </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white md:text-3xl">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-(--ws-fg) md:text-3xl">
             Finance
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/55">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-(--ws-fg-70)">
             See the school&apos;s collection position, exception queues, reconciliation health, and
             the workflows finance staff need to handle today.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <PremiumSelect value={range} onValueChange={(value) => setRange(value as RangeType)}>
-            <PremiumSelectTrigger className="w-[160px] border-white/10 bg-white/[0.05] text-white">
+            <PremiumSelectTrigger className="w-[160px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
               <PremiumSelectValue />
             </PremiumSelectTrigger>
             <PremiumSelectContent>
@@ -467,7 +469,7 @@ export default function FinanceCommandCenterPage() {
               void commandCenter.refetch();
               void overview.refetch();
             }}
-            className="border-white/10 bg-white/[0.05] text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             aria-label="Refresh finance data"
           >
             <RefreshCw className="h-4 w-4" />
@@ -478,13 +480,13 @@ export default function FinanceCommandCenterPage() {
               Record Payment
             </Link>
           </Button>
-          <Button asChild variant="outline" className="border-white/10 bg-white/[0.05] text-white hover:bg-white/10">
+          <Button asChild variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
             <Link href="/admin/fees/invoices/new">
               <Receipt className="mr-2 h-4 w-4" />
               Issue Invoices
             </Link>
           </Button>
-          <Button asChild variant="outline" className="border-white/10 bg-white/[0.05] text-white hover:bg-white/10">
+          <Button asChild variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
             <Link href="/admin/finance/reconciliation/sessions">
               <FileSearch className="mr-2 h-4 w-4" />
               Reconcile
@@ -558,12 +560,12 @@ export default function FinanceCommandCenterPage() {
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.75fr)]">
         <div className="space-y-5">
-          <section className="rounded-xl border border-amber-300/15 bg-amber-500/10 p-4 text-amber-50">
+          <section className="rounded-xl border border-amber-300/15 bg-amber-500/10 p-4 text-(--ws-fg)">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-(--ws-amber)" />
               <div>
                 <p className="text-sm font-semibold">Finance controls are human-confirmed</p>
-                <p className="mt-1 text-sm leading-6 text-amber-50/75">
+                <p className="mt-1 text-sm leading-6 text-(--ws-fg-70)">
                   Leo can explain, rank, and draft finance work. Approvals, cash closure,
                   reconciliation, reminders, refunds, reversals, and disbursements still require
                   explicit user confirmation and audit evidence.
@@ -572,16 +574,16 @@ export default function FinanceCommandCenterPage() {
             </div>
           </section>
 
-          <Card className="border border-white/10 bg-slate-950/55">
-            <CardHeader className="border-b border-white/10 pb-4">
+          <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg text-white">Needs Attention</CardTitle>
-                  <p className="mt-1 text-sm text-white/45">
+                  <CardTitle className="text-lg text-(--ws-fg)">Needs Attention</CardTitle>
+                  <p className="mt-1 text-sm text-(--ws-fg-70)">
                     Ranked finance work from payments, fees, reconciliation, and expenses.
                   </p>
                 </div>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/55">
+                <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs text-(--ws-fg-70)">
                   {workQueue.length} open
                 </span>
               </div>
@@ -594,12 +596,12 @@ export default function FinanceCommandCenterPage() {
                   ))}
                 </div>
               ) : workQueue.length === 0 ? (
-                <div className="rounded-xl border border-emerald-300/15 bg-emerald-500/10 p-4 text-emerald-50">
+                <div className="rounded-xl border border-emerald-300/15 bg-emerald-500/10 p-4 text-(--ws-fg)">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5" />
                     <p className="font-medium">No urgent finance exceptions</p>
                   </div>
-                  <p className="mt-1 text-sm text-emerald-50/70">
+                  <p className="mt-1 text-sm text-(--ws-fg-70)">
                     Continue monitoring collections and reconciliation as payments come in.
                   </p>
                 </div>
@@ -618,12 +620,12 @@ export default function FinanceCommandCenterPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-semibold">{item.title}</p>
                             {item.count != null ? (
-                              <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">
+                              <span className="rounded-full bg-(--ws-fill) px-2 py-0.5 text-xs">
                                 {item.count}
                               </span>
                             ) : null}
                             {item.amount ? (
-                              <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">
+                              <span className="rounded-full bg-(--ws-fill) px-2 py-0.5 text-xs">
                                 {item.amount}
                               </span>
                             ) : null}
@@ -641,7 +643,7 @@ export default function FinanceCommandCenterPage() {
                             variant="outline"
                             onClick={() => void explainWorkItem(item)}
                             disabled={explainQueueItem.isPending}
-                            className="border-white/15 bg-black/10 text-current hover:bg-black/20"
+                            className="border-(--ws-line) bg-(--ws-fill) text-current hover:bg-(--ws-fill)"
                           >
                             <Bot className="mr-1 h-4 w-4" />
                             Ask Leo
@@ -650,7 +652,7 @@ export default function FinanceCommandCenterPage() {
                             asChild
                             size="sm"
                             variant="outline"
-                            className="border-white/15 bg-black/10 text-current hover:bg-black/20"
+                            className="border-(--ws-line) bg-(--ws-fill) text-current hover:bg-(--ws-fill)"
                           >
                             <Link href={item.href}>
                               Open
@@ -664,30 +666,30 @@ export default function FinanceCommandCenterPage() {
                 </div>
               )}
               {explainQueueItem.data ? (
-                <div className="mt-4 rounded-xl border border-violet-300/15 bg-violet-500/10 p-4 text-violet-50">
+                <div className="mt-4 rounded-xl border border-violet-300/15 bg-violet-500/10 p-4 text-(--ws-fg)">
                   <p className="flex items-center gap-2 text-sm font-semibold">
                     <Bot className="h-4 w-4" />
                     {explainQueueItem.data.title}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-violet-50/75">
+                  <p className="mt-2 text-sm leading-6 text-(--ws-fg-70)">
                     {explainQueueItem.data.explanation}
                   </p>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {explainQueueItem.data.evidence.map((line) => (
-                      <span key={line} className="rounded-lg border border-violet-200/10 bg-black/10 px-3 py-2 text-xs">
+                      <span key={line} className="rounded-lg border border-violet-200/10 bg-(--ws-fill) px-3 py-2 text-xs">
                         {line}
                       </span>
                     ))}
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-violet-50/75">
+                  <p className="mt-3 text-sm leading-6 text-(--ws-fg-70)">
                     {explainQueueItem.data.nextAction}
                   </p>
-                  <p className="mt-2 text-xs leading-5 text-violet-50/55">
+                  <p className="mt-2 text-xs leading-5 text-(--ws-fg-70)">
                     {explainQueueItem.data.guardrail}
                   </p>
                 </div>
               ) : explainQueueItem.error ? (
-                <p className="mt-4 rounded-xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-50">
+                <p className="mt-4 rounded-xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-(--ws-rose)">
                   {explainQueueItem.error instanceof Error
                     ? explainQueueItem.error.message
                     : "Could not explain this queue item"}
@@ -697,26 +699,26 @@ export default function FinanceCommandCenterPage() {
           </Card>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <Card className="border border-white/10 bg-slate-950/55">
-              <CardHeader className="border-b border-white/10 pb-4">
-                <CardTitle className="text-base text-white">Fees Collection</CardTitle>
+            <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+              <CardHeader className="border-b border-(--ws-line) pb-4">
+                <CardTitle className="text-base text-(--ws-fg)">Fees Collection</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 p-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <p className="text-xs text-white/40">Billed</p>
-                    <p className="mt-1 font-semibold text-white">
+                    <p className="text-xs text-(--ws-fg-70)">Billed</p>
+                    <p className="mt-1 font-semibold text-(--ws-fg)">
                       {formatMoney(command?.fees.totalBilledMinor ?? fees?.summary.totalBilledMinor ?? 0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-white/40">Collected</p>
+                    <p className="text-xs text-(--ws-fg-70)">Collected</p>
                     <p className="mt-1 font-semibold text-(--ws-emerald)">
                       {formatMoney(command?.fees.totalCollectedMinor ?? fees?.summary.totalRevenueMinor ?? 0)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-white/40">Collection rate</p>
+                    <p className="text-xs text-(--ws-fg-70)">Collection rate</p>
                     <p className="mt-1 font-semibold text-(--ws-cyan)">
                       {Math.round(command?.fees.collectionRate ?? fees?.summary.collectionRate ?? 0)}%
                     </p>
@@ -737,9 +739,9 @@ export default function FinanceCommandCenterPage() {
                     <Link
                       key={item.studentId}
                       href={`/admin/students/${item.studentId}`}
-                      className="flex items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-sm hover:bg-white/[0.06]"
+                      className="flex items-center justify-between rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm hover:bg-(--ws-fill-strong)"
                     >
-                      <span className="min-w-0 truncate text-white/75">
+                      <span className="min-w-0 truncate text-(--ws-fg-70)">
                         {item.firstName} {item.lastName}
                       </span>
                       <span className="shrink-0 font-medium text-(--ws-amber)">
@@ -748,7 +750,7 @@ export default function FinanceCommandCenterPage() {
                     </Link>
                   ))}
                   {!feeSummary.isLoading && (fees?.defaulters?.length || 0) === 0 ? (
-                    <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+                    <p className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
                       No overdue accounts in the summary.
                     </p>
                   ) : null}
@@ -757,16 +759,16 @@ export default function FinanceCommandCenterPage() {
                   <Button asChild size="sm" className="bg-emerald-600 text-white hover:bg-emerald-500">
                     <Link href="/admin/fees">Open fees</Link>
                   </Button>
-                  <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/[0.04] text-white">
+                  <Button asChild size="sm" variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <Link href="/admin/fees/invoices">Invoices</Link>
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border border-white/10 bg-slate-950/55">
-              <CardHeader className="border-b border-white/10 pb-4">
-                <CardTitle className="text-base text-white">Recent Ledger Activity</CardTitle>
+            <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+              <CardHeader className="border-b border-(--ws-line) pb-4">
+                <CardTitle className="text-base text-(--ws-fg)">Recent Ledger Activity</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 p-4">
                 {overview.isLoading ? (
@@ -780,11 +782,11 @@ export default function FinanceCommandCenterPage() {
                     <RecentTransaction key={transaction._id} transaction={transaction} />
                   ))
                 ) : (
-                  <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+                  <p className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
                     No recent ledger activity for this range.
                   </p>
                 )}
-                <Button asChild size="sm" variant="outline" className="mt-2 w-full border-white/10 bg-white/[0.04] text-white">
+                <Button asChild size="sm" variant="outline" className="mt-2 w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <Link href="/admin/finance/transactions">Open ledger</Link>
                 </Button>
               </CardContent>
@@ -850,14 +852,14 @@ export default function FinanceCommandCenterPage() {
             <CardHeader className="border-b border-sky-200/10 pb-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
-                <CardTitle className="text-base text-white">Leo Finance Brief</CardTitle>
+                <CardTitle className="text-base text-(--ws-fg)">Leo Finance Brief</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 p-4">
-              <p className="text-sm leading-6 text-sky-50/85">
+              <p className="text-sm leading-6 text-(--ws-fg-70)">
                 {leoBriefQuery.data?.summary || leoBrief.summary}
               </p>
-              <p className="rounded-lg border border-sky-200/15 bg-black/15 p-3 text-sm leading-6 text-sky-50/75">
+              <p className="rounded-lg border border-sky-200/15 bg-(--ws-fill) p-3 text-sm leading-6 text-(--ws-fg-70)">
                 {leoBriefQuery.data?.recommendedActions?.[0]
                   ? `${leoBriefQuery.data.recommendedActions[0].title}: ${leoBriefQuery.data.recommendedActions[0].reason}.`
                   : leoBrief.recommendation}
@@ -865,7 +867,7 @@ export default function FinanceCommandCenterPage() {
               {leoBriefQuery.data?.risks?.length ? (
                 <div className="space-y-1">
                   {leoBriefQuery.data.risks.slice(0, 3).map((risk) => (
-                    <p key={risk} className="flex items-start gap-2 text-xs leading-5 text-sky-50/65">
+                    <p key={risk} className="flex items-start gap-2 text-xs leading-5 text-(--ws-fg-70)">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       {risk}
                     </p>
@@ -876,27 +878,27 @@ export default function FinanceCommandCenterPage() {
                 <div className="grid gap-2 border-t border-sky-200/10 pt-3">
                   {leoBriefQuery.data.evidence.slice(0, 4).map((item) => (
                     <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
-                      <span className="text-sky-50/45">{item.label}</span>
-                      <span className="text-right text-sky-50/75">{item.value}</span>
+                      <span className="text-(--ws-fg-70)">{item.label}</span>
+                      <span className="text-right text-(--ws-fg-70)">{item.value}</span>
                     </div>
                   ))}
                 </div>
               ) : null}
-              <p className="text-xs leading-5 text-sky-50/55">
+              <p className="text-xs leading-5 text-(--ws-fg-70)">
                 {leoBriefQuery.data?.guardrail ||
                   "Leo can explain, rank, and draft finance work. Sensitive actions require human confirmation."}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border border-white/10 bg-slate-950/55">
-            <CardHeader className="border-b border-white/10 pb-4">
-              <CardTitle className="text-base text-white">Trust and Controls</CardTitle>
+          <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
+              <CardTitle className="text-base text-(--ws-fg)">Trust and Controls</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 p-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/50">Last reconciliation run</span>
-                <span className="text-right text-white/75">
+                <span className="text-(--ws-fg-70)">Last reconciliation run</span>
+                <span className="text-right text-(--ws-fg-70)">
                   {command?.trust.lastReconciliationAt
                     ? format(new Date(command.trust.lastReconciliationAt), "MMM d, h:mm a")
                     : reconciliationRuns.data?.[0]?.startedAt
@@ -905,32 +907,32 @@ export default function FinanceCommandCenterPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/50">Active alerts</span>
+                <span className="text-(--ws-fg-70)">Active alerts</span>
                 <span className={(command?.trust.activeAlertCount ?? activeAlerts.length) > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)"}>
                   {command?.trust.activeAlertCount ?? (reconciliationAlerts.isLoading ? "..." : activeAlerts.length)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/50">Failed transactions</span>
+                <span className="text-(--ws-fg-70)">Failed transactions</span>
                 <span className={(command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0) > 0 ? "text-(--ws-rose)" : "text-(--ws-emerald)"}>
                   {command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-white/50">Maker-checker queue</span>
+                <span className="text-(--ws-fg-70)">Maker-checker queue</span>
                 <span className={(command?.trust.makerCheckerPendingCount ?? pendingApprovalCount) > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)"}>
                   {command?.trust.makerCheckerPendingCount ?? pendingApprovalCount}
                 </span>
               </div>
-              <Button asChild size="sm" variant="outline" className="w-full border-white/10 bg-white/[0.04] text-white">
+              <Button asChild size="sm" variant="outline" className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <Link href="/admin/finance/reconciliation/sessions">Review controls</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="border border-white/10 bg-slate-950/55">
-            <CardHeader className="border-b border-white/10 pb-4">
-              <CardTitle className="text-base text-white">Expenses Snapshot</CardTitle>
+          <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
+              <CardTitle className="text-base text-(--ws-fg)">Expenses Snapshot</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 p-4">
               {(command?.expenses.recent?.length
@@ -952,10 +954,10 @@ export default function FinanceCommandCenterPage() {
                   <Link
                     key={expense.id}
                     href={`/admin/expenses/${expense.id}`}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-sm hover:bg-white/[0.06]"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm hover:bg-(--ws-fill-strong)"
                   >
-                    <span className="min-w-0 truncate text-white/75">{expense.title}</span>
-                    <span className="shrink-0 text-white/65">
+                    <span className="min-w-0 truncate text-(--ws-fg-70)">{expense.title}</span>
+                    <span className="shrink-0 text-(--ws-fg-70)">
                       {formatCurrency(expense.amountMinor, {
                         currency: expense.currency,
                         maximumFractionDigits: 0,
@@ -964,25 +966,25 @@ export default function FinanceCommandCenterPage() {
                   </Link>
                 ))}
               {!expensesRecent.isLoading && !command?.expenses.recent?.length && (expensesRecent.data?.data?.length || 0) === 0 ? (
-                <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+                <p className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
                   No recent expenses.
                 </p>
               ) : null}
-              <Button asChild size="sm" variant="outline" className="mt-2 w-full border-white/10 bg-white/[0.04] text-white">
+              <Button asChild size="sm" variant="outline" className="mt-2 w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <Link href="/admin/expenses">Open expenses</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="border border-white/10 bg-slate-950/55">
-            <CardHeader className="border-b border-white/10 pb-4">
-              <CardTitle className="text-base text-white">Secondary Actions</CardTitle>
+          <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
+              <CardTitle className="text-base text-(--ws-fg)">Secondary Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 p-4">
               <Button
                 type="button"
                 variant="outline"
-                className="justify-start border-white/10 bg-white/[0.04] text-white"
+                className="justify-start border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 onClick={() => setRecordModalOpen(true)}
               >
                 <Landmark className="mr-2 h-4 w-4" />
@@ -991,7 +993,7 @@ export default function FinanceCommandCenterPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="justify-start border-white/10 bg-white/[0.04] text-white"
+                className="justify-start border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 onClick={() => setInviteBursarOpen(true)}
               >
                 <Mail className="mr-2 h-4 w-4" />
@@ -1000,11 +1002,11 @@ export default function FinanceCommandCenterPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-white/10 bg-slate-950/55">
-            <CardHeader className="border-b border-white/10 pb-4">
-              <CardTitle className="text-base text-white">Permission Guardrails</CardTitle>
+          <Card className="border border-(--ws-line) bg-(--ws-panel-to)">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
+              <CardTitle className="text-base text-(--ws-fg)">Permission Guardrails</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 p-4 text-sm text-white/60">
+            <CardContent className="space-y-3 p-4 text-sm text-(--ws-fg-70)">
               {[
                 "Payment approval must be done by an authorized finance user.",
                 "Manual ledger entries, refunds, reversals, and disbursements require audit evidence.",
@@ -1041,6 +1043,6 @@ export default function FinanceCommandCenterPage() {
           isLoading={createInvitation.isPending}
         />
       </ResponsiveModal>
-    </div>
+    </WorkspaceScope>
   );
 }

@@ -180,12 +180,12 @@ export function ExamDraftGenerationModal({
         <div>
           <Label className="mb-2 block">Class groups</Label>
           {classGroupsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading class groups…
             </div>
           ) : classGroups.length === 0 ? (
-            <p className="text-sm text-white/50">No class groups available for this session.</p>
+            <p className="text-sm text-(--ws-fg-70)">No class groups available for this session.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {classGroups.map((group) => {
@@ -199,7 +199,7 @@ export function ExamDraftGenerationModal({
                       "rounded-full border px-3 py-1.5 text-sm transition",
                       selected
                         ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
-                        : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:text-(--ws-fg)"
                     )}
                   >
                     {group.label || group.name}
@@ -212,11 +212,11 @@ export function ExamDraftGenerationModal({
 
         <div>
           <Label className="mb-2 block">Subjects</Label>
-          <p className="mb-2 text-xs text-white/45">
+          <p className="mb-2 text-xs text-(--ws-fg-70)">
             Leave all unselected to include every subject offered to the selected classes.
           </p>
           {subjectsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading subjects…
             </div>
@@ -233,7 +233,7 @@ export function ExamDraftGenerationModal({
                       "rounded-full border px-3 py-1.5 text-sm transition",
                       selected
                         ? "border-violet-500/40 bg-violet-500/10 text-(--ws-violet)"
-                        : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:text-(--ws-fg)"
                     )}
                   >
                     {subject.name}

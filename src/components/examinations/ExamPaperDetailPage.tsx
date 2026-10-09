@@ -103,11 +103,11 @@ type Props = {
 };
 
 function statusTone(status: string) {
-  if (status === "approved") return "border-emerald-400/25 bg-emerald-400/10 text-emerald-100";
-  if (status === "submitted") return "border-sky-400/25 bg-sky-400/10 text-sky-100";
-  if (status === "needs_revision") return "border-amber-400/25 bg-amber-400/10 text-amber-100";
-  if (status === "completed") return "border-violet-400/25 bg-violet-400/10 text-violet-100";
-  return "border-white/10 bg-white/8 text-white/70";
+  if (status === "approved") return "border-emerald-400/25 bg-emerald-400/10 text-(--ws-emerald)";
+  if (status === "submitted") return "border-sky-400/25 bg-sky-400/10 text-(--ws-cyan)";
+  if (status === "needs_revision") return "border-amber-400/25 bg-amber-400/10 text-(--ws-amber)";
+  if (status === "completed") return "border-violet-400/25 bg-violet-400/10 text-(--ws-violet)";
+  return "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)";
 }
 
 function stripHtml(value: string) {
@@ -136,14 +136,14 @@ function appendInlineHtml(html: string, value: string) {
 
 function fieldLabel(label: string) {
   return (
-    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/38">
+    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">
       {label}
     </span>
   );
 }
 
 const premiumField =
-  "border-white/10 bg-white/[0.045] text-white shadow-inner shadow-black/10 placeholder:text-white/32 focus-visible:border-cyan-300/40 focus-visible:ring-cyan-300/15";
+  "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) shadow-none placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/40 focus-visible:ring-cyan-300/15";
 
 const questionTypes = [
   "short_answer",
@@ -425,7 +425,7 @@ function WritingSuggestionPanel({
   return (
     <div className="mt-2 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-100/75">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-emerald)">
           <Sparkles className="h-3.5 w-3.5" />
           Writing suggestions
         </div>
@@ -790,7 +790,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
 
   if (detailQuery.isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-white/60">
+      <div className="flex min-h-[50vh] items-center justify-center text-(--ws-fg-70)">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         Loading exam paper
       </div>
@@ -800,10 +800,10 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
   if (detailQuery.isError || !detail) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <Card className="border-white/10 bg-white/[0.03] text-white">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
           <CardContent className="p-6">
             <p className="font-medium">Exam paper could not be opened.</p>
-            <p className="mt-2 text-sm text-white/55">
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               {detailQuery.error instanceof Error ? detailQuery.error.message : "Try again later."}
             </p>
             <Link href={`${basePath}/examinations`}>
@@ -827,33 +827,33 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 p-4 md:p-6">
       <Link
         href={`${basePath}/examinations`}
-        className="inline-flex w-fit items-center gap-2 text-sm font-medium text-white/55 hover:text-white"
+        className="inline-flex w-fit items-center gap-2 text-sm font-medium text-(--ws-fg-70) hover:text-(--ws-fg)"
       >
         <ArrowLeft className="h-4 w-4" />
         Examinations
       </Link>
 
-      <section className="rounded-3xl border border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-black p-5 shadow-2xl shadow-black/35 sm:p-7">
+      <section className="rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Badge className={cn("border", statusTone(detail.paper.status))}>
                 {detail.paper.status.replace("_", " ")}
               </Badge>
-              <Badge variant="outline" className="border-white/10 text-white/58">
+              <Badge variant="outline" className="border-(--ws-line) text-(--ws-fg-70)">
                 {detail.paper.scope === "grade_wide" ? "Grade-wide paper" : "Class paper"}
               </Badge>
             </div>
-            <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-(--ws-fg) md:text-4xl">
               {detail.paper.title}
             </h1>
-            <p className="mt-3 text-sm text-white/55">
+            <p className="mt-3 text-sm text-(--ws-fg-70)">
               {detail.paper.totalMarks} marks
               {detail.paper.durationMinutes ? ` · ${detail.paper.durationMinutes} minutes` : ""} · Question-only student PDF
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={exportPdf} variant="outline" className="gap-2 border-white/12 bg-white/5 text-white hover:bg-white/10">
+            <Button onClick={exportPdf} variant="outline" className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
               <Printer className="h-4 w-4" />
               Print PDF
             </Button>
@@ -861,7 +861,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
               <Button
                 onClick={() => lifecycleMutation.mutate("submit")}
                 disabled={lifecycleMutation.isPending}
-                className="gap-2 bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                className="gap-2 bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
               >
                 <Send className="h-4 w-4" />
                 Submit
@@ -871,7 +871,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
               <Button
                 onClick={() => lifecycleMutation.mutate("approve")}
                 disabled={lifecycleMutation.isPending}
-                className="gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+                className="gap-2 bg-emerald-600 text-white hover:bg-emerald-500 hover:text-white"
               >
                 <BadgeCheck className="h-4 w-4" />
                 Approve
@@ -881,7 +881,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
               <Button
                 onClick={() => lifecycleMutation.mutate("complete")}
                 disabled={lifecycleMutation.isPending}
-                className="gap-2 bg-violet-400 text-slate-950 hover:bg-violet-300"
+                className="gap-2 bg-violet-600 text-white hover:bg-violet-500 hover:text-white"
               >
                 <ClipboardCheck className="h-4 w-4" />
                 Complete
@@ -897,7 +897,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-white/10 bg-white/[0.03] text-white md:col-span-2">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) md:col-span-2">
           <CardHeader>
             <CardTitle>Paper Structure</CardTitle>
           </CardHeader>
@@ -905,16 +905,16 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
             {detail.sections.map((section) => {
               const sectionQuestions = questionsBySection.get(section.id) ?? [];
               return (
-                <div key={section.id} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div key={section.id} className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h2 className="font-semibold text-white">{section.title}</h2>
+                      <h2 className="font-semibold text-(--ws-fg)">{section.title}</h2>
                       {section.instructions ? (
-                        <p className="mt-1 text-sm text-white/48">{section.instructions}</p>
+                        <p className="mt-1 text-sm text-(--ws-fg-70)">{section.instructions}</p>
                       ) : null}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="border-white/10 text-white/55">
+                      <Badge variant="outline" className="border-(--ws-line) text-(--ws-fg-70)">
                         {section.marks} marks
                       </Badge>
                       {canEditBuilder ? (
@@ -922,7 +922,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                           <PremiumDropdownMenuTrigger asChild>
                             <button
                               type="button"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/55 transition hover:bg-white/10 hover:text-white"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                               aria-label={`Actions for ${section.title}`}
                             >
                               <MoreHorizontal className="h-4 w-4" />
@@ -947,25 +947,25 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                       ) : null}
                     </div>
                   </div>
-                  <Separator className="my-4 bg-white/10" />
+                  <Separator className="my-4 bg-(--ws-fill-strong)" />
                   <div className="space-y-3">
                     {sectionQuestions.map((question, index) => (
-                      <div key={question.id} className="flex gap-3 rounded-xl border border-white/8 bg-black/10 p-3">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/8 text-xs font-semibold text-white/70">
+                      <div key={question.id} className="flex gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-(--ws-fill) text-xs font-semibold text-(--ws-fg-70)">
                           {index + 1}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="border-white/10 text-white/50">{readableType(question.type)}</Badge>
-                            <span className="text-xs text-white/40">{question.marks} marks · {question.difficulty}</span>
+                            <Badge variant="outline" className="border-(--ws-line) text-(--ws-fg-70)">{readableType(question.type)}</Badge>
+                            <span className="text-xs text-(--ws-fg-70)">{question.marks} marks · {question.difficulty}</span>
                             </div>
                             {canEditBuilder ? (
                               <PremiumDropdownMenu>
                                 <PremiumDropdownMenuTrigger asChild>
                                   <button
                                     type="button"
-                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 transition hover:bg-white/10 hover:text-white"
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg text-(--ws-fg-70) transition hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                                     aria-label="Question actions"
                                   >
                                     <MoreHorizontal className="h-4 w-4" />
@@ -989,7 +989,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                               </PremiumDropdownMenu>
                             ) : null}
                           </div>
-                          <p className="text-sm leading-6 text-white/72">{stripHtml(question.prompt)}</p>
+                          <p className="text-sm leading-6 text-(--ws-fg-70)">{stripHtml(question.prompt)}</p>
                           {question.options?.length ? (
                             <div className="mt-3 grid gap-2 sm:grid-cols-2">
                               {question.options.map((option) => (
@@ -998,8 +998,8 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                                   className={cn(
                                     "rounded-lg border px-3 py-2 text-xs",
                                     option.isCorrect
-                                      ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
-                                      : "border-white/10 bg-white/[0.03] text-white/55"
+                                      ? "border-emerald-300/25 bg-emerald-300/10 text-(--ws-emerald)"
+                                      : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                                   )}
                                 >
                                   <span className="font-semibold">{option.label}.</span> {option.text}
@@ -1011,7 +1011,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                       </div>
                     ))}
                     {sectionQuestions.length === 0 ? (
-                      <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-white/45">
+                      <p className="rounded-xl border border-dashed border-(--ws-line) p-4 text-sm text-(--ws-fg-70)">
                         No questions have been added to this section yet.
                       </p>
                     ) : null}
@@ -1020,7 +1020,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
               );
             })}
             {detail.sections.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-white/50">
+              <p className="rounded-2xl border border-dashed border-(--ws-line) p-6 text-sm text-(--ws-fg-70)">
                 No sections yet. The API builder is ready; the visual question builder will be added in the next slice.
               </p>
             ) : null}
@@ -1028,25 +1028,25 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
         </Card>
 
         {canEditBuilder ? (
-          <Card className="overflow-hidden border-white/10 bg-linear-to-br from-white/[0.07] via-white/[0.035] to-cyan-300/[0.035] text-white shadow-xl shadow-black/20 backdrop-blur">
-            <CardHeader className="border-b border-white/10 pb-4">
+          <Card className="overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg) shadow-[var(--ws-shadow)] backdrop-blur">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <ListPlus className="h-5 w-5 text-cyan-200" />
+                    <ListPlus className="h-5 w-5 text-(--ws-cyan)" />
                     Paper Builder
                   </CardTitle>
-                  <p className="mt-1 text-sm text-white/48">
+                  <p className="mt-1 text-sm text-(--ws-fg-70)">
                     Compose the paper in sections, then add questions to each section.
                   </p>
                 </div>
-                <Badge className="border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
+                <Badge className="border border-cyan-300/20 bg-cyan-300/10 text-(--ws-cyan)">
                   Draft
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 p-4">
-              <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-black/20 p-1">
+              <div className="grid grid-cols-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-1">
                 {[
                   { id: "section" as const, label: "Section", icon: Type },
                   { id: "question" as const, label: "Question", icon: FileQuestion },
@@ -1061,11 +1061,11 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                       className={cn(
                         "flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition",
                         active
-                          ? "bg-white/12 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-                          : "text-white/45 hover:bg-white/7 hover:text-white"
+                          ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                          : "text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                       )}
                     >
-                      <Icon className={cn("h-4 w-4", active && "text-cyan-200")} />
+                      <Icon className={cn("h-4 w-4", active && "text-(--ws-cyan)")} />
                       {item.label}
                     </button>
                   );
@@ -1083,11 +1083,11 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                 >
                   {editingSectionId ? (
                     <div className="flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2">
-                      <span className="text-sm font-medium text-cyan-100">Editing section</span>
+                      <span className="text-sm font-medium text-(--ws-cyan)">Editing section</span>
                       <button
                         type="button"
                         onClick={clearSectionEditor}
-                        className="rounded-lg p-1 text-cyan-100/70 hover:bg-white/10 hover:text-white"
+                        className="rounded-lg p-1 text-(--ws-cyan)/70 hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                         aria-label="Cancel section edit"
                       >
                         <X className="h-4 w-4" />
@@ -1115,7 +1115,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                   <Button
                     type="submit"
                     disabled={createSectionMutation.isPending || updateSectionMutation.isPending}
-                    className="h-11 w-full gap-2 bg-white text-slate-950 hover:bg-cyan-100"
+                    className="h-11 w-full gap-2 bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
                   >
                     <Plus className="h-4 w-4" />
                     {editingSectionId
@@ -1138,11 +1138,11 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                 >
                   {editingQuestionId ? (
                     <div className="flex items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2">
-                      <span className="text-sm font-medium text-cyan-100">Editing question</span>
+                      <span className="text-sm font-medium text-(--ws-cyan)">Editing question</span>
                       <button
                         type="button"
                         onClick={clearQuestionEditor}
-                        className="rounded-lg p-1 text-cyan-100/70 hover:bg-white/10 hover:text-white"
+                        className="rounded-lg p-1 text-(--ws-cyan)/70 hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                         aria-label="Cancel question edit"
                       >
                         <X className="h-4 w-4" />
@@ -1193,7 +1193,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                     <label className="space-y-2">
                       {fieldLabel("Marks")}
                       <div className="relative">
-                        <Hash className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/28" />
+                        <Hash className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-(--ws-fg-70)" />
                         <Input
                           value={questionMarks}
                           onChange={(event) => setQuestionMarks(event.target.value)}
@@ -1206,8 +1206,8 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
 
                   <div className="space-y-3">
                     {fieldLabel("Question")}
-                    <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/10 bg-black/15 p-2">
-                      <span className="mr-1 inline-flex items-center gap-1 px-1 text-xs font-semibold text-white/35">
+                    <div className="flex flex-wrap gap-1.5 rounded-xl border border-(--ws-line) bg-black/15 p-2">
+                      <span className="mr-1 inline-flex items-center gap-1 px-1 text-xs font-semibold text-(--ws-fg-70)">
                         <Radical className="h-3.5 w-3.5" />
                         Math & science
                       </span>
@@ -1216,7 +1216,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                           key={symbol}
                           type="button"
                           onClick={() => insertMathSymbol(symbol)}
-                          className="min-w-8 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs font-semibold text-white/65 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white"
+                          className="min-w-8 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2 py-1 text-xs font-semibold text-(--ws-fg-70) transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-(--ws-fg)"
                         >
                           {symbol}
                         </button>
@@ -1229,8 +1229,8 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                       minHeight="150px"
                       maxHeight="340px"
                       toolbarVariant="minimal"
-                      className="border-white/10 bg-white/[0.045] shadow-inner shadow-black/10 focus-within:border-cyan-300/40 focus-within:ring-cyan-300/15"
-                      editorClassName="prose-p:text-white/85"
+                      className="border-(--ws-line) bg-(--ws-fill) shadow-none focus-within:border-cyan-300/40 focus-within:ring-cyan-300/15"
+                      editorClassName="prose-p:text-(--ws-fg-70)"
                     />
                   </div>
 
@@ -1244,17 +1244,17 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                   />
 
                   {questionType === "multiple_choice" ? (
-                    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+                    <div className="space-y-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-white">Answer choices</p>
-                          <p className="text-xs text-white/42">Select the correct option for marking.</p>
+                          <p className="text-sm font-semibold text-(--ws-fg)">Answer choices</p>
+                          <p className="text-xs text-(--ws-fg-70)">Select the correct option for marking.</p>
                         </div>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                           onClick={() =>
                             setQuestionOptions((prev) => [
                               ...prev,
@@ -1287,7 +1287,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-bold transition",
                                 option.isCorrect
                                   ? "border-emerald-300/35 bg-emerald-300/15 text-emerald-50"
-                                  : "border-white/10 bg-white/[0.04] text-white/50 hover:bg-white/10"
+                                  : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                               )}
                               aria-label={`Mark option ${option.label} as correct`}
                             >
@@ -1320,7 +1320,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                                     }));
                                   })
                                 }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/35 transition hover:bg-red-400/10 hover:text-red-200"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-(--ws-fg-70) transition hover:bg-red-400/10 hover:text-red-200"
                                 aria-label={`Remove option ${option.label}`}
                               >
                                 <X className="h-4 w-4" />
@@ -1337,7 +1337,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                         value={expectedAnswer}
                         onChange={setExpectedAnswer}
                         placeholder="Answer or key points used for marking"
-                        className="border-white/10 bg-white/[0.045] shadow-inner shadow-black/10 focus-within:border-cyan-300/40 focus-within:ring-cyan-300/15"
+                        className="border-(--ws-line) bg-(--ws-fill) shadow-none focus-within:border-cyan-300/40 focus-within:ring-cyan-300/15"
                       />
                       <WritingSuggestionPanel
                         suggestions={expectedAnswerSuggestions}
@@ -1356,7 +1356,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                       value={markingGuide}
                       onChange={setMarkingGuide}
                       placeholder="Optional marking notes, point allocation, or rubric guidance"
-                      className="border-white/10 bg-white/[0.045] shadow-inner shadow-black/10 focus-within:border-cyan-300/40 focus-within:ring-cyan-300/15"
+                      className="border-(--ws-line) bg-(--ws-fill) shadow-none focus-within:border-cyan-300/40 focus-within:ring-cyan-300/15"
                     />
                     <WritingSuggestionPanel
                       suggestions={markingGuideSuggestions}
@@ -1376,7 +1376,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                         updateQuestionMutation.isPending ||
                         detail.sections.length === 0
                       }
-                      className="h-11 w-full gap-2 bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                      className="h-11 w-full gap-2 bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
                     >
                       <Plus className="h-4 w-4" />
                       {editingQuestionId
@@ -1389,7 +1389,7 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
                     </Button>
                   </div>
                   {detail.sections.length === 0 ? (
-                    <p className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+                    <p className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs text-(--ws-amber)">
                       Add a section before adding questions.
                     </p>
                   ) : null}
@@ -1405,19 +1405,19 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
           </Card>
         ) : null}
 
-        <Card className="border-cyan-300/15 bg-cyan-300/[0.04] text-white">
+        <Card className="border-cyan-300/15 bg-cyan-300/[0.04] text-(--ws-fg)">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileQuestion className="h-5 w-5 text-cyan-200" />
+              <FileQuestion className="h-5 w-5 text-(--ws-cyan)" />
               Paper Rules
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-white/62">
+          <CardContent className="space-y-4 text-sm text-(--ws-fg-70)">
             <p>Student printouts include questions only. Answer spaces, answer keys, expected answers, and marking guides stay out of the PDF.</p>
             <p>Grade-wide papers can be led by one setter with contributors from the same grade and subject.</p>
             {detail.paper.candidateInstructions ? (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/35">Candidate instructions</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Candidate instructions</p>
                 <p className="mt-2">{detail.paper.candidateInstructions}</p>
               </div>
             ) : null}

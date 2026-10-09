@@ -28,7 +28,7 @@ import { ExamAssessmentLinkExistingModal } from "@/components/admin/exams/ExamAs
 const STATUS_BADGE_STYLES = {
   linked: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   missing: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  not_required: "border-white/10 bg-white/5 text-white/55",
+  not_required: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
 } as const;
 
 const ROW_STATUS_LABELS = {
@@ -122,39 +122,39 @@ export function ExamAssessmentLinkSection({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Link2 className="h-4 w-4 text-(--ws-cyan)" />
-              <h3 className="text-sm font-semibold text-white">Assessment link</h3>
+              <h3 className="text-sm font-semibold text-(--ws-fg)">Assessment link</h3>
               <Badge variant="outline" className={overall.tone}>
                 {overall.label}
               </Badge>
             </div>
-            <p className="mt-2 max-w-2xl text-sm text-white/60">
+            <p className="mt-2 max-w-2xl text-sm text-(--ws-fg-70)">
               Report-contributing exam papers need a linked assessment item in the gradebook
               before marks can flow to report cards. One item is created per class group.
             </p>
           </div>
           {(isLoading || isFetching) && !status ? (
-            <Loader2 className="h-4 w-4 animate-spin text-white/45" />
+            <Loader2 className="h-4 w-4 animate-spin text-(--ws-fg-70)" />
           ) : null}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <p className="text-xs uppercase tracking-wide text-white/45">Component</p>
-            <p className="mt-1 text-sm text-white">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Component</p>
+            <p className="mt-1 text-sm text-(--ws-fg)">
               {entry.assessmentComponentKey ?? status?.assessmentComponentKey ?? "exam"}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <p className="text-xs uppercase tracking-wide text-white/45">Max score</p>
-            <p className="mt-1 text-sm text-white">
+          <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
+            <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Max score</p>
+            <p className="mt-1 text-sm text-(--ws-fg)">
               {entry.maxScore ?? status?.maxScore ?? "Policy default"}
             </p>
           </div>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
-          <p className="text-xs uppercase tracking-wide text-white/45">Report contribution</p>
-          <p className="mt-1 text-sm text-white/80">
+        <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-3">
+          <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Report contribution</p>
+          <p className="mt-1 text-sm text-(--ws-fg-70)">
             {entry.contributesToReport
               ? "This paper contributes to the official report card. Linked assessment items must also contribute to the report."
               : "This paper does not contribute to the report card, so an assessment link is optional."}
@@ -162,7 +162,7 @@ export function ExamAssessmentLinkSection({
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-white/50">
+          <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading assessment link status…
           </div>
@@ -173,11 +173,11 @@ export function ExamAssessmentLinkSection({
               {status.classGroups.map((row) => (
                 <div
                   key={row.classGroupId}
-                  className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-(--ws-fg)">
                         {row.classGroupName ??
                           classGroupLabels[row.classGroupId] ??
                           row.classGroupId}
@@ -190,7 +190,7 @@ export function ExamAssessmentLinkSection({
                       </Badge>
                     </div>
                     {row.linkedAssessmentItemId ? (
-                      <p className="mt-1 text-xs text-white/50">
+                      <p className="mt-1 text-xs text-(--ws-fg-70)">
                         Item ID: {row.linkedAssessmentItemId}
                       </p>
                     ) : null}
@@ -274,7 +274,7 @@ export function ExamAssessmentLinkSection({
         ) : null}
 
         {!canMutate ? (
-          <p className="text-sm text-white/45">
+          <p className="text-sm text-(--ws-fg-70)">
             Assessment links cannot be changed while this session is published or locked.
           </p>
         ) : null}

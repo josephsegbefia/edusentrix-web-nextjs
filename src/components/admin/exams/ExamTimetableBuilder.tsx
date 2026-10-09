@@ -95,7 +95,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 const ENTRY_STATUS_STYLES: Record<string, string> = {
-  draft: "border-white/10 bg-white/5 text-white/70",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   ready: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
   published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   in_progress: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
@@ -319,7 +319,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
   if (sessionLoading) {
     return (
       <WorkspacePageShell>
-        <div className="flex items-center justify-center py-24 text-white/60">
+        <div className="flex items-center justify-center py-24 text-(--ws-fg-70)">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
           Loading exam session…
         </div>
@@ -345,7 +345,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
     return (
       <WorkspacePageShell>
         <div className={cn(glassInsetClass, "mx-auto max-w-lg p-8 text-center")}>
-          <h2 className="text-lg font-semibold text-white">Exam session not found</h2>
+          <h2 className="text-lg font-semibold text-(--ws-fg)">Exam session not found</h2>
           <Button asChild className={cn(glassPrimaryButtonClass, "mt-4")}>
             <Link href="/admin/exams/sessions">Back to exam sessions</Link>
           </Button>
@@ -579,14 +579,14 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
             label: "Published version",
             value: summary.publishedVersion,
             icon: AlertTriangle,
-            tone: "text-white/80",
+            tone: "text-(--ws-fg-70)",
             isText: true,
           },
         ].map((card) => (
           <GlassPanel key={card.label} className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-white/45">{card.label}</p>
+                <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">{card.label}</p>
                 <p className={cn("mt-2 text-2xl font-semibold", card.tone)}>
                   {card.isText ? card.value : card.value}
                 </p>
@@ -613,6 +613,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
 
             <div className="w-full sm:w-[220px]">
               <CustomDatePicker
+                surface="theme"
                 label="Filter by date"
                 value={dateFilter ? new Date(`${dateFilter}T00:00:00`) : null}
                 onChange={(date) =>
@@ -647,17 +648,17 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
             retrying={isFetching}
           />
         ) : entriesLoading ? (
-          <div className="flex items-center justify-center py-16 text-white/60">
+          <div className="flex items-center justify-center py-16 text-(--ws-fg-70)">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Loading timetable entries…
           </div>
         ) : entries.length === 0 ? (
           <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
             <ClipboardList className="mx-auto h-10 w-10 text-(--ws-cyan)" />
-            <h3 className="mt-4 text-lg font-semibold text-white">
+            <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">
               No exam papers have been added yet
             </h3>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-white/60">
+            <p className="mx-auto mt-2 max-w-xl text-sm text-(--ws-fg-70)">
               Add papers manually to build this session&apos;s exam timetable.
             </p>
             {canMutate ? (
@@ -683,19 +684,19 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
             ) : null}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="overflow-x-auto rounded-xl border border-(--ws-line)">
             <Table>
               <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-white/60">Date</TableHead>
-                  <TableHead className="text-white/60">Time</TableHead>
-                  <TableHead className="text-white/60">Class</TableHead>
-                  <TableHead className="text-white/60">Subject</TableHead>
-                  <TableHead className="text-white/60">Venue</TableHead>
-                  <TableHead className="text-white/60">Invigilator(s)</TableHead>
-                  <TableHead className="text-white/60">Assessment link</TableHead>
-                  <TableHead className="text-white/60">Status</TableHead>
-                  <TableHead className="text-right text-white/60">Actions</TableHead>
+                <TableRow className="border-(--ws-line) hover:bg-transparent">
+                  <TableHead className="text-(--ws-fg-70)">Date</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Time</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Class</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Subject</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Venue</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Invigilator(s)</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Assessment link</TableHead>
+                  <TableHead className="text-(--ws-fg-70)">Status</TableHead>
+                  <TableHead className="text-right text-(--ws-fg-70)">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -711,8 +712,8 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                   const entryInvigilators = invigilatorsByEntryId.get(entry.id) ?? [];
 
                   return (
-                    <TableRow key={entry.id} className="border-white/10 hover:bg-white/5">
-                      <TableCell className="whitespace-nowrap text-white">
+                    <TableRow key={entry.id} className="border-(--ws-line) hover:bg-(--ws-fill-strong)">
+                      <TableCell className="whitespace-nowrap text-(--ws-fg)">
                         {entry.isUnscheduled ? (
                           <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)">
                             Unscheduled
@@ -721,16 +722,16 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                           formatDateLabel(entry.date)
                         )}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-white/80">
+                      <TableCell className="whitespace-nowrap text-(--ws-fg-70)">
                         {entry.isUnscheduled
                           ? "—"
                           : formatTimeRange(entry.startTime, entry.endTime)}
                       </TableCell>
-                      <TableCell className="min-w-[140px] text-white/80">{classLabels}</TableCell>
-                      <TableCell className="min-w-[120px] text-white">
+                      <TableCell className="min-w-[140px] text-(--ws-fg-70)">{classLabels}</TableCell>
+                      <TableCell className="min-w-[120px] text-(--ws-fg)">
                         {labelMaps?.subjectMap.get(entry.subjectId) ?? entry.title ?? "Subject"}
                       </TableCell>
-                      <TableCell className="text-white/80">{venueLabel}</TableCell>
+                      <TableCell className="text-(--ws-fg-70)">{venueLabel}</TableCell>
                       <TableCell className="min-w-[160px]">
                         {entryInvigilators.length === 0 ? (
                           <button
@@ -739,7 +740,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                               "text-left text-sm",
                               canMutate
                                 ? "text-(--ws-amber) hover:text-(--ws-amber)"
-                                : "text-white/45"
+                                : "text-(--ws-fg-70)"
                             )}
                             onClick={() => canMutate && openInvigilatorDrawer(entry)}
                             disabled={!canMutate}
@@ -755,10 +756,10 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                               return (
                                 <p
                                   key={assignment.id}
-                                  className="text-sm text-white/85"
+                                  className="text-sm text-(--ws-fg-70)"
                                 >
                                   {teacherName}
-                                  <span className="text-white/45">
+                                  <span className="text-(--ws-fg-70)">
                                     {" "}
                                     · {INVIGILATOR_ROLE_SHORT[assignment.role] ?? assignment.role}
                                   </span>

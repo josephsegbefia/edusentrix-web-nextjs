@@ -48,6 +48,7 @@ import {
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 // ========================
@@ -67,7 +68,7 @@ function getStatusBadge(status: string) {
       );
     case "active":
       return (
-        <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+        <Badge variant="outline" className="border-emerald-500/30 text-(--ws-emerald) bg-emerald-500/10">
           <CheckCircle className="mr-1 h-3 w-3" />
           Active
         </Badge>
@@ -107,18 +108,18 @@ interface BudgetCardProps {
 
 function BudgetCard({ budget, onViewDetails, onActivate, onDelete }: BudgetCardProps) {
   return (
-    <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 hover:border-white/20 transition-colors">
+    <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) hover:border-(--ws-line) transition-colors">
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               {getStatusBadge(budget.status)}
-              <span className="text-xs text-white/40">
+              <span className="text-xs text-(--ws-fg-70)">
                 {getPeriodLabel(budget.periodType)}
               </span>
             </div>
-            <h3 className="font-semibold text-white truncate">{budget.name}</h3>
-            <p className="text-xs text-white/50 mt-1">
+            <h3 className="font-semibold text-(--ws-fg) truncate">{budget.name}</h3>
+            <p className="text-xs text-(--ws-fg-70) mt-1">
               {format(new Date(budget.startDate), "MMM d, yyyy")} -{" "}
               {format(new Date(budget.endDate), "MMM d, yyyy")}
             </p>
@@ -142,7 +143,7 @@ function BudgetCard({ budget, onViewDetails, onActivate, onDelete }: BudgetCardP
                   </PremiumDropdownMenuItem>
                   <PremiumDropdownMenuItem
                     onClick={() => onDelete(budget.id)}
-                    className="text-red-400"
+                    className="text-(--ws-rose)"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
@@ -155,20 +156,20 @@ function BudgetCard({ budget, onViewDetails, onActivate, onDelete }: BudgetCardP
 
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-white/50 mb-1">Budgeted</p>
-            <p className="text-lg font-bold text-white">
+            <p className="text-xs text-(--ws-fg-70) mb-1">Budgeted</p>
+            <p className="text-lg font-bold text-(--ws-fg)">
               {formatCurrency(budget.totalBudgetedMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
             </p>
           </div>
           <div>
-            <p className="text-xs text-white/50 mb-1">Categories</p>
-            <p className="text-lg font-bold text-white">{budget.lineItemCount}</p>
+            <p className="text-xs text-(--ws-fg-70) mb-1">Categories</p>
+            <p className="text-lg font-bold text-(--ws-fg)">{budget.lineItemCount}</p>
           </div>
         </div>
 
         <Button
           variant="ghost"
-          className="w-full mt-4 text-white/60 hover:text-white hover:bg-white/5"
+          className="w-full mt-4 text-(--ws-fg-70) hover:text-(--ws-fg) hover:bg-(--ws-fill-strong)"
           onClick={() => onViewDetails(budget.id)}
         >
           View Details
@@ -213,15 +214,15 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
         <div className="space-y-6 p-1">
           {/* Summary */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="rounded-xl bg-white/5 p-4 text-center">
-              <p className="text-xs text-white/50 mb-1">Budgeted</p>
-              <p className="text-lg font-bold text-white">
+            <div className="rounded-xl bg-(--ws-fill) p-4 text-center">
+              <p className="text-xs text-(--ws-fg-70) mb-1">Budgeted</p>
+              <p className="text-lg font-bold text-(--ws-fg)">
                 {formatCurrency(budget.totalBudgetedMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
               </p>
             </div>
-            <div className="rounded-xl bg-white/5 p-4 text-center">
-              <p className="text-xs text-white/50 mb-1">Actual</p>
-              <p className="text-lg font-bold text-white">
+            <div className="rounded-xl bg-(--ws-fill) p-4 text-center">
+              <p className="text-xs text-(--ws-fg-70) mb-1">Actual</p>
+              <p className="text-lg font-bold text-(--ws-fg)">
                 {formatCurrency(budget.totalActualMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
               </p>
             </div>
@@ -231,11 +232,11 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
                 budget.totalVarianceMinor >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"
               )}
             >
-              <p className="text-xs text-white/50 mb-1">Variance</p>
+              <p className="text-xs text-(--ws-fg-70) mb-1">Variance</p>
               <p
                 className={cn(
                   "text-lg font-bold",
-                  budget.totalVarianceMinor >= 0 ? "text-emerald-400" : "text-red-400"
+                  budget.totalVarianceMinor >= 0 ? "text-(--ws-emerald)" : "text-(--ws-rose)"
                 )}
               >
                 {budget.totalVarianceMinor >= 0 ? "+" : ""}
@@ -247,21 +248,21 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
           {/* Usage Progress */}
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-white/60">Budget Usage</span>
+              <span className="text-(--ws-fg-70)">Budget Usage</span>
               <span
                 className={cn(
                   "font-medium",
                   budget.percentUsed > 100
-                    ? "text-red-400"
+                    ? "text-(--ws-rose)"
                     : budget.percentUsed > 80
                       ? "text-yellow-400"
-                      : "text-emerald-400"
+                      : "text-(--ws-emerald)"
                 )}
               >
                 {budget.percentUsed}%
               </span>
             </div>
-            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-2 rounded-full bg-(--ws-fill-strong) overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all",
@@ -278,29 +279,29 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
 
           {/* Line Items */}
           <div>
-            <h4 className="text-sm font-medium text-white/80 mb-3">Category Breakdown</h4>
+            <h4 className="text-sm font-medium text-(--ws-fg-70) mb-3">Category Breakdown</h4>
             <div className="space-y-3">
               {budget.lineItems.map((item) => (
                 <div
                   key={item.categoryId}
-                  className="rounded-xl border border-white/10 bg-white/5 p-3"
+                  className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-medium text-white">{item.categoryName}</span>
+                    <span className="font-medium text-(--ws-fg)">{item.categoryName}</span>
                     <span
                       className={cn(
                         "text-xs font-medium",
                         item.percentUsed > 100
-                          ? "text-red-400"
+                          ? "text-(--ws-rose)"
                           : item.percentUsed > 80
                             ? "text-yellow-400"
-                            : "text-emerald-400"
+                            : "text-(--ws-emerald)"
                       )}
                     >
                       {item.percentUsed}%
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-2">
+                  <div className="h-1.5 rounded-full bg-(--ws-fill-strong) overflow-hidden mb-2">
                     <div
                       className={cn(
                         "h-full rounded-full",
@@ -313,13 +314,13 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
                       style={{ width: `${Math.min(item.percentUsed, 100)}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-xs text-white/50">
+                  <div className="flex justify-between text-xs text-(--ws-fg-70)">
                     <span>
                       {formatCurrency(item.actualAmountMinor, { currency: budget.currency, maximumFractionDigits: 0 })} /{" "}
                       {formatCurrency(item.budgetedAmountMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
                     </span>
                     <span
-                      className={item.varianceMinor >= 0 ? "text-emerald-400" : "text-red-400"}
+                      className={item.varianceMinor >= 0 ? "text-(--ws-emerald)" : "text-(--ws-rose)"}
                     >
                       {item.varianceMinor >= 0 ? "+" : ""}
                       {formatCurrency(item.varianceMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
@@ -331,7 +332,7 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
           </div>
         </div>
       ) : (
-        <div className="py-8 text-center text-white/40">Budget not found</div>
+        <div className="py-8 text-center text-(--ws-fg-70)">Budget not found</div>
       )}
     </ResponsiveModal>
   );
@@ -385,16 +386,16 @@ export default function BudgetsPage() {
   };
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-violet-500/20 to-purple-600/20">
-            <Calculator className="h-6 w-6 text-violet-400" />
+            <Calculator className="h-6 w-6 text-(--ws-violet)" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white md:text-3xl">Budgets</h1>
-            <p className="mt-1 text-sm text-white/50">
+            <h1 className="text-2xl font-bold text-(--ws-fg) md:text-3xl">Budgets</h1>
+            <p className="mt-1 text-sm text-(--ws-fg-70)">
               Plan and track expense budgets by category
             </p>
           </div>
@@ -412,7 +413,7 @@ export default function BudgetsPage() {
             </PremiumSelectContent>
           </PremiumSelect>
           <Link href="/admin/finance/budgets/create">
-            <Button className="group bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700">
+            <Button className="group bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 hover:text-white">
               <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
               Create Budget
             </Button>
@@ -428,15 +429,15 @@ export default function BudgetsPage() {
           ))}
         </div>
       ) : budgets.length === 0 ? (
-        <Card className="rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+        <Card className="rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
           <CardContent className="py-12 text-center">
-            <Calculator className="mx-auto h-12 w-12 text-white/20" />
-            <h3 className="mt-4 text-lg font-medium text-white">No budgets yet</h3>
-            <p className="mt-2 text-sm text-white/50">
+            <Calculator className="mx-auto h-12 w-12 text-(--ws-fg-70)" />
+            <h3 className="mt-4 text-lg font-medium text-(--ws-fg)">No budgets yet</h3>
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               Create your first budget to start tracking expenses
             </p>
             <Link href="/admin/finance/budgets/create">
-              <Button className="mt-4 bg-linear-to-r from-violet-500 to-purple-600 text-white">
+              <Button className="mt-4 bg-linear-to-r from-violet-500 to-purple-600 text-white hover:text-white">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Budget
               </Button>
@@ -464,6 +465,6 @@ export default function BudgetsPage() {
         onOpenChange={setDetailModalOpen}
       />
       {confirmationDialog}
-    </div>
+    </WorkspaceScope>
   );
 }

@@ -146,7 +146,7 @@ export function ExamSmartSchedulerModal({
             key={item.id}
             variant="outline"
             className={cn(
-              "border-white/10 bg-white/5 text-white/60",
+              "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
               step === item.id && "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
               step > item.id && "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
             )}
@@ -159,19 +159,19 @@ export function ExamSmartSchedulerModal({
       {step === 1 ? (
         <div className={cn(glassInsetClass, "space-y-4 p-4")}>
           <div>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-(--ws-fg-70)">
               Choose which exam papers Leo should try to place into open slots within the session
               range.
             </p>
-            <p className="mt-2 text-sm text-white/50">
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               {scopeCount} paper{scopeCount === 1 ? "" : "s"} in scope · {unscheduledCount}{" "}
               currently unscheduled
             </p>
           </div>
-          <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
             <div>
-              <p className="text-sm font-medium text-white">Only unscheduled papers</p>
-              <p className="text-xs text-white/50">
+              <p className="text-sm font-medium text-(--ws-fg)">Only unscheduled papers</p>
+              <p className="text-xs text-(--ws-fg-70)">
                 Leave scheduled papers unchanged and fill gaps only.
               </p>
             </div>
@@ -188,8 +188,8 @@ export function ExamSmartSchedulerModal({
       {step === 2 ? (
         <div className={cn(glassInsetClass, "grid gap-4 p-4 sm:grid-cols-3")}>
           <div className="space-y-2 sm:col-span-3">
-            <Label className="text-white/70">Daily window</Label>
-            <p className="text-xs text-white/45">
+            <Label className="text-(--ws-fg-70)">Daily window</Label>
+            <p className="text-xs text-(--ws-fg-70)">
               The scheduler searches for conflict-free slots between these times on working days.
             </p>
           </div>
@@ -238,21 +238,21 @@ export function ExamSmartSchedulerModal({
         <div className="space-y-4">
           <div className={cn(glassInsetClass, "grid gap-3 p-4 sm:grid-cols-3")}>
             <div>
-              <p className="text-xs uppercase tracking-wide text-white/45">Confidence</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{proposal.confidenceScore}%</p>
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Confidence</p>
+              <p className="mt-1 text-2xl font-semibold text-(--ws-fg)">{proposal.confidenceScore}%</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-white/45">Scheduled</p>
-              <p className="mt-1 text-sm text-white/80">
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Scheduled</p>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 {proposal.scheduledDrafts.length} of {scopeCount} in scope
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-white/45">Unscheduled</p>
-              <p className="mt-1 text-sm text-white/80">{proposal.unscheduledItems.length} remaining</p>
+              <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Unscheduled</p>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">{proposal.unscheduledItems.length} remaining</p>
             </div>
             <div className="sm:col-span-3">
-              <p className="text-sm text-white/70">{proposal.explanationSummary}</p>
+              <p className="text-sm text-(--ws-fg-70)">{proposal.explanationSummary}</p>
             </div>
           </div>
 
@@ -274,20 +274,20 @@ export function ExamSmartSchedulerModal({
             {proposal.scheduledDrafts.slice(0, 8).map((draft) => (
               <div
                 key={draft.entryId}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80"
+                className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-70)"
               >
-                <p className="font-medium text-white">
+                <p className="font-medium text-(--ws-fg)">
                   {draft.subjectName ?? "Subject"} · {draft.classGroupNames.join(", ") || "Class"}
                 </p>
-                <p className="mt-1 text-white/60">
+                <p className="mt-1 text-(--ws-fg-70)">
                   {draft.date} · {draft.startTime} – {draft.endTime}
                   {draft.venueName ? ` · ${draft.venueName}` : ""}
                 </p>
-                <p className="mt-1 text-xs text-white/45">{draft.explanation}</p>
+                <p className="mt-1 text-xs text-(--ws-fg-70)">{draft.explanation}</p>
               </div>
             ))}
             {proposal.scheduledDrafts.length > 8 ? (
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-70)">
                 + {proposal.scheduledDrafts.length - 8} more scheduled draft(s)
               </p>
             ) : null}
@@ -304,14 +304,14 @@ export function ExamSmartSchedulerModal({
 
       {step === 4 && proposal ? (
         <div className={cn(glassInsetClass, "space-y-3 p-4")}>
-          <div className="flex items-start gap-2 text-sm text-white/75">
+          <div className="flex items-start gap-2 text-sm text-(--ws-fg-70)">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
             <span>
               Applying writes draft slots and suggested invigilators to the timetable builder. This
               does not publish the timetable.
             </span>
           </div>
-          <div className="flex items-start gap-2 text-sm text-white/60">
+          <div className="flex items-start gap-2 text-sm text-(--ws-fg-70)">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-amber)" />
             <span>
               Review conflicts and assessment links after applying. You can discard changes by

@@ -4,20 +4,14 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from "date-fns/format";
-import { CalendarIcon, Loader2, ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { Loader2, ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GhanaPhoneInput } from "@/components/ui/ghana-phone-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -248,8 +242,8 @@ export function RecordTransactionModal({
         {/* Category and Amount */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-white/80">
-              Category <span className="text-red-400">*</span>
+            <Label className="text-(--ws-fg-70)">
+              Category <span className="text-(--ws-rose)">*</span>
             </Label>
             <PremiumSelect
               value={form.watch("category")}
@@ -269,8 +263,8 @@ export function RecordTransactionModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount" className="text-white/80">
-              Amount <span className="text-red-400">*</span>
+            <Label htmlFor="amount" className="text-(--ws-fg-70)">
+              Amount <span className="text-(--ws-rose)">*</span>
             </Label>
             <div className="flex gap-2">
               <PremiumSelect
@@ -292,11 +286,11 @@ export function RecordTransactionModal({
                 min="0"
                 placeholder="0.00"
                 {...form.register("amount", { valueAsNumber: true })}
-                className="flex-1 border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                className="flex-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
               />
             </div>
             {form.formState.errors.amount && (
-              <p className="text-xs text-red-400">{form.formState.errors.amount.message}</p>
+              <p className="text-xs text-(--ws-rose)">{form.formState.errors.amount.message}</p>
             )}
           </div>
         </div>
@@ -304,8 +298,8 @@ export function RecordTransactionModal({
         {/* Payment Method and Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-white/80">
-              Payment Method <span className="text-red-400">*</span>
+            <Label className="text-(--ws-fg-70)">
+              Payment Method <span className="text-(--ws-rose)">*</span>
             </Label>
             <PremiumSelect
               value={form.watch("method")}
@@ -325,82 +319,63 @@ export function RecordTransactionModal({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-white/80">Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal border-white/10 bg-white/5 hover:bg-white/10",
-                    !form.watch("occurredAt") && "text-white/40"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {form.watch("occurredAt") ? (
-                    format(form.watch("occurredAt"), "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border-white/10 bg-slate-900" align="start">
-                <Calendar
-                  mode="single"
-                  selected={form.watch("occurredAt")}
-                  onSelect={(date) => date && form.setValue("occurredAt", date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <Label className="text-(--ws-fg-70)">Date</Label>
+            <CustomDatePicker
+              surface="theme"
+              value={form.watch("occurredAt") ?? null}
+              onChange={(date) => {
+                if (date) form.setValue("occurredAt", date);
+              }}
+            />
           </div>
         </div>
 
         {/* Reference */}
         <div className="space-y-2">
-          <Label htmlFor="reference" className="text-white/80">
+          <Label htmlFor="reference" className="text-(--ws-fg-70)">
             Reference Number (Optional)
           </Label>
           <Input
             id="reference"
             placeholder="e.g., Receipt number, bill ID"
             {...form.register("reference")}
-            className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
           />
         </div>
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-white/80">
-            Description <span className="text-red-400">*</span>
+          <Label htmlFor="description" className="text-(--ws-fg-70)">
+            Description <span className="text-(--ws-rose)">*</span>
           </Label>
           <Textarea
             id="description"
             placeholder="What is this transaction for?"
             {...form.register("description")}
-            className="min-h-[80px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+            className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
           />
           {form.formState.errors.description && (
-            <p className="text-xs text-red-400">{form.formState.errors.description.message}</p>
+            <p className="text-xs text-(--ws-rose)">{form.formState.errors.description.message}</p>
           )}
         </div>
 
         {/* Party Info (Collapsible) */}
         <details className="group">
-          <summary className="cursor-pointer text-sm text-white/60 hover:text-white transition-colors">
+          <summary className="cursor-pointer text-sm text-(--ws-fg-70) hover:text-(--ws-fg) transition-colors">
             + Add party details (optional)
           </summary>
-          <div className="mt-4 space-y-4 pl-4 border-l border-white/10">
+          <div className="mt-4 space-y-4 pl-4 border-l border-(--ws-line)">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/80">Party Name</Label>
+                <Label className="text-(--ws-fg-70)">Party Name</Label>
                 <Input
                   placeholder="Name of person/organization"
                   {...form.register("partyName")}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Party Type</Label>
+                <Label className="text-(--ws-fg-70)">Party Type</Label>
                 <PremiumSelect
                   value={form.watch("partyType") || "other"}
                   onValueChange={(v) => form.setValue("partyType", v as "student" | "guardian" | "vendor" | "staff" | "donor" | "other")}
@@ -420,21 +395,21 @@ export function RecordTransactionModal({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/80">Email</Label>
+                <Label className="text-(--ws-fg-70)">Email</Label>
                 <Input
                   type="email"
                   placeholder="email@example.com"
                   {...form.register("partyEmail")}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Phone</Label>
+                <Label className="text-(--ws-fg-70)">Phone</Label>
                 <GhanaPhoneInput
                   value={form.watch("partyPhone") || ""}
                   onValueChange={(value) => form.setValue("partyPhone", value, { shouldDirty: true })}
                   onBlur={() => form.trigger("partyPhone")}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
             </div>
@@ -443,24 +418,24 @@ export function RecordTransactionModal({
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="notes" className="text-white/80">
+          <Label htmlFor="notes" className="text-(--ws-fg-70)">
             Internal Notes (Optional)
           </Label>
           <Textarea
             id="notes"
             placeholder="Notes for internal reference..."
             {...form.register("notes")}
-            className="min-h-[60px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+            className="min-h-[60px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
           />
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+        <div className="flex justify-end gap-3 pt-4 border-t border-(--ws-line)">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-white/10 bg-white/5 hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
           >
             Cancel
           </Button>
@@ -468,7 +443,7 @@ export function RecordTransactionModal({
             type="submit"
             disabled={createTransaction.isPending}
             className={cn(
-              "text-white",
+              "text-(--ws-fg)",
               direction === "inflow"
                 ? "bg-emerald-600 hover:bg-emerald-700"
                 : "bg-red-600 hover:bg-red-700"

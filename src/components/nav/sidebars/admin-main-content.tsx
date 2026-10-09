@@ -73,9 +73,14 @@ export function AdminMainContent({
     pathname.startsWith("/admin/classes/") ||
     pathname.startsWith("/admin/teachers/") ||
     pathname.startsWith("/admin/subjects/") ||
-    pathname === "/admin/finance/payments" ||
-    pathname === "/admin/finance/receipts" ||
-    pathname === "/admin/finance/cash-close";
+    pathname.startsWith("/admin/finance") ||
+    pathname.startsWith("/admin/grades/") ||
+    pathname === "/admin/meetings" ||
+    pathname.startsWith("/admin/meetings/") ||
+    pathname === "/admin/reports" ||
+    pathname === "/admin/academic-calendar" ||
+    pathname.startsWith("/admin/examinations/") ||
+    pathname.startsWith("/admin/exams/sessions/");
 
   return (
     <main

@@ -174,9 +174,9 @@ export function MonthGrid({
   const occurrencesByDay = groupByDateSpan(occurrences);
 
   return (
-    <div className="grid grid-cols-7 gap-px rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+    <div className="grid grid-cols-7 gap-px rounded-2xl border border-(--ws-line) bg-(--ws-fill) overflow-hidden">
       {WEEKDAYS.map((day) => (
-        <div key={day.value} className="bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+        <div key={day.value} className="bg-(--ws-fill) px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
           {day.label}
         </div>
       ))}
@@ -201,22 +201,22 @@ export function MonthGrid({
               }
             }}
             className={cn(
-              "min-h-[120px] px-3 py-2 border-t border-white/5 bg-black/20",
-              cell.inMonth && onSelectDate && "cursor-pointer hover:bg-black/30",
-              !cell.inMonth && "bg-black/10 text-white/40"
+              "min-h-[120px] px-3 py-2 border-t border-(--ws-line) bg-(--ws-fill)",
+              cell.inMonth && onSelectDate && "cursor-pointer hover:bg-(--ws-fill-strong)",
+              !cell.inMonth && "bg-(--ws-fill) text-(--ws-fg-70)"
             )}
           >
             <div className="flex items-center justify-between">
               <span
                 className={cn(
                   "text-sm font-semibold",
-                  isToday && "text-brand"
+                  isToday && "text-(--ws-cyan)"
                 )}
               >
                 {cell.date.getDate()}
               </span>
               {dayEvents.some((event) => event.isNonTeachingDay) && (
-                <Badge className="bg-rose-500/20 text-rose-200 text-[10px]">No classes</Badge>
+                <Badge className="bg-rose-500/20 text-(--ws-rose) text-[10px]">No classes</Badge>
               )}
             </div>
             <div className="mt-2 space-y-1">
@@ -232,12 +232,12 @@ export function MonthGrid({
                   <div
                     className="rounded-lg px-2 py-1 text-[11px] font-medium"
                     style={{
-                      backgroundColor: event.color ? `${event.color}22` : "rgba(255,255,255,0.1)",
-                      color: event.color || "#fff",
+                      backgroundColor: event.color ? `${event.color}22` : "var(--ws-fill-strong)",
+                      color: event.color || "var(--ws-fg)",
                     }}
                   >
                     <div className="truncate">{event.title}</div>
-                    <div className="text-[10px] text-white/60">
+                    <div className="text-[10px] text-(--ws-fg-70)">
                       {event.allDay
                         ? event.segment === "start"
                           ? "Starts"
@@ -256,7 +256,7 @@ export function MonthGrid({
                 </button>
               ))}
               {dayEvents.length > 3 && (
-                <span className="text-[10px] text-white/40">+{dayEvents.length - 3} more</span>
+                <span className="text-[10px] text-(--ws-fg-70)">+{dayEvents.length - 3} more</span>
               )}
             </div>
           </div>
@@ -278,7 +278,7 @@ export function AgendaList({
 
   if (days.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/50">
+      <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6 text-center text-(--ws-fg-70)">
         No events found for this range.
       </div>
     );
@@ -289,9 +289,9 @@ export function AgendaList({
       {days.map((day) => {
         const list = grouped.get(day) || [];
         return (
-          <div key={day} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Clock className="h-4 w-4 text-brand" />
+          <div key={day} className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-(--ws-fg)">
+              <Clock className="h-4 w-4 text-(--ws-cyan)" />
               {format(new Date(day), "MMMM d, yyyy")}
             </div>
             <div className="mt-3 space-y-2">
@@ -299,20 +299,20 @@ export function AgendaList({
                 <button
                   key={event.id}
                   onClick={() => onSelectOccurrence?.(event)}
-                  className="w-full text-left rounded-xl border border-white/5 bg-black/20 p-3 transition hover:bg-black/30"
+                  className="w-full text-left rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 transition hover:bg-(--ws-fill-strong)"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-white">{event.title}</div>
-                      <div className="text-xs text-white/50">
+                      <div className="text-sm font-semibold text-(--ws-fg)">{event.title}</div>
+                      <div className="text-xs text-(--ws-fg-70)">
                         {toFriendlyDateRange(event.startDate, event.endDate, event.allDay)}
                       </div>
                     </div>
                     <Badge
                       className="text-[10px]"
                       style={{
-                        backgroundColor: event.color ? `${event.color}22` : "rgba(255,255,255,0.1)",
-                        color: event.color || "#fff",
+                        backgroundColor: event.color ? `${event.color}22` : "var(--ws-fill-strong)",
+                        color: event.color || "var(--ws-fg)",
                       }}
                     >
                       {event.eventType.replaceAll("_", " ")}

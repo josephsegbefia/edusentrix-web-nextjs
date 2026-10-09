@@ -100,7 +100,7 @@ export function ExamSchedulingLeoPanel({
             <Sparkles className="h-4 w-4" />
             Leo advisory
           </div>
-          <p className="mt-1 text-xs text-white/50">
+          <p className="mt-1 text-xs text-(--ws-fg-70)">
             Suggestions are draft-only. Confirm changes yourself before publishing or assigning.
           </p>
         </div>
@@ -127,15 +127,15 @@ export function ExamSchedulingLeoPanel({
       </div>
 
       {result ? (
-        <div className={cn(glassInsetClass, "mt-4 space-y-3 p-3 text-sm text-white/75")}>
-          <p className="text-xs text-white/45">{result.disclaimer}</p>
+        <div className={cn(glassInsetClass, "mt-4 space-y-3 p-3 text-sm text-(--ws-fg-70)")}>
+          <p className="text-xs text-(--ws-fg-70)">{result.disclaimer}</p>
 
           {mode === "conflict-explain" && "explanation" in result ? (
             <>
-              <p className="text-white/85">{result.explanation}</p>
+              <p className="text-(--ws-fg-70)">{result.explanation}</p>
               {result.likelyCauses.length > 0 ? (
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-white/45">Likely causes</p>
+                  <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Likely causes</p>
                   <ul className="mt-1 list-disc pl-5">
                     {result.likelyCauses.map((item) => (
                       <li key={item}>{item}</li>
@@ -145,7 +145,7 @@ export function ExamSchedulingLeoPanel({
               ) : null}
               {result.suggestedFixes.length > 0 ? (
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-white/45">Suggested fixes</p>
+                  <p className="text-xs uppercase tracking-wide text-(--ws-fg-70)">Suggested fixes</p>
                   <ul className="mt-1 list-disc pl-5">
                     {result.suggestedFixes.map((item) => (
                       <li key={item}>{item}</li>
@@ -158,15 +158,15 @@ export function ExamSchedulingLeoPanel({
 
           {mode === "improvements" && "proposals" in result ? (
             <>
-              <p className="text-white/85">{result.summary}</p>
+              <p className="text-(--ws-fg-70)">{result.summary}</p>
               {result.proposals.map((proposal) => (
                 <div
                   key={`${proposal.title}-${proposal.description}`}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                 >
-                  <p className="font-medium text-white">{proposal.title}</p>
+                  <p className="font-medium text-(--ws-fg)">{proposal.title}</p>
                   <p className="mt-1">{proposal.description}</p>
-                  <p className="mt-1 text-xs text-white/45">{proposal.rationale}</p>
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">{proposal.rationale}</p>
                 </div>
               ))}
             </>
@@ -175,36 +175,36 @@ export function ExamSchedulingLeoPanel({
           {mode === "parent-message" && "subject" in result && "body" in result ? (
             <>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-medium text-white">{result.subject}</p>
+                <p className="font-medium text-(--ws-fg)">{result.subject}</p>
                 <Button
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="text-white/60 hover:text-white"
+                  className="text-(--ws-fg-70) hover:text-(--ws-fg)"
                   onClick={() => void copyText(`${result.subject}\n\n${result.body}`)}
                 >
                   <Copy className="mr-1 h-3.5 w-3.5" />
                   Copy
                 </Button>
               </div>
-              <pre className="whitespace-pre-wrap text-sm text-white/75">{result.body}</pre>
+              <pre className="whitespace-pre-wrap text-sm text-(--ws-fg-70)">{result.body}</pre>
             </>
           ) : null}
 
           {mode === "invigilator-suggest" && "candidates" in result ? (
             <>
-              <p className="text-white/85">{result.summary}</p>
+              <p className="text-(--ws-fg-70)">{result.summary}</p>
               {result.candidates.map((candidate) => (
                 <div
                   key={candidate.teacherId}
-                  className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-medium text-white">
+                    <p className="font-medium text-(--ws-fg)">
                       {candidate.teacherName ?? "Teacher"}
                     </p>
                     <p className="mt-1 text-sm">{candidate.rationale}</p>
-                    <p className="mt-1 text-xs text-white/45">{candidate.workloadNote}</p>
+                    <p className="mt-1 text-xs text-(--ws-fg-70)">{candidate.workloadNote}</p>
                   </div>
                   {onSelectInvigilator ? (
                     <Button

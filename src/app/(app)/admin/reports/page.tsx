@@ -1,6 +1,7 @@
 // src/app/(app)/admin/reports/page.tsx
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns/format";
@@ -395,9 +396,9 @@ function buildTooltip(
     const header = formatLabel ? formatLabel(label, payload) : label;
 
     return (
-      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
+      <div className="rounded-lg border border-(--ws-line) bg-(--ws-popover) px-3 py-2 shadow-lg">
         {header ? (
-          <p className="text-[11px] font-semibold text-white/60">{header}</p>
+          <p className="text-[11px] font-semibold text-(--ws-fg-70)">{header}</p>
         ) : null}
         <div className="mt-1 space-y-1">
           {(() => {
@@ -445,11 +446,11 @@ function buildAttendanceTooltip(formatDateTick: (label: string | number) => stri
     const total = getPayloadNumber(data, "total") ?? 0;
 
     return (
-      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
-        <p className="text-[11px] font-semibold text-white/60">
+      <div className="rounded-lg border border-(--ws-line) bg-(--ws-popover) px-3 py-2 shadow-lg">
+        <p className="text-[11px] font-semibold text-(--ws-fg-70)">
           {label ? formatDateTick(label) : "Attendance"}
         </p>
-        <div className="mt-1 space-y-1 text-xs text-white/80">
+        <div className="mt-1 space-y-1 text-xs text-(--ws-fg-70)">
           <p>Present rate: {presentRate.toFixed(1)}%</p>
           <p>Present: {formatCount(present)}</p>
           <p>Absent: {formatCount(absent)}</p>
@@ -480,11 +481,11 @@ function buildAcademicsTooltip() {
     const count = getPayloadNumber(data, "count") ?? 0;
 
     return (
-      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
-        <p className="text-[11px] font-semibold text-white/60">
+      <div className="rounded-lg border border-(--ws-line) bg-(--ws-popover) px-3 py-2 shadow-lg">
+        <p className="text-[11px] font-semibold text-(--ws-fg-70)">
           {humanizeLabel(displayLabel)}
         </p>
-        <div className="mt-1 space-y-1 text-xs text-white/80">
+        <div className="mt-1 space-y-1 text-xs text-(--ws-fg-70)">
           <p>Average score: {average.toFixed(1)}</p>
           <p>Pass rate: {passRate.toFixed(1)}%</p>
           <p>Records: {formatCount(count)}</p>
@@ -587,7 +588,7 @@ function renderExportItemStatus(
       <Button
         size="sm"
         variant="outline"
-        className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+        className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
         onClick={onDownload}
       >
         <DownloadCloud className="h-4 w-4" />
@@ -603,7 +604,7 @@ function renderExportItemStatus(
     );
   }
   return (
-    <div className="flex items-center gap-2 text-xs text-white/60">
+    <div className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
       <RefreshCw className="h-3 w-3 animate-spin" />
       Preparing
     </div>
@@ -628,7 +629,7 @@ function RecentExportsCard({
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="rounded-xl border border-white/10 bg-white/5 p-4"
+              className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
             >
               <Skeleton className="h-4 w-32" />
               <Skeleton className="mt-2 h-3 w-24" />
@@ -646,8 +647,8 @@ function RecentExportsCard({
     }
     if ((exportsQuery.data?.data.length ?? 0) === 0) {
       return (
-        <div className="rounded-xl border border-dashed border-white/15 bg-black/30 p-6 text-center">
-          <p className="text-xs text-white/60">
+        <div className="rounded-xl border border-dashed border-(--ws-line) bg-(--ws-fill-strong) p-6 text-center">
+          <p className="text-xs text-(--ws-fg-70)">
             No exports generated yet. Start with the report library.
           </p>
         </div>
@@ -671,26 +672,26 @@ function RecentExportsCard({
           return (
             <div
               key={item.id}
-              className="rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/20"
+              className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 shadow-inner shadow-black/20"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-(--ws-fg)">
                       {item.reportLabel}
                     </p>
                     <Badge
                       variant="secondary"
-                      className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+                      className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)"
                     >
                       {item.format.toUpperCase()}
                     </Badge>
                     <StatusBadge status={item.status} />
                   </div>
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-(--ws-fg-70)">
                     {rangeText} - {timeLabel} {timeAgo}
                   </p>
-                  <p className="text-[11px] text-white/40">
+                  <p className="text-[11px] text-(--ws-fg-70)">
                     Requested by {requester}
                     {item.rowCount !== null && item.rowCount !== undefined
                       ? ` - ${formatCount(item.rowCount)} rows`
@@ -709,7 +710,7 @@ function RecentExportsCard({
   };
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
         aria-hidden="true"
@@ -717,13 +718,13 @@ function RecentExportsCard({
       <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-3">
         <div className="space-y-1">
           <CardTitle className="text-lg font-semibold">Recent Exports</CardTitle>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-70)">
             Keep track of the latest report downloads.
           </p>
         </div>
         <Badge
           variant="secondary"
-          className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+          className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)"
         >
           {exportsQuery.isLoading
             ? "Loading"
@@ -771,17 +772,17 @@ function StatCard({
   loading?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 shadow-inner shadow-black/20">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
         {label}
       </p>
       {loading ? (
         <Skeleton className="mt-3 h-7 w-24" />
       ) : (
-        <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+        <p className="mt-3 text-2xl font-semibold text-(--ws-fg)">{value}</p>
       )}
       {subtitle ? (
-        <p className="mt-1 text-xs text-white/50">{subtitle}</p>
+        <p className="mt-1 text-xs text-(--ws-fg-70)">{subtitle}</p>
       ) : null}
     </div>
   );
@@ -814,9 +815,9 @@ function SectionHeader({
           <Icon className={cn("h-5 w-5", style.iconColor)} />
         </div>
         <div>
-          <h3 className="text-base font-semibold text-white">{title}</h3>
+          <h3 className="text-base font-semibold text-(--ws-fg)">{title}</h3>
           {description ? (
-            <p className="text-xs text-white/50">{description}</p>
+            <p className="text-xs text-(--ws-fg-70)">{description}</p>
           ) : null}
         </div>
       </div>
@@ -869,8 +870,8 @@ function ChartCard({
     }
     if (empty) {
       return (
-        <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
-          <p className="text-xs text-white/60">
+        <div className="rounded-xl border border-dashed border-(--ws-line) bg-(--ws-fill-strong) px-4 py-8 text-center">
+          <p className="text-xs text-(--ws-fg-70)">
             {emptyLabel ?? "No data available yet."}
           </p>
         </div>
@@ -880,7 +881,7 @@ function ChartCard({
   };
 
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
         className={cn("pointer-events-none absolute inset-0 bg-linear-to-br", style.gradient)}
         aria-hidden="true"
@@ -901,11 +902,11 @@ function ChartCard({
               <Icon className={cn("h-4 w-4", style.iconColor)} />
             </div>
             <div>
-              <CardTitle className="text-sm font-semibold text-white/90">
+              <CardTitle className="text-sm font-semibold text-(--ws-fg-70)">
                 {title}
               </CardTitle>
               {description ? (
-                <p className="text-[11px] text-white/50">{description}</p>
+                <p className="text-[11px] text-(--ws-fg-70)">{description}</p>
               ) : null}
             </div>
           </div>
@@ -944,13 +945,13 @@ function DistributionLegend({
                 className="h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: colors[index % colors.length] }}
               />
-              <span className="text-xs text-white/80 truncate">
+              <span className="text-xs text-(--ws-fg-70) truncate">
                 {humanizeLabel(item.label)}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-white/60">
+            <div className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
               <span>{percent}%</span>
-              <span className="min-w-10 text-right text-xs font-semibold text-white/80">
+              <span className="min-w-10 text-right text-xs font-semibold text-(--ws-fg-70)">
                 {valueFormatter ? valueFormatter(item.value) : formatCount(item.value)}
               </span>
             </div>
@@ -964,7 +965,7 @@ function DistributionLegend({
 function StatusBadge({ status }: { status: string }) {
   const key = status.toLowerCase();
   const className =
-    EXPORT_STATUS_STYLES[key] ?? "border-white/10 bg-white/10 text-white/70";
+    EXPORT_STATUS_STYLES[key] ?? "border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)";
 
   return (
     <Badge
@@ -996,7 +997,7 @@ function ReportTemplateCard({
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden border border-white/10 bg-white/5 shadow-lg shadow-black/20 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl",
+        "group relative overflow-hidden border border-(--ws-line) bg-(--ws-fill) shadow-lg shadow-black/20 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl",
         disabled && "opacity-70"
       )}
     >
@@ -1010,20 +1011,20 @@ function ReportTemplateCard({
       <CardContent className="relative z-10 space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-white">{definition.label}</p>
-            <p className="text-[11px] text-white/60">
+            <p className="text-sm font-semibold text-(--ws-fg)">{definition.label}</p>
+            <p className="text-[11px] text-(--ws-fg-70)">
               {definition.description ?? "Detailed export for this report."}
             </p>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10">
-            <ArrowUpRight className="h-4 w-4 text-white/60" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong)">
+            <ArrowUpRight className="h-4 w-4 text-(--ws-fg-70)" />
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Badge
             variant="secondary"
-            className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+            className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)"
           >
             {formatRangeModeLabel(definition.rangeMode)}
           </Badge>
@@ -1031,7 +1032,7 @@ function ReportTemplateCard({
             <Badge
               key={format}
               variant="secondary"
-              className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+              className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)"
             >
               {format.toUpperCase()}
             </Badge>
@@ -1043,13 +1044,13 @@ function ReportTemplateCard({
           ) : null}
         </div>
 
-        <p className="text-[11px] text-white/50">{rangeHint}</p>
+        <p className="text-[11px] text-(--ws-fg-70)">{rangeHint}</p>
 
         <Button
           variant="outline"
           size="sm"
           className={cn(
-            "w-full justify-center gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10",
+            "w-full justify-center gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)",
             style.button
           )}
           onClick={() => onSelect(definition.key)}
@@ -1128,13 +1129,13 @@ function ExportDialog({
   return (
     <Dialog open={Boolean(selectedReport)} onOpenChange={(open) => { if (!open) onClose(); }}>
       {selectedReport ? (
-        <DialogContent className="max-w-2xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl">
-          <div className="border-b border-white/10 p-6 pb-4">
+        <DialogContent className="max-w-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl">
+          <div className="border-b border-(--ws-line) p-6 pb-4">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">
                 Export {selectedReport.label}
               </DialogTitle>
-              <DialogDescription className="text-sm text-white/60">
+              <DialogDescription className="text-sm text-(--ws-fg-70)">
                 {selectedReport.description ??
                   "Prepare a downloadable export for this report."}
               </DialogDescription>
@@ -1143,23 +1144,23 @@ function ExportDialog({
 
           <div className="space-y-4 p-6">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   Scope
                 </p>
-                <p className="mt-2 text-sm font-semibold text-white">
+                <p className="mt-2 text-sm font-semibold text-(--ws-fg)">
                   {formatRangeModeLabel(selectedReport.rangeMode)}
                 </p>
-                <p className="text-xs text-white/50">{modalRangeLabel}</p>
+                <p className="text-xs text-(--ws-fg-70)">{modalRangeLabel}</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   Format
                 </p>
-                <p className="mt-2 text-sm font-semibold text-white">
+                <p className="mt-2 text-sm font-semibold text-(--ws-fg)">
                   {selectedReport.formats.map((format) => format.toUpperCase()).join(", ")}
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-70)">
                   CSV downloads are available immediately.
                 </p>
               </div>
@@ -1172,11 +1173,11 @@ function ExportDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="gap-2 border-t border-white/10 p-4">
+          <DialogFooter className="gap-2 border-t border-(--ws-line) p-4">
             <Button
               variant="ghost"
               onClick={onClose}
-              className="text-white/70 hover:text-white"
+              className="text-(--ws-fg-70) hover:text-(--ws-fg)"
             >
               Close
             </Button>
@@ -1185,7 +1186,7 @@ function ExportDialog({
               className={cn(
                 "gap-2 border",
                 TONE_STYLES[selectedTone].button,
-                "hover:bg-white/10"
+                "hover:bg-(--ws-fill-strong)"
               )}
               disabled={Boolean(modalRangeHint) || isPending}
               onClick={() => onGenerate(selectedReport)}
@@ -1311,8 +1312,8 @@ function LeoExecutiveBriefCard({
             <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-white">Leo Executive Brief</p>
-            <p className="text-xs text-white/60">
+            <p className="text-sm font-semibold text-(--ws-fg)">Leo Executive Brief</p>
+            <p className="text-xs text-(--ws-fg-70)">
               AI-generated summary and next actions for {rangeLabel}
             </p>
           </div>
@@ -1321,7 +1322,7 @@ function LeoExecutiveBriefCard({
           <Badge className="border border-purple-400/30 bg-purple-500/10 text-[10px] uppercase tracking-[0.2em] text-(--ws-violet)">
             {reportType}
           </Badge>
-          <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
+          <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)">
             Recommended {suggestedType}
           </Badge>
         </div>
@@ -1329,14 +1330,14 @@ function LeoExecutiveBriefCard({
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
             Leo Context
           </p>
-          <p className="text-sm text-white/80">{helperText}</p>
+          <p className="text-sm text-(--ws-fg-70)">{helperText}</p>
         </div>
 
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
             Brief Cadence
           </p>
           <PremiumSelect
@@ -1393,7 +1394,7 @@ function LeoExecutiveBriefCard({
         ) : isGeneratingLeo && !brief ? (
           <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8">
             <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-            <span className="text-sm text-white/60">Leo is analyzing this window...</span>
+            <span className="text-sm text-(--ws-fg-70)">Leo is analyzing this window...</span>
           </div>
         ) : !brief ? (
           <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
@@ -1402,7 +1403,7 @@ function LeoExecutiveBriefCard({
                 <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
               </div>
             </div>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-(--ws-fg-70)">
               Generate an operator-ready brief that explains what changed, what matters, and what to do next.
             </p>
           </div>
@@ -1410,15 +1411,15 @@ function LeoExecutiveBriefCard({
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-400/20 bg-purple-500/10 px-3 py-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="flex items-center gap-1.5 text-xs text-white/60">
+                <span className="flex items-center gap-1.5 text-xs text-(--ws-fg-70)">
                   <Clock3 className="h-3.5 w-3.5" />
                   Generated {formatDistanceToNow(new Date(brief.generatedAt), { addSuffix: true })}
                 </span>
-                <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
+                <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)">
                   {brief.source === "cache" ? "Saved Brief" : "Fresh Run"}
                 </Badge>
                 {periodLabel ? (
-                  <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
+                  <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)">
                     {periodLabel}
                   </Badge>
                 ) : null}
@@ -1443,7 +1444,7 @@ function LeoExecutiveBriefCard({
                   size="sm"
                   onClick={() => void handleDownloadPdf()}
                   disabled={downloadingPdf}
-                  className="h-8 gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                  className="h-8 gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                 >
                   {downloadingPdf ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1455,15 +1456,15 @@ function LeoExecutiveBriefCard({
               </div>
             </div>
 
-            <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-5">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className="space-y-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-(--ws-violet)" />
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                     Executive Summary
                   </p>
                 </div>
-                <p className="text-sm leading-relaxed text-white/90">
+                <p className="text-sm leading-relaxed text-(--ws-fg-70)">
                   {brief.content.summary}
                 </p>
               </div>
@@ -1473,12 +1474,12 @@ function LeoExecutiveBriefCard({
                   {brief.content.sections.map((section, index) => (
                     <div
                       key={`${section.title}-${index}`}
-                      className="rounded-xl border border-white/10 bg-white/5 p-4"
+                      className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
                     >
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                         {section.title}
                       </p>
-                      <p className="mt-2 text-sm leading-relaxed text-white/80">
+                      <p className="mt-2 text-sm leading-relaxed text-(--ws-fg-70)">
                         {section.content}
                       </p>
                       {section.highlights?.length ? (
@@ -1486,7 +1487,7 @@ function LeoExecutiveBriefCard({
                           {section.highlights.map((highlight, highlightIndex) => (
                             <li
                               key={`${section.title}-${highlightIndex}`}
-                              className="flex items-start gap-2 text-xs text-white/65"
+                              className="flex items-start gap-2 text-xs text-(--ws-fg-70)"
                             >
                               <span className="mt-0.5 text-(--ws-violet)">•</span>
                               <span>{highlight}</span>
@@ -1511,13 +1512,13 @@ function LeoExecutiveBriefCard({
                     {brief.content.suggestions.map((suggestion, index) => (
                       <div
                         key={`${suggestion.text}-${index}`}
-                        className="flex items-start gap-2 text-sm text-white/80"
+                        className="flex items-start gap-2 text-sm text-(--ws-fg-70)"
                       >
                         <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-amber)" />
                         <div className="min-w-0">
                           <p>{suggestion.text}</p>
                           {suggestion.category ? (
-                            <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/40">
+                            <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-(--ws-fg-70)">
                               {humanizeLabel(suggestion.category)}
                             </p>
                           ) : null}
@@ -1790,11 +1791,11 @@ export default function ReportsPage() {
   const modalRangeLabel = getModalRangeLabel(selectedReport, range, currentPeriod, rangeLabel);
 
   return (
-    <div className="space-y-6">
+    <WorkspaceScope className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="mb-2 text-3xl font-bold">Reports</h1>
-          <p className="text-muted">
+          <p className="text-(--ws-fg-70)">
             Analytics and exports across your entire school
           </p>
         </div>
@@ -1809,7 +1810,7 @@ export default function ReportsPage() {
         </Button>
       </div>
 
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-sky-500/15 via-sky-500/5 to-transparent"
           aria-hidden="true"
@@ -1819,14 +1820,14 @@ export default function ReportsPage() {
             <CardTitle className="text-lg font-semibold">
               Report Filters
             </CardTitle>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-(--ws-fg-70)">
               Defaults to the current academic period. Switch to Custom Range when
               you need a date-based view.
             </p>
           </div>
           <Badge
             variant="secondary"
-            className="w-fit border border-white/10 bg-white/10 text-white/70"
+            className="w-fit border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)"
           >
             <CalendarClock className="mr-2 h-3.5 w-3.5" />
             {rangeLabel}
@@ -1835,7 +1836,7 @@ export default function ReportsPage() {
         <CardContent className="relative z-10 space-y-4">
           <div className="grid items-start gap-4 lg:grid-cols-4">
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                 Scope
               </p>
               <PremiumSelect
@@ -1853,7 +1854,7 @@ export default function ReportsPage() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                 Period
               </p>
               <PremiumSelect
@@ -1890,8 +1891,7 @@ export default function ReportsPage() {
                 endDate={endDate}
                 onStartDateChange={setStartDate}
                 onEndDateChange={setEndDate}
-                disabled={scope === "period"}
-              />
+                disabled={scope === "period"} surface="theme" />
             </div>
           </div>
         </CardContent>
@@ -1911,7 +1911,7 @@ export default function ReportsPage() {
         rangeDays={selectedRangeDays}
       />
 
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
           className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
           aria-hidden="true"
@@ -1920,7 +1920,7 @@ export default function ReportsPage() {
           <CardTitle className="text-lg font-semibold">
             Snapshot Preview
           </CardTitle>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-70)">
             Quick read on the selected reporting window.
           </p>
         </CardHeader>
@@ -1989,19 +1989,19 @@ export default function ReportsPage() {
       <section className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong)">
               <BarChart3 className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Insights and Charts</h2>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-(--ws-fg-70)">
                 Live analytics for every category in your reporting window.
               </p>
             </div>
           </div>
           <Badge
             variant="secondary"
-            className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+            className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)"
           >
             {intervalLabel} interval
           </Badge>
@@ -2916,7 +2916,7 @@ export default function ReportsPage() {
                   <h2 className="text-lg font-semibold text-cyan-50">
                     Cambridge curriculum snapshot
                   </h2>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-(--ws-fg-70)">
                     Read-only CSV: profile labels, report preset name, and your
                     configured academic periods. Does not include learner grades or
                     lesson content.
@@ -2941,19 +2941,19 @@ export default function ReportsPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10">
-                <DownloadCloud className="h-5 w-5 text-white/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong)">
+                <DownloadCloud className="h-5 w-5 text-(--ws-fg-70)" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold">Report Library</h2>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-70)">
                   Generate exports using the current reporting window.
                 </p>
               </div>
             </div>
             <Badge
               variant="secondary"
-              className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+              className="border border-(--ws-line) bg-(--ws-fill-strong) text-[10px] uppercase tracking-[0.2em] text-(--ws-fg-70)"
             >
               {rangeLabel}
             </Badge>
@@ -3020,6 +3020,6 @@ export default function ReportsPage() {
         onClose={() => setSelectedReportKey(null)}
         onGenerate={handleGenerateReport}
       />
-    </div>
+    </WorkspaceScope>
   );
 }

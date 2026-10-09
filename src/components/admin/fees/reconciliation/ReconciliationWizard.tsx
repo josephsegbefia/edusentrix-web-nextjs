@@ -84,7 +84,7 @@ const SOURCE_LABELS: Record<string, string> = {
 function statusBadgeClass(status: ReconciliationStatus) {
   if (status === "matched") return "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)";
   if (status === "ambiguous") return "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)";
-  if (status === "ignored") return "border-white/10 bg-white/5 text-white/50";
+  if (status === "ignored") return "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)";
   return "border-rose-500/25 bg-rose-500/10 text-(--ws-rose)";
 }
 
@@ -389,7 +389,7 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
           return (
             <React.Fragment key={step.id}>
               {index > 0 && (
-                <div className={cn("h-px w-8 transition-colors", isPast || isCompleted ? "bg-emerald-500" : "bg-white/10")} />
+                <div className={cn("h-px w-8 transition-colors", isPast || isCompleted ? "bg-emerald-500" : "bg-(--ws-fill-strong)")} />
               )}
               <button
                 type="button"
@@ -401,10 +401,10 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
                     ? "bg-indigo-500/30 text-(--ws-violet) ring-1 ring-indigo-400/50"
                     : isCompleted || isPast
                     ? "bg-emerald-500/20 text-(--ws-emerald)"
-                    : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                    : "bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                 )}
               >
-                {isCompleted ? <Check className="h-3 w-3" /> : <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/10 text-[10px]">{index + 1}</span>}
+                {isCompleted ? <Check className="h-3 w-3" /> : <span className="flex h-4 w-4 items-center justify-center rounded-full bg-(--ws-fill-strong) text-[10px]">{index + 1}</span>}
                 <span className="hidden sm:inline">{step.label}</span>
               </button>
             </React.Fragment>
@@ -413,7 +413,7 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
       </div>
 
       {/* Step content card */}
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-[var(--ws-shadow)] backdrop-blur">
         <CardContent className="p-6">
           <AnimatePresence mode="wait">
             <motion.div
@@ -433,11 +433,11 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           {currentStepIndex > 0 ? (
-            <Button type="button" variant="outline" onClick={goBack} className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
+            <Button type="button" variant="outline" onClick={goBack} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)">
               <ChevronLeft className="mr-1 h-4 w-4" /> Back
             </Button>
           ) : (
-            <Button type="button" variant="outline" onClick={onCancel} className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
+            <Button type="button" variant="outline" onClick={onCancel} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)">
               Cancel
             </Button>
           )}
@@ -473,14 +473,14 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
 function NoteField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="mt-4 space-y-2">
-      <div className="flex items-center gap-2 text-xs font-medium text-white/50">
+      <div className="flex items-center gap-2 text-xs font-medium text-(--ws-fg-70)">
         <StickyNote className="h-3.5 w-3.5" /> {label}
       </div>
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || "Add notes for this step…"}
-        className="min-h-[80px] border-white/10 bg-white/5 text-sm text-white placeholder:text-white/30"
+        className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50)"
         maxLength={2000}
       />
     </div>
@@ -488,11 +488,11 @@ function NoteField({ label, value, onChange, placeholder }: { label: string; val
 }
 
 function KPI({ label, value, color = "default" }: { label: string; value: string | number; color?: "default" | "green" | "red" | "amber" }) {
-  const colors = { default: "text-white", green: "text-(--ws-emerald)", red: "text-(--ws-rose)", amber: "text-(--ws-amber)" };
+  const colors = { default: "text-(--ws-fg)", green: "text-(--ws-emerald)", red: "text-(--ws-rose)", amber: "text-(--ws-amber)" };
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-center">
       <p className={`text-xl font-bold ${colors[color]}`}>{value}</p>
-      <p className="mt-1 text-[11px] text-white/40">{label}</p>
+      <p className="mt-1 text-[11px] text-(--ws-fg-70)">{label}</p>
     </div>
   );
 }
@@ -511,8 +511,8 @@ function PrepareStep({ session, notes, onNotesChange }: { session: Reconciliatio
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-white">Before You Begin</h3>
-        <p className="mt-1 text-sm text-white/50">
+        <h3 className="text-lg font-semibold text-(--ws-fg)">Before You Begin</h3>
+        <p className="mt-1 text-sm text-(--ws-fg-70)">
           Please have the following documents ready for this reconciliation session.
         </p>
       </div>
@@ -521,13 +521,13 @@ function PrepareStep({ session, notes, onNotesChange }: { session: Reconciliatio
         <p className="text-xs font-medium uppercase tracking-wider text-(--ws-violet)">Documents Needed</p>
         <div className="mt-3 space-y-3">
           {docs.map((doc) => (
-            <div key={doc.type} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
+            <div key={doc.type} className="flex items-start gap-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20">
                 <FileSpreadsheet className="h-4 w-4 text-(--ws-violet)" />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">{doc.label}</p>
-                <p className="mt-0.5 text-xs text-white/40">
+                <p className="text-sm font-medium text-(--ws-fg)">{doc.label}</p>
+                <p className="mt-0.5 text-xs text-(--ws-fg-70)">
                   {doc.type === "gateway" && "Export your Paystack settlement or transaction list as CSV."}
                   {doc.type === "bank" && "Download your bank or MoMo statement for the reconciliation period."}
                   {doc.type === "manual" && "Gather all manual receipt records (cash, cheque, etc)."}
@@ -538,21 +538,21 @@ function PrepareStep({ session, notes, onNotesChange }: { session: Reconciliatio
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-white/40">Session Details</p>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-70)">Session Details</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
-            <p className="text-[11px] text-white/30">Label</p>
-            <p className="mt-0.5 text-sm text-white">{session.label}</p>
+            <p className="text-[11px] text-(--ws-fg-70)">Label</p>
+            <p className="mt-0.5 text-sm text-(--ws-fg)">{session.label}</p>
           </div>
           <div>
-            <p className="text-[11px] text-white/30">Sources</p>
-            <p className="mt-0.5 text-sm text-white">{session.sourceTypes.map((s) => s.replace("_", " ")).join(", ")}</p>
+            <p className="text-[11px] text-(--ws-fg-70)">Sources</p>
+            <p className="mt-0.5 text-sm text-(--ws-fg)">{session.sourceTypes.map((s) => s.replace("_", " ")).join(", ")}</p>
           </div>
           {session.dateRange?.startDate && (
             <div>
-              <p className="text-[11px] text-white/30">Period</p>
-              <p className="mt-0.5 text-sm text-white">
+              <p className="text-[11px] text-(--ws-fg-70)">Period</p>
+              <p className="mt-0.5 text-sm text-(--ws-fg)">
                 {formatShortDate(session.dateRange.startDate)} — {formatShortDate(session.dateRange.endDate)}
               </p>
             </div>
@@ -587,8 +587,8 @@ function ImportStep({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-white">Import Evidence</h3>
-        <p className="mt-1 text-sm text-white/50">
+        <h3 className="text-lg font-semibold text-(--ws-fg)">Import Evidence</h3>
+        <p className="mt-1 text-sm text-(--ws-fg-70)">
           Upload your gateway exports, bank statements, or manual records. You can import multiple files.
         </p>
       </div>
@@ -640,8 +640,8 @@ function MatchStep({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-white">Run Deterministic Auto-Match</h3>
-        <p className="mt-1 text-sm text-white/50">
+        <h3 className="text-lg font-semibold text-(--ws-fg)">Run Deterministic Auto-Match</h3>
+        <p className="mt-1 text-sm text-(--ws-fg-70)">
           The system will attempt to match ingested evidence against internal payment records using reference IDs, amounts, and dates.
         </p>
       </div>
@@ -653,20 +653,20 @@ function MatchStep({
         <KPI label="Match Rate" value={`${matchRate}%`} color={matchRate >= 80 ? "green" : matchRate >= 50 ? "amber" : "red"} />
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/40">Match Rules (in order)</p>
-        <div className="space-y-2 text-sm text-white/70">
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+        <p className="mb-3 text-xs font-medium uppercase tracking-wider text-(--ws-fg-70)">Match Rules (in order)</p>
+        <div className="space-y-2 text-sm text-(--ws-fg-70)">
           <div className="flex items-start gap-2">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-(--ws-emerald)">1</span>
-            <span><strong className="text-white">Exact external ID</strong> — gateway transaction reference matches a payment reference (100% confidence)</span>
+            <span><strong className="text-(--ws-fg)">Exact external ID</strong> — gateway transaction reference matches a payment reference (100% confidence)</span>
           </div>
           <div className="flex items-start gap-2">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-(--ws-emerald)">2</span>
-            <span><strong className="text-white">Exact reference token</strong> — normalized reference matches receipt/external reference (96% confidence)</span>
+            <span><strong className="text-(--ws-fg)">Exact reference token</strong> — normalized reference matches receipt/external reference (96% confidence)</span>
           </div>
           <div className="flex items-start gap-2">
             <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-(--ws-amber)">3</span>
-            <span><strong className="text-white">Amount + date</strong> — same amount within ±2 days, only if one candidate (78% confidence)</span>
+            <span><strong className="text-(--ws-fg)">Amount + date</strong> — same amount within ±2 days, only if one candidate (78% confidence)</span>
           </div>
         </div>
       </div>
@@ -722,10 +722,10 @@ function ReviewStep({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Review Results</h3>
-          <p className="mt-1 text-sm text-white/50">Review the auto-match results and active alerts before resolving remaining items.</p>
+          <h3 className="text-lg font-semibold text-(--ws-fg)">Review Results</h3>
+          <p className="mt-1 text-sm text-(--ws-fg-70)">Review the auto-match results and active alerts before resolving remaining items.</p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onRefresh} className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
+        <Button type="button" variant="outline" size="sm" onClick={onRefresh} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)">
           <RefreshCw className={`mr-1 h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
@@ -770,21 +770,21 @@ function ReviewStep({
         </div>
       )}
 
-      <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-white/3 p-2">
+      <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-(--ws-line) bg-(--ws-fill) p-2">
         {items.map((item) => (
-          <div key={String(item.id)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-xs hover:bg-white/5">
+          <div key={String(item.id)} className="flex items-center gap-3 rounded-lg px-3 py-2 text-xs hover:bg-(--ws-fill-strong)">
             <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusBadgeClass(String(item.status) as ReconciliationStatus)}`}>
               {String(item.status)}
             </span>
-            <span className="flex-1 truncate text-white/70">{String(item.externalTxnId)}</span>
-            <span className="text-white/50">{formatCurrency(Number(item.amountMinor || 0))}</span>
+            <span className="flex-1 truncate text-(--ws-fg-70)">{String(item.externalTxnId)}</span>
+            <span className="text-(--ws-fg-70)">{formatCurrency(Number(item.amountMinor || 0))}</span>
           </div>
         ))}
-        {items.length === 0 && !isLoading && <p className="py-4 text-center text-xs text-white/30">No ingestion items yet.</p>}
+        {items.length === 0 && !isLoading && <p className="py-4 text-center text-xs text-(--ws-fg-70)">No ingestion items yet.</p>}
       </div>
 
       {pagination && pagination.pages > 1 && (
-        <div className="flex items-center justify-between text-xs text-white/45">
+        <div className="flex items-center justify-between text-xs text-(--ws-fg-70)">
           <span>
             Page {pagination.page} of {pagination.pages} ({pagination.total} rows)
           </span>
@@ -793,7 +793,7 @@ function ReviewStep({
               type="button"
               size="sm"
               variant="outline"
-              className="h-7 border-white/10 bg-white/5 px-2 text-white"
+              className="h-7 border-(--ws-line) bg-(--ws-fill) px-2 text-(--ws-fg)"
               disabled={pagination.page <= 1}
               onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
             >
@@ -803,7 +803,7 @@ function ReviewStep({
               type="button"
               size="sm"
               variant="outline"
-              className="h-7 border-white/10 bg-white/5 px-2 text-white"
+              className="h-7 border-(--ws-line) bg-(--ws-fill) px-2 text-(--ws-fg)"
               disabled={pagination.page >= pagination.pages}
               onClick={() => onPageChange(Math.min(pagination.pages, pagination.page + 1))}
             >
@@ -857,8 +857,8 @@ function ResolveStep({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Resolve Remaining Items</h3>
-          <p className="mt-1 text-sm text-white/50">
+          <h3 className="text-lg font-semibold text-(--ws-fg)">Resolve Remaining Items</h3>
+          <p className="mt-1 text-sm text-(--ws-fg-70)">
             Use AI suggestions or manually match/ignore remaining items.
           </p>
         </div>
@@ -879,7 +879,7 @@ function ResolveStep({
       </div>
 
       {pagination && pagination.pages > 1 && (
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-(--ws-fg-70)">
           Showing page {pagination.page} of {pagination.pages} of the ingestion queue. Use pagination to work through all rows.
         </p>
       )}
@@ -892,18 +892,18 @@ function ResolveStep({
             <div key={suggestion.ingestionId} className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-(--ws-fg)">
                     {suggestion.recommendedPaymentId ? `Match → ${suggestion.recommendedPaymentId.slice(0, 12)}…` : "No confident match found"}
                   </p>
-                  <p className="mt-1 text-xs text-white/50">{suggestion.reasoning}</p>
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">{suggestion.reasoning}</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-(--ws-fill-strong)">
                       <div
                         className={`h-full rounded-full ${suggestion.confidence >= 70 ? "bg-emerald-500" : suggestion.confidence >= 40 ? "bg-amber-500" : "bg-rose-500"}`}
                         style={{ width: `${suggestion.confidence}%` }}
                       />
                     </div>
-                    <span className="text-[11px] text-white/40">{suggestion.confidence}% confidence</span>
+                    <span className="text-[11px] text-(--ws-fg-70)">{suggestion.confidence}% confidence</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -922,7 +922,7 @@ function ResolveStep({
                     size="sm"
                     variant="outline"
                     onClick={() => onReject(suggestion)}
-                    className="h-8 border-white/10 text-white/60 hover:bg-white/10"
+                    className="h-8 border-(--ws-line) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                   >
                     Reject
                   </Button>
@@ -935,16 +935,16 @@ function ResolveStep({
 
       {/* Unresolved items list */}
       <div className="space-y-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-white/40">
+        <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-70)">
           {unresolvedItems.length > 0 ? "Unresolved Items" : "All Items Resolved"}
         </p>
-        <div className="max-h-80 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-white/3 p-2">
+        <div className="max-h-80 space-y-1 overflow-y-auto rounded-xl border border-(--ws-line) bg-(--ws-fill) p-2">
           {totalUnresolved === 0 ? (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-(--ws-emerald)">
               <CheckCircle2 className="h-5 w-5" /> All items resolved
             </div>
           ) : unresolvedItems.length === 0 ? (
-            <div className="py-6 text-center text-xs text-white/45">
+            <div className="py-6 text-center text-xs text-(--ws-fg-70)">
               No unresolved rows on this page. Use the queue pagination below to reach other items.
             </div>
           ) : (
@@ -952,11 +952,11 @@ function ResolveStep({
               const id = String(item.id);
               const candidates = Array.isArray(item.candidatePaymentIds) ? item.candidatePaymentIds as string[] : [];
               return (
-                <div key={id} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                <div key={id} className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-white">{String(item.externalTxnId)}</p>
-                      <p className="mt-0.5 text-xs text-white/40">
+                      <p className="text-sm font-medium text-(--ws-fg)">{String(item.externalTxnId)}</p>
+                      <p className="mt-0.5 text-xs text-(--ws-fg-70)">
                         {formatCurrency(Number(item.amountMinor || 0))} · {formatShortDate(item.transactionDate as string)} · {String(item.sourceType)}
                       </p>
                     </div>
@@ -971,7 +971,7 @@ function ResolveStep({
                           key={cid}
                           type="button"
                           onClick={() => setManualInputs((prev) => ({ ...prev, [id]: String(cid) }))}
-                          className="rounded-md border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] text-white/50 hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-(--ws-violet)"
+                          className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1 font-mono text-[10px] text-(--ws-fg-70) hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-(--ws-violet)"
                         >
                           {String(cid).slice(0, 8)}…
                         </button>
@@ -983,7 +983,7 @@ function ResolveStep({
                       value={manualInputs[id] || ""}
                       onChange={(e) => setManualInputs((prev) => ({ ...prev, [id]: e.target.value }))}
                       placeholder="Payment ID"
-                      className="h-8 flex-1 rounded-md border border-white/10 bg-white/5 px-2 font-mono text-xs text-white placeholder:text-white/25"
+                      className="h-8 flex-1 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 font-mono text-xs text-(--ws-fg) placeholder:text-(--ws-fg-70)"
                     />
                     <Button
                       type="button"
@@ -1001,7 +1001,7 @@ function ResolveStep({
           )}
         </div>
         {pagination && pagination.pages > 1 && (
-          <div className="flex items-center justify-between text-xs text-white/45">
+          <div className="flex items-center justify-between text-xs text-(--ws-fg-70)">
             <span>
               Page {pagination.page} of {pagination.pages} ({pagination.total} rows)
             </span>
@@ -1010,7 +1010,7 @@ function ResolveStep({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 border-white/10 bg-white/5 px-2 text-white"
+                className="h-7 border-(--ws-line) bg-(--ws-fill) px-2 text-(--ws-fg)"
                 disabled={pagination.page <= 1}
                 onClick={() => onPageChange(Math.max(1, pagination.page - 1))}
               >
@@ -1020,7 +1020,7 @@ function ResolveStep({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 border-white/10 bg-white/5 px-2 text-white"
+                className="h-7 border-(--ws-line) bg-(--ws-fill) px-2 text-(--ws-fg)"
                 disabled={pagination.page >= pagination.pages}
                 onClick={() => onPageChange(Math.min(pagination.pages, pagination.page + 1))}
               >
@@ -1074,8 +1074,8 @@ function FinalizeStep({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-white">Finalize & Lock</h3>
-        <p className="mt-1 text-sm text-white/50">
+        <h3 className="text-lg font-semibold text-(--ws-fg)">Finalize & Lock</h3>
+        <p className="mt-1 text-sm text-(--ws-fg-70)">
           Review the session summary, generate an AI report, and lock the session when satisfied.
         </p>
       </div>
@@ -1098,17 +1098,17 @@ function FinalizeStep({
       </div>
 
       {/* Timeline */}
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-white/40">Session Timeline</p>
+      <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-70)">Session Timeline</p>
         <div className="mt-3 max-h-40 space-y-2 overflow-y-auto">
           {session.timeline.map((event, i) => (
             <div key={i} className="flex items-start gap-2 text-xs">
               <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
               <div>
-                <span className="font-medium text-white/70">{event.action.replace(/_/g, " ")}</span>
-                <span className="ml-2 text-white/30">{formatShortDate(event.at)}</span>
-                {event.notes && <p className="mt-0.5 text-white/40">{event.notes}</p>}
-                {event.reason && <p className="mt-0.5 text-white/40">Reason: {event.reason}</p>}
+                <span className="font-medium text-(--ws-fg-70)">{event.action.replace(/_/g, " ")}</span>
+                <span className="ml-2 text-(--ws-fg-70)">{formatShortDate(event.at)}</span>
+                {event.notes && <p className="mt-0.5 text-(--ws-fg-70)">{event.notes}</p>}
+                {event.reason && <p className="mt-0.5 text-(--ws-fg-70)">Reason: {event.reason}</p>}
               </div>
             </div>
           ))}
@@ -1118,7 +1118,7 @@ function FinalizeStep({
       {/* AI Report */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/40">AI Reconciliation Report</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-(--ws-fg-70)">AI Reconciliation Report</p>
           <Button
             type="button"
             size="sm"
@@ -1132,11 +1132,11 @@ function FinalizeStep({
 
         {generatedReport && (
           <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 space-y-4">
-            <p className="text-sm text-white">{generatedReport.executiveSummary}</p>
+            <p className="text-sm text-(--ws-fg)">{generatedReport.executiveSummary}</p>
             {generatedReport.sections.map((section, i) => (
               <div key={i}>
                 <p className="text-xs font-semibold text-(--ws-violet)">{section.title}</p>
-                <p className="mt-1 text-xs text-white/60">{section.content}</p>
+                <p className="mt-1 text-xs text-(--ws-fg-70)">{section.content}</p>
                 {section.highlights && section.highlights.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
                     {section.highlights.map((h, j) => (
@@ -1183,14 +1183,14 @@ function FinalizeStep({
       {!isLocked && (
         <div className="space-y-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-(--ws-violet)">Lock Session</p>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-70)">
             Locking confirms this reconciliation is complete. Locked sessions can only be reopened by a school administrator.
           </p>
           <Textarea
             value={lockReason}
             onChange={(e) => onLockReasonChange(e.target.value)}
             placeholder="Reason for locking (required)…"
-            className="min-h-[60px] border-white/10 bg-white/5 text-sm text-white placeholder:text-white/30"
+            className="min-h-[60px] border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50)"
             maxLength={500}
           />
           <Button

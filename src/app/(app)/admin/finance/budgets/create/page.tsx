@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from "date-fns/format";
 import {
   ArrowLeft,
   Plus,
   Trash2,
-  CalendarIcon,
   Loader2,
   Calculator,
 } from "lucide-react";
@@ -19,12 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -35,7 +29,6 @@ import {
 import { useCreateBudget, BudgetPeriodType } from "@/hooks/admin/useBudgets";
 import { useExpenseCategories } from "@/hooks/admin/useExpenses";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { formatCurrencyFromMajor } from "@/lib/fees/money";
 
 // ========================
@@ -147,7 +140,7 @@ export default function CreateBudgetPage() {
   ];
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <WorkspaceScope className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex items-center gap-4">
         <Button
@@ -159,8 +152,8 @@ export default function CreateBudgetPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-white md:text-3xl">Create Budget</h1>
-          <p className="mt-1 text-sm text-white/50">
+          <h1 className="text-2xl font-bold text-(--ws-fg) md:text-3xl">Create Budget</h1>
+          <p className="mt-1 text-sm text-(--ws-fg-70)">
             Set up a new expense budget
           </p>
         </div>
@@ -168,30 +161,30 @@ export default function CreateBudgetPage() {
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-4xl space-y-6">
         {/* Basic Info */}
-        <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-          <CardHeader className="border-b border-white/10 p-5">
-            <CardTitle className="text-lg text-white">Budget Details</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+          <CardHeader className="border-b border-(--ws-line) p-5">
+            <CardTitle className="text-lg text-(--ws-fg)">Budget Details</CardTitle>
           </CardHeader>
           <CardContent className="p-5 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="name" className="text-white/80">
-                  Budget Name <span className="text-red-400">*</span>
+                <Label htmlFor="name" className="text-(--ws-fg-70)">
+                  Budget Name <span className="text-(--ws-rose)">*</span>
                 </Label>
                 <Input
                   id="name"
                   placeholder="e.g., Q1 2026 Operating Budget"
                   {...form.register("name")}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
                 {form.formState.errors.name && (
-                  <p className="text-xs text-red-400">{form.formState.errors.name.message}</p>
+                  <p className="text-xs text-(--ws-rose)">{form.formState.errors.name.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/80">
-                  Period Type <span className="text-red-400">*</span>
+                <Label className="text-(--ws-fg-70)">
+                  Period Type <span className="text-(--ws-rose)">*</span>
                 </Label>
                 <PremiumSelect
                   value={form.watch("periodType")}
@@ -211,7 +204,7 @@ export default function CreateBudgetPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/80">Currency</Label>
+                <Label className="text-(--ws-fg-70)">Currency</Label>
                 <PremiumSelect
                   value={form.watch("currency") || "GHS"}
                   onValueChange={(v) => form.setValue("currency", v)}
@@ -227,84 +220,46 @@ export default function CreateBudgetPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/80">
-                  Start Date <span className="text-red-400">*</span>
+                <Label className="text-(--ws-fg-70)">
+                  Start Date <span className="text-(--ws-rose)">*</span>
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal border-white/10 bg-white/5 hover:bg-white/10",
-                        !form.watch("startDate") && "text-white/40"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.watch("startDate") ? (
-                        format(form.watch("startDate"), "PPP")
-                      ) : (
-                        <span>Pick start date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 border-white/10 bg-slate-900" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.watch("startDate")}
-                      onSelect={(date) => date && form.setValue("startDate", date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <CustomDatePicker
+                  surface="theme"
+                  value={form.watch("startDate") ?? null}
+                  onChange={(date) => {
+                    if (date) form.setValue("startDate", date);
+                  }}
+                />
                 {form.formState.errors.startDate && (
-                  <p className="text-xs text-red-400">{form.formState.errors.startDate.message}</p>
+                  <p className="text-xs text-(--ws-rose)">{form.formState.errors.startDate.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/80">
-                  End Date <span className="text-red-400">*</span>
+                <Label className="text-(--ws-fg-70)">
+                  End Date <span className="text-(--ws-rose)">*</span>
                 </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal border-white/10 bg-white/5 hover:bg-white/10",
-                        !form.watch("endDate") && "text-white/40"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.watch("endDate") ? (
-                        format(form.watch("endDate"), "PPP")
-                      ) : (
-                        <span>Pick end date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 border-white/10 bg-slate-900" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.watch("endDate")}
-                      onSelect={(date) => date && form.setValue("endDate", date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <CustomDatePicker
+                  surface="theme"
+                  value={form.watch("endDate") ?? null}
+                  onChange={(date) => {
+                    if (date) form.setValue("endDate", date);
+                  }}
+                />
                 {form.formState.errors.endDate && (
-                  <p className="text-xs text-red-400">{form.formState.errors.endDate.message}</p>
+                  <p className="text-xs text-(--ws-rose)">{form.formState.errors.endDate.message}</p>
                 )}
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="notes" className="text-white/80">
+                <Label htmlFor="notes" className="text-(--ws-fg-70)">
                   Notes (Optional)
                 </Label>
                 <Textarea
                   id="notes"
                   placeholder="Additional notes about this budget..."
                   {...form.register("notes")}
-                  className="min-h-[80px] border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                  className="min-h-[80px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 />
               </div>
             </div>
@@ -312,13 +267,13 @@ export default function CreateBudgetPage() {
         </Card>
 
         {/* Budget Categories */}
-        <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-          <CardHeader className="border-b border-white/10 p-5">
+        <Card className="overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+          <CardHeader className="border-b border-(--ws-line) p-5">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg text-white">Budget Categories</CardTitle>
+              <CardTitle className="text-lg text-(--ws-fg)">Budget Categories</CardTitle>
               <div className="text-right">
-                <p className="text-xs text-white/50">Total Budgeted</p>
-                <p className="text-lg font-bold text-white">
+                <p className="text-xs text-(--ws-fg-70)">Total Budgeted</p>
+                <p className="text-lg font-bold text-(--ws-fg)">
                   {formatCurrencyFromMajor(totalBudgeted, { currency: form.watch("currency") || "GHS", maximumFractionDigits: 0 })}
                 </p>
               </div>
@@ -328,11 +283,11 @@ export default function CreateBudgetPage() {
             {lineItems.map((item, index) => (
               <div
                 key={index}
-                className="flex gap-3 items-start p-4 rounded-xl border border-white/10 bg-white/5"
+                className="flex gap-3 items-start p-4 rounded-xl border border-(--ws-line) bg-(--ws-fill)"
               >
                 <div className="flex-1 grid gap-3 sm:grid-cols-3">
                   <div className="space-y-1 sm:col-span-2">
-                    <Label className="text-xs text-white/50">Category</Label>
+                    <Label className="text-xs text-(--ws-fg-70)">Category</Label>
                     <PremiumSelect
                       value={item.categoryId}
                       onValueChange={(v) => updateLineItem(index, "categoryId", v)}
@@ -350,7 +305,7 @@ export default function CreateBudgetPage() {
                     </PremiumSelect>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-white/50">Amount</Label>
+                    <Label className="text-xs text-(--ws-fg-70)">Amount</Label>
                     <Input
                       type="number"
                       min="0"
@@ -358,7 +313,7 @@ export default function CreateBudgetPage() {
                       value={item.budgetedAmount || ""}
                       onChange={(e) => updateLineItem(index, "budgetedAmount", e.target.value)}
                       placeholder="0.00"
-                      className="border-white/10 bg-white/5 text-white placeholder:text-white/40"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                     />
                   </div>
                 </div>
@@ -368,7 +323,7 @@ export default function CreateBudgetPage() {
                   size="icon"
                   onClick={() => removeLineItem(index)}
                   disabled={lineItems.length === 1}
-                  className="shrink-0 text-white/40 hover:text-red-400"
+                  className="shrink-0 text-(--ws-fg-70) hover:text-(--ws-rose)"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -379,7 +334,7 @@ export default function CreateBudgetPage() {
               type="button"
               variant="outline"
               onClick={addLineItem}
-              className="w-full border-dashed border-white/20 hover:border-white/40 hover:bg-white/5"
+              className="w-full border-dashed border-(--ws-line) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Category
@@ -393,14 +348,14 @@ export default function CreateBudgetPage() {
             type="button"
             variant="outline"
             onClick={() => router.push("/admin/finance/budgets")}
-            className="border-white/10 bg-white/5 hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) hover:bg-(--ws-fill-strong)"
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={createBudget.isPending || isRedirecting}
-            className="bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700"
+            className="bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700 hover:text-white"
           >
             {(createBudget.isPending || isRedirecting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Calculator className="mr-2 h-4 w-4" />
@@ -408,6 +363,6 @@ export default function CreateBudgetPage() {
           </Button>
         </div>
       </form>
-    </div>
+    </WorkspaceScope>
   );
 }

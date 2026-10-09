@@ -54,6 +54,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import type { CreateClassInput } from "@/components/modals/CreateClassModal";
 import { cn } from "@/lib/utils";
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
 import { isPreschoolLearningAreaGrade } from "@/constants/curriculum-subject-templates";
 
@@ -87,13 +88,13 @@ function StatCard({
     <div className={cn("group relative overflow-hidden rounded-2xl border bg-linear-to-br p-5 shadow-xl shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1", c.border, c.bg)}>
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">{label}</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-70)">{label}</p>
           <p className={cn("text-3xl font-bold tracking-tight tabular-nums", c.valueColor)}>
-            {loading ? <span className="inline-block h-8 w-12 animate-pulse rounded bg-white/10" /> : typeof value === "number" ? value.toLocaleString() : value}
+            {loading ? <span className="inline-block h-8 w-12 animate-pulse rounded bg-(--ws-fill-strong)" /> : typeof value === "number" ? value.toLocaleString() : value}
           </p>
-          {subtitle && <p className="text-[11px] text-white/40">{subtitle}</p>}
+          {subtitle && <p className="text-[11px] text-(--ws-fg-70)">{subtitle}</p>}
         </div>
-        <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br", c.iconBg)}>
+        <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br", c.iconBg)}>
           <span className={c.iconColor}>{icon}</span>
         </div>
       </div>
@@ -121,7 +122,7 @@ function SortableHeader({
   const isActive = sortBy === column;
   const Icon = !isActive ? ArrowUpDown : sortOrder === "asc" ? ChevronUp : ChevronDown;
   return (
-    <button type="button" onClick={() => onSort(column)} className="inline-flex items-center gap-1 text-xs font-medium text-white/60 hover:text-white">
+    <button type="button" onClick={() => onSort(column)} className="inline-flex items-center gap-1 text-xs font-medium text-(--ws-fg-70) hover:text-(--ws-fg)">
       {label}
       <Icon className="h-3.5 w-3.5" />
     </button>
@@ -216,15 +217,15 @@ function PreschoolLearningAreasPanel({
 
   return (
     <>
-    <Card className="relative overflow-hidden rounded-xl border border-teal-500/20 bg-linear-to-br from-slate-900/90 via-slate-950/90 to-black shadow-2xl shadow-black/40 sm:rounded-2xl">
-      <CardHeader className="relative z-10 border-b border-white/5">
+    <Card className="relative overflow-hidden rounded-xl border border-teal-500/20 bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 sm:rounded-2xl">
+      <CardHeader className="relative z-10 border-b border-(--ws-line)">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
               <BookOpen className="h-5 w-5 text-(--ws-teal)" />
               Preschool Learning Areas
             </CardTitle>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-(--ws-fg-70)">
               Choose the learning areas for {gradeName}. Saving replaces the attached list for all active classes in this grade.
             </p>
           </div>
@@ -247,7 +248,7 @@ function PreschoolLearningAreasPanel({
       </CardHeader>
       <CardContent className="relative z-10 space-y-5 p-4 sm:p-6">
         {isLoading ? (
-          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/60">
+          <div className="flex items-center gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-4 text-sm text-(--ws-fg-70)">
             <Loader2 className="h-4 w-4 animate-spin text-(--ws-teal)" />
             Loading learning areas...
           </div>
@@ -263,7 +264,7 @@ function PreschoolLearningAreasPanel({
                       "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors",
                       checked
                         ? "border-teal-500/40 bg-teal-500/10 text-(--ws-teal)"
-                        : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                        : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                     )}
                   >
                     <Checkbox
@@ -271,7 +272,7 @@ function PreschoolLearningAreasPanel({
                       onCheckedChange={(value) =>
                         toggleLearningArea(name, value === true)
                       }
-                      className="border-white/30"
+                      className="border-(--ws-line)"
                     />
                     <span className="min-w-0 flex-1">{name}</span>
                   </label>
@@ -290,13 +291,13 @@ function PreschoolLearningAreasPanel({
                   }
                 }}
                 placeholder="Add a custom learning area"
-                className="border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:border-teal-400 focus-visible:ring-teal-400/30"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-teal-400 focus-visible:ring-teal-400/30"
               />
               <Button
                 type="button"
                 variant="outline"
                 onClick={addCustomLearningArea}
-                className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <Plus className="h-4 w-4" />
                 Add
@@ -314,7 +315,7 @@ function PreschoolLearningAreasPanel({
                     <button
                       type="button"
                       onClick={() => toggleLearningArea(name, false)}
-                      className="rounded-full text-(--ws-teal) hover:text-white"
+                      className="rounded-full text-(--ws-teal) hover:text-(--ws-fg)"
                       aria-label={`Remove ${name}`}
                     >
                       <X className="h-3 w-3" />
@@ -325,8 +326,8 @@ function PreschoolLearningAreasPanel({
             )}
 
             {assigned.length > 0 && (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-white/40">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-(--ws-fg-70)">
                   Currently attached
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -334,7 +335,7 @@ function PreschoolLearningAreasPanel({
                     <Badge
                       key={area.id}
                       variant="outline"
-                      className="border-white/10 bg-white/5 text-white/70"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                     >
                       {area.name} {area.classesWithSubject}/{learningAreas?.classCount ?? 0}
                     </Badge>
@@ -344,7 +345,7 @@ function PreschoolLearningAreasPanel({
             )}
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-70)">
                 {learningAreas?.classCount ?? 0} active class{learningAreas?.classCount === 1 ? "" : "es"} will receive the saved list.
               </p>
               <Button
@@ -488,7 +489,7 @@ function GradeDetailContent() {
   if (!gradeId) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-linear-to-br from-red-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40">
+        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40">
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
@@ -499,7 +500,7 @@ function GradeDetailContent() {
                 <p className="text-xs text-(--ws-rose)">The grade ID was not provided.</p>
               </div>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => router.push("/admin/grades")} className="border-white/10">
+            <Button type="button" variant="outline" size="sm" onClick={() => router.push("/admin/grades")} className="border-(--ws-line)">
               Back to Grades
             </Button>
           </CardContent>
@@ -511,14 +512,14 @@ function GradeDetailContent() {
   if (gradesError || (!gradesLoading && !grade)) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-linear-to-br from-red-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40">
+        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40">
           <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 py-16">
-            <AlertCircle className="h-12 w-12 text-red-400" />
+            <AlertCircle className="h-12 w-12 text-(--ws-rose)" />
             <div className="text-center">
               <p className="font-semibold text-(--ws-rose)">Grade not found</p>
               <p className="text-sm text-(--ws-rose)">The grade you&apos;re looking for doesn&apos;t exist or was removed.</p>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={() => router.push("/admin/grades")} className="border-white/10">
+            <Button type="button" variant="outline" size="sm" onClick={() => router.push("/admin/grades")} className="border-(--ws-line)">
               Back to Grades
             </Button>
           </CardContent>
@@ -542,24 +543,24 @@ function GradeDetailContent() {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Breadcrumb & Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-teal-500/20 via-cyan-500/10 to-transparent blur-3xl" aria-hidden="true" />
         <div className="relative z-10 space-y-4">
           <nav className="flex items-center gap-2 text-sm">
-            <Link href="/admin/grades" className="text-white/60 hover:text-(--ws-teal) transition-colors">
+            <Link href="/admin/grades" className="text-(--ws-fg-70) hover:text-(--ws-teal) transition-colors">
               Grades
             </Link>
-            <span className="text-white/40">/</span>
-            <span className="text-white font-medium">{gradeName}</span>
+            <span className="text-(--ws-fg-70)">/</span>
+            <span className="text-(--ws-fg) font-medium">{gradeName}</span>
           </nav>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-lg shadow-teal-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-lg shadow-teal-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
                 <School className="h-5 w-5 text-(--ws-teal) sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{gradeName}</h1>
-                <p className="text-xs text-white/60 sm:text-sm">
+                <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">{gradeName}</h1>
+                <p className="text-xs text-(--ws-fg-70) sm:text-sm">
                   {grade?.code ? `${grade.code} • ` : ""}
                   {grade?.stage ?? "—"}
                   {overview?.currentPeriod && (
@@ -584,7 +585,7 @@ function GradeDetailContent() {
                   }
                   router.push(`/admin/subjects?setup=1&gradeId=${encodeURIComponent(gradeId)}`);
                 }}
-                className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+                className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               >
                 <BookOpen className="h-4 w-4" />
                 {isPreschoolGrade ? "Manage Learning Areas" : "Set Up Subject Offerings"}
@@ -673,28 +674,28 @@ function GradeDetailContent() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Subject overview card */}
-        <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 lg:col-span-1">
-          <CardHeader className="relative z-10 border-b border-white/5">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+        <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 lg:col-span-1">
+          <CardHeader className="relative z-10 border-b border-(--ws-line)">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
               <BookOpen className="h-5 w-5 text-(--ws-teal)" />
               {academicUnitLabel} Overview
             </CardTitle>
-            <p className="text-xs text-white/50">Which classes have each {academicUnitLabelLower.slice(0, -1)}, gaps</p>
+            <p className="text-xs text-(--ws-fg-70)">Which classes have each {academicUnitLabelLower.slice(0, -1)}, gaps</p>
           </CardHeader>
           <CardContent className="relative z-10 p-4 sm:p-6">
             {overviewLoading ? (
               <div className="flex flex-col items-center gap-4 py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-teal-400" />
-                <p className="text-xs text-white/50">Loading {academicUnitLabelLower}...</p>
+                <Loader2 className="h-6 w-6 animate-spin text-(--ws-teal)" />
+                <p className="text-xs text-(--ws-fg-70)">Loading {academicUnitLabelLower}...</p>
               </div>
             ) : !overview?.subjects?.length ? (
               <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-4">
-                <p className="text-sm font-medium text-amber-50">
+                <p className="text-sm font-medium text-(--ws-fg)">
                   {isPreschoolGrade
                     ? "No learning areas attached to this grade yet."
                     : `No subject offerings attached to ${gradeName} yet.`}
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-amber-50/70">
+                <p className="mt-1 text-xs leading-relaxed text-(--ws-fg-70)">
                   {isPreschoolGrade
                     ? `Use the Learning Areas panel above to choose the development areas for ${gradeName}.`
                     : "This opens the Subjects page with the subject offerings setup modal open. You can review the recommended offerings and choose the grades covered before saving."}
@@ -716,11 +717,11 @@ function GradeDetailContent() {
             ) : (
               <ul className="space-y-3">
                 {overview.subjects.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                  <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                     <div className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-white">{s.name}</span>
+                      <span className="block truncate text-sm font-medium text-(--ws-fg)">{s.name}</span>
                       {s.code && (
-                        <span className="mt-0.5 block truncate text-[10px] uppercase tracking-[0.12em] text-white/40">
+                        <span className="mt-0.5 block truncate text-[10px] uppercase tracking-[0.12em] text-(--ws-fg-70)">
                           {s.code}
                         </span>
                       )}
@@ -747,21 +748,21 @@ function GradeDetailContent() {
       </div>
 
       {/* Class comparison table */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 sm:rounded-2xl">
-        <CardHeader className="relative z-10 border-b border-white/5">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 sm:rounded-2xl">
+        <CardHeader className="relative z-10 border-b border-(--ws-line)">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
               <School className="h-5 w-5 text-(--ws-teal)" />
               Classes
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                 <Input
                   placeholder="Search classes…"
                   value={classSearch}
                   onChange={(e) => setClassSearch(e.target.value)}
-                  className="w-48 pl-8 border-white/10 bg-white/5 text-white text-sm"
+                  className="w-48 pl-8 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) text-sm"
                 />
               </div>
               {(selectedClassIds.length > 0) && (
@@ -776,12 +777,12 @@ function GradeDetailContent() {
                       }
                       router.push(`/admin/subjects?setup=1&gradeId=${encodeURIComponent(gradeId)}`);
                     }}
-                    className="gap-1.5 border-white/10"
+                    className="gap-1.5 border-(--ws-line)"
                   >
                     <BookOpen className="h-3.5 w-3.5" />
                     {isPreschoolGrade ? "Manage learning areas" : "Add subject offerings"}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => notifyComingSoon("Bulk assign homeroom")} className="gap-1.5 border-white/10">
+                  <Button variant="outline" size="sm" onClick={() => notifyComingSoon("Bulk assign homeroom")} className="gap-1.5 border-(--ws-line)">
                     <UserPlus className="h-3.5 w-3.5" />
                     Bulk assign homeroom
                   </Button>
@@ -793,21 +794,21 @@ function GradeDetailContent() {
         <CardContent className="relative z-10 p-4 sm:p-6">
           {classesLoading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
-              <p className="text-sm text-white/50">Loading classes…</p>
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-teal)" />
+              <p className="text-sm text-(--ws-fg-70)">Loading classes…</p>
             </div>
           ) : classesError ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
               <AlertCircle className="h-8 w-8 text-rose-400" />
-              <p className="text-sm text-white/70">Failed to load classes</p>
+              <p className="text-sm text-(--ws-fg-70)">Failed to load classes</p>
             </div>
           ) : filteredClasses.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <School className="h-8 w-8 text-white/30" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-fill)">
+                <School className="h-8 w-8 text-(--ws-fg-70)" />
               </div>
-              <p className="text-sm font-medium text-white/80">No classes yet</p>
-              <p className="text-xs text-white/50">{classSearch ? "No classes match your search." : "Add your first class to this grade"}</p>
+              <p className="text-sm font-medium text-(--ws-fg-70)">No classes yet</p>
+              <p className="text-xs text-(--ws-fg-70)">{classSearch ? "No classes match your search." : "Add your first class to this grade"}</p>
               {!classSearch && (
                 <Button size="sm" onClick={() => setShowCreateClass(true)} className="gap-2 bg-linear-to-r from-teal-500 to-cyan-600">
                   <Plus className="h-4 w-4" />
@@ -816,10 +817,10 @@ function GradeDetailContent() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-white/10">
+            <div className="overflow-x-auto rounded-xl border border-(--ws-line)">
               <table className="min-w-full border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5">
+                  <tr className="border-b border-(--ws-line) bg-(--ws-fill)">
                     <th className="w-10 px-4 py-3">
                       <Checkbox
                         checked={filteredClasses.length > 0 && filteredClasses.every((c) => selectedClassIds.includes(c.id))}
@@ -827,7 +828,7 @@ function GradeDetailContent() {
                           if (checked) setSelectedClassIds(filteredClasses.map((c) => c.id));
                           else setSelectedClassIds([]);
                         }}
-                        className="border-white/30"
+                        className="border-(--ws-line)"
                         aria-label="Select all"
                       />
                     </th>
@@ -849,7 +850,7 @@ function GradeDetailContent() {
                     <th className="px-4 py-3 text-left">
                       <SortableHeader label="Status" column="status" sortBy={classSortBy} sortOrder={classSortOrder} onSort={handleClassSort} />
                     </th>
-                    <th className="px-4 py-3 text-right text-xs text-white/50">Actions</th>
+                    <th className="px-4 py-3 text-right text-xs text-(--ws-fg-70)">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -857,7 +858,7 @@ function GradeDetailContent() {
                     <tr
                       key={cls.id}
                       className={cn(
-                        "border-b border-white/5 transition-colors hover:bg-white/5 cursor-pointer",
+                        "border-b border-(--ws-line) transition-colors hover:bg-(--ws-fill-strong) cursor-pointer",
                         selectedClassIds.includes(cls.id) && "bg-teal-500/10"
                       )}
                       onClick={(e) => {
@@ -873,15 +874,15 @@ function GradeDetailContent() {
                               checked ? [...prev, cls.id] : prev.filter((id) => id !== cls.id)
                             );
                           }}
-                          className="border-white/30"
+                          className="border-(--ws-line)"
                           aria-label={`Select ${cls.fullLabel}`}
                         />
                       </td>
-                      <td className="px-4 py-3 font-medium text-white">{cls.fullLabel}</td>
-                      <td className="px-4 py-3 text-white/80">{cls.studentCount}</td>
-                      <td className="px-4 py-3 text-white/80">{cls.capacity ?? "—"}</td>
-                      <td className="px-4 py-3 text-white/80">{cls.homeroomTeacher?.fullName ?? "—"}</td>
-                      <td className="px-4 py-3 text-white/80">{cls.subjectCount}</td>
+                      <td className="px-4 py-3 font-medium text-(--ws-fg)">{cls.fullLabel}</td>
+                      <td className="px-4 py-3 text-(--ws-fg-70)">{cls.studentCount}</td>
+                      <td className="px-4 py-3 text-(--ws-fg-70)">{cls.capacity ?? "—"}</td>
+                      <td className="px-4 py-3 text-(--ws-fg-70)">{cls.homeroomTeacher?.fullName ?? "—"}</td>
+                      <td className="px-4 py-3 text-(--ws-fg-70)">{cls.subjectCount}</td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className={cls.isActive ? "border-emerald-500/40 text-(--ws-emerald)" : "border-amber-500/40 text-(--ws-amber)"}>
                           {cls.isActive ? "Active" : "Inactive"}
@@ -902,22 +903,22 @@ function GradeDetailContent() {
       </Card>
 
       {/* Teachers section */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 sm:rounded-2xl">
-        <CardHeader className="relative z-10 border-b border-white/5">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 sm:rounded-2xl">
+        <CardHeader className="relative z-10 border-b border-(--ws-line)">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
             <UserCheck className="h-5 w-5 text-(--ws-teal)" />
             Teachers
           </CardTitle>
-          <p className="text-xs text-white/50">Homeroom and {academicUnitLabelLower} teachers for classes in this grade</p>
+          <p className="text-xs text-(--ws-fg-70)">Homeroom and {academicUnitLabelLower} teachers for classes in this grade</p>
         </CardHeader>
         <CardContent className="relative z-10 p-4 sm:p-6">
           {teachersLoading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
-              <p className="text-sm text-white/50">Loading teachers…</p>
+              <Loader2 className="h-8 w-8 animate-spin text-(--ws-teal)" />
+              <p className="text-sm text-(--ws-fg-70)">Loading teachers…</p>
             </div>
           ) : teachers.length === 0 ? (
-            <p className="text-sm text-white/50">No teachers assigned yet. Assign homeroom and subject teachers from individual class pages.</p>
+            <p className="text-sm text-(--ws-fg-70)">No teachers assigned yet. Assign homeroom and subject teachers from individual class pages.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {teachers.map((t) => (
@@ -925,8 +926,8 @@ function GradeDetailContent() {
                   key={t.id}
                   href={`/admin/teachers/${t.id}`}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5",
-                    "text-sm text-white/90 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-(--ws-teal)",
+                    "inline-flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-2.5",
+                    "text-sm text-(--ws-fg-70) hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-(--ws-teal)",
                     "transition-colors"
                   )}
                 >
@@ -951,14 +952,14 @@ function GradeDetailContent() {
       )}
 
       {activeTab === "students" && (
-        <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
+        <Card className="overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/10">
               <Users className="h-8 w-8 text-(--ws-cyan)" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white">View students in {gradeName}</h3>
-              <p className="mt-1 text-sm text-white/60">
+              <h3 className="text-lg font-semibold text-(--ws-fg)">View students in {gradeName}</h3>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Browse, search, and manage all students in this grade
               </p>
             </div>
@@ -973,18 +974,18 @@ function GradeDetailContent() {
       )}
 
       {activeTab === "timetable" && (
-        <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
+        <Card className="overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10">
               <Calendar className="h-8 w-8 text-(--ws-amber)" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white">View class schedules for {gradeName}</h3>
-              <p className="mt-1 text-sm text-white/60">
+              <h3 className="text-lg font-semibold text-(--ws-fg)">View class schedules for {gradeName}</h3>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Open classes and use each class Schedule tab for timetable work
               </p>
             </div>
-            <Button asChild size="lg" className="gap-2 bg-linear-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700">
+            <Button asChild size="lg" className="gap-2 bg-linear-to-r from-amber-500 to-orange-600 text-(--ws-fg) hover:from-amber-600 hover:to-orange-700">
               <Link href="/admin/classes">
                 Open classes
                 <ArrowRight className="h-4 w-4" />
@@ -995,21 +996,21 @@ function GradeDetailContent() {
       )}
 
       {activeTab === "export" && (
-        <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
+        <Card className="overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10">
               <FileDown className="h-8 w-8 text-(--ws-violet)" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white">Export class list</h3>
-              <p className="mt-1 text-sm text-white/60">
+              <h3 className="text-lg font-semibold text-(--ws-fg)">Export class list</h3>
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Download student lists for classes in this grade
               </p>
             </div>
             <Button
               variant="outline"
               size="lg"
-              className="gap-2 border-white/10"
+              className="gap-2 border-(--ws-line)"
               onClick={() => notifyComingSoon("Export class list")}
             >
               Coming soon
@@ -1027,16 +1028,17 @@ function GradeDetailContent() {
 
 export default function GradeDetailPage() {
   return (
+    <WorkspaceScope>
     <Suspense
       fallback={
         <div className="space-y-6">
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-8">
-            <div className="h-10 w-64 animate-pulse rounded-lg bg-white/10" />
-            <div className="mt-2 h-4 w-48 animate-pulse rounded bg-white/5" />
+          <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-8">
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-(--ws-fill-strong)" />
+            <div className="mt-2 h-4 w-48 animate-pulse rounded bg-(--ws-fill)" />
           </div>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+              <div key={i} className="h-24 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
             ))}
           </div>
         </div>
@@ -1044,5 +1046,6 @@ export default function GradeDetailPage() {
     >
       <GradeDetailContent />
     </Suspense>
+    </WorkspaceScope>
   );
 }

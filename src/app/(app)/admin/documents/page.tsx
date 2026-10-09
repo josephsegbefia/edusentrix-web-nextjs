@@ -74,7 +74,7 @@ function ExpiringDocumentRow({
           isExpired ? "bg-red-500/20" : "bg-amber-500/20"
         )}
       >
-        <FileText className={cn("h-5 w-5", isExpired ? "text-red-300" : "text-amber-300")} />
+        <FileText className={cn("h-5 w-5", isExpired ? "text-(--ws-rose)" : "text-(--ws-amber)")} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-medium text-(--ws-fg) truncate">{doc.name}</p>
@@ -160,7 +160,7 @@ export default function DocumentsPage() {
           aria-hidden="true"
         />
         <div className="relative z-10">
-          <h1 className="bg-gradient-to-r from-violet-200 via-purple-200 to-fuchsia-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-(--ws-fg) lg:text-4xl">
             Documents
           </h1>
           <p className="mt-1 text-sm text-(--ws-fg-60)">
@@ -180,7 +180,7 @@ export default function DocumentsPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-medium text-(--ws-fg)">Teacher Documents</p>
-            <p className="text-xs text-(--ws-fg-50)">Upload & manage per teacher</p>
+            <p className="text-xs text-(--ws-fg-70)">Upload & manage per teacher</p>
           </div>
           <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
@@ -189,11 +189,11 @@ export default function DocumentsPage() {
           className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-cyan-500/30 hover:bg-(--ws-fill-strong)"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/20">
-            <GraduationCap className="h-6 w-6 text-cyan-300" />
+            <GraduationCap className="h-6 w-6 text-(--ws-cyan)" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-medium text-(--ws-fg)">Student Documents</p>
-            <p className="text-xs text-(--ws-fg-50)">In student Relationships tab</p>
+            <p className="text-xs text-(--ws-fg-70)">In student Relationships tab</p>
           </div>
           <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
@@ -202,11 +202,11 @@ export default function DocumentsPage() {
           className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-amber-500/30 hover:bg-(--ws-fill-strong)"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
-            <Receipt className="h-6 w-6 text-amber-300" />
+            <Receipt className="h-6 w-6 text-(--ws-amber)" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-medium text-(--ws-fg)">Expense Receipts</p>
-            <p className="text-xs text-(--ws-fg-50)">Attached to expense entries</p>
+            <p className="text-xs text-(--ws-fg-70)">Attached to expense entries</p>
           </div>
           <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
@@ -219,7 +219,7 @@ export default function DocumentsPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-medium text-(--ws-fg)">Reports</p>
-            <p className="text-xs text-(--ws-fg-50)">Generate & download PDFs</p>
+            <p className="text-xs text-(--ws-fg-70)">Generate & download PDFs</p>
           </div>
           <ChevronRight className="h-5 w-5 text-(--ws-fg-40) group-hover:text-(--ws-fg-60)" />
         </Link>
@@ -230,13 +230,13 @@ export default function DocumentsPage() {
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
-              <Clock className="h-5 w-5 text-amber-300" />
+              <Clock className="h-5 w-5 text-(--ws-amber)" />
             </div>
             <div>
               <CardTitle className="text-lg font-semibold text-(--ws-fg)">
                 Expiring & Expired Documents
               </CardTitle>
-              <p className="text-xs text-(--ws-fg-50)">
+              <p className="text-xs text-(--ws-fg-70)">
                 Teacher contracts, licenses, certificates, and IDs
               </p>
             </div>
@@ -263,15 +263,15 @@ export default function DocumentsPage() {
             <div className="flex flex-wrap gap-3">
               {expiredCount > 0 && (
                 <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
-                  <AlertTriangle className="h-4 w-4 text-red-300" />
-                  <span className="text-sm font-medium text-red-200">
+                  <AlertTriangle className="h-4 w-4 text-(--ws-rose)" />
+                  <span className="text-sm font-medium text-(--ws-rose)">
                     {expiredCount} expired
                   </span>
                 </div>
               )}
               {expiringSoonCount > 0 && (
                 <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-                  <Clock className="h-4 w-4 text-amber-300" />
+                  <Clock className="h-4 w-4 text-(--ws-amber)" />
                   <span className="text-sm font-medium text-(--ws-amber)">
                     {expiringSoonCount} expiring soon
                   </span>
@@ -292,7 +292,7 @@ export default function DocumentsPage() {
               <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
                 No expiring or expired documents
               </p>
-              <p className="text-xs text-(--ws-fg-50)">
+              <p className="text-xs text-(--ws-fg-70)">
                 Documents with expiry dates will appear here
               </p>
             </div>
@@ -317,7 +317,7 @@ export default function DocumentsPage() {
               <CardTitle className="text-lg font-semibold text-(--ws-fg)">
                 All Teacher Documents
               </CardTitle>
-              <p className="text-xs text-(--ws-fg-50)">
+              <p className="text-xs text-(--ws-fg-70)">
                 {docsPagination.total} document{docsPagination.total !== 1 ? "s" : ""} total
               </p>
             </div>
@@ -368,7 +368,7 @@ export default function DocumentsPage() {
               <p className="mt-3 text-sm font-medium text-(--ws-fg-70)">
                 No documents found
               </p>
-              <p className="text-xs text-(--ws-fg-50)">
+              <p className="text-xs text-(--ws-fg-70)">
                 Upload documents from a teacher&apos;s profile
               </p>
             </div>
@@ -402,8 +402,8 @@ export default function DocumentsPage() {
                             variant="outline"
                             className={cn(
                               "text-[10px]",
-                              doc.expiryStatus === "expired" && "border-red-500/30 text-red-300",
-                              doc.expiryStatus === "expiring_soon" && "border-amber-500/30 text-amber-300",
+                              doc.expiryStatus === "expired" && "border-red-500/30 text-(--ws-rose)",
+                              doc.expiryStatus === "expiring_soon" && "border-amber-500/30 text-(--ws-amber)",
                               doc.expiryStatus === "valid" && "border-emerald-500/30 text-(--ws-emerald)"
                             )}
                           >
@@ -440,7 +440,7 @@ export default function DocumentsPage() {
               </div>
               {docsPagination.totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
-                  <p className="text-xs text-(--ws-fg-50)">
+                  <p className="text-xs text-(--ws-fg-70)">
                     Page {docsPagination.page} of {docsPagination.totalPages}
                   </p>
                   <div className="flex gap-2">

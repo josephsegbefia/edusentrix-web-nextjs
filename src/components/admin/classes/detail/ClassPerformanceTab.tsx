@@ -29,8 +29,8 @@ type Props = {
 };
 
 function tierBadgeTone(tier: string | null) {
-  if (tier === "top") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
-  if (tier === "above_average") return "border-blue-500/30 bg-blue-500/10 text-blue-200";
+  if (tier === "top") return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
+  if (tier === "above_average") return "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)";
   if (tier === "at_risk") return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
   return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
 }
@@ -70,7 +70,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
         />
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/25 bg-blue-500/10 text-blue-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/25 bg-blue-500/10 text-(--ws-cyan)">
               <BarChart3 className="h-5 w-5" />
             </div>
             <div>
@@ -133,7 +133,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
 
       {performanceQuery.isLoading && !analytics ? (
         <div className="flex items-center justify-center gap-3 py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-300" />
+          <Loader2 className="h-6 w-6 animate-spin text-(--ws-cyan)" />
           <p className="text-sm text-(--ws-fg-60)">Loading class performance analytics...</p>
         </div>
       ) : performanceQuery.isError ? (
@@ -214,7 +214,7 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                           secondary={row.admissionNo ? `Adm. ${row.admissionNo}` : null}
                         />
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-emerald-200">{row.score}%</p>
+                          <p className="text-sm font-semibold text-(--ws-emerald)">{row.score}%</p>
                           <p className="text-[11px] text-(--ws-fg-40)">Rank {row.rank ?? "—"}</p>
                         </div>
                       </div>
@@ -252,10 +252,10 @@ export function ClassPerformanceTab({ classId, classData }: Props) {
                     <Sparkles className="h-4 w-4 text-(--ws-fg-40)" />
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-emerald-200">
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-(--ws-emerald)">
                       Top: {analytics.distribution.top}
                     </div>
-                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/8 px-3 py-2 text-blue-200">
+                    <div className="rounded-xl border border-blue-500/20 bg-blue-500/8 px-3 py-2 text-(--ws-cyan)">
                       Above Avg: {analytics.distribution.aboveAverage}
                     </div>
                     <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-(--ws-amber)">

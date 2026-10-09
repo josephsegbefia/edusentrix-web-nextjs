@@ -480,7 +480,7 @@ export function SupplyProgramWizard({
                   isCurrent
                     ? "bg-indigo-500/30 text-(--ws-violet) ring-1 ring-indigo-400/50"
                     : isPast
-                      ? "bg-emerald-500/20 text-emerald-200"
+                      ? "bg-emerald-500/20 text-(--ws-emerald)"
                       : "bg-(--ws-fill) text-(--ws-fg-40) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)/60"
                 )}
               >
@@ -550,7 +550,7 @@ export function SupplyProgramWizard({
               type="button"
               onClick={goNext}
               disabled={!canProceed}
-              className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+              className="bg-indigo-500/20 text-(--ws-violet) hover:bg-indigo-500/30 disabled:opacity-50"
             >
               Next
               <ChevronRight className="ml-1 h-4 w-4" />
@@ -560,7 +560,7 @@ export function SupplyProgramWizard({
               type="button"
               onClick={() => void submit()}
               disabled={submitting || !name.trim()}
-              className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 disabled:opacity-50"
+              className="bg-emerald-500/20 text-(--ws-emerald) hover:bg-emerald-500/30 disabled:opacity-50"
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

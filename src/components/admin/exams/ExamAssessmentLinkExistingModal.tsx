@@ -135,12 +135,12 @@ export function ExamAssessmentLinkExistingModal({
                       {item.isLinkedToEntry ? (
                         <Badge
                           variant="outline"
-                          className="border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+                          className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
                         >
                           Linked
                         </Badge>
                       ) : null}
-                      {selected ? <Check className="h-4 w-4 text-cyan-200" /> : null}
+                      {selected ? <Check className="h-4 w-4 text-(--ws-cyan)" /> : null}
                     </div>
                   </div>
                 </button>

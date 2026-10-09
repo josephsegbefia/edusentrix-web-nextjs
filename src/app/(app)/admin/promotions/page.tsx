@@ -82,8 +82,8 @@ const STATUS_STYLES: Record<string, string> = {
   draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   preview_ready: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   review_in_progress: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  approved: "border-indigo-500/30 bg-indigo-500/10 text-indigo-100",
-  finalizing: "border-sky-500/30 bg-sky-500/10 text-sky-100",
+  approved: "border-indigo-500/30 bg-indigo-500/10 text-(--ws-violet)",
+  finalizing: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
   finalized: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   finalize_failed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   rolled_back: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
@@ -306,7 +306,7 @@ export default function PromotionsPage() {
     <WorkspaceScope>
       <div className="space-y-8 pb-10">
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-          <section className="relative overflow-hidden rounded-[1.8rem] border border-amber-500/20 bg-linear-to-br from-amber-950/40 via-slate-950 to-slate-950 p-6 sm:p-8">
+          <section className="relative overflow-hidden rounded-[1.8rem] border border-(--ws-line) bg-(--ws-panel-to) p-6 sm:p-8">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.16),transparent_45%)]" />
             <div className="relative space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-amber)">
@@ -327,7 +327,7 @@ export default function PromotionsPage() {
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Active policies
                   </p>
                   <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{activePolicies.length}</p>
@@ -336,7 +336,7 @@ export default function PromotionsPage() {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Latest cycle
                   </p>
                   <p className="mt-2 text-lg font-semibold text-(--ws-fg)">
@@ -347,7 +347,7 @@ export default function PromotionsPage() {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Next action
                   </p>
                   <p className="mt-2 text-lg font-semibold text-(--ws-fg)">{nextAction}</p>
@@ -390,10 +390,10 @@ export default function PromotionsPage() {
             </div>
 
             <div className="mt-6 rounded-[1.4rem] border border-(--ws-line) bg-(--ws-fill) p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-40)">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                 Leo will help you with
               </p>
-              <ul className="mt-3 space-y-2.5 text-sm text-(--ws-fg)/72">
+              <ul className="mt-3 space-y-2.5 text-sm text-(--ws-fg-70)">
                 {leoGuidance.actions.map((action) => (
                   <li key={action} className="flex gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-cyan)" />
@@ -702,7 +702,7 @@ export default function PromotionsPage() {
 
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                           <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                               Source period
                             </p>
                             <p className="mt-2 text-sm font-medium text-(--ws-fg)">
@@ -717,7 +717,7 @@ export default function PromotionsPage() {
                             </p>
                           </div>
                           <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                               Target period
                             </p>
                             <p className="mt-2 text-sm font-medium text-(--ws-fg)">
@@ -735,7 +735,7 @@ export default function PromotionsPage() {
 
                         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                               Evaluated
                             </p>
                             <p className="mt-1 text-lg font-semibold text-(--ws-fg)">
@@ -743,7 +743,7 @@ export default function PromotionsPage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                               Promote
                             </p>
                             <p className="mt-1 text-lg font-semibold text-(--ws-emerald)">
@@ -751,7 +751,7 @@ export default function PromotionsPage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                               Hold
                             </p>
                             <p className="mt-1 text-lg font-semibold text-(--ws-fg)">
@@ -759,7 +759,7 @@ export default function PromotionsPage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                               Created
                             </p>
                             <p className="mt-1 text-sm font-medium text-(--ws-fg-70)">

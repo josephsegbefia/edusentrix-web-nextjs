@@ -31,7 +31,7 @@ const DECISION_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 const OUTCOME_COLORS: Record<string, string> = {
   promote: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   repeat: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
-  graduate: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+  graduate: "bg-purple-500/20 text-(--ws-violet) border-purple-500/30",
   hold: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
 

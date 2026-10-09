@@ -170,7 +170,7 @@ function getReconciliationStatusBadge(status: string) {
     return (
       <Badge
         variant="outline"
-        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 capitalize"
+        className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) capitalize"
       >
         Matched
       </Badge>
@@ -180,7 +180,7 @@ function getReconciliationStatusBadge(status: string) {
     return (
       <Badge
         variant="outline"
-        className="border-red-500/30 bg-red-500/10 text-red-300 capitalize"
+        className="border-red-500/30 bg-red-500/10 text-(--ws-rose) capitalize"
       >
         Disputed
       </Badge>
@@ -190,7 +190,7 @@ function getReconciliationStatusBadge(status: string) {
     return (
       <Badge
         variant="outline"
-        className="border-slate-500/30 bg-slate-500/10 text-slate-300 capitalize"
+        className="border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70) capitalize"
       >
         Ignored
       </Badge>
@@ -199,7 +199,7 @@ function getReconciliationStatusBadge(status: string) {
   return (
     <Badge
       variant="outline"
-      className="border-amber-500/30 bg-amber-500/10 text-amber-200 capitalize"
+      className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber) capitalize"
     >
       Unmatched
     </Badge>
@@ -458,7 +458,7 @@ export default function TransactionDetailPage() {
               <CardHeader className="p-4 pb-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-400" />
-                  <CardTitle className="text-lg text-amber-200">
+                  <CardTitle className="text-lg text-(--ws-amber)">
                     Pending Approval
                   </CardTitle>
                 </div>
@@ -471,8 +471,8 @@ export default function TransactionDetailPage() {
                   <div
                     className={`mb-4 rounded-xl border p-3 text-xs ${
                       dualControlHardBlock
-                        ? "border-red-500/30 bg-red-500/10 text-red-100"
-                        : "border-amber-500/25 bg-amber-500/10 text-amber-100"
+                        ? "border-red-500/30 bg-red-500/10 text-(--ws-rose)"
+                        : "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)"
                     }`}
                   >
                     <div className="flex items-center gap-2 font-medium">
@@ -819,8 +819,8 @@ export default function TransactionDetailPage() {
                 <div
                   className={`rounded-xl border p-3 text-xs ${
                     dualControlHardBlock
-                      ? "border-red-500/30 bg-red-500/10 text-red-100"
-                      : "border-amber-500/25 bg-amber-500/10 text-amber-100"
+                      ? "border-red-500/30 bg-red-500/10 text-(--ws-rose)"
+                      : "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)"
                   }`}
                 >
                   <div className="flex items-center gap-2 font-medium">
@@ -892,7 +892,7 @@ export default function TransactionDetailPage() {
                       variant="outline"
                       onClick={() => openReconciliationForm("dispute")}
                       disabled={dualControlHardBlock}
-                      className="border-red-500/30 text-red-300 hover:bg-red-500/10"
+                      className="border-red-500/30 text-(--ws-rose) hover:bg-red-500/10"
                     >
                       Mark Disputed
                     </Button>
@@ -903,7 +903,7 @@ export default function TransactionDetailPage() {
                       variant="outline"
                       onClick={() => openReconciliationForm("ignore")}
                       disabled={dualControlHardBlock}
-                      className="border-slate-500/30 text-slate-200 hover:bg-slate-500/10"
+                      className="border-slate-500/30 text-(--ws-fg-70) hover:bg-slate-500/10"
                     >
                       Ignore
                     </Button>
@@ -914,7 +914,7 @@ export default function TransactionDetailPage() {
                       variant="outline"
                       onClick={() => openReconciliationForm("unmatch")}
                       disabled={dualControlHardBlock}
-                      className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                      className="border-amber-500/30 text-(--ws-amber) hover:bg-amber-500/10"
                     >
                       Mark Unmatched
                     </Button>

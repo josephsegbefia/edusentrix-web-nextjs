@@ -226,7 +226,7 @@ function confidenceBadgeClass(level: HeaderMappingConfidence["level"]) {
     return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
   }
   if (level === "medium") {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-300";
+    return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
   }
   return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
 }
@@ -837,7 +837,7 @@ export function ReconciliationIngestionModal(props: {
       <div className="space-y-4">
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-medium text-emerald-200">
+            <p className="text-sm font-medium text-(--ws-emerald)">
               Reconciliation Ingestion Template
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -846,7 +846,7 @@ export function ReconciliationIngestionModal(props: {
                 size="sm"
                 variant="outline"
                 onClick={downloadTemplate}
-                className="h-7 border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-200 hover:bg-emerald-500/20"
+                className="h-7 border-emerald-500/30 bg-emerald-500/10 text-xs text-(--ws-emerald) hover:bg-emerald-500/20"
               >
                 <Download className="mr-1 h-3.5 w-3.5" />
                 Download CSV Template
@@ -856,7 +856,7 @@ export function ReconciliationIngestionModal(props: {
                 size="sm"
                 variant="outline"
                 onClick={downloadBankMappingGuide}
-                className="h-7 border-sky-500/30 bg-sky-500/10 text-xs text-sky-200 hover:bg-sky-500/20"
+                className="h-7 border-sky-500/30 bg-sky-500/10 text-xs text-(--ws-cyan) hover:bg-sky-500/20"
               >
                 <Download className="mr-1 h-3.5 w-3.5" />
                 Download Bank Mapping Guide
@@ -1025,7 +1025,7 @@ export function ReconciliationIngestionModal(props: {
             {parsed?.errors.length ? (
               <Badge
                 variant="outline"
-                className="border-amber-500/30 bg-amber-500/10 text-amber-300"
+                className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
               >
                 {parsed.errors.length} issue(s)
               </Badge>
@@ -1095,7 +1095,7 @@ export function ReconciliationIngestionModal(props: {
                               className={
                                 detail.exactCanonical
                                   ? "text-(--ws-emerald)"
-                                  : "text-amber-300"
+                                  : "text-(--ws-amber)"
                               }
                             >
                               {detail.exactCanonical ? "Exact" : "Alias"}
@@ -1146,7 +1146,7 @@ export function ReconciliationIngestionModal(props: {
                     {parsed.errors.map((error) => (
                       <div
                         key={error}
-                        className="flex items-start gap-2 text-xs text-amber-300"
+                        className="flex items-start gap-2 text-xs text-(--ws-amber)"
                       >
                         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <span>{error}</span>

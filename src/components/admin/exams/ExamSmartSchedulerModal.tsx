@@ -147,8 +147,8 @@ export function ExamSmartSchedulerModal({
             variant="outline"
             className={cn(
               "border-white/10 bg-white/5 text-white/60",
-              step === item.id && "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
-              step > item.id && "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+              step === item.id && "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
+              step > item.id && "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
             )}
           >
             {item.label}
@@ -312,7 +312,7 @@ export function ExamSmartSchedulerModal({
             </span>
           </div>
           <div className="flex items-start gap-2 text-sm text-white/60">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-amber)" />
             <span>
               Review conflicts and assessment links after applying. You can discard changes by
               editing individual papers.

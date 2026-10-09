@@ -109,7 +109,7 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
       <Card className="border-red-500/20 bg-red-500/5">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="h-10 w-10 text-red-400" />
-          <p className="mt-3 text-sm text-red-200">Failed to load duties</p>
+          <p className="mt-3 text-sm text-(--ws-rose)">Failed to load duties</p>
         </CardContent>
       </Card>
     );

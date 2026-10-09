@@ -53,9 +53,9 @@ import { toast } from "sonner";
 
 const STATUS_STYLES: Record<DonationStatus, string> = {
   pending: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+  completed: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   failed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
-  refunded: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+  refunded: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
 };
 
 const PAYMENT_ICONS: Record<PaymentMethod, React.ElementType> = {

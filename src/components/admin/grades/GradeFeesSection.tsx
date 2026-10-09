@@ -41,26 +41,26 @@ function MetricBlock({
     teal: {
       border: "border-teal-500/30",
       bg: "from-teal-500/10 to-teal-500/5",
-      iconBg: "bg-teal-500/20 text-teal-300",
-      valueColor: "text-teal-100",
+      iconBg: "bg-teal-500/20 text-(--ws-teal)",
+      valueColor: "text-(--ws-teal)",
     },
     emerald: {
       border: "border-emerald-500/30",
       bg: "from-emerald-500/10 to-emerald-500/5",
-      iconBg: "bg-emerald-500/20 text-emerald-300",
-      valueColor: "text-emerald-100",
+      iconBg: "bg-emerald-500/20 text-(--ws-emerald)",
+      valueColor: "text-(--ws-emerald)",
     },
     rose: {
       border: "border-rose-500/30",
       bg: "from-rose-500/10 to-rose-500/5",
-      iconBg: "bg-rose-500/20 text-rose-300",
-      valueColor: "text-rose-100",
+      iconBg: "bg-rose-500/20 text-(--ws-rose)",
+      valueColor: "text-(--ws-rose)",
     },
     amber: {
       border: "border-amber-500/30",
       bg: "from-amber-500/10 to-amber-500/5",
-      iconBg: "bg-amber-500/20 text-amber-300",
-      valueColor: "text-amber-100",
+      iconBg: "bg-amber-500/20 text-(--ws-amber)",
+      valueColor: "text-(--ws-amber)",
     },
   };
   const c = config[tone];
@@ -113,7 +113,7 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
       <Card className="rounded-xl border border-rose-500/30 bg-rose-500/5">
         <CardContent className="flex flex-col items-center justify-center gap-3 py-12">
           <AlertCircle className="h-10 w-10 text-rose-400" />
-          <p className="text-sm text-rose-200">Failed to load fee analytics</p>
+          <p className="text-sm text-(--ws-rose)">Failed to load fee analytics</p>
         </CardContent>
       </Card>
     );
@@ -169,11 +169,11 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-rose-400" />
               <div>
-                <p className="font-medium text-rose-200">
+                <p className="font-medium text-(--ws-rose)">
                   {fees.feeDefaultersCount} student
                   {fees.feeDefaultersCount !== 1 ? "s" : ""} with outstanding fees
                 </p>
-                <p className="text-xs text-rose-300/80">
+                <p className="text-xs text-(--ws-rose)">
                   View and follow up on fee defaulters
                 </p>
               </div>
@@ -188,7 +188,7 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
         <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
           <CardHeader className="border-b border-white/5">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
-              <Users className="h-4 w-4 text-teal-300" />
+              <Users className="h-4 w-4 text-(--ws-teal)" />
               Fees by class
             </CardTitle>
             <p className="text-xs text-white/50">
@@ -234,20 +234,20 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
                       <td className="px-4 py-3 text-right text-white/90 tabular-nums">
                         {formatMoney(row.totalBilledMinor)}
                       </td>
-                      <td className="px-4 py-3 text-right text-emerald-300 tabular-nums">
+                      <td className="px-4 py-3 text-right text-(--ws-emerald) tabular-nums">
                         {formatMoney(row.totalPaidMinor)}
                       </td>
-                      <td className="px-4 py-3 text-right text-amber-300 tabular-nums">
+                      <td className="px-4 py-3 text-right text-(--ws-amber) tabular-nums">
                         {formatMoney(row.totalOutstandingMinor)}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
                         <span
                           className={
                             row.collectionRate >= 80
-                              ? "text-emerald-300"
+                              ? "text-(--ws-emerald)"
                               : row.collectionRate >= 50
-                              ? "text-amber-300"
-                              : "text-rose-300"
+                              ? "text-(--ws-amber)"
+                              : "text-(--ws-rose)"
                           }
                         >
                           {row.collectionRate}%
@@ -277,7 +277,7 @@ export function GradeFeesSection({ gradeId, gradeName }: Props) {
           </div>
           <Link
             href="/admin/fees"
-            className="inline-flex items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-medium text-teal-200 transition-colors hover:bg-teal-500/20"
+            className="inline-flex items-center gap-2 rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-medium text-(--ws-teal) transition-colors hover:bg-teal-500/20"
           >
             Go to Fees
             <ChevronRight className="h-4 w-4" />

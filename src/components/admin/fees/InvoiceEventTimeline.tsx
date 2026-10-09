@@ -34,7 +34,7 @@ export function InvoiceEventTimeline({ events }: Props) {
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
       case "created":
-        return <FileText className="h-4 w-4 text-blue-300" />;
+        return <FileText className="h-4 w-4 text-(--ws-cyan)" />;
       case "issued":
         return <CheckCircle2 className="h-4 w-4 text-(--ws-emerald)" />;
       case "payment_recorded":
@@ -44,7 +44,7 @@ export function InvoiceEventTimeline({ events }: Props) {
       case "cancelled":
         return <XCircle className="h-4 w-4 text-(--ws-rose)" />;
       case "overdue_marked":
-        return <AlertCircle className="h-4 w-4 text-red-300" />;
+        return <AlertCircle className="h-4 w-4 text-(--ws-rose)" />;
       default:
         return <Clock className="h-4 w-4 text-(--ws-fg-40)" />;
     }
@@ -52,13 +52,13 @@ export function InvoiceEventTimeline({ events }: Props) {
 
   const getEventBadge = (eventType: string) => {
     const colors: Record<string, string> = {
-      created: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      created: "bg-blue-500/20 text-(--ws-cyan) border-blue-500/30",
       issued: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
       payment_recorded: "bg-green-500/20 text-(--ws-emerald) border-green-500/30",
       adjusted: "bg-orange-500/20 text-(--ws-amber) border-orange-500/30",
       cancelled: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
-      overdue_marked: "bg-red-500/20 text-red-300 border-red-500/30",
-      allocation_updated: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+      overdue_marked: "bg-red-500/20 text-(--ws-rose) border-red-500/30",
+      allocation_updated: "bg-purple-500/20 text-(--ws-violet) border-purple-500/30",
     };
     return (
       <Badge className={colors[eventType] || "bg-gray-500/20 text-gray-300 border-gray-500/30"}>

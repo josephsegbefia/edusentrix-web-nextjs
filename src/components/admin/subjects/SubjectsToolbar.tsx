@@ -50,7 +50,7 @@ export function SubjectsToolbar({
             <Search
               className={cn(
                 "h-3.5 w-3.5 transition-colors sm:h-4 sm:w-4",
-                isFocused ? "text-amber-300" : "text-white/40"
+                isFocused ? "text-(--ws-amber)" : "text-white/40"
               )}
             />
           </div>

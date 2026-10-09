@@ -158,15 +158,15 @@ function emptyForm(): FormState {
 
 function statusTone(status: DisbursementRecord["status"]) {
   if (status === "completed") {
-    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-200";
+    return "border-emerald-400/20 bg-emerald-400/10 text-(--ws-emerald)";
   }
   if (status === "failed") {
-    return "border-red-400/20 bg-red-400/10 text-red-200";
+    return "border-red-400/20 bg-red-400/10 text-(--ws-rose)";
   }
   if (status === "cancelled") {
     return "border-white/10 bg-white/5 text-white/70";
   }
-  return "border-amber-400/20 bg-amber-400/10 text-amber-200";
+  return "border-amber-400/20 bg-amber-400/10 text-(--ws-amber)";
 }
 
 export default function FinanceDisbursementsPage() {
@@ -609,7 +609,7 @@ export default function FinanceDisbursementsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-(--ws-amber)">
         Paystack disbursements now require maker-checker approval before they are sent.
         Automated payouts still require a valid routing code, and you can save teacher payout
         details for reuse from this form.
@@ -619,7 +619,7 @@ export default function FinanceDisbursementsPage() {
         <Card className="border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white shadow-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Send className="h-5 w-5 text-cyan-300" />
+              <Send className="h-5 w-5 text-(--ws-cyan)" />
               New Disbursement
             </CardTitle>
           </CardHeader>
@@ -1019,7 +1019,7 @@ export default function FinanceDisbursementsPage() {
                       </span>
                       {row.paymentRail === "paystack" &&
                       row.approval?.status !== "not_required" ? (
-                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] text-cyan-200">
+                        <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] text-(--ws-cyan)">
                           approval: {row.approval.status}
                         </span>
                       ) : null}
@@ -1029,7 +1029,7 @@ export default function FinanceDisbursementsPage() {
                       {row.reference} • {row.recipientType}
                     </p>
                     {row.gateway?.lastError ? (
-                      <p className="text-xs text-red-300">{row.gateway.lastError}</p>
+                      <p className="text-xs text-(--ws-rose)">{row.gateway.lastError}</p>
                     ) : null}
                   </div>
 

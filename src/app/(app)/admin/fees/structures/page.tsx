@@ -62,10 +62,10 @@ export default function FeeStructuresPage() {
 
   const categoryTone: Record<string, string> = {
     tuition: "bg-amber-500/15 text-(--ws-amber) border-amber-500/35",
-    library: "bg-indigo-500/15 text-indigo-100 border-indigo-500/35",
-    sports: "bg-emerald-500/15 text-emerald-100 border-emerald-500/35",
-    uniform: "bg-sky-500/15 text-sky-100 border-sky-500/35",
-    other: "bg-slate-500/15 text-slate-100 border-slate-500/35",
+    library: "bg-indigo-500/15 text-(--ws-violet) border-indigo-500/35",
+    sports: "bg-emerald-500/15 text-(--ws-emerald) border-emerald-500/35",
+    uniform: "bg-sky-500/15 text-(--ws-cyan) border-sky-500/35",
+    other: "bg-slate-500/15 text-(--ws-fg-70) border-slate-500/35",
   };
 
   const sortedStructures = useMemo(
@@ -209,7 +209,7 @@ export default function FeeStructuresPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-emerald)">
                   Installment-ready
                 </p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-(--ws-fg)">
@@ -217,7 +217,7 @@ export default function FeeStructuresPage() {
                 </p>
                 <p className="mt-1 text-sm text-(--ws-fg-50)">templates allow splits</p>
               </div>
-              <div className="rounded-xl bg-emerald-500/15 p-2.5 text-emerald-200/90">
+              <div className="rounded-xl bg-emerald-500/15 p-2.5 text-(--ws-emerald)">
                 <ShieldCheck className="h-5 w-5" />
               </div>
             </div>
@@ -320,14 +320,14 @@ export default function FeeStructuresPage() {
                             className={cn(
                               "border-(--ws-line-strong)",
                               structure.isActive
-                                ? "bg-emerald-500/15 text-emerald-100"
+                                ? "bg-emerald-500/15 text-(--ws-emerald)"
                                 : "bg-(--ws-fill) text-(--ws-fg-50)"
                             )}
                           >
                             {structure.isActive ? "Active" : "Inactive"}
                           </Badge>
                           {structure.allowsInstallments && (
-                            <Badge className="border-0 bg-sky-500/20 text-sky-100">
+                            <Badge className="border-0 bg-sky-500/20 text-(--ws-cyan)">
                               Installments
                               {structure.maxInstallments
                                 ? ` · max ${structure.maxInstallments}`

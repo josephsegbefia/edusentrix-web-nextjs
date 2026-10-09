@@ -434,7 +434,7 @@ export function SchoolDailyScheduleWizard({
       <CardContent className="space-y-6 p-6">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-violet-300/90">
+            <p className="text-xs font-medium uppercase tracking-wide text-(--ws-violet)">
               Step {step} of 4
             </p>
             <h2 className="text-lg font-semibold text-white">
@@ -548,7 +548,7 @@ export function SchoolDailyScheduleWizard({
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 text-rose-300"
+                      className="h-7 w-7 text-(--ws-rose)"
                       onClick={() =>
                         setDraft((d) => ({
                           ...d,
@@ -648,7 +648,7 @@ export function SchoolDailyScheduleWizard({
                       type="button"
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 text-rose-300"
+                      className="h-7 w-7 text-(--ws-rose)"
                       onClick={() =>
                         setDraft((d) => ({
                           ...d,
@@ -710,19 +710,19 @@ export function SchoolDailyScheduleWizard({
             </div>
 
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 sm:col-span-2">
-              <p className="text-sm font-medium text-emerald-200">
+              <p className="text-sm font-medium text-(--ws-emerald)">
                 Estimated teaching periods: {defaultEstimate.fullPeriods}
                 {defaultEstimate.hasPartialRemainder
                   ? ` (with ${defaultEstimate.remainderTeachingMinutes} min remaining)`
                   : null}
               </p>
-              <p className="mt-1 text-xs text-emerald-200/80">
+              <p className="mt-1 text-xs text-(--ws-emerald)">
                 We subtract break time, then use your default and any per-period overrides. You can add breaks in
                 the next step.
               </p>
             </div>
             {!canGoFromStep1 && step1ErrorMessage && (
-              <p className="text-sm text-amber-200 sm:col-span-2">{step1ErrorMessage}</p>
+              <p className="text-sm text-(--ws-amber) sm:col-span-2">{step1ErrorMessage}</p>
             )}
           </div>
         )}
@@ -784,7 +784,7 @@ export function SchoolDailyScheduleWizard({
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="text-rose-300"
+                    className="text-(--ws-rose)"
                     onClick={() => removeBreak(b.id)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -828,7 +828,7 @@ export function SchoolDailyScheduleWizard({
               </div>
             </div>
             {!canGoFromStep2 && (
-              <p className="text-sm text-amber-200">
+              <p className="text-sm text-(--ws-amber)">
                 Fix break times: each must be inside the school day and not overlap.
               </p>
             )}
@@ -870,7 +870,7 @@ export function SchoolDailyScheduleWizard({
                         className={cn(
                           "rounded-lg border px-3 py-1.5 text-sm font-medium transition",
                           on
-                            ? "border-violet-500/50 bg-violet-500/20 text-violet-100"
+                            ? "border-violet-500/50 bg-violet-500/20 text-(--ws-violet)"
                             : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
                         )}
                       >
@@ -1027,7 +1027,7 @@ export function SchoolDailyScheduleWizard({
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => removeExceptionOpeningBlock(ex.weekday, block.id)}
-                                className="h-9 text-rose-300"
+                                className="h-9 text-(--ws-rose)"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1110,7 +1110,7 @@ export function SchoolDailyScheduleWizard({
                                 onClick={() =>
                                   removeExceptionPeriodOverride(ex.weekday, override.periodIndex)
                                 }
-                                className="h-9 text-rose-300"
+                                className="h-9 text-(--ws-rose)"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1198,7 +1198,7 @@ export function SchoolDailyScheduleWizard({
                             size="icon"
                             variant="ghost"
                             onClick={() => removeExceptionBreak(ex.weekday, b.id)}
-                            className="h-9 text-rose-300"
+                            className="h-9 text-(--ws-rose)"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1221,7 +1221,7 @@ export function SchoolDailyScheduleWizard({
                   </div>
                 ))}
                 {!canGoFromStep3 && (
-                  <p className="text-sm text-amber-200">Select and complete at least one different weekday, or turn off exceptions.</p>
+                  <p className="text-sm text-(--ws-amber)">Select and complete at least one different weekday, or turn off exceptions.</p>
                 )}
               </div>
             )}
@@ -1274,7 +1274,7 @@ export function SchoolDailyScheduleWizard({
                 <ul className="space-y-2">
                   {draft.weekdayExceptions.map((ex) => (
                     <li key={ex.weekday} className="text-white/70">
-                      <span className="font-medium capitalize text-violet-200">
+                      <span className="font-medium capitalize text-(--ws-violet)">
                         {ex.weekday}:
                       </span>{" "}
                       {formatHhmm12(ex.lessonStart)}–{formatHhmm12(ex.dayEnd)},{" "}

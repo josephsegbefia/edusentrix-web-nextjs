@@ -595,7 +595,7 @@ export function ClassTimetableEditor({
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
-            <CalendarDays className="h-5 w-5 text-cyan-300" />
+            <CalendarDays className="h-5 w-5 text-(--ws-cyan)" />
             Class Timetable
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
@@ -616,7 +616,7 @@ export function ClassTimetableEditor({
         </div>
         <p className="text-sm text-(--ws-fg-60)">
           Periods and breaks follow school settings in{" "}
-          <Link href={bellScheduleSettingsHref} className="text-cyan-300 underline hover:text-cyan-200">
+          <Link href={bellScheduleSettingsHref} className="text-(--ws-cyan) underline hover:text-(--ws-cyan)">
             Settings
           </Link>
           . Drag each class subject into a period; teachers come from your assignments. The shared
@@ -692,14 +692,14 @@ export function ClassTimetableEditor({
               type="button"
               size="sm"
               variant="outline"
-              className="border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+              className="border-violet-400/40 bg-violet-500/10 text-(--ws-violet) hover:bg-violet-500/20"
               disabled={!selectedPeriodId || leoLoading}
               onClick={runLeoCoach}
             >
               {leoLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <LeoIcon className="mr-2 h-4 w-4 text-amber-300" />
+                <LeoIcon className="mr-2 h-4 w-4 text-(--ws-amber)" />
               )}
               Ask Leo
             </Button>
@@ -869,7 +869,7 @@ export function ClassTimetableEditor({
                       className={cn(
                         "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                         active
-                          ? "bg-cyan-500/25 text-cyan-100 ring-1 ring-cyan-400/40"
+                          ? "bg-cyan-500/25 text-(--ws-cyan) ring-1 ring-cyan-400/40"
                           : "bg-(--ws-fill) text-(--ws-fg-50) hover:bg-(--ws-fill-strong)"
                       )}
                     >
@@ -1002,13 +1002,13 @@ export function ClassTimetableEditor({
                     <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
                     <div className="min-w-0 flex-1 text-sm text-emerald-50">
                       <p className="font-medium">Publish for the school</p>
-                      <p className="text-emerald-100/80">
+                      <p className="text-(--ws-emerald)">
                         When you publish, this version replaces the previous published timetable
                         for the academic period. Parents, students, and teachers then see it in
                         their apps.
                       </p>
                       {publishBlocked ? (
-                        <p className="mt-2 text-xs text-emerald-100/75">
+                        <p className="mt-2 text-xs text-(--ws-emerald)">
                           Publishing is blocked until all {openErrorCount} open error(s) in the shared
                           draft are resolved.
                         </p>

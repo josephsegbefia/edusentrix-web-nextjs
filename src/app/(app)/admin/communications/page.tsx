@@ -167,8 +167,8 @@ function SelectField({
 function statusTone(status: string) {
   if (status === "sent") return "border-emerald-400/30 bg-emerald-400/10 text-(--ws-emerald)";
   if (status === "partially_sent") return "border-amber-400/30 bg-amber-400/10 text-(--ws-amber)";
-  if (status === "failed") return "border-red-400/30 bg-red-400/10 text-red-200";
-  if (status === "queued" || status === "sending") return "border-blue-400/30 bg-blue-400/10 text-blue-200";
+  if (status === "failed") return "border-red-400/30 bg-red-400/10 text-(--ws-rose)";
+  if (status === "queued" || status === "sending") return "border-blue-400/30 bg-blue-400/10 text-(--ws-cyan)";
   return "border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)";
 }
 
@@ -398,22 +398,22 @@ export default function AdminCommunicationsPage() {
           <div>
             <p className="text-sm font-medium text-(--ws-cyan)">School Communications</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight">Communication Center</h1>
-            <p className="mt-2 max-w-2xl text-sm text-(--ws-fg-50)">
+            <p className="mt-2 max-w-2xl text-sm text-(--ws-fg-70)">
               Create one official message, choose the audience and channels, preview reach, then send and track delivery.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-2 text-center shadow-2xl shadow-black/20 backdrop-blur-xl">
             <div className="px-4 py-2">
               <div className="text-lg font-semibold">{pagination.total}</div>
-              <div className="text-xs text-(--ws-fg-40)">Total</div>
+              <div className="text-xs text-(--ws-fg-70)">Total</div>
             </div>
             <div className="px-4 py-2">
               <div className="text-lg font-semibold">{items.filter((item) => item.status === "sent").length}</div>
-              <div className="text-xs text-(--ws-fg-40)">Page sent</div>
+              <div className="text-xs text-(--ws-fg-70)">Page sent</div>
             </div>
             <div className="px-4 py-2">
               <div className="text-lg font-semibold">{items.filter((item) => item.status === "draft").length}</div>
-              <div className="text-xs text-(--ws-fg-40)">Page drafts</div>
+              <div className="text-xs text-(--ws-fg-70)">Page drafts</div>
             </div>
           </div>
         </div>
@@ -441,7 +441,7 @@ export default function AdminCommunicationsPage() {
                   )}
                 >
                   <span className="block text-sm font-semibold">{tab.label}</span>
-                  <span className={cn("mt-1 block text-xs", isActive ? "text-slate-700" : "text-(--ws-fg-40)")}>{tab.description}</span>
+                  <span className={cn("mt-1 block text-xs", isActive ? "text-slate-700" : "text-(--ws-fg-70)")}>{tab.description}</span>
                 </button>
               );
             })}
@@ -449,7 +449,7 @@ export default function AdminCommunicationsPage() {
         </div>
 
         {activeTab === "create" ? (
-          <Card className="overflow-hidden border-(--ws-line) bg-[#0d1320]/90 text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <Card className="overflow-hidden border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
             <CardContent className="space-y-5 p-0">
               <div className="border-b border-(--ws-line) bg-(--ws-fill) px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -458,7 +458,7 @@ export default function AdminCommunicationsPage() {
                   </span>
                   <div>
                     <h2 className="text-base font-semibold">Create communication</h2>
-                    <p className="text-xs text-(--ws-fg-40)">Compose once, route through selected channels.</p>
+                    <p className="text-xs text-(--ws-fg-70)">Compose once, route through selected channels.</p>
                   </div>
                 </div>
               </div>
@@ -614,7 +614,7 @@ export default function AdminCommunicationsPage() {
         ) : null}
 
         {activeTab === "recent" ? (
-            <Card className="overflow-hidden border-(--ws-line) bg-[#0d1320]/90 text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <Card className="overflow-hidden border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
               <CardContent className="p-0">
                 <div className="space-y-4 border-b border-(--ws-line) bg-(--ws-fill) px-5 py-4">
                   <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
@@ -699,7 +699,7 @@ export default function AdminCommunicationsPage() {
         ) : null}
 
         {activeTab === "selected" ? (
-            <Card className="overflow-hidden border-(--ws-line) bg-[#0d1320]/90 text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <Card className="overflow-hidden border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg) shadow-2xl shadow-black/30 backdrop-blur-xl">
               <CardContent className="space-y-5 p-5">
                 {selected ? (
                   <>

@@ -44,10 +44,10 @@ function formatDateOnly(date: Date | null): string | null {
 function InvoiceStatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     draft: "bg-gray-500/20 text-gray-300",
-    issued: "bg-blue-500/20 text-blue-300",
-    partially_paid: "bg-yellow-500/20 text-yellow-300",
+    issued: "bg-blue-500/20 text-(--ws-cyan)",
+    partially_paid: "bg-yellow-500/20 text-(--ws-amber)",
     paid: "bg-green-500/20 text-(--ws-emerald)",
-    overdue: "bg-red-500/20 text-red-300",
+    overdue: "bg-red-500/20 text-(--ws-rose)",
     cancelled: "bg-gray-500/20 text-gray-400",
   };
 
@@ -341,7 +341,7 @@ export default function InvoiceDetailPage() {
                 variant="destructive"
                 onClick={handleCancelInvoice}
                 disabled={cancelInvoice.isPending}
-                className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 hover:text-red-200"
+                className="bg-red-500/20 text-(--ws-rose) border-red-500/30 hover:bg-red-500/30 hover:text-(--ws-rose)"
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Withdraw
@@ -353,7 +353,7 @@ export default function InvoiceDetailPage() {
               variant="destructive"
               onClick={handleDeleteWithdrawnBill}
               disabled={deleteInvoice.isPending}
-              className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30 hover:text-red-200"
+              className="bg-red-500/20 text-(--ws-rose) border-red-500/30 hover:bg-red-500/30 hover:text-(--ws-rose)"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete

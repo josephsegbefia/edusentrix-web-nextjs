@@ -105,7 +105,7 @@ export default function FinanceReportsPage() {
           </Button>
           <div className="flex items-center gap-2">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
-              <Download className="h-5 w-5 text-sky-200" />
+              <Download className="h-5 w-5 text-(--ws-cyan)" />
             </span>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-white">Finance Reports</h1>
@@ -126,7 +126,7 @@ export default function FinanceReportsPage() {
 
       <section className="rounded-xl border border-sky-300/15 bg-sky-500/10 p-4 text-sky-50">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-sky-100" />
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-(--ws-cyan)" />
           <div>
             <p className="text-sm font-semibold">Reporting rule</p>
             <p className="mt-1 text-sm leading-6 text-sky-50/75">
@@ -140,7 +140,7 @@ export default function FinanceReportsPage() {
 
       <section className="rounded-xl border border-violet-300/15 bg-violet-500/10 p-4 text-violet-50">
         <div className="flex items-start gap-3">
-          <Bot className="mt-0.5 h-5 w-5 shrink-0 text-violet-100" />
+          <Bot className="mt-0.5 h-5 w-5 shrink-0 text-(--ws-violet)" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -197,7 +197,7 @@ export default function FinanceReportsPage() {
           >
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04]">
-                <report.icon className="h-5 w-5 text-sky-200" />
+                <report.icon className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
@@ -211,14 +211,14 @@ export default function FinanceReportsPage() {
                   {report.status === "available" ? "Export available" : "Open source workflow"}
                 </span>
                 <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium">
-                  <Link href={report.href} className="text-sky-200 hover:text-sky-100">
+                  <Link href={report.href} className="text-(--ws-cyan) hover:text-(--ws-cyan)">
                     Open source
                   </Link>
                   <button
                     type="button"
                     onClick={() => void generateCommentary(report.type)}
                     disabled={!commandCenter.data || commentary.isPending}
-                    className="text-violet-200 disabled:opacity-50"
+                    className="text-(--ws-violet) disabled:opacity-50"
                   >
                     Draft Leo commentary
                   </button>

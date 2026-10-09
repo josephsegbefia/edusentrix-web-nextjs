@@ -256,7 +256,7 @@ export function FinalizeTab() {
 
       {isRolledBack && (
         <div className="rounded-xl border border-slate-500/20 bg-slate-500/10 p-4">
-          <p className="text-sm text-slate-200">This cycle has been rolled back.</p>
+          <p className="text-sm text-(--ws-fg-70)">This cycle has been rolled back.</p>
         </div>
       )}
 

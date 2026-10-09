@@ -297,7 +297,7 @@ export function SchoolDailySchedulePanel() {
 
   if (isError) {
     return (
-      <p className="text-sm text-rose-300">Could not load the daily schedule. Try again later.</p>
+      <p className="text-sm text-(--ws-rose)">Could not load the daily schedule. Try again later.</p>
     );
   }
 
@@ -325,7 +325,7 @@ export function SchoolDailySchedulePanel() {
           <CardContent className="space-y-4 p-6 sm:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
-                <LeoIcon className="h-8 w-8 text-violet-200" />
+                <LeoIcon className="h-8 w-8 text-(--ws-violet)" />
               </div>
               <div className="min-w-0 space-y-2">
                 <h3 className="text-lg font-semibold text-white sm:text-xl">
@@ -411,7 +411,7 @@ export function SchoolDailySchedulePanel() {
                   {isGrouped ? (
                     <Badge
                       variant="secondary"
-                      className="border border-violet-400/30 bg-violet-500/15 text-[11px] font-medium text-violet-100"
+                      className="border border-violet-400/30 bg-violet-500/15 text-[11px] font-medium text-(--ws-violet)"
                     >
                       By grade group
                     </Badge>
@@ -448,7 +448,7 @@ export function SchoolDailySchedulePanel() {
               </div>
             </div>
             {isGrouped && (!row.scheduleGroups || row.scheduleGroups.length === 0) ? (
-              <p className="mb-4 text-sm text-amber-200/90">
+              <p className="mb-4 text-sm text-(--ws-amber)">
                 Grouped schedules are enabled, but no bands were loaded. Open Full setup and save again; if this
                 message persists, contact support.
               </p>
@@ -503,12 +503,12 @@ export function SchoolDailySchedulePanel() {
                         <div className="min-w-0">
                           <p className="font-semibold text-white">{schedule.label}</p>
                           <p className="mt-1 flex items-start gap-1.5 text-xs text-white/45">
-                            <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+                            <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-violet)" />
                             <span className="min-w-0 break-words">{schedule.gradesLabel}</span>
                           </p>
                         </div>
                         <span className="inline-flex w-full min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs leading-snug text-white/60 sm:max-w-[min(100%,20rem)] sm:shrink-0 sm:justify-end sm:text-right">
-                          <Clock3 className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                          <Clock3 className="h-3.5 w-3.5 shrink-0 text-(--ws-cyan)" />
                           <span className="min-w-0 break-words text-left sm:text-right">
                             {schedule.meta}
                           </span>
@@ -541,7 +541,7 @@ export function SchoolDailySchedulePanel() {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                      className="text-(--ws-rose) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                       onClick={() => void handleDelete()}
                       disabled={del.isPending}
                     >
@@ -561,7 +561,7 @@ export function SchoolDailySchedulePanel() {
                 Each grade group has its own day timeline and breakdown below.
               </p>
             ) : !previewStripConfig ? (
-              <p className="mb-4 text-sm text-amber-200/90">
+              <p className="mb-4 text-sm text-(--ws-amber)">
                 No schedule configuration found — open Full setup to complete setup.
               </p>
             ) : null}
@@ -595,7 +595,7 @@ export function SchoolDailySchedulePanel() {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                            className="text-(--ws-rose) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                             onClick={() => void handleDeleteGroup(g.id)}
                             disabled={del.isPending || save.isPending}
                           >
@@ -622,7 +622,7 @@ export function SchoolDailySchedulePanel() {
             {row.history && row.history.length > 0 && (
               <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-4">
                 <h4 className="flex items-center gap-2 text-sm font-medium text-white">
-                  <History className="h-4 w-4 text-violet-300" />
+                  <History className="h-4 w-4 text-(--ws-violet)" />
                   Recent changes (older snapshots)
                 </h4>
                 <p className="text-xs text-white/45">
@@ -639,7 +639,7 @@ export function SchoolDailySchedulePanel() {
                         className="flex flex-col gap-0.5 rounded border border-white/5 bg-white/5 px-2 py-1.5 sm:flex-row sm:items-baseline sm:justify-between"
                       >
                         <span>
-                          <span className="text-violet-200">r{h.revision}</span>
+                          <span className="text-(--ws-violet)">r{h.revision}</span>
                           {h.label ? ` — ${h.label}` : ""}
                         </span>
                         <span className="text-white/40">

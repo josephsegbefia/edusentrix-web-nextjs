@@ -48,7 +48,7 @@ function statusBadge(status: string) {
     },
     issued: {
       label: "Issued",
-      className: "border-blue-400/25 bg-blue-500/10 text-blue-200",
+      className: "border-blue-400/25 bg-blue-500/10 text-(--ws-cyan)",
       icon: Clock,
     },
     paid: {
@@ -58,7 +58,7 @@ function statusBadge(status: string) {
     },
     overdue: {
       label: "Overdue",
-      className: "border-red-400/25 bg-red-500/10 text-red-200",
+      className: "border-red-400/25 bg-red-500/10 text-(--ws-rose)",
       icon: AlertCircle,
     },
     partially_paid: {
@@ -105,7 +105,7 @@ function SummaryTile(props: {
     white: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)",
     emerald: "border-emerald-400/20 bg-emerald-500/10 text-(--ws-emerald)",
     amber: "border-amber-400/20 bg-amber-500/10 text-(--ws-amber)",
-    sky: "border-sky-400/20 bg-sky-500/10 text-sky-100",
+    sky: "border-sky-400/20 bg-sky-500/10 text-(--ws-cyan)",
   }[props.tone];
 
   return (
@@ -167,7 +167,7 @@ export function InvoiceDetailDrawer(props: {
         ) : isError || !invoice ? (
           <div className="m-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center sm:m-7">
             <AlertCircle className="mx-auto h-12 w-12 text-red-400/50" />
-            <p className="mt-3 text-sm font-medium text-red-200">
+            <p className="mt-3 text-sm font-medium text-(--ws-rose)">
               Failed to load bill
             </p>
             <p className="mt-1 text-xs text-muted-foreground">

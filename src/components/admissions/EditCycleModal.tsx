@@ -472,7 +472,7 @@ export function EditCycleModal({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                       isOn
-                        ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
+                        ? "border-cyan-400/40 bg-cyan-500/15 text-(--ws-cyan)"
                         : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)",
                       archived && "pointer-events-none opacity-50"
                     )}

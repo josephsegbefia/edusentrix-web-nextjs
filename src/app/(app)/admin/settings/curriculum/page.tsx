@@ -245,7 +245,7 @@ export default function CurriculumSettingsPage() {
         <Card className="border border-white/10 bg-linear-to-br from-emerald-500/10 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-emerald-500/20">
-              <BookOpen className="h-5 w-5 text-emerald-300" />
+              <BookOpen className="h-5 w-5 text-(--ws-emerald)" />
             </div>
             <div>
               <p className="text-xs text-white/50">Current Curriculum</p>
@@ -258,7 +258,7 @@ export default function CurriculumSettingsPage() {
         <Card className="border border-white/10 bg-linear-to-br from-blue-500/10 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-blue-500/20">
-              <GraduationCap className="h-5 w-5 text-blue-300" />
+              <GraduationCap className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
               <p className="text-xs text-white/50">Assessment Model</p>
@@ -271,7 +271,7 @@ export default function CurriculumSettingsPage() {
         <Card className="border border-white/10 bg-linear-to-br from-violet-500/10 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-violet-500/20">
-              <Globe className="h-5 w-5 text-violet-300" />
+              <Globe className="h-5 w-5 text-(--ws-violet)" />
             </div>
             <div>
               <p className="text-xs text-white/50">Grading System</p>
@@ -288,10 +288,10 @@ export default function CurriculumSettingsPage() {
           <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10">
-                <Download className="h-5 w-5 text-cyan-300" />
+                <Download className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-cyan-100">
+                <p className="text-sm font-semibold text-(--ws-cyan)">
                   Cambridge profile snapshot
                 </p>
                 <p className="text-xs text-white/60">
@@ -299,7 +299,7 @@ export default function CurriculumSettingsPage() {
                   academic periods from{" "}
                   <Link
                     href="/admin/reports"
-                    className="text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
+                    className="text-(--ws-cyan) underline underline-offset-2 hover:text-(--ws-cyan)"
                   >
                     Reports
                   </Link>
@@ -317,10 +317,10 @@ export default function CurriculumSettingsPage() {
           <CardContent className="p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10">
-                <CalendarClock className="h-5 w-5 text-amber-300" />
+                <CalendarClock className="h-5 w-5 text-(--ws-amber)" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-200">
+                <p className="text-sm font-semibold text-(--ws-amber)">
                   Curriculum Change Scheduled
                 </p>
                 <p className="text-xs text-white/60">
@@ -338,7 +338,7 @@ export default function CurriculumSettingsPage() {
               size="sm"
               onClick={() => cancelPendingMutation.mutate()}
               disabled={cancelPendingMutation.isPending}
-              className="shrink-0 text-amber-300 hover:text-amber-200 hover:bg-amber-500/10"
+              className="shrink-0 text-(--ws-amber) hover:text-(--ws-amber) hover:bg-amber-500/10"
             >
               {cancelPendingMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -356,10 +356,10 @@ export default function CurriculumSettingsPage() {
         <Card className="border border-white/10 bg-linear-to-br from-rose-500/5 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 mt-0.5">
-              <ShieldAlert className="h-4 w-4 text-rose-300" />
+              <ShieldAlert className="h-4 w-4 text-(--ws-rose)" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-rose-200">
+              <p className="text-sm font-semibold text-(--ws-rose)">
                 Immediate Switch Restricted
               </p>
               <p className="text-xs text-white/60 mt-0.5">
@@ -434,25 +434,25 @@ export default function CurriculumSettingsPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <Badge
                   variant="outline"
-                  className="border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs justify-center"
+                  className="border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald) text-xs justify-center"
                 >
                   {ASSESSMENT_MODEL_LABELS[selectedInfo.assessmentModel]}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="border-blue-500/25 bg-blue-500/10 text-blue-300 text-xs justify-center"
+                  className="border-blue-500/25 bg-blue-500/10 text-(--ws-cyan) text-xs justify-center"
                 >
                   {GRADING_LABELS[selectedInfo.gradingSystem]}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="border-violet-500/25 bg-violet-500/10 text-violet-300 text-xs justify-center"
+                  className="border-violet-500/25 bg-violet-500/10 text-(--ws-violet) text-xs justify-center"
                 >
                   {TERM_LABELS[selectedInfo.termStructure]}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="border-amber-500/25 bg-amber-500/10 text-amber-300 text-xs justify-center"
+                  className="border-amber-500/25 bg-amber-500/10 text-(--ws-amber) text-xs justify-center"
                 >
                   {selectedInfo.gradeCount} grades \u00b7{" "}
                   {selectedInfo.subjectCount} subjects
@@ -533,7 +533,7 @@ export default function CurriculumSettingsPage() {
                   size="sm"
                   onClick={handleForceSwitch}
                   disabled={updateMutation.isPending}
-                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                  className="text-rose-400 hover:text-(--ws-rose) hover:bg-rose-500/10"
                 >
                   <AlertTriangle className="h-4 w-4 mr-1.5" />
                   Force Immediate Switch

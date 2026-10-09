@@ -28,14 +28,14 @@ const toneMap: Record<
   },
   blue: {
     iconBg: "bg-blue-500/15",
-    iconText: "text-blue-300",
+    iconText: "text-(--ws-cyan)",
     glow: "from-blue-500/12 via-transparent to-transparent",
     border: "border-blue-500/25",
     softBg: "bg-blue-500/10",
   },
   amber: {
     iconBg: "bg-amber-500/15",
-    iconText: "text-amber-300",
+    iconText: "text-(--ws-amber)",
     glow: "from-amber-500/12 via-transparent to-transparent",
     border: "border-amber-500/25",
     softBg: "bg-amber-500/10",
@@ -56,7 +56,7 @@ const toneMap: Record<
   },
   teal: {
     iconBg: "bg-teal-500/15",
-    iconText: "text-teal-300",
+    iconText: "text-(--ws-teal)",
     glow: "from-teal-500/12 via-transparent to-transparent",
     border: "border-teal-500/25",
     softBg: "bg-teal-500/10",
@@ -127,7 +127,7 @@ export function LeoSignalsCard({
       ? "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
       : leo.riskLevel === "medium"
       ? "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
-      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+      : "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
 
   return (
     <Card className="relative overflow-hidden border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-xl shadow-black/30 backdrop-blur-xl">
@@ -137,7 +137,7 @@ export function LeoSignalsCard({
       />
       <CardHeader className="relative z-10 border-b border-(--ws-line) pb-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/12 text-cyan-200">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-500/25 bg-cyan-500/12 text-(--ws-cyan)">
             <LeoIcon className="h-5 w-5" />
           </div>
           <div className="space-y-0.5">
@@ -169,7 +169,7 @@ export function LeoSignalsCard({
             {leo.predictions.map((prediction) => (
               <div
                 key={prediction}
-                className="rounded-2xl border border-cyan-500/20 bg-cyan-500/8 px-3.5 py-3 text-sm text-cyan-100/85"
+                className="rounded-2xl border border-cyan-500/20 bg-cyan-500/8 px-3.5 py-3 text-sm text-(--ws-cyan)"
               >
                 {prediction}
               </div>

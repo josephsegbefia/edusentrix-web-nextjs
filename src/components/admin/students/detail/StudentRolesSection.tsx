@@ -101,7 +101,7 @@ const CATEGORY_INFO: Record<
   },
   academic: {
     label: "Academic",
-    color: "text-blue-300",
+    color: "text-(--ws-cyan)",
     bgColor: "bg-blue-500/20",
     borderColor: "border-blue-500/30",
   },

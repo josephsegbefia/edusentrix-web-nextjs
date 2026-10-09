@@ -43,8 +43,8 @@ const TABS: TabConfig[] = [
     icon: LayoutDashboard,
     colors: {
       active:
-        "border-teal-500/40 bg-teal-500/15 text-teal-200 shadow-teal-500/20",
-      icon: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+        "border-teal-500/40 bg-teal-500/15 text-(--ws-teal) shadow-teal-500/20",
+      icon: "bg-teal-500/20 text-(--ws-teal) border-teal-500/30",
     },
   },
   {
@@ -53,8 +53,8 @@ const TABS: TabConfig[] = [
     icon: Users,
     colors: {
       active:
-        "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",
-      icon: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+        "border-cyan-500/40 bg-cyan-500/15 text-(--ws-cyan) shadow-cyan-500/20",
+      icon: "bg-cyan-500/20 text-(--ws-cyan) border-cyan-500/30",
     },
   },
   {
@@ -63,7 +63,7 @@ const TABS: TabConfig[] = [
     icon: BookOpen,
     colors: {
       active:
-        "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
+        "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald) shadow-emerald-500/20",
       icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
     },
   },
@@ -73,8 +73,8 @@ const TABS: TabConfig[] = [
     icon: Calendar,
     colors: {
       active:
-        "border-blue-500/40 bg-blue-500/15 text-blue-200 shadow-blue-500/20",
-      icon: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+        "border-blue-500/40 bg-blue-500/15 text-(--ws-cyan) shadow-blue-500/20",
+      icon: "bg-blue-500/20 text-(--ws-cyan) border-blue-500/30",
     },
   },
   {
@@ -84,7 +84,7 @@ const TABS: TabConfig[] = [
     colors: {
       active:
         "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
-      icon: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+      icon: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
     },
   },
   {
@@ -123,8 +123,8 @@ const TABS: TabConfig[] = [
     icon: Settings,
     colors: {
       active:
-        "border-slate-400/40 bg-slate-500/15 text-slate-200 shadow-slate-500/20",
-      icon: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+        "border-slate-400/40 bg-slate-500/15 text-(--ws-fg-70) shadow-slate-500/20",
+      icon: "bg-slate-500/20 text-(--ws-fg-70) border-slate-500/30",
     },
   },
 ];

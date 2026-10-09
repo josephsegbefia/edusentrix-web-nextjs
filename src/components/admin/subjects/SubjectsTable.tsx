@@ -131,7 +131,7 @@ export function SubjectsTable({
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-          <Shapes className="h-8 w-8 text-amber-100/45" />
+          <Shapes className="h-8 w-8 text-(--ws-amber)" />
         </div>
         <p className="mt-4 text-sm font-medium text-white/70">No subjects found</p>
         <p className="mt-1 text-xs text-white/50">
@@ -282,8 +282,8 @@ export function SubjectsTable({
                     className={cn(
                       "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
                       subject.isActive
-                        ? "bg-blue-500/15 text-blue-100 border border-blue-400/40"
-                        : "bg-slate-500/20 text-slate-100 border border-slate-400/40"
+                        ? "bg-blue-500/15 text-(--ws-cyan) border border-blue-400/40"
+                        : "bg-slate-500/20 text-(--ws-fg-70) border border-slate-400/40"
                     )}
                   >
                     {subject.isActive ? "Active" : "Inactive"}
@@ -351,7 +351,7 @@ export function SubjectsTable({
                           onDelete?.(subject.id);
                         }}
                         icon={<Trash2 className="h-3.5 w-3.5" />}
-                        className="text-rose-200 focus:text-rose-100"
+                        className="text-(--ws-rose) focus:text-(--ws-rose)"
                       >
                         Delete subject
                       </PremiumDropdownMenuItem>

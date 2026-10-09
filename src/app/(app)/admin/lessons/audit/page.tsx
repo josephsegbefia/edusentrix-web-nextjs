@@ -37,7 +37,7 @@ export default function AdminLessonAuditLogPage() {
     <div className="space-y-8 p-6 text-(--ws-fg) md:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/20 text-sky-200">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/20 text-(--ws-cyan)">
             <ScrollText className="h-5 w-5" />
           </div>
           <div>
@@ -88,7 +88,7 @@ export default function AdminLessonAuditLogPage() {
           <Button
             type="button"
             onClick={() => applyFilter()}
-            className="bg-sky-500/25 text-sky-100 hover:bg-sky-500/35"
+            className="bg-sky-500/25 text-(--ws-cyan) hover:bg-sky-500/35"
           >
             Apply
           </Button>

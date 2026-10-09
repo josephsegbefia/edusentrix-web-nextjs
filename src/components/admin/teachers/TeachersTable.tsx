@@ -291,7 +291,7 @@ export function TeachersTable({
                         teacher.status === "active" &&
                           "bg-emerald-500/15 text-(--ws-emerald) border border-emerald-400/40",
                         teacher.status === "inactive" &&
-                          "bg-slate-500/20 text-slate-100 border border-slate-400/40",
+                          "bg-slate-500/20 text-(--ws-fg-70) border border-slate-400/40",
                         teacher.status === "on_leave" &&
                           "bg-amber-500/15 text-(--ws-amber) border border-amber-400/40",
                         teacher.status === "terminated" &&

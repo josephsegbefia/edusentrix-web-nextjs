@@ -47,12 +47,12 @@ function MetricStatCard({
     teal: {
       gradient: "from-teal-500/10 via-teal-500/5 to-transparent",
       iconBg: "bg-teal-500/20 border-teal-500/30",
-      iconColor: "text-teal-300",
+      iconColor: "text-(--ws-teal)",
     },
     cyan: {
       gradient: "from-cyan-500/10 via-cyan-500/5 to-transparent",
       iconBg: "bg-cyan-500/20 border-cyan-500/30",
-      iconColor: "text-cyan-300",
+      iconColor: "text-(--ws-cyan)",
     },
     emerald: {
       gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
@@ -62,7 +62,7 @@ function MetricStatCard({
     amber: {
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
       iconBg: "bg-amber-500/20 border-amber-500/30",
-      iconColor: "text-amber-300",
+      iconColor: "text-(--ws-amber)",
     },
   };
 
@@ -129,7 +129,7 @@ export function PeriodDetailHeader({
         <div className="flex flex-1 flex-col gap-5 min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/20">
-              <Calendar className="h-7 w-7 text-teal-300" />
+              <Calendar className="h-7 w-7 text-(--ws-teal)" />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export function PeriodDetailHeader({
                   {period.term} {period.yearLabel}
                 </h1>
                 {period.isCurrent && (
-                  <Badge className="gap-1 rounded-lg border-emerald-400/50 bg-emerald-500/20 text-[10px] font-semibold text-emerald-200">
+                  <Badge className="gap-1 rounded-lg border-emerald-400/50 bg-emerald-500/20 text-[10px] font-semibold text-(--ws-emerald)">
                     <Star className="h-3 w-3" />
                     Current
                   </Badge>
@@ -155,7 +155,7 @@ export function PeriodDetailHeader({
               size="sm"
               onClick={onSetCurrent}
               disabled={isSettingCurrent}
-              className="w-fit gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-teal-200 hover:bg-teal-500/20"
+              className="w-fit gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-(--ws-teal) hover:bg-teal-500/20"
             >
               {isSettingCurrent ? (
                 <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-300 border-t-transparent" />

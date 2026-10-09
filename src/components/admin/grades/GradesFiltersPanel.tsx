@@ -93,7 +93,7 @@ export function GradesFiltersPanel({
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-(--ws-fg)">Advanced Filters</h3>
           {activeFilterCount > 0 && (
-            <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-300">
+            <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-(--ws-cyan)">
               {activeFilterCount} active
             </span>
           )}
@@ -166,7 +166,7 @@ export function GradesFiltersPanel({
         <Button
           size="sm"
           onClick={handleApply}
-          className="gap-1.5 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30"
+          className="gap-1.5 bg-blue-500/20 text-(--ws-cyan) hover:bg-blue-500/30"
         >
           <Check className="h-3.5 w-3.5" />
           Apply

@@ -161,7 +161,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
                 size="sm"
                 onClick={() => setView("edit")}
                 className={cn(
-                  "gap-2 rounded-xl border-sky-400/30 bg-sky-500/10 text-sky-100 shadow-sm shadow-black/25 backdrop-blur-sm",
+                  "gap-2 rounded-xl border-sky-400/30 bg-sky-500/10 text-(--ws-cyan) shadow-sm shadow-black/25 backdrop-blur-sm",
                   "hover:border-sky-400/45 hover:bg-sky-500/15 hover:text-(--ws-fg)"
                 )}
               >
@@ -216,7 +216,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
             variant="outline"
             size="sm"
             onClick={() => setView("published")}
-            className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-100 shadow-sm shadow-black/25 backdrop-blur-sm hover:border-emerald-400/45 hover:bg-emerald-500/15 hover:text-(--ws-fg)"
+            className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) shadow-sm shadow-black/25 backdrop-blur-sm hover:border-emerald-400/45 hover:bg-emerald-500/15 hover:text-(--ws-fg)"
           >
             View published
           </Button>

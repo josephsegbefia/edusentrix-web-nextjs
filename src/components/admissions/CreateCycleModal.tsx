@@ -226,7 +226,7 @@ export function CreateCycleModal({
               </code>
             </p>
             {slug && !slugIsValid ? (
-              <p className="text-xs text-rose-300">
+              <p className="text-xs text-(--ws-rose)">
                 Use 1–40 lowercase letters, numbers and dashes.
               </p>
             ) : null}
@@ -357,7 +357,7 @@ export function CreateCycleModal({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                       isOn
-                        ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
+                        ? "border-cyan-400/40 bg-cyan-500/15 text-(--ws-cyan)"
                         : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                     )}
                   >
@@ -370,7 +370,7 @@ export function CreateCycleModal({
         </div>
 
         {errorText ? (
-          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-(--ws-rose)">
             {errorText}
           </div>
         ) : null}

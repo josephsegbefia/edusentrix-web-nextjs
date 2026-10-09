@@ -96,7 +96,7 @@ export function ExamSchedulingLeoPanel({
     <GlassPanel className={cn("p-4", className)} glow="cyan">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
+          <div className="flex items-center gap-2 text-sm font-medium text-(--ws-cyan)">
             <Sparkles className="h-4 w-4" />
             Leo advisory
           </div>

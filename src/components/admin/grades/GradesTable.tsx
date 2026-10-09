@@ -185,7 +185,7 @@ export function GradesTable({
                 <td className="px-3 py-2 align-middle">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10">
-                      <GraduationCap className="h-4 w-4 text-blue-300" />
+                      <GraduationCap className="h-4 w-4 text-(--ws-cyan)" />
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-(--ws-fg)">
@@ -214,9 +214,9 @@ export function GradesTable({
                     className={cn(
                       "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
                       grade.isActive &&
-                        "bg-blue-500/15 text-blue-100 border border-blue-400/40",
+                        "bg-blue-500/15 text-(--ws-cyan) border border-blue-400/40",
                       !grade.isActive &&
-                        "bg-slate-500/20 text-slate-100 border border-slate-400/40"
+                        "bg-slate-500/20 text-(--ws-fg-70) border border-slate-400/40"
                     )}
                   >
                     {grade.isActive ? "Active" : "Inactive"}

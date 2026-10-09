@@ -50,8 +50,8 @@ const BASE_TABS: {
     label: "Assignments",
     icon: Calendar,
     color: {
-      active: "border-purple-500/40 bg-purple-500/15 text-purple-200 shadow-purple-500/20",
-      icon: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+      active: "border-purple-500/40 bg-purple-500/15 text-(--ws-violet) shadow-purple-500/20",
+      icon: "bg-purple-500/20 text-(--ws-violet) border-purple-500/30",
     },
   },
   {
@@ -68,7 +68,7 @@ const BASE_TABS: {
     label: "Performance",
     icon: TrendingUp,
     color: {
-      active: "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
+      active: "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald) shadow-emerald-500/20",
       icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
     },
   },
@@ -77,8 +77,8 @@ const BASE_TABS: {
     label: "Attendance",
     icon: Clock,
     color: {
-      active: "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",
-      icon: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+      active: "border-cyan-500/40 bg-cyan-500/15 text-(--ws-cyan) shadow-cyan-500/20",
+      icon: "bg-cyan-500/20 text-(--ws-cyan) border-cyan-500/30",
     },
   },
   {
@@ -87,7 +87,7 @@ const BASE_TABS: {
     icon: FileText,
     color: {
       active: "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
-      icon: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+      icon: "bg-amber-500/20 text-(--ws-amber) border-amber-500/30",
     },
   },
   {
@@ -117,8 +117,8 @@ const TABS = [
     label: "Weekly schedule",
     icon: CalendarDays,
     color: {
-      active: "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",
-      icon: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+      active: "border-cyan-500/40 bg-cyan-500/15 text-(--ws-cyan) shadow-cyan-500/20",
+      icon: "bg-cyan-500/20 text-(--ws-cyan) border-cyan-500/30",
     },
   },
   ...BASE_TABS.slice(2),
@@ -126,7 +126,7 @@ const TABS = [
 
 export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
   return (
-    <div className="flex w-full items-center justify-between gap-4 px-6 py-4">
+    <div className="flex w-full items-center px-6 py-4">
       <div className="flex max-w-full gap-2 overflow-x-auto pb-1 scrollbar-none">
         {TABS.map((tab) => {
           const isActive = value === tab.id;
@@ -164,13 +164,6 @@ export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
             </button>
           );
         })}
-      </div>
-
-      {/* Helper text */}
-      <div className="hidden items-center gap-2 text-[10px] text-(--ws-fg-40) lg:flex">
-        <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1">
-          {TABS.length} sections
-        </span>
       </div>
     </div>
   );

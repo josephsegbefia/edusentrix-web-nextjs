@@ -119,13 +119,13 @@ export function GradesToolbar({
           className={cn(
             "group gap-1.5 rounded-xl border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-70) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) sm:gap-2 sm:px-4",
             activeFilterCount > 0 &&
-              "border-blue-500/30 bg-blue-500/10 text-blue-300"
+              "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)"
           )}
         >
           <SlidersHorizontal className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
           <span>Filters</span>
           {activeFilterCount > 0 && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-500/30 text-[9px] font-bold text-blue-200">
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-500/30 text-[9px] font-bold text-(--ws-cyan)">
               {activeFilterCount}
             </span>
           )}
@@ -141,7 +141,7 @@ export function GradesToolbar({
                 className={cn(
                   "gap-2 rounded-xl border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-70) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) sm:px-4",
                   stageFilter
-                    ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                    ? "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)"
                     : ""
                 )}
               >
@@ -190,7 +190,7 @@ export function GradesToolbar({
                 className={cn(
                   "gap-2 rounded-xl border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-70) hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) sm:px-4",
                   statusFilter !== "all"
-                    ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                    ? "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)"
                     : ""
                 )}
               >

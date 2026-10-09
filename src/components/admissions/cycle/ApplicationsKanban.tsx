@@ -44,7 +44,7 @@ const COLUMNS: Array<{
     id: "submitted",
     label: "New",
     helper: "Just landed",
-    tone: "border-blue-500/30 bg-blue-500/10 text-blue-100",
+    tone: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
   },
   {
     id: "under_review",
@@ -56,7 +56,7 @@ const COLUMNS: Array<{
     id: "interview_scheduled",
     label: "Interview",
     helper: "Conversation set up",
-    tone: "border-violet-500/30 bg-violet-500/10 text-violet-100",
+    tone: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
   },
   {
     id: "waitlisted",
@@ -149,7 +149,7 @@ export function ApplicationsKanban({ items, onOpen }: ApplicationsKanbanProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs text-cyan-100">
+      <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs text-(--ws-cyan)">
         Drag a card between columns to update its status. Decisions
         (Accept, Reject, Provision) are made by opening the application —
         they intentionally aren&apos;t drag-targets.

@@ -130,7 +130,7 @@ const toneConfig: Record<
     bg: "from-indigo-500/10 via-indigo-500/5 to-transparent",
     iconBg: "from-indigo-500/20 to-indigo-600/20",
     iconColor: "text-(--ws-violet)",
-    valueColor: "text-indigo-100",
+    valueColor: "text-(--ws-violet)",
     glow: "bg-indigo-500/20",
   },
   emerald: {
@@ -138,7 +138,7 @@ const toneConfig: Record<
     bg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
     iconBg: "from-emerald-500/20 to-emerald-600/20",
     iconColor: "text-(--ws-emerald)",
-    valueColor: "text-emerald-100",
+    valueColor: "text-(--ws-emerald)",
     glow: "bg-emerald-500/20",
   },
   rose: {
@@ -153,7 +153,7 @@ const toneConfig: Record<
     border: "border-amber-500/30",
     bg: "from-amber-500/10 via-amber-500/5 to-transparent",
     iconBg: "from-amber-500/20 to-amber-600/20",
-    iconColor: "text-amber-300",
+    iconColor: "text-(--ws-amber)",
     valueColor: "text-(--ws-amber)",
     glow: "bg-amber-500/20",
   },
@@ -161,16 +161,16 @@ const toneConfig: Record<
     border: "border-cyan-500/30",
     bg: "from-cyan-500/10 via-cyan-500/5 to-transparent",
     iconBg: "from-cyan-500/20 to-cyan-600/20",
-    iconColor: "text-cyan-300",
-    valueColor: "text-cyan-100",
+    iconColor: "text-(--ws-cyan)",
+    valueColor: "text-(--ws-cyan)",
     glow: "bg-cyan-500/20",
   },
   slate: {
     border: "border-slate-500/30",
     bg: "from-slate-500/10 via-slate-500/5 to-transparent",
     iconBg: "from-slate-500/20 to-slate-600/20",
-    iconColor: "text-slate-300",
-    valueColor: "text-slate-100",
+    iconColor: "text-(--ws-fg-70)",
+    valueColor: "text-(--ws-fg-70)",
     glow: "bg-slate-500/20",
   },
 };
@@ -248,7 +248,7 @@ const statusConfig: Record<
 > = {
   present: {
     label: "Present",
-    color: "border-emerald-400/50 bg-emerald-500/20 text-emerald-200",
+    color: "border-emerald-400/50 bg-emerald-500/20 text-(--ws-emerald)",
     icon: <CheckCircle2 className="h-3 w-3" />,
   },
   absent: {
@@ -263,17 +263,17 @@ const statusConfig: Record<
   },
   on_leave: {
     label: "On Leave",
-    color: "border-cyan-400/50 bg-cyan-500/20 text-cyan-200",
+    color: "border-cyan-400/50 bg-cyan-500/20 text-(--ws-cyan)",
     icon: <Palmtree className="h-3 w-3" />,
   },
   sick: {
     label: "Sick",
-    color: "border-purple-400/50 bg-purple-500/20 text-purple-200",
+    color: "border-purple-400/50 bg-purple-500/20 text-(--ws-violet)",
     icon: <AlertCircle className="h-3 w-3" />,
   },
   other: {
     label: "Other",
-    color: "border-slate-400/50 bg-slate-500/20 text-slate-200",
+    color: "border-slate-400/50 bg-slate-500/20 text-(--ws-fg-70)",
     icon: <FileText className="h-3 w-3" />,
   },
   not_recorded: {
@@ -521,7 +521,7 @@ function LeaveRequestCard({
                 request.approvalStatus === "pending"
                   ? "border-amber-400/50 bg-amber-500/20 text-(--ws-amber)"
                   : request.approvalStatus === "approved"
-                    ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-200"
+                    ? "border-emerald-400/50 bg-emerald-500/20 text-(--ws-emerald)"
                     : "border-rose-400/50 bg-rose-500/20 text-(--ws-rose)"
               )}
             >
@@ -868,7 +868,7 @@ export default function StaffAttendancePage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="rounded-lg border border-purple-400/30 bg-purple-500/20 p-1.5">
-                <LeoIcon className="h-4 w-4 text-purple-200" />
+                <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
               </span>
               <div>
                 <p className="text-sm font-semibold text-white">
@@ -889,16 +889,16 @@ export default function StaffAttendancePage() {
               </div>
             ) : leoAI.isError && !leoInsights ? (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
-                <p className="text-sm text-red-200 mb-2">
+                <p className="text-sm text-(--ws-rose) mb-2">
                   Leo couldn&apos;t generate insights
                 </p>
-                <p className="text-xs text-red-200/70 mb-4">{leoAI.error?.message}</p>
+                <p className="text-xs text-(--ws-rose) mb-4">{leoAI.error?.message}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => leoAI.mutate()}
                   disabled={leoAI.isPending}
-                  className="gap-2 border-red-500/30 text-red-200 hover:bg-red-500/20"
+                  className="gap-2 border-red-500/30 text-(--ws-rose) hover:bg-red-500/20"
                 >
                   {leoAI.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -910,7 +910,7 @@ export default function StaffAttendancePage() {
               <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
                 <div className="flex justify-center mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
-                    <LeoIcon className="h-6 w-6 text-purple-300" />
+                    <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
                   </div>
                 </div>
                 <p className="text-sm text-white/70 mb-4">
@@ -947,7 +947,7 @@ export default function StaffAttendancePage() {
                       size="sm"
                       onClick={() => leoAI.mutate()}
                       disabled={leoAI.isPending}
-                      className="h-7 gap-1 text-xs text-purple-200 hover:bg-purple-500/20"
+                      className="h-7 gap-1 text-xs text-(--ws-violet) hover:bg-purple-500/20"
                     >
                       {leoAI.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1015,7 +1015,7 @@ export default function StaffAttendancePage() {
             className={cn(
               "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
               activeTab === "leave"
-                ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-lg shadow-cyan-500/10"
+                ? "border-cyan-500/40 bg-cyan-500/15 text-(--ws-cyan) shadow-lg shadow-cyan-500/10"
                 : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white"
             )}
           >
@@ -1139,7 +1139,7 @@ export default function StaffAttendancePage() {
                 <div className="mb-4 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-3">
                   <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                     <div className="space-y-1">
-                      <p className="flex items-center gap-1.5 text-xs font-medium text-indigo-100">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-(--ws-violet)">
                         <Sparkles className="h-3.5 w-3.5" />
                         Smart Bulk Actions
                       </p>
@@ -1246,7 +1246,7 @@ export default function StaffAttendancePage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
-                    <Palmtree className="h-4 w-4 text-cyan-300" />
+                    <Palmtree className="h-4 w-4 text-(--ws-cyan)" />
                   </span>
                   Leave Requests
                 </CardTitle>
@@ -1264,7 +1264,7 @@ export default function StaffAttendancePage() {
                             ? status === "pending"
                               ? "border-amber-500/40 bg-amber-500/15 text-(--ws-amber)"
                               : status === "approved"
-                                ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-200"
+                                ? "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald)"
                                 : "border-rose-500/40 bg-rose-500/15 text-(--ws-rose)"
                             : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8"
                         )}

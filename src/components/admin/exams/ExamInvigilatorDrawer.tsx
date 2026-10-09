@@ -71,11 +71,11 @@ const ROLE_LABELS: Record<ExamInvigilatorRole, string> = {
 };
 
 const STATUS_STYLES: Record<ExamInvigilatorStatus, string> = {
-  assigned: "border-sky-500/30 bg-sky-500/10 text-sky-100",
-  acknowledged: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  assigned: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
+  acknowledged: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   declined: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   replaced: "border-white/10 bg-white/5 text-white/50",
-  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  completed: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   missed: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
 
@@ -275,7 +275,7 @@ export function ExamInvigilatorDrawer({
                         <p className="truncate text-sm font-medium text-white">{name}</p>
                         <Badge
                           variant="outline"
-                          className="border-cyan-500/30 bg-cyan-500/10 text-cyan-100"
+                          className="border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)"
                         >
                           {ROLE_LABELS[assignment.role]}
                         </Badge>
@@ -309,7 +309,7 @@ export function ExamInvigilatorDrawer({
         {canMutate ? (
           <div className="space-y-4 border-t border-white/10 pt-4">
             <div className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-cyan-300" />
+              <UserPlus className="h-4 w-4 text-(--ws-cyan)" />
               <Label className="text-white/80">Assign invigilator</Label>
             </div>
 

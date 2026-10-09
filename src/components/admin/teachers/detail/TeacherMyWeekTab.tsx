@@ -88,7 +88,7 @@ export function TeacherMyWeekTab({
     return (
       <Card className="border-red-500/20 bg-red-950/20">
         <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-300">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-(--ws-rose)">
             <AlertTriangle className="h-7 w-7" />
           </div>
           <div className="space-y-2">
@@ -118,7 +118,7 @@ export function TeacherMyWeekTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm text-(--ws-fg-50)">
-        <CalendarDays className="h-4 w-4 text-cyan-300" />
+        <CalendarDays className="h-4 w-4 text-(--ws-cyan)" />
         Teaching lessons repeat weekly from the current academic period.
         Duties remain date-aware and only show on the weeks where they are
         active.

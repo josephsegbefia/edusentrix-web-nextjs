@@ -60,13 +60,13 @@ import { cn } from "@/lib/utils";
 function statusBadgeClasses(tone: "slate" | "amber" | "blue" | "emerald" | "red") {
   switch (tone) {
     case "emerald":
-      return "border-emerald-500/30 bg-emerald-500/15 text-emerald-200";
+      return "border-emerald-500/30 bg-emerald-500/15 text-(--ws-emerald)";
     case "amber":
-      return "border-amber-500/30 bg-amber-500/15 text-amber-200";
+      return "border-amber-500/30 bg-amber-500/15 text-(--ws-amber)";
     case "blue":
-      return "border-cyan-500/30 bg-cyan-500/15 text-cyan-200";
+      return "border-cyan-500/30 bg-cyan-500/15 text-(--ws-cyan)";
     case "red":
-      return "border-rose-500/30 bg-rose-500/15 text-rose-200";
+      return "border-rose-500/30 bg-rose-500/15 text-(--ws-rose)";
     case "slate":
     default:
       return "border-white/15 bg-white/5 text-white/70";
@@ -145,7 +145,7 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 shadow-lg shadow-cyan-950/20">
-              <Wallet className="h-7 w-7 text-cyan-100" />
+              <Wallet className="h-7 w-7 text-(--ws-cyan)" />
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
@@ -176,19 +176,19 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
         </div>
       </div>
 
-      <Alert className="border-cyan-500/20 bg-cyan-500/10 text-cyan-100">
-        <ShieldCheck className="h-4 w-4 text-cyan-200" />
+      <Alert className="border-cyan-500/20 bg-cyan-500/10 text-(--ws-cyan)">
+        <ShieldCheck className="h-4 w-4 text-(--ws-cyan)" />
         <AlertTitle>Payout details are managed by the billing owner</AlertTitle>
-        <AlertDescription className="text-cyan-100/85">
+        <AlertDescription className="text-(--ws-cyan)">
           School admins can monitor payment readiness here, but bank details, account numbers, and payout-edit actions are hidden after handoff is accepted.
         </AlertDescription>
       </Alert>
 
       {data.paystackKeyMode === "test" && (
-        <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
-          <AlertCircle className="h-4 w-4 text-amber-200" />
+        <Alert className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)">
+          <AlertCircle className="h-4 w-4 text-(--ws-amber)" />
           <AlertTitle>Paystack test mode</AlertTitle>
-          <AlertDescription className="text-amber-100/90">
+          <AlertDescription className="text-(--ws-amber)">
             This deployment uses a Paystack test secret key. Subaccounts and payments show up only
             in the Paystack dashboard when Test mode is on — they will not appear in live mode.
           </AlertDescription>
@@ -606,7 +606,7 @@ export default function PaymentSetupPage() {
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10">
-              <Wallet className="h-6 w-6 text-emerald-200" />
+              <Wallet className="h-6 w-6 text-(--ws-emerald)" />
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
@@ -700,10 +700,10 @@ export default function PaymentSetupPage() {
       </div>
 
       {data.paystackKeyMode === "test" && (
-        <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
-          <AlertCircle className="h-4 w-4 text-amber-200" />
+        <Alert className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)">
+          <AlertCircle className="h-4 w-4 text-(--ws-amber)" />
           <AlertTitle>Paystack test mode</AlertTitle>
-          <AlertDescription className="text-amber-100/90">
+          <AlertDescription className="text-(--ws-amber)">
             This deployment uses a Paystack test secret key. Subaccounts and payments show up only
             in the Paystack dashboard when Test mode is on — they will not appear in live mode.
           </AlertDescription>
@@ -715,7 +715,7 @@ export default function PaymentSetupPage() {
           <CardHeader className="border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
-                <Landmark className="h-5 w-5 text-cyan-200" />
+                <Landmark className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div>
                 <CardTitle className="text-xl text-white">Payout account details</CardTitle>
@@ -809,7 +809,7 @@ export default function PaymentSetupPage() {
                 </Badge>
               </div>
               {data.missingFields.length > 0 && (
-                <p className="mt-3 text-xs text-amber-200/90">
+                <p className="mt-3 text-xs text-(--ws-amber)">
                   Missing: {data.missingFields.join(", ")}
                 </p>
               )}
@@ -819,20 +819,20 @@ export default function PaymentSetupPage() {
 
         <div className="space-y-6">
           {data.reviewReason && (
-            <Alert className="border-amber-500/20 bg-amber-500/10 text-amber-100">
-              <AlertCircle className="h-4 w-4 text-amber-200" />
+            <Alert className="border-amber-500/20 bg-amber-500/10 text-(--ws-amber)">
+              <AlertCircle className="h-4 w-4 text-(--ws-amber)" />
               <AlertTitle>Manual review required</AlertTitle>
-              <AlertDescription className="text-amber-100/85">
+              <AlertDescription className="text-(--ws-amber)">
                 {data.reviewReason}
               </AlertDescription>
             </Alert>
           )}
 
           {data.pendingPlatformPayout && (
-            <Alert className="border-sky-500/20 bg-sky-500/10 text-sky-100">
-              <Landmark className="h-4 w-4 text-sky-200" />
+            <Alert className="border-sky-500/20 bg-sky-500/10 text-(--ws-cyan)">
+              <Landmark className="h-4 w-4 text-(--ws-cyan)" />
               <AlertTitle>Platform payout proposal</AlertTitle>
-              <AlertDescription className="space-y-3 text-sky-100/85">
+              <AlertDescription className="space-y-3 text-(--ws-cyan)">
                 <p>
                   The platform team suggested new payout details:{" "}
                   <span className="font-medium text-white">
@@ -914,7 +914,7 @@ export default function PaymentSetupPage() {
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-xs text-sky-200/80">
+                  <p className="text-xs text-(--ws-cyan)">
                     Only the billing owner can approve this while the school was
                     already live for online payments. Contact the billing owner to
                     continue.
@@ -925,10 +925,10 @@ export default function PaymentSetupPage() {
           )}
 
           {!data.capabilities.canApprovePayoutChange && (
-            <Alert className="border-cyan-500/20 bg-cyan-500/10 text-cyan-100">
-              <ShieldCheck className="h-4 w-4 text-cyan-200" />
+            <Alert className="border-cyan-500/20 bg-cyan-500/10 text-(--ws-cyan)">
+              <ShieldCheck className="h-4 w-4 text-(--ws-cyan)" />
               <AlertTitle>Restricted payout-change authority</AlertTitle>
-              <AlertDescription className="text-cyan-100/85">
+              <AlertDescription className="text-(--ws-cyan)">
                 You can help manage payment setup, but only the billing owner can
                 approve payout destination changes after online payments are live.
               </AlertDescription>
@@ -936,10 +936,10 @@ export default function PaymentSetupPage() {
           )}
 
           {(data.paystack.lastError || data.provisioning?.lastError) && (
-            <Alert className="border-rose-500/20 bg-rose-500/10 text-rose-100">
-              <AlertCircle className="h-4 w-4 text-rose-200" />
+            <Alert className="border-rose-500/20 bg-rose-500/10 text-(--ws-rose)">
+              <AlertCircle className="h-4 w-4 text-(--ws-rose)" />
               <AlertTitle>Last setup error</AlertTitle>
-              <AlertDescription className="text-rose-100/85">
+              <AlertDescription className="text-(--ws-rose)">
                 {data.paystack.lastError || data.provisioning?.lastError}
               </AlertDescription>
             </Alert>
@@ -949,7 +949,7 @@ export default function PaymentSetupPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
-                  <CreditCard className="h-5 w-5 text-cyan-200" />
+                  <CreditCard className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-white">Checkout fees</CardTitle>
@@ -1021,7 +1021,7 @@ export default function PaymentSetupPage() {
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-white/60">Service fee</span>
-                      <span className="font-medium text-cyan-100">
+                      <span className="font-medium text-(--ws-cyan)">
                         {formatMinor(checkoutFees.data.example.platformFeeMinor)}
                       </span>
                     </div>
@@ -1039,7 +1039,7 @@ export default function PaymentSetupPage() {
               ) : checkoutFees.isLoading ? (
                 <div className="h-28 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
               ) : (
-                <p className="text-sm text-amber-200/85">
+                <p className="text-sm text-(--ws-amber)">
                   Could not load checkout fee settings.
                 </p>
               )}
@@ -1050,7 +1050,7 @@ export default function PaymentSetupPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/10">
-                  <CreditCard className="h-5 w-5 text-emerald-200" />
+                  <CreditCard className="h-5 w-5 text-(--ws-emerald)" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-white">Activation checklist</CardTitle>
@@ -1068,7 +1068,7 @@ export default function PaymentSetupPage() {
                       className={cn(
                         "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
                         item.done
-                          ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-200"
+                          ? "border-emerald-400/30 bg-emerald-400/15 text-(--ws-emerald)"
                           : "border-white/10 bg-white/5 text-white/50"
                       )}
                     >
@@ -1218,7 +1218,7 @@ export default function PaymentSetupPage() {
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
-                    <ShieldCheck className="h-5 w-5 text-cyan-200" />
+                    <ShieldCheck className="h-5 w-5 text-(--ws-cyan)" />
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-white">Finance delegate</p>
@@ -1325,7 +1325,7 @@ export default function PaymentSetupPage() {
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10">
-                    <Mail className="h-5 w-5 text-amber-200" />
+                    <Mail className="h-5 w-5 text-(--ws-amber)" />
                   </div>
                   <div>
                     <p className="text-lg font-semibold text-white">

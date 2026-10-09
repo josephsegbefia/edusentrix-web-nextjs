@@ -34,12 +34,12 @@ function OverviewStatCard({
     teal: {
       gradient: "from-teal-500/10 via-teal-500/5 to-transparent",
       iconBg: "bg-teal-500/20 border-teal-500/30",
-      iconColor: "text-teal-300",
+      iconColor: "text-(--ws-teal)",
     },
     cyan: {
       gradient: "from-cyan-500/10 via-cyan-500/5 to-transparent",
       iconBg: "bg-cyan-500/20 border-cyan-500/30",
-      iconColor: "text-cyan-300",
+      iconColor: "text-(--ws-cyan)",
     },
     emerald: {
       gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
@@ -49,12 +49,12 @@ function OverviewStatCard({
     amber: {
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
       iconBg: "bg-amber-500/20 border-amber-500/30",
-      iconColor: "text-amber-300",
+      iconColor: "text-(--ws-amber)",
     },
     purple: {
       gradient: "from-purple-500/10 via-purple-500/5 to-transparent",
       iconBg: "bg-purple-500/20 border-purple-500/30",
-      iconColor: "text-purple-300",
+      iconColor: "text-(--ws-violet)",
     },
   };
 

@@ -93,7 +93,7 @@ export function ApplicationsBulkBar({
       <div className="mx-auto max-w-5xl rounded-2xl border border-(--ws-line) bg-(--ws-panel-to) p-3 shadow-2xl backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-100">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-(--ws-cyan)">
               <Users className="h-3.5 w-3.5" />
               {selectedIds.length} selected
             </div>

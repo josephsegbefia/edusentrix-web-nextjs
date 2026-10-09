@@ -63,13 +63,13 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 // ============================================================================
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+  draft: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
   pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
-  live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+  approved: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
+  live: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   paused: "border-orange-500/30 bg-orange-500/10 text-(--ws-amber)",
-  closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-  reconciled: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
+  closed: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
+  reconciled: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
   archived: "border-slate-600/30 bg-slate-600/10 text-slate-400",
 };
 

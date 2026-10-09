@@ -87,7 +87,7 @@ export function SchoolLeoSettingsCard() {
     <Card className="border border-white/10 bg-linear-to-br from-amber-900/20 to-slate-950/90 backdrop-blur-xl">
       <CardContent className="p-6">
         <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-white">
-          <LeoIcon className="h-5 w-5 text-amber-300" />
+          <LeoIcon className="h-5 w-5 text-(--ws-amber)" />
           Leo Copilot
         </h3>
         <p className="mb-4 text-sm text-white/50">
@@ -100,7 +100,7 @@ export function SchoolLeoSettingsCard() {
             Loading Leo settings…
           </div>
         ) : isError ? (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-(--ws-rose)">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {error instanceof Error ? error.message : "Could not load"}
           </div>
@@ -112,7 +112,7 @@ export function SchoolLeoSettingsCard() {
                 className={cn(
                   "border-0",
                   data.access?.effectiveEnabled
-                    ? "bg-emerald-500/25 text-emerald-200"
+                    ? "bg-emerald-500/25 text-(--ws-emerald)"
                     : "bg-white/10 text-white/70"
                 )}
               >
@@ -128,7 +128,7 @@ export function SchoolLeoSettingsCard() {
 
             {!data.platform.allowSchoolSelfService && (
               <div className="flex gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/65">
-                <Info className="h-4 w-4 shrink-0 text-amber-300" />
+                <Info className="h-4 w-4 shrink-0 text-(--ws-amber)" />
                 School-level toggles are managed by the platform team for now.
               </div>
             )}
@@ -183,7 +183,7 @@ export function SchoolLeoSettingsCard() {
                   type="button"
                   onClick={onSave}
                   disabled={!dirty || update.isPending}
-                  className="bg-amber-500/20 text-amber-100 hover:bg-amber-500/30"
+                  className="bg-amber-500/20 text-(--ws-amber) hover:bg-amber-500/30"
                 >
                   {update.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

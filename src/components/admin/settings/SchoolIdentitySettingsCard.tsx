@@ -141,7 +141,7 @@ export function SchoolIdentitySettingsCard() {
           <div className="space-y-5">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10">
-                <Camera className="h-5 w-5 text-cyan-200" />
+                <Camera className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-white">
@@ -268,7 +268,7 @@ export function SchoolIdentitySettingsCard() {
                     </div>
                     <Badge
                       variant="outline"
-                      className="border-violet-400/25 bg-violet-500/15 text-[10px] font-semibold tracking-[0.16em] text-violet-100"
+                      className="border-violet-400/25 bg-violet-500/15 text-[10px] font-semibold tracking-[0.16em] text-(--ws-violet)"
                     >
                       School Admin
                     </Badge>

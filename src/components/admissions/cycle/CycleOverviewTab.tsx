@@ -25,7 +25,7 @@ import { LeoAdmissionsGuide } from "@/components/admissions/leo/LeoAdmissionsGui
 type Action = "publish" | "pause" | "close";
 
 const STATUS_DOT: Record<AdmissionCycleDTO["status"], string> = {
-  draft: "bg-(--ws-fill)0",
+  draft: "bg-(--ws-fg-40)",
   published: "bg-emerald-400",
   paused: "bg-amber-400",
   closed: "bg-rose-400",
@@ -167,9 +167,9 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-via) p-5 shadow-[var(--ws-shadow)]">
         <h3 className="text-sm font-semibold text-(--ws-fg)">Pipeline snapshot</h3>
-        <p className="text-xs text-(--ws-fg-50)">
+        <p className="text-xs text-(--ws-fg-60)">
           Live counts by status across all submitted applications.
         </p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -184,10 +184,10 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
           ].map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-black/20 p-3"
+              className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-panel-to) px-3 py-2.5"
             >
-              <span className="text-xs text-(--ws-fg-70)">{item.label}</span>
-              <span className="text-base font-semibold text-(--ws-fg)">
+              <span className="text-xs font-medium text-(--ws-fg-80)">{item.label}</span>
+              <span className="text-base font-semibold tabular-nums text-(--ws-fg)">
                 {byStatus[item.id] ?? 0}
               </span>
             </div>
@@ -195,11 +195,11 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-from) p-5">
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-panel-via) p-5 shadow-[var(--ws-shadow)]">
         <h3 className="text-sm font-semibold text-(--ws-fg)">Cycle settings</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Row label="Slug">
-            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs text-(--ws-fg-90)">
+            <code className="rounded-md border border-(--ws-line) bg-(--ws-panel-to) px-2 py-0.5 text-xs font-medium text-(--ws-fg)">
               {cycle.slug}
             </code>
           </Row>
@@ -207,7 +207,7 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
             {cycle.waitlistEnabled ? (
               <Badge
                 variant="outline"
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+                className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
               >
                 <CheckCircle2 className="mr-1 h-3 w-3" />
                 Enabled
@@ -215,7 +215,7 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
             ) : (
               <Badge
                 variant="outline"
-                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
+                className="border-(--ws-line-strong) bg-(--ws-panel-to) font-medium text-(--ws-fg-80)"
               >
                 <CircleDashed className="mr-1 h-3 w-3" />
                 Disabled
@@ -224,16 +224,16 @@ export function CycleOverviewTab({ cycle }: { cycle: AdmissionCycleDTO }) {
           </Row>
           <Row label="Application fee">
             {cycle.applicationFee?.enabled ? (
-              <span className="text-sm text-(--ws-fg-90)">
+              <span className="text-sm font-medium text-(--ws-fg)">
                 {cycle.applicationFee.currency}{" "}
                 {(cycle.applicationFee.amountMinor / 100).toFixed(2)}
               </span>
             ) : (
-              <span className="text-sm text-(--ws-fg-50)">No fee</span>
+              <span className="text-sm font-medium text-(--ws-fg-80)">No fee</span>
             )}
           </Row>
           <Row label="Intake grades">
-            <span className="text-sm text-(--ws-fg-90)">
+            <span className="text-sm font-medium text-(--ws-fg)">
               {cycle.intakeGradeIds.length || "All active grades"}
             </span>
           </Row>
@@ -299,8 +299,8 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-black/20 p-3">
-      <span className="text-xs text-(--ws-fg-50)">{label}</span>
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-(--ws-line) bg-(--ws-panel-to) px-3 py-2.5">
+      <span className="text-xs font-medium text-(--ws-fg-80)">{label}</span>
       <div>{children}</div>
     </div>
   );

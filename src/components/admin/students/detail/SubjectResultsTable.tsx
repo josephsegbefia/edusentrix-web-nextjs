@@ -21,8 +21,8 @@ type Props = {
 };
 
 const thClass =
-  "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-slate-300";
-const tdClass = "px-3 py-2.5 text-xs text-slate-100/90 align-middle";
+  "px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-70)";
+const tdClass = "px-3 py-2.5 text-xs text-(--ws-fg-70) align-middle";
 
 export function SubjectResultsTable({
   subjects,
@@ -110,14 +110,14 @@ export function SubjectResultsTable({
                         ? row.isPassed === false
                           ? "border-red-400/60 bg-red-500/15 text-red-50"
                           : "border-emerald-400/60 bg-emerald-500/15 text-emerald-50"
-                        : "border-slate-600/60 bg-slate-800/60 text-slate-200"
+                        : "border-slate-600/60 bg-slate-800/60 text-(--ws-fg-70)"
                     )}
                   >
                     {row.gradeLabel ?? "--"}
                   </span>
                 </td>
 
-                <td className={cn(tdClass, "text-right text-[11px] text-slate-300")}>
+                <td className={cn(tdClass, "text-right text-[11px] text-(--ws-fg-70)")}>
                   {row.teacherName ?? "--"}
                 </td>
 

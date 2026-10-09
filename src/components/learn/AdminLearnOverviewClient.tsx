@@ -151,7 +151,7 @@ export function AdminLearnOverviewClient() {
 
         {loading ? (
           <GlassPanel className="p-8 text-center" glow="cyan">
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-teal-200" />
+            <Loader2 className="mx-auto h-6 w-6 animate-spin text-(--ws-teal)" />
             <p className="mt-3 text-sm text-(--ws-fg-50)">Loading Learn overview...</p>
           </GlassPanel>
         ) : error ? (
@@ -184,13 +184,13 @@ export function AdminLearnOverviewClient() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-(--ws-fg)">Account readiness</h2>
-                    <p className="mt-1 text-sm text-(--ws-fg-50)">
+                    <p className="mt-1 text-sm text-(--ws-fg-70)">
                       Create accounts for students in{" "}
                       {data.metrics.gradeRange || "Primary 4 / Grade 4 through JHS 3"} who are
                       eligible but not yet provisioned.
                     </p>
                   </div>
-                  <Users className="h-5 w-5 text-teal-200" />
+                  <Users className="h-5 w-5 text-(--ws-teal)" />
                 </div>
                 <div className="mt-5 space-y-3">
                   <ProgressRow
@@ -218,7 +218,7 @@ export function AdminLearnOverviewClient() {
                         <span className="text-sm font-medium text-(--ws-fg)">
                           {row.classGroupName}
                         </span>
-                        <span className="text-sm text-teal-100">
+                        <span className="text-sm text-(--ws-teal)">
                           {row.activityCount}
                         </span>
                       </div>
@@ -241,7 +241,7 @@ export function AdminLearnOverviewClient() {
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <GlassPanel className="p-4" glow="cyan">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-40)">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">
         {label}
       </p>
       <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{value.toLocaleString()}</p>

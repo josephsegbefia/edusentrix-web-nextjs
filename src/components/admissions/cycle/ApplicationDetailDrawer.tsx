@@ -87,10 +87,10 @@ const STATUS_OPTIONS: Array<{
 ];
 
 const STATUS_BADGES: Record<AdmissionApplicationDetail["status"], string> = {
-  submitted: "border-yellow-500/30 bg-yellow-500/15 text-yellow-200",
-  under_review: "border-sky-500/30 bg-sky-500/15 text-sky-200",
+  submitted: "border-yellow-500/30 bg-yellow-500/15 text-(--ws-amber)",
+  under_review: "border-sky-500/30 bg-sky-500/15 text-(--ws-cyan)",
   interview_scheduled: "border-violet-500/30 bg-violet-500/15 text-(--ws-violet)",
-  accepted: "border-emerald-500/30 bg-emerald-500/15 text-emerald-200",
+  accepted: "border-emerald-500/30 bg-emerald-500/15 text-(--ws-emerald)",
   rejected: "border-rose-500/30 bg-rose-500/15 text-(--ws-rose)",
   waitlisted: "border-amber-500/30 bg-amber-500/15 text-(--ws-amber)",
   withdrawn: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)",

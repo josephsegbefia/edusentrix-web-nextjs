@@ -40,7 +40,7 @@ const toneConfig: Record<
     bg: "from-indigo-500/10 via-indigo-500/5 to-transparent",
     iconBg: "from-indigo-500/20 to-indigo-600/20",
     iconColor: "text-(--ws-violet)",
-    valueColor: "text-indigo-100",
+    valueColor: "text-(--ws-violet)",
     glow: "bg-indigo-500/20",
   },
   emerald: {

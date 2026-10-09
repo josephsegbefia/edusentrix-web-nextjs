@@ -7,7 +7,7 @@ import type { AcademicPeriodProfileStatus } from "@/types/academics/student-acad
 const STATUS_STYLES: Record<AcademicPeriodProfileStatus, string> = {
   no_data: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
   in_progress: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
-  compiled: "border-violet-400/25 bg-violet-500/10 text-violet-100",
+  compiled: "border-violet-400/25 bg-violet-500/10 text-(--ws-violet)",
   approved: "border-cyan-400/25 bg-cyan-500/10 text-(--ws-cyan)",
   released: "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)",
   legacy: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)",

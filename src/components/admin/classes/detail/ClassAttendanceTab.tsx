@@ -28,10 +28,10 @@ type Props = {
 };
 
 function statusTone(status: string) {
-  if (status === "present") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  if (status === "present") return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
   if (status === "late") return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
   if (status === "absent") return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
-  return "border-slate-500/30 bg-slate-500/10 text-slate-200";
+  return "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)";
 }
 
 function bucketLabel(bucket: AttendanceStudentRow["bucket"]) {
@@ -96,7 +96,7 @@ export function ClassAttendanceTab({ classId, className }: Props) {
         />
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-(--ws-emerald)">
               <CalendarCheck2 className="h-5 w-5" />
             </div>
             <div>

@@ -24,7 +24,6 @@ const toneConfig: Record<
     bg: string;
     iconBg: string;
     iconColor: string;
-    valueColor: string;
     glow: string;
   }
 > = {
@@ -32,8 +31,7 @@ const toneConfig: Record<
     border: "border-blue-500/30",
     bg: "from-blue-500/10 via-blue-500/5 to-transparent",
     iconBg: "from-blue-500/20 to-blue-600/20",
-    iconColor: "text-blue-300",
-    valueColor: "text-blue-100",
+    iconColor: "text-(--ws-cyan)",
     glow: "bg-blue-500/20",
   },
   cyan: {
@@ -41,7 +39,6 @@ const toneConfig: Record<
     bg: "from-cyan-500/10 via-cyan-500/5 to-transparent",
     iconBg: "from-cyan-500/20 to-cyan-600/20",
     iconColor: "text-(--ws-cyan)",
-    valueColor: "text-(--ws-cyan)",
     glow: "bg-cyan-500/20",
   },
   indigo: {
@@ -49,7 +46,6 @@ const toneConfig: Record<
     bg: "from-indigo-500/10 via-indigo-500/5 to-transparent",
     iconBg: "from-indigo-500/20 to-indigo-600/20",
     iconColor: "text-(--ws-violet)",
-    valueColor: "text-indigo-100",
     glow: "bg-indigo-500/20",
   },
   sky: {
@@ -57,7 +53,6 @@ const toneConfig: Record<
     bg: "from-sky-500/10 via-sky-500/5 to-transparent",
     iconBg: "from-sky-500/20 to-sky-600/20",
     iconColor: "text-(--ws-cyan)",
-    valueColor: "text-sky-100",
     glow: "bg-sky-500/20",
   },
 };
@@ -118,14 +113,13 @@ function StatCard({
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-50)">
+          <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-70)">
             {label}
           </p>
           <div className="flex items-baseline gap-2">
             <p
               className={cn(
-                "text-3xl font-bold tracking-tight tabular-nums",
-                config.valueColor
+                "text-3xl font-bold tracking-tight tabular-nums text-(--ws-fg)"
               )}
             >
               {loading ? (
@@ -136,7 +130,7 @@ function StatCard({
             </p>
           </div>
           {subtitle && (
-            <p className="text-[11px] text-(--ws-fg-40)">{subtitle}</p>
+            <p className="text-[11px] text-(--ws-fg-60)">{subtitle}</p>
           )}
         </div>
 

@@ -54,7 +54,7 @@ function statusBadge(status: string) {
     },
     issued: {
       label: "Issued",
-      className: "border-blue-400/25 bg-blue-500/10 text-blue-200",
+      className: "border-blue-400/25 bg-blue-500/10 text-(--ws-cyan)",
       icon: Clock,
     },
     paid: {
@@ -64,12 +64,12 @@ function statusBadge(status: string) {
     },
     overdue: {
       label: "Overdue",
-      className: "border-red-400/25 bg-red-500/10 text-red-200",
+      className: "border-red-400/25 bg-red-500/10 text-(--ws-rose)",
       icon: AlertCircle,
     },
     cancelled: {
       label: "Cancelled",
-      className: "border-slate-400/25 bg-slate-500/10 text-slate-200",
+      className: "border-slate-400/25 bg-slate-500/10 text-(--ws-fg-70)",
       icon: XCircle,
     },
     partially_paid: {
@@ -301,7 +301,7 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
               Loading bills...
             </div>
           ) : isError ? (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-(--ws-rose)">
               Failed to load bills. Please try again.
             </div>
           ) : filteredAndSorted.length === 0 ? (

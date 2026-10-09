@@ -189,13 +189,13 @@ function PaymentSetupEntryCard() {
 
   const toneClass =
     data.statusTone === "emerald"
-      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
+      ? "border-emerald-500/30 bg-emerald-500/15 text-(--ws-emerald)"
       : data.statusTone === "amber"
-        ? "border-amber-500/30 bg-amber-500/15 text-amber-200"
+        ? "border-amber-500/30 bg-amber-500/15 text-(--ws-amber)"
         : data.statusTone === "blue"
-          ? "border-cyan-500/30 bg-cyan-500/15 text-cyan-200"
+          ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-cyan)"
           : data.statusTone === "red"
-            ? "border-rose-500/30 bg-rose-500/15 text-rose-200"
+            ? "border-rose-500/30 bg-rose-500/15 text-(--ws-rose)"
             : "border-white/15 bg-white/5 text-white/70";
 
   return (
@@ -207,7 +207,7 @@ function PaymentSetupEntryCard() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10">
-              <Landmark className="h-5 w-5 text-emerald-200" />
+              <Landmark className="h-5 w-5 text-(--ws-emerald)" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -344,8 +344,8 @@ function SettingsPageContent() {
           <CardContent className="flex items-center gap-4 p-6">
             <AlertCircle className="h-8 w-8 text-red-400" />
             <div>
-              <p className="font-medium text-red-200">Failed to load settings</p>
-              <p className="text-sm text-red-300/70">Please refresh the page to try again</p>
+              <p className="font-medium text-(--ws-rose)">Failed to load settings</p>
+              <p className="text-sm text-(--ws-rose)">Please refresh the page to try again</p>
             </div>
           </CardContent>
         </Card>
@@ -369,7 +369,7 @@ function SettingsPageContent() {
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/20">
-              <Settings className="h-6 w-6 text-violet-300" />
+              <Settings className="h-6 w-6 text-(--ws-violet)" />
             </div>
             <div>
               <div className="flex items-center gap-3">
@@ -378,7 +378,7 @@ function SettingsPageContent() {
                 </h1>
                 <Badge
                   variant="outline"
-                  className="border-violet-500/30 bg-violet-500/10 text-violet-300"
+                  className="border-violet-500/30 bg-violet-500/10 text-(--ws-violet)"
                 >
                   <Sparkles className="mr-1 h-3 w-3" />
                   Configuration
@@ -424,7 +424,7 @@ function SettingsPageContent() {
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                 isActive
-                  ? "border border-violet-500/30 bg-violet-500/20 text-violet-200 shadow-lg shadow-violet-500/10"
+                  ? "border border-violet-500/30 bg-violet-500/20 text-(--ws-violet) shadow-lg shadow-violet-500/10"
                   : "border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
               )}
             >
@@ -501,7 +501,7 @@ function SettingsPageContent() {
                     </p>
                     <Link
                       href="/admin/promotions"
-                      className="text-sm font-medium text-indigo-300 hover:text-indigo-200"
+                      className="text-sm font-medium text-(--ws-violet) hover:text-(--ws-violet)"
                     >
                       Open Promotion Center →
                     </Link>
@@ -512,7 +512,7 @@ function SettingsPageContent() {
               <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
                 <CardContent className="p-6">
                   <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                    <Megaphone className="h-5 w-5 text-indigo-300" />
+                    <Megaphone className="h-5 w-5 text-(--ws-violet)" />
                     Attendance Notifications
                   </h3>
 
@@ -593,7 +593,7 @@ function SettingsPageContent() {
                   drafts and imports. This is separate from{" "}
                   <Link
                     href="/admin/settings/curriculum"
-                    className="text-violet-300 underline-offset-2 hover:underline"
+                    className="text-(--ws-violet) underline-offset-2 hover:underline"
                   >
                     school programme
                   </Link>{" "}
@@ -715,7 +715,7 @@ function SettingsPageContent() {
                   <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                       <Label className="flex items-center gap-2 text-white/80">
-                        <ClipboardCheck className="h-4 w-4 text-indigo-300" />
+                        <ClipboardCheck className="h-4 w-4 text-(--ws-violet)" />
                         Teacher Studio
                       </Label>
                       <p className="text-xs text-white/50">
@@ -736,7 +736,7 @@ function SettingsPageContent() {
                   <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                       <Label className="flex items-center gap-2 text-white/80">
-                        <Wifi className="h-4 w-4 text-emerald-300" />
+                        <Wifi className="h-4 w-4 text-(--ws-emerald)" />
                         Offline Mode (PWA)
                       </Label>
                       <p className="text-xs text-white/50">

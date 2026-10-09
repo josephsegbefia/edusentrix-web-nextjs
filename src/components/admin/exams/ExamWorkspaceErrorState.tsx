@@ -33,7 +33,7 @@ export function ExamWorkspaceErrorState({
   return (
     <GlassPanel className={cn("p-6 sm:p-8", className)}>
       <div className={cn(glassInsetClass, "mx-auto max-w-lg px-6 py-10 text-center")}>
-        <AlertTriangle className="mx-auto h-10 w-10 text-amber-300/90" />
+        <AlertTriangle className="mx-auto h-10 w-10 text-(--ws-amber)" />
         <h2 className="mt-4 text-lg font-semibold text-(--ws-fg)">{title}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-(--ws-fg-60)">{description}</p>
         <div className="mt-6 flex flex-col-reverse justify-center gap-2 sm:flex-row">

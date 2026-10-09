@@ -77,28 +77,28 @@ export function DelegationTab({
     <>
       <section className="space-y-6">
         <div className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-panel-from) p-6">
-          <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-5">
+          <div className="flex items-start justify-between gap-3 border-b border-(--ws-line) pb-5">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-fg-40)">
                 Admissions delegation
               </p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">
+              <h3 className="mt-2 text-2xl font-semibold text-(--ws-fg)">
                 Who manages admissions
               </h3>
-              <p className="mt-2 max-w-xl text-sm text-white/55">
+              <p className="mt-2 max-w-xl text-sm text-(--ws-fg-60)">
                 Delegate day-to-day admissions to a teacher you trust. The
                 school admin still sees everything, can override decisions, and
                 can revoke access at any time.
               </p>
             </div>
-            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-cyan-200 sm:flex">
+            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-cyan) sm:flex">
               <ShieldCheck className="h-5 w-5" />
             </div>
           </div>
 
           <div className="mt-6">
             {isLoading ? (
-              <div className="rounded-2xl border border-white/10 bg-black/10 p-6 text-sm text-white/55">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-6 text-sm text-(--ws-fg-60)">
                 Loading delegate…
               </div>
             ) : delegate ? (
@@ -117,17 +117,17 @@ export function DelegationTab({
                   </Avatar>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-base font-semibold text-white">
+                      <p className="truncate text-base font-semibold text-(--ws-fg)">
                         {delegate.firstName} {delegate.lastName}
                       </p>
                       <Badge
                         variant="outline"
-                        className="border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                        className="border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)"
                       >
                         Current delegate
                       </Badge>
                     </div>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-white/55">
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-(--ws-fg-60)">
                       <Mail className="h-3.5 w-3.5" />
                       {delegate.email}
                     </p>
@@ -138,7 +138,7 @@ export function DelegationTab({
                     <Button
                       type="button"
                       variant="outline"
-                      className="gap-2"
+                      className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                       onClick={openAssign}
                     >
                       <Users className="h-4 w-4" />
@@ -147,7 +147,7 @@ export function DelegationTab({
                     <Button
                       type="button"
                       variant="outline"
-                      className="gap-2 border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
+                      className="gap-2 border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20 hover:text-(--ws-rose)"
                       onClick={handleRevoke}
                       disabled={revoke.isPending}
                     >
@@ -158,12 +158,12 @@ export function DelegationTab({
                 ) : null}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/15 bg-black/10 p-8 text-center">
-                <ShieldAlert className="mx-auto h-9 w-9 text-white/35" />
-                <p className="mt-3 text-base font-semibold text-white">
+              <div className="rounded-2xl border border-dashed border-(--ws-line) bg-(--ws-fill) p-8 text-center">
+                <ShieldAlert className="mx-auto h-9 w-9 text-(--ws-fg-40)" />
+                <p className="mt-3 text-base font-semibold text-(--ws-fg)">
                   No delegate assigned
                 </p>
-                <p className="mx-auto mt-1 max-w-md text-sm text-white/55">
+                <p className="mx-auto mt-1 max-w-md text-sm text-(--ws-fg-60)">
                   Without a delegate, only school admins can manage admissions.
                   Assign a teacher to share the workload.
                 </p>

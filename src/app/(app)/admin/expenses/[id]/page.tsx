@@ -827,7 +827,7 @@ export default function ExpenseDetailPage() {
           </div>
 
           <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
-            <p className="text-sm text-blue-300">
+            <p className="text-sm text-(--ws-cyan)">
               This will create a ledger entry in the Financial Center for{" "}
               <strong>{formatCurrency(expense.amountMinor, { currency: expense.currency })}</strong>
             </p>

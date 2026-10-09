@@ -650,7 +650,7 @@ export function RecordPaymentModal(props: {
               </div>
               <div className="flex items-center justify-between text-xs">
                 <div className="text-white/50">Remaining (becomes Credit)</div>
-                <div className="font-semibold text-sky-200">
+                <div className="font-semibold text-(--ws-cyan)">
                   {formatMoney(remainingMinor)}
                 </div>
               </div>

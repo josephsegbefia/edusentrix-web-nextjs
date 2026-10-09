@@ -39,7 +39,7 @@ function statusBadge(status: string) {
     },
     partially_paid: {
       label: "Partially Paid",
-      className: "border-blue-400/25 bg-blue-500/10 text-blue-200",
+      className: "border-blue-400/25 bg-blue-500/10 text-(--ws-cyan)",
       icon: TrendingUp,
     },
     paid: {
@@ -49,7 +49,7 @@ function statusBadge(status: string) {
     },
     overdue: {
       label: "Overdue",
-      className: "border-red-400/25 bg-red-500/10 text-red-200",
+      className: "border-red-400/25 bg-red-500/10 text-(--ws-rose)",
       icon: AlertCircle,
     },
   };
@@ -156,7 +156,7 @@ export function InstallmentSchedule({ studentId }: Props) {
             </div>
             <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
               <div className="text-xs text-muted-foreground">Overdue</div>
-              <div className="mt-1 text-sm font-semibold text-red-200">
+              <div className="mt-1 text-sm font-semibold text-(--ws-rose)">
                 {summary.overdueInstallments}
               </div>
             </div>
@@ -169,7 +169,7 @@ export function InstallmentSchedule({ studentId }: Props) {
             Loading installments...
           </div>
         ) : isError ? (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-(--ws-rose)">
             Failed to load installments. Please try again.
           </div>
         ) : installments.length === 0 ? (
@@ -187,7 +187,7 @@ export function InstallmentSchedule({ studentId }: Props) {
             {/* Overdue */}
             {grouped.overdue.length > 0 && (
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-200">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-(--ws-rose)">
                   <AlertCircle className="h-4 w-4" />
                   Overdue ({grouped.overdue.length})
                 </h3>

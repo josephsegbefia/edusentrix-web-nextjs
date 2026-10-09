@@ -59,17 +59,17 @@ import {
 } from "@/lib/audit/activityActorPresentation";
 
 const fieldClass =
-  "w-full border-(--ws-line) bg-[#111827] text-(--ws-fg) shadow-none placeholder:text-(--ws-fg-40)/35 [&_svg]:text-(--ws-fg-50) focus-visible:border-cyan-400/40 focus-visible:ring-cyan-400/20";
+  "w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) shadow-none placeholder:text-(--ws-fg-40) [&_svg]:text-(--ws-fg-50) focus-visible:border-cyan-400/40 focus-visible:ring-cyan-400/20";
 
 const panelClass =
-  "border border-(--ws-line) bg-[#0b101a] text-(--ws-fg) shadow-xl shadow-black/25";
+  "border border-(--ws-line) bg-(--ws-panel-to) text-(--ws-fg) shadow-[var(--ws-shadow)]";
 
 function statusBadgeClass(status: string) {
   switch (status) {
     case "active":
       return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
     case "expired":
-      return "border-slate-500/30 bg-slate-500/10 text-slate-300";
+      return "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)";
     case "revoked":
       return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
     default:
@@ -329,14 +329,14 @@ function AdminDelegationsPageInner() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-[#080d16] p-5 text-(--ws-fg) shadow-2xl shadow-black/25 sm:p-6">
+      <section className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-(--ws-panel-to) p-5 text-(--ws-fg) shadow-2xl shadow-black/25 sm:p-6">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-300/60 to-transparent"
           aria-hidden
         />
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-100">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-(--ws-cyan)">
               <ShieldCheck className="h-3.5 w-3.5" />
               Controlled staff access
             </div>
@@ -353,7 +353,7 @@ function AdminDelegationsPageInner() {
               type="button"
               variant="outline"
               size="sm"
-              className="border-(--ws-line) bg-[#111827] text-(--ws-fg) hover:bg-[#172033] hover:text-(--ws-fg)"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               onClick={() => void refetch()}
               disabled={isFetching}
             >
@@ -367,7 +367,7 @@ function AdminDelegationsPageInner() {
             <Button
               type="button"
               size="sm"
-              className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+              className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
               onClick={() => openCreate()}
               disabled={modulesLoading || modules.length === 0}
             >
@@ -384,7 +384,7 @@ function AdminDelegationsPageInner() {
             label: "Active delegations",
             value: summaryLoading ? "—" : String(delegationSummary.active),
             icon: UserRoundCheck,
-            tone: "text-emerald-200 bg-emerald-500/10 border-emerald-500/20",
+            tone: "text-(--ws-emerald) bg-emerald-500/10 border-emerald-500/20",
           },
           {
             label: "Expiring soon",
@@ -402,18 +402,18 @@ function AdminDelegationsPageInner() {
             label: "Recent activity",
             value: activityLoading ? "—" : String(Math.min(activityRows.length, 80)),
             icon: Activity,
-            tone: "text-cyan-200 bg-cyan-500/10 border-cyan-500/20",
+            tone: "text-(--ws-cyan) bg-cyan-500/10 border-cyan-500/20",
           },
         ].map((s) => {
           const Icon = s.icon;
           return (
           <div
             key={s.label}
-            className="rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4 shadow-sm"
+            className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-(--ws-fg-40)">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-(--ws-fg-70)">
                   {s.label}
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-(--ws-fg)">{s.value}</p>
@@ -437,7 +437,7 @@ function AdminDelegationsPageInner() {
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <CardTitle className="flex items-center gap-3 text-lg font-semibold text-(--ws-fg)">
               <div className="rounded-xl border border-teal-500/25 bg-teal-500/12 p-2">
-                <Share2 className="h-4 w-4 text-teal-200" />
+                <Share2 className="h-4 w-4 text-(--ws-teal)" />
               </div>
               <span>Active access</span>
             </CardTitle>
@@ -511,7 +511,7 @@ function AdminDelegationsPageInner() {
               </p>
               <Button
                 type="button"
-                className="mt-6 bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+                className="mt-6 bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
                 onClick={() => openCreate()}
                 disabled={modulesLoading || modules.length === 0}
               >
@@ -524,9 +524,9 @@ function AdminDelegationsPageInner() {
               No rows match your staff search.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-(--ws-line) bg-[#080d16]">
+            <div className="overflow-x-auto rounded-2xl border border-(--ws-line) bg-(--ws-panel-to)">
               <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="border-b border-(--ws-line) bg-[#111827] text-[11px] font-semibold uppercase tracking-wider text-(--ws-fg-40)">
+                <thead className="border-b border-(--ws-line) bg-(--ws-fill) text-[11px] font-semibold uppercase tracking-wider text-(--ws-fg-70)">
                   <tr>
                     <th className="px-4 py-3">Staff</th>
                     <th className="px-4 py-3">Module</th>
@@ -537,12 +537,12 @@ function AdminDelegationsPageInner() {
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-(--ws-line)">
                   {visibleRows.map((row) => (
                     <tr key={row.id} className="text-(--ws-fg-80) transition hover:bg-(--ws-fill)">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-[#172033] text-xs font-semibold text-(--ws-fg)">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill-strong) text-xs font-semibold text-(--ws-fg)">
                             {initials(row.staffName || "", row.staffEmail)}
                           </div>
                           <div>
@@ -620,7 +620,7 @@ function AdminDelegationsPageInner() {
       <Card className={cn("relative overflow-hidden", panelClass)}>
         <CardHeader className="border-b border-(--ws-line) pb-3">
           <CardTitle className="flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
-            <Sparkles className="h-4 w-4 text-cyan-200" />
+            <Sparkles className="h-4 w-4 text-(--ws-cyan)" />
             Recent activity
           </CardTitle>
         </CardHeader>
@@ -636,7 +636,7 @@ function AdminDelegationsPageInner() {
               {activityRows.map((a) => (
                 <li key={a.id} className="relative pl-5">
                   <span className="absolute left-0 top-1.5 h-2.5 w-2.5 rounded-full border border-cyan-300/40 bg-cyan-400/25" />
-                  <div className="rounded-xl border border-(--ws-line) bg-[#111827] px-3 py-2.5">
+                  <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5">
                     <p className="text-(--ws-fg)">{a.description}</p>
                     <p className="mt-1 text-xs text-(--ws-fg-50)">
                       {formatActivityActorPrimary(
@@ -668,11 +668,11 @@ function AdminDelegationsPageInner() {
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg overflow-hidden border-(--ws-line) bg-[#080d16] p-0 text-(--ws-fg) shadow-2xl sm:max-w-lg">
-          <DialogHeader className="border-b border-(--ws-line) bg-[#0e1420] px-5 py-4 text-left">
+        <DialogContent className="max-w-lg overflow-hidden border-(--ws-line) bg-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl sm:max-w-lg">
+          <DialogHeader className="border-b border-(--ws-line) bg-(--ws-fill) px-5 py-4 text-left">
             <div className="flex items-center gap-3">
               <div className="rounded-xl border border-cyan-400/25 bg-cyan-400/10 p-2">
-                <Plus className="h-4 w-4 text-cyan-100" />
+                <Plus className="h-4 w-4 text-(--ws-cyan)" />
               </div>
               <div>
                 <DialogTitle>Add delegation</DialogTitle>
@@ -683,7 +683,7 @@ function AdminDelegationsPageInner() {
             </div>
           </DialogHeader>
           <div className="max-h-[min(72vh,720px)] space-y-4 overflow-y-auto px-5 py-5">
-            <div className="rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="space-y-2">
               <Label className="text-(--ws-fg-80)">Staff member</Label>
               <PremiumSelect
@@ -706,7 +706,7 @@ function AdminDelegationsPageInner() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="space-y-2">
               <Label className="text-(--ws-fg-80)">Module</Label>
               <PremiumSelect value={createModuleId} onValueChange={setCreateModuleId}>
@@ -724,7 +724,7 @@ function AdminDelegationsPageInner() {
               {createModule ? (
                 <>
                   <p className="text-xs text-(--ws-fg-40)">{createModule.description}</p>
-                  <p className="text-xs text-sky-200/70">
+                  <p className="text-xs text-(--ws-cyan)">
                     This gives access only to {createModule.label}. It does not make the user a school
                     admin.
                   </p>
@@ -733,7 +733,7 @@ function AdminDelegationsPageInner() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="space-y-2">
               <Label className="text-(--ws-fg-80)">Access level</Label>
               <PremiumSelect value={createPresetId} onValueChange={setCreatePresetId}>
@@ -756,7 +756,7 @@ function AdminDelegationsPageInner() {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+            <div className="space-y-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="delegation-expiry"
@@ -783,7 +783,7 @@ function AdminDelegationsPageInner() {
               ) : null}
             </div>
 
-            <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+            <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <Label className="text-(--ws-fg-80)">Admin note (optional)</Label>
               <Textarea
                 value={createNote}
@@ -793,12 +793,12 @@ function AdminDelegationsPageInner() {
               />
             </div>
             {grantConfirmation ? (
-              <p className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-50">
+              <p className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-(--ws-fg-80)">
                 {grantConfirmation}
               </p>
             ) : null}
           </div>
-          <DialogFooter className="border-t border-(--ws-line) bg-[#0b101a] px-5 py-4">
+          <DialogFooter className="border-t border-(--ws-line) bg-(--ws-fill) px-5 py-4">
             <Button
               type="button"
               variant="ghost"
@@ -809,7 +809,7 @@ function AdminDelegationsPageInner() {
             </Button>
             <Button
               type="button"
-              className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+              className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
               disabled={
                 !createStaffId ||
                 !createModuleId ||
@@ -827,11 +827,11 @@ function AdminDelegationsPageInner() {
       </Dialog>
 
       <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
-        <DialogContent className="max-w-lg overflow-hidden border-(--ws-line) bg-[#080d16] p-0 text-(--ws-fg) shadow-2xl">
-          <DialogHeader className="border-b border-(--ws-line) bg-[#0e1420] px-5 py-4 text-left">
+        <DialogContent className="max-w-lg overflow-hidden border-(--ws-line) bg-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl">
+          <DialogHeader className="border-b border-(--ws-line) bg-(--ws-fill) px-5 py-4 text-left">
             <div className="flex items-center gap-3">
               <div className="rounded-xl border border-teal-400/25 bg-teal-400/10 p-2">
-                <Pencil className="h-4 w-4 text-teal-100" />
+                <Pencil className="h-4 w-4 text-(--ws-teal)" />
               </div>
               <div>
                 <DialogTitle>Edit delegation</DialogTitle>
@@ -844,15 +844,15 @@ function AdminDelegationsPageInner() {
           {editRow ? (
             <>
               <div className="space-y-4 px-5 py-5">
-                <div className="rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-40)">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Current delegate
                   </p>
                   <p className="mt-1 text-sm font-medium text-(--ws-fg)">
                     {editRow.staffName} · {editRow.moduleLabel}
                   </p>
                 </div>
-                <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+                <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <Label className="text-(--ws-fg-80)">Access level</Label>
                   <PremiumSelect value={editPreset} onValueChange={setEditPreset}>
                     <PremiumSelectTrigger className={fieldClass}>
@@ -867,7 +867,7 @@ function AdminDelegationsPageInner() {
                     </PremiumSelectContent>
                   </PremiumSelect>
                 </div>
-                <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+                <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <CustomDatePicker
                     label="Expiry"
                     value={editExpiry}
@@ -880,13 +880,13 @@ function AdminDelegationsPageInner() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="px-0 text-teal-300 hover:bg-transparent hover:text-teal-200"
+                    className="px-0 text-(--ws-teal) hover:bg-transparent hover:text-(--ws-teal)"
                     onClick={() => setEditExpiry(null)}
                   >
                     Clear expiry (no end date)
                   </Button>
                 </div>
-                <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+                <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                   <Label className="text-(--ws-fg-80)">Note</Label>
                   <Textarea
                     value={editNote}
@@ -895,7 +895,7 @@ function AdminDelegationsPageInner() {
                   />
                 </div>
               </div>
-              <DialogFooter className="border-t border-(--ws-line) bg-[#0b101a] px-5 py-4">
+              <DialogFooter className="border-t border-(--ws-line) bg-(--ws-fill) px-5 py-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -906,7 +906,7 @@ function AdminDelegationsPageInner() {
                 </Button>
                 <Button
                   type="button"
-                  className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
+                  className="bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white"
                   disabled={patchMut.isPending}
                   onClick={() => void submitEdit()}
                 >
@@ -928,8 +928,8 @@ function AdminDelegationsPageInner() {
           }
         }}
       >
-        <DialogContent className="max-w-md overflow-hidden border-(--ws-line) bg-[#080d16] p-0 text-(--ws-fg) shadow-2xl">
-          <DialogHeader className="border-b border-rose-500/20 bg-[#0e1420] px-5 py-4 text-left">
+        <DialogContent className="max-w-md overflow-hidden border-(--ws-line) bg-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl">
+          <DialogHeader className="border-b border-rose-500/20 bg-(--ws-fill) px-5 py-4 text-left">
             <div className="flex items-center gap-3">
               <div className="rounded-xl border border-rose-400/25 bg-rose-500/10 p-2">
                 <Ban className="h-4 w-4 text-(--ws-rose)" />
@@ -949,7 +949,7 @@ function AdminDelegationsPageInner() {
                   {revokeRow.staffName} will no longer see {revokeRow.moduleLabel} in their sidebar.
                   Their past activity remains in the audit trail.
                 </div>
-              <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-[#0e1420] p-4">
+              <div className="space-y-2 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <Label className="text-(--ws-fg-80)">Reason (optional)</Label>
                 <Textarea
                   value={revokeReason}
@@ -959,7 +959,7 @@ function AdminDelegationsPageInner() {
                 />
               </div>
               </div>
-              <DialogFooter className="border-t border-(--ws-line) bg-[#0b101a] px-5 py-4">
+              <DialogFooter className="border-t border-(--ws-line) bg-(--ws-fill) px-5 py-4">
                 <Button
                   type="button"
                   variant="ghost"

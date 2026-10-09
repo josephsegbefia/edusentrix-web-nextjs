@@ -40,7 +40,7 @@ function statusBadge(p: any) {
   if (p?.approvalStatus === "approved")
     return (
       <Badge
-        className="border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+        className="border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)"
         variant="outline"
       >
         Approved
@@ -49,7 +49,7 @@ function statusBadge(p: any) {
   if (p?.approvalStatus === "rejected")
     return (
       <Badge
-        className="border-red-400/25 bg-red-500/10 text-red-200"
+        className="border-red-400/25 bg-red-500/10 text-(--ws-rose)"
         variant="outline"
       >
         Rejected
@@ -67,7 +67,7 @@ function statusBadge(p: any) {
   if (p?.status === "failed")
     return (
       <Badge
-        className="border-red-400/25 bg-red-500/10 text-red-200"
+        className="border-red-400/25 bg-red-500/10 text-(--ws-rose)"
         variant="outline"
       >
         Failed
@@ -76,7 +76,7 @@ function statusBadge(p: any) {
   if (p?.status === "completed")
     return (
       <Badge
-        className="border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+        className="border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)"
         variant="outline"
       >
         Completed
@@ -96,9 +96,9 @@ function reconciliationBadge(value: string | null | undefined) {
   const status = String(value || "unmatched");
   const label = status.replaceAll("_", " ");
   const classNameMap: Record<string, string> = {
-    fully_reconciled: "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
-    bank_matched: "border-cyan-400/25 bg-cyan-500/10 text-cyan-200",
-    gateway_verified: "border-blue-400/25 bg-blue-500/10 text-blue-200",
+    fully_reconciled: "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)",
+    bank_matched: "border-cyan-400/25 bg-cyan-500/10 text-(--ws-cyan)",
+    gateway_verified: "border-blue-400/25 bg-blue-500/10 text-(--ws-cyan)",
     needs_review: "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)",
     unmatched: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   };
@@ -237,7 +237,7 @@ export function PaymentDetailsDrawer(props: {
               Loading…
             </div>
           ) : isError || !p ? (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm text-red-200">
+            <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-sm text-(--ws-rose)">
               Unable to load payment.
             </div>
           ) : (
@@ -253,7 +253,7 @@ export function PaymentDetailsDrawer(props: {
                 <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
                   <div className="rounded-lg border border-(--ws-line) bg-black/20 p-3">
                     <div className="text-(--ws-fg-50)">Amount</div>
-                    <div className="mt-1 font-semibold text-emerald-200">
+                    <div className="mt-1 font-semibold text-(--ws-emerald)">
                       {formatMoney(p.amountMinor)}
                     </div>
                   </div>

@@ -295,7 +295,7 @@ export function ClassesTable({
                       "rounded-full px-2.5 py-0.5 text-[10px] font-medium",
                       classGroup.isActive
                         ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
-                        : "border-slate-500/30 bg-slate-500/10 text-slate-300"
+                        : "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)"
                     )}
                   >
                     {classGroup.isActive ? "Active" : "Inactive"}

@@ -149,13 +149,13 @@ export function AcademicCalendarSettingsPanel() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-purple-300/20 bg-purple-400/10">
-              <Calendar className="h-5 w-5 text-purple-200" />
+              <Calendar className="h-5 w-5 text-(--ws-violet)" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-lg font-semibold text-white">Academic Calendar</h3>
                 {selectedCalendar?.isPublished && (
-                  <Badge className="border-emerald-400/25 bg-emerald-500/15 text-emerald-100">
+                  <Badge className="border-emerald-400/25 bg-emerald-500/15 text-(--ws-emerald)">
                     Published
                   </Badge>
                 )}
@@ -274,7 +274,7 @@ export function AcademicCalendarSettingsPanel() {
               </div>
               {selectedOccurrence && (
                 <div className="rounded-2xl border border-purple-400/20 bg-purple-500/10 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-200/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-violet)">
                     Selected event
                   </p>
                   <h4 className="mt-2 text-sm font-semibold text-white">

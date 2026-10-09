@@ -48,7 +48,7 @@ export function AdminLessonsModuleSettings({ value, onChange }: Props) {
         description="Master switch for teacher lessons, week plans, and related APIs."
         checked={value.enabled}
         onCheckedChange={(enabled) => set({ enabled })}
-        icon={<Presentation className="h-4 w-4 text-violet-300" />}
+        icon={<Presentation className="h-4 w-4 text-(--ws-violet)" />}
       />
       <ToggleRow
         label="Require approved lesson notes"
@@ -93,7 +93,7 @@ export function AdminLessonsModuleSettings({ value, onChange }: Props) {
         description="AI drafts on lessons (requires subscription and lessonAi.use permission)."
         checked={value.enableLeoLessonTools}
         onCheckedChange={(enableLeoLessonTools) => set({ enableLeoLessonTools })}
-        icon={<Sparkles className="h-4 w-4 text-violet-300" />}
+        icon={<Sparkles className="h-4 w-4 text-(--ws-violet)" />}
       />
       <ToggleRow
         label="Parent lesson summaries"

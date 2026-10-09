@@ -28,14 +28,14 @@ import type { ReportCardRunStatus } from "@/types/academics/assessment-engine";
 
 const STATUS_STYLES: Record<ReportCardRunStatus, string> = {
   draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)",
-  opened: "border-cyan-500/20 bg-cyan-500/10 text-cyan-100",
-  collecting_marks: "border-cyan-500/20 bg-cyan-500/10 text-cyan-100",
-  ready_to_compile: "border-teal-500/20 bg-teal-500/10 text-teal-100",
-  compiled: "border-violet-500/20 bg-violet-500/10 text-violet-100",
+  opened: "border-cyan-500/20 bg-cyan-500/10 text-(--ws-cyan)",
+  collecting_marks: "border-cyan-500/20 bg-cyan-500/10 text-(--ws-cyan)",
+  ready_to_compile: "border-teal-500/20 bg-teal-500/10 text-(--ws-teal)",
+  compiled: "border-violet-500/20 bg-violet-500/10 text-(--ws-violet)",
   submitted_for_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   returned: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
-  approved: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  released: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  approved: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  released: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)",
 };
 
@@ -184,7 +184,7 @@ export function AdminReportRunsClient() {
                       </p>
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-cyan-200">
+                  <div className="flex items-center gap-2 text-sm text-(--ws-cyan)">
                     Review run
                     <ArrowRight className="h-4 w-4" />
                   </div>

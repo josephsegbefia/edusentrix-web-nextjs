@@ -85,9 +85,9 @@ const rangeOptions: { value: RangeType; label: string }[] = [
 ];
 
 function statusTone(severity: QueueSeverity) {
-  if (severity === "critical") return "border-rose-300/25 bg-rose-500/10 text-rose-100";
-  if (severity === "warning") return "border-amber-300/25 bg-amber-500/10 text-amber-100";
-  return "border-sky-300/20 bg-sky-500/10 text-sky-100";
+  if (severity === "critical") return "border-rose-300/25 bg-rose-500/10 text-(--ws-rose)";
+  if (severity === "warning") return "border-amber-300/25 bg-amber-500/10 text-(--ws-amber)";
+  return "border-sky-300/20 bg-sky-500/10 text-(--ws-cyan)";
 }
 
 function WorkflowCard({
@@ -112,7 +112,7 @@ function WorkflowCard({
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/60">
-          <Icon className="h-5 w-5 text-sky-200" />
+          <Icon className="h-5 w-5 text-(--ws-cyan)" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
@@ -121,7 +121,7 @@ function WorkflowCard({
           </div>
           <p className="mt-1 text-xs leading-5 text-white/50">{description}</p>
           {metric ? <p className="mt-3 text-sm font-medium text-white/80">{metric}</p> : null}
-          <p className="mt-3 text-xs font-medium text-sky-200">{cta}</p>
+          <p className="mt-3 text-xs font-medium text-(--ws-cyan)">{cta}</p>
         </div>
       </div>
     </Link>
@@ -146,10 +146,10 @@ function KpiTile({
   href?: string;
 }) {
   const toneClass = {
-    neutral: "text-sky-200",
-    good: "text-emerald-200",
-    warn: "text-amber-200",
-    bad: "text-rose-200",
+    neutral: "text-(--ws-cyan)",
+    good: "text-(--ws-emerald)",
+    warn: "text-(--ws-amber)",
+    bad: "text-(--ws-rose)",
   }[tone];
 
   const body = (
@@ -185,7 +185,7 @@ function RecentTransaction({ transaction }: { transaction: TransactionDTO }) {
       <div
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-          inflow ? "bg-emerald-500/10 text-emerald-200" : "bg-rose-500/10 text-rose-200"
+          inflow ? "bg-emerald-500/10 text-(--ws-emerald)" : "bg-rose-500/10 text-(--ws-rose)"
         )}
       >
         {inflow ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
@@ -198,7 +198,7 @@ function RecentTransaction({ transaction }: { transaction: TransactionDTO }) {
           {transaction.method.replaceAll("_", " ")} · {format(new Date(transaction.occurredAt), "MMM d")}
         </p>
       </div>
-      <p className={cn("shrink-0 text-sm font-semibold", inflow ? "text-emerald-200" : "text-rose-200")}>
+      <p className={cn("shrink-0 text-sm font-semibold", inflow ? "text-(--ws-emerald)" : "text-(--ws-rose)")}>
         {inflow ? "+" : "-"}
         {formatCurrency(transaction.netAmountMinor, { currency: transaction.currency })}
       </p>
@@ -417,17 +417,17 @@ export default function FinanceCommandCenterPage() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/60">
-              <Landmark className="h-3.5 w-3.5 text-sky-200" />
+              <Landmark className="h-3.5 w-3.5 text-(--ws-cyan)" />
               Finance Command Center
             </span>
             <span
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium",
                 trustStatus === "healthy"
-                  ? "border-emerald-300/25 bg-emerald-500/10 text-emerald-100"
+                  ? "border-emerald-300/25 bg-emerald-500/10 text-(--ws-emerald)"
                   : trustStatus === "critical"
-                    ? "border-rose-300/25 bg-rose-500/10 text-rose-100"
-                    : "border-amber-300/25 bg-amber-500/10 text-amber-100"
+                    ? "border-rose-300/25 bg-rose-500/10 text-(--ws-rose)"
+                    : "border-amber-300/25 bg-amber-500/10 text-(--ws-amber)"
               )}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
@@ -560,7 +560,7 @@ export default function FinanceCommandCenterPage() {
         <div className="space-y-5">
           <section className="rounded-xl border border-amber-300/15 bg-amber-500/10 p-4 text-amber-50">
             <div className="flex items-start gap-3">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-100" />
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-(--ws-amber)" />
               <div>
                 <p className="text-sm font-semibold">Finance controls are human-confirmed</p>
                 <p className="mt-1 text-sm leading-6 text-amber-50/75">
@@ -711,13 +711,13 @@ export default function FinanceCommandCenterPage() {
                   </div>
                   <div>
                     <p className="text-xs text-white/40">Collected</p>
-                    <p className="mt-1 font-semibold text-emerald-100">
+                    <p className="mt-1 font-semibold text-(--ws-emerald)">
                       {formatMoney(command?.fees.totalCollectedMinor ?? fees?.summary.totalRevenueMinor ?? 0)}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-white/40">Collection rate</p>
-                    <p className="mt-1 font-semibold text-sky-100">
+                    <p className="mt-1 font-semibold text-(--ws-cyan)">
                       {Math.round(command?.fees.collectionRate ?? fees?.summary.collectionRate ?? 0)}%
                     </p>
                   </div>
@@ -742,7 +742,7 @@ export default function FinanceCommandCenterPage() {
                       <span className="min-w-0 truncate text-white/75">
                         {item.firstName} {item.lastName}
                       </span>
-                      <span className="shrink-0 font-medium text-amber-100">
+                      <span className="shrink-0 font-medium text-(--ws-amber)">
                         {formatMoney(item.totalOutstandingMinor)}
                       </span>
                     </Link>
@@ -849,7 +849,7 @@ export default function FinanceCommandCenterPage() {
           <Card className="border border-sky-300/15 bg-sky-500/10">
             <CardHeader className="border-b border-sky-200/10 pb-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-sky-100" />
+                <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
                 <CardTitle className="text-base text-white">Leo Finance Brief</CardTitle>
               </div>
             </CardHeader>
@@ -906,19 +906,19 @@ export default function FinanceCommandCenterPage() {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-white/50">Active alerts</span>
-                <span className={(command?.trust.activeAlertCount ?? activeAlerts.length) > 0 ? "text-amber-100" : "text-emerald-100"}>
+                <span className={(command?.trust.activeAlertCount ?? activeAlerts.length) > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)"}>
                   {command?.trust.activeAlertCount ?? (reconciliationAlerts.isLoading ? "..." : activeAlerts.length)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-white/50">Failed transactions</span>
-                <span className={(command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0) > 0 ? "text-rose-100" : "text-emerald-100"}>
+                <span className={(command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0) > 0 ? "text-(--ws-rose)" : "text-(--ws-emerald)"}>
                   {command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-white/50">Maker-checker queue</span>
-                <span className={(command?.trust.makerCheckerPendingCount ?? pendingApprovalCount) > 0 ? "text-amber-100" : "text-emerald-100"}>
+                <span className={(command?.trust.makerCheckerPendingCount ?? pendingApprovalCount) > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)"}>
                   {command?.trust.makerCheckerPendingCount ?? pendingApprovalCount}
                 </span>
               </div>
@@ -1012,7 +1012,7 @@ export default function FinanceCommandCenterPage() {
                 "Leo explanations and drafts do not approve, reconcile, send, reverse, refund, or close anything.",
               ].map((line) => (
                 <p key={line} className="flex items-start gap-2">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-emerald)" />
                   {line}
                 </p>
               ))}

@@ -610,7 +610,7 @@ export default function FeesPage() {
             </div>
             <Badge
               variant="outline"
-              className="gap-1 bg-red-500/20 text-red-300 border-red-500/30"
+              className="gap-1 bg-red-500/20 text-(--ws-rose) border-red-500/30"
             >
               <Users className="h-4 w-4" />
               {defaulters.length}

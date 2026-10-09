@@ -311,7 +311,7 @@ function MessageView({
                 <p className="text-xs text-(--ws-fg-40)">{replyRecipient.email}</p>
               </div>
               {compose.isError ? (
-                <p className="text-xs font-medium text-red-300">
+                <p className="text-xs font-medium text-(--ws-rose)">
                   {compose.error?.message || "Failed to send reply"}
                 </p>
               ) : null}
@@ -383,7 +383,7 @@ function ComposeView({ onSent }: { onSent: () => void }) {
     <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) backdrop-blur-xl">
       <CardContent className="space-y-4 p-6">
         <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3">
-          <p className="text-sm font-semibold text-cyan-100">
+          <p className="text-sm font-semibold text-(--ws-cyan)">
             Sent as {schoolName} through EduSentrix
           </p>
           <p className="mt-1 text-xs leading-5 text-cyan-50/65">
@@ -577,16 +577,16 @@ export default function SchoolEmailPage() {
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/20">
-              <Mail className="h-6 w-6 text-blue-300" />
+              <Mail className="h-6 w-6 text-(--ws-cyan)" />
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="bg-linear-to-r from-blue-200 via-cyan-200 to-teal-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
+                <h1 className="text-3xl font-extrabold tracking-tight text-(--ws-fg) lg:text-4xl">
                   Email
                 </h1>
                 <Badge
                   variant="outline"
-                  className="border-blue-500/30 bg-blue-500/10 text-blue-300"
+                  className="border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)"
                 >
                   <Sparkles className="mr-1 h-3 w-3" />
                   Communications
@@ -675,7 +675,7 @@ export default function SchoolEmailPage() {
                   className={cn(
                     "flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors",
                     mailboxFilter === "billing"
-                      ? "bg-amber-500/20 text-amber-300"
+                      ? "bg-amber-500/20 text-(--ws-amber)"
                       : "text-(--ws-fg-40) hover:text-(--ws-fg-60)",
                   )}
                 >

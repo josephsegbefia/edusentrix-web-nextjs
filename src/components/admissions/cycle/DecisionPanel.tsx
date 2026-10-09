@@ -190,11 +190,11 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
   if (provisioned) {
     return (
       <Wrapper>
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-(--ws-emerald)">
           <div className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="h-4 w-4" /> Provisioned
           </div>
-          <p className="mt-1 text-emerald-100/80">
+          <p className="mt-1 text-(--ws-emerald)">
             Student record and guardian account have been created from this
             application.
           </p>
@@ -229,7 +229,7 @@ export function DecisionPanel({ detail }: DecisionPanelProps) {
         <div
           className={`rounded-2xl border p-4 text-sm ${
             outcome === "accepted"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
               : outcome === "waitlisted"
                 ? "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
                 : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
@@ -429,7 +429,7 @@ function ActionCard({
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
       : tone === "amber"
         ? "border-amber-500/30 bg-amber-500/10 text-(--ws-amber) hover:bg-amber-500/20"
         : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20";

@@ -299,7 +299,7 @@ function AudienceRoleCard({
                 : "border-white/10 bg-white/5"
             )}
           >
-            <Icon className={cn("h-5 w-5", active ? "text-emerald-200" : "text-white/70")} />
+            <Icon className={cn("h-5 w-5", active ? "text-(--ws-emerald)" : "text-white/70")} />
           </div>
           <div className="min-w-0 flex-1 space-y-1 pr-1">
             <div className="text-sm font-semibold text-white">{config.label}</div>
@@ -388,7 +388,7 @@ function RecipientResultCard({
             </div>
           </div>
           {checked && (
-            <Badge className="border border-emerald-300/30 bg-emerald-500/10 text-emerald-100">
+            <Badge className="border border-emerald-300/30 bg-emerald-500/10 text-(--ws-emerald)">
               Selected
             </Badge>
           )}
@@ -986,7 +986,7 @@ export default function AdminMeetingsPage() {
       <section className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_38%),linear-gradient(180deg,rgba(8,12,22,0.98),rgba(5,9,19,1))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <Badge className="border border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
+            <Badge className="border border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)">
               Meetings MVP
             </Badge>
             <div className="space-y-2">
@@ -1249,7 +1249,7 @@ export default function AdminMeetingsPage() {
                 <InviteSummaryStat
                   label="Total Invited"
                   value={selectedRecipients.length}
-                  accent={selectedRecipients.length > 0 ? "text-emerald-200" : undefined}
+                  accent={selectedRecipients.length > 0 ? "text-(--ws-emerald)" : undefined}
                 />
                 <InviteSummaryStat label="Parents" value={selectedCounts.parent} />
                 <InviteSummaryStat label="Teachers" value={selectedCounts.teacher} />
@@ -1413,7 +1413,7 @@ export default function AdminMeetingsPage() {
                     "flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
                     isLow
                       ? "border-amber-400/25 bg-amber-500/10 text-(--ws-amber)"
-                      : "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
+                      : "border-emerald-400/20 bg-emerald-500/10 text-(--ws-emerald)"
                   )}
                 >
                   <Wallet className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1525,7 +1525,7 @@ export default function AdminMeetingsPage() {
                                 "border",
                                 meeting.status === "cancelled"
                                   ? "border-rose-400/25 bg-rose-500/10 text-(--ws-rose)"
-                                  : "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                                  : "border-emerald-400/25 bg-emerald-500/10 text-(--ws-emerald)"
                               )}
                             >
                               {meeting.status}

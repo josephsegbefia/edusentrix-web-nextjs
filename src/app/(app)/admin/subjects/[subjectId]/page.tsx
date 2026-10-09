@@ -120,8 +120,8 @@ export default function SubjectOfferingDetailPage() {
       <Card className="border-red-500/25 bg-red-950/20 text-(--ws-fg)">
         <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-semibold text-red-100">Unable to load subject offering</p>
-            <p className="text-sm text-red-100/60">The offering may not exist or may belong to another school.</p>
+            <p className="font-semibold text-(--ws-rose)">Unable to load subject offering</p>
+            <p className="text-sm text-(--ws-rose)">The offering may not exist or may belong to another school.</p>
           </div>
           <Button onClick={() => router.push("/admin/subjects")} variant="outline">
             Back to offerings
@@ -183,14 +183,14 @@ export default function SubjectOfferingDetailPage() {
                 <Badge className={cn(
                   "border px-2 py-0.5 text-[10px]",
                   offering.isActive
-                    ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100"
+                    ? "border-emerald-300/25 bg-emerald-300/10 text-(--ws-emerald)"
                     : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
                 )}>
                   {offering.isActive ? "Active" : "Inactive"}
                 </Badge>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-100">
+                <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-(--ws-amber)">
                   {offering.code}
                 </span>
                 <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs capitalize text-(--ws-fg-90)">
@@ -237,7 +237,7 @@ export default function SubjectOfferingDetailPage() {
                     <p className="truncate text-2xl font-bold capitalize">{stat.value}</p>
                     <p className="truncate text-xs text-(--ws-fg-40)">{stat.helper}</p>
                   </div>
-                  <span className="flex size-10 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) text-amber-100">
+                  <span className="flex size-10 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill) text-(--ws-amber)">
                     <Icon className="size-4" />
                   </span>
                 </div>
@@ -251,7 +251,7 @@ export default function SubjectOfferingDetailPage() {
         <Card className="xl:col-span-5 border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) text-(--ws-fg)">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Layers3 className="size-4 text-amber-100" />
+              <Layers3 className="size-4 text-(--ws-amber)" />
               Grade Coverage
             </CardTitle>
           </CardHeader>
@@ -279,7 +279,7 @@ export default function SubjectOfferingDetailPage() {
         <Card className="xl:col-span-7 border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) text-(--ws-fg)">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <School className="size-4 text-amber-100" />
+              <School className="size-4 text-(--ws-amber)" />
               Assigned Class Groups
             </CardTitle>
           </CardHeader>
@@ -312,7 +312,7 @@ export default function SubjectOfferingDetailPage() {
       <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) text-(--ws-fg)">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="size-4 text-amber-100" />
+            <Users className="size-4 text-(--ws-amber)" />
             Assigned Teachers
           </CardTitle>
         </CardHeader>
@@ -349,7 +349,7 @@ export default function SubjectOfferingDetailPage() {
       <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) text-(--ws-fg)">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="size-4 text-amber-100" />
+            <Sparkles className="size-4 text-(--ws-amber)" />
             Workflow Context
           </CardTitle>
         </CardHeader>

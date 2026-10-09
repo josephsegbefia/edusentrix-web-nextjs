@@ -183,7 +183,7 @@ function EmbedCard({
           className={cn(
             "rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
             mode === "smart"
-              ? "bg-cyan-500/20 text-cyan-100"
+              ? "bg-cyan-500/20 text-(--ws-cyan)"
               : "text-(--ws-fg-50) hover:text-(--ws-fg)"
           )}
         >
@@ -195,7 +195,7 @@ function EmbedCard({
           className={cn(
             "rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
             mode === "iframe"
-              ? "bg-cyan-500/20 text-cyan-100"
+              ? "bg-cyan-500/20 text-(--ws-cyan)"
               : "text-(--ws-fg-50) hover:text-(--ws-fg)"
           )}
         >

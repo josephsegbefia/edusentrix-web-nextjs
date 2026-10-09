@@ -125,7 +125,7 @@ export default function PeriodsPage() {
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs font-medium text-(--ws-fg-70) backdrop-blur-sm">
-              <Calendar className="h-3.5 w-3.5 text-sky-200" />
+              <Calendar className="h-3.5 w-3.5 text-(--ws-cyan)" />
               Terms & academic years
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg) sm:text-3xl">
@@ -146,7 +146,7 @@ export default function PeriodsPage() {
                 key={step.label}
                 className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 backdrop-blur-sm"
               >
-                <step.icon className="h-4 w-4 text-sky-200" />
+                <step.icon className="h-4 w-4 text-(--ws-cyan)" />
                 <p className="mt-2 text-sm font-medium text-(--ws-fg)">{step.label}</p>
                 <p className="mt-0.5 text-xs text-(--ws-fg-40)">{step.text}</p>
               </div>
@@ -168,11 +168,11 @@ export default function PeriodsPage() {
         <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-2">
-              <Sparkles className="h-5 w-5 text-sky-100" />
+              <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-(--ws-fg)">What admins do here</h2>
-              <p className="mt-1 text-sm leading-6 text-(--ws-fg-50)">
+              <p className="mt-1 text-sm leading-6 text-(--ws-fg-70)">
                 Periods anchor timetables, calendars, and reporting. Mark exactly one as current so
                 the rest of the product knows which term you are in.
               </p>
@@ -194,7 +194,7 @@ export default function PeriodsPage() {
               </Badge>
             ) : null}
           </div>
-          <p className="mt-3 text-xs leading-5 text-(--ws-fg-40)">
+          <p className="mt-3 text-xs leading-5 text-(--ws-fg-70)">
             Year-end terminal periods can be flagged when creating a term for rollover workflows.
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function PeriodsPage() {
       {isLoading ? (
         <Card className={glassPanel}>
           <CardContent className="flex items-center justify-center gap-2 py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-sky-200" />
+            <Loader2 className="h-5 w-5 animate-spin text-(--ws-cyan)" />
             <span className="text-sm text-(--ws-fg-60)">Loading periods...</span>
           </CardContent>
         </Card>
@@ -216,7 +216,7 @@ export default function PeriodsPage() {
                 "bg-(--ws-fill) backdrop-blur-sm"
               )}
             >
-              <Calendar className="h-8 w-8 text-sky-200/70" />
+              <Calendar className="h-8 w-8 text-(--ws-cyan)" />
             </div>
             <p className="mt-4 font-medium text-(--ws-fg)">No academic periods yet</p>
             <p className="mt-1 text-sm text-(--ws-fg-50)">

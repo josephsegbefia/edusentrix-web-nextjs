@@ -195,7 +195,7 @@ export function ReconciliationHelpDrawer({
               </div>
               <Separator className="bg-white/5" />
               <div className="flex items-start gap-3">
-                <StatusBadgeDemo label="Needs review" className="border-amber-500/25 bg-amber-500/10 text-amber-300" />
+                <StatusBadgeDemo label="Needs review" className="border-amber-500/25 bg-amber-500/10 text-(--ws-amber)" />
                 <p className="flex-1">
                   Multiple possible payment matches were found. You need to review the
                   candidates and manually select the correct one.
@@ -344,7 +344,7 @@ export function ReconciliationHelpDrawer({
                   <div className="h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-[65%] rounded-full bg-amber-500" />
                   </div>
-                  <span className="text-xs font-semibold text-amber-300">60–80%</span>
+                  <span className="text-xs font-semibold text-(--ws-amber)">60–80%</span>
                 </div>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 px-3 py-2">

@@ -73,7 +73,7 @@ const typeConfig: Record<
   },
   announcement: {
     icon: Megaphone,
-    color: "text-blue-200",
+    color: "text-(--ws-cyan)",
     bgColor: "bg-blue-500/20",
     label: "Announcement",
   },
@@ -179,7 +179,7 @@ function NotificationItem({
               </Badge>
             )}
             {notification.actionUrl && (
-              <span className="inline-flex items-center gap-1 text-xs text-(--ws-violet) transition group-hover:text-indigo-100">
+              <span className="inline-flex items-center gap-1 text-xs text-(--ws-violet) transition group-hover:text-(--ws-violet)">
                 Open
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </span>
@@ -259,10 +259,10 @@ export default function AdminNotificationsPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-indigo-500/20 text-(--ws-violet)">{totalCount} total</Badge>
-              <Badge className="bg-cyan-500/20 text-(--ws-cyan)">{unreadCount} unread</Badge>
-              <Badge className="bg-rose-500/20 text-(--ws-rose)">{highPriorityCount} high priority</Badge>
-              <Badge className="bg-emerald-500/20 text-(--ws-emerald)">{actionableCount} actionable</Badge>
+              <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/15 text-(--ws-violet)">{totalCount} total</Badge>
+              <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/15 text-(--ws-cyan)">{unreadCount} unread</Badge>
+              <Badge variant="outline" className="border-rose-500/30 bg-rose-500/15 text-(--ws-rose)">{highPriorityCount} high priority</Badge>
+              <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/15 text-(--ws-emerald)">{actionableCount} actionable</Badge>
             </div>
           </div>
 

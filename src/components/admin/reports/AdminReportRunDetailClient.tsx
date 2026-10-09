@@ -60,8 +60,8 @@ const SUBJECT_STATUS_STYLES: Record<
 > = {
   missing: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   partial: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  submitted: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
-  approved: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  submitted: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
+  approved: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
 };
 
 const SUBJECT_STATUS_LABELS: Record<ReportCardRunSubjectReadinessRow["status"], string> = {
@@ -217,7 +217,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
         }
         badge={
           run ? (
-            <Badge variant="outline" className="border-cyan-500/30 text-cyan-100">
+            <Badge variant="outline" className="border-cyan-500/30 text-(--ws-cyan)">
               {REPORT_CARD_RUN_STATUS_LABELS[run.status] ?? run.status}
             </Badge>
           ) : undefined
@@ -338,7 +338,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
               <p className="text-xs uppercase tracking-wide text-(--ws-fg-40)">Attendance ready</p>
               <p className="mt-2 text-lg font-semibold text-(--ws-fg)">
                 {readiness?.attendanceReady ? (
-                  <span className="text-emerald-200">Ready</span>
+                  <span className="text-(--ws-emerald)">Ready</span>
                 ) : (
                   <span className="text-(--ws-amber)">Needs records</span>
                 )}
@@ -355,7 +355,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
           <div className="grid gap-4 lg:grid-cols-2">
             <GlassPanel className="p-4 sm:p-5">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-teal-200" />
+                <Users className="h-4 w-4 text-(--ws-teal)" />
                 <h3 className="text-base font-semibold text-(--ws-fg)">Attendance readiness</h3>
               </div>
               <p className="mt-3 text-sm text-(--ws-fg-60)">
@@ -367,7 +367,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
 
             <GlassPanel className="p-4 sm:p-5">
               <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-cyan-200" />
+                <MessageSquare className="h-4 w-4 text-(--ws-cyan)" />
                 <h3 className="text-base font-semibold text-(--ws-fg)">Comments readiness</h3>
               </div>
               <p className="mt-3 text-sm text-(--ws-fg-60)">
@@ -424,7 +424,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
                               ))}
                             </ul>
                           ) : (
-                            <span className="text-emerald-200/80">Ready</span>
+                            <span className="text-(--ws-emerald)">Ready</span>
                           )}
                         </td>
                       </tr>
@@ -499,7 +499,7 @@ export function AdminReportRunDetailClient({ runId }: AdminReportRunDetailClient
           ) : null}
 
           {run.releasedAt ? (
-            <GlassPanel className={cn(glassInsetClass, "px-4 py-3 text-sm text-emerald-100/80")}>
+            <GlassPanel className={cn(glassInsetClass, "px-4 py-3 text-sm text-(--ws-emerald)")}>
               Released on {format(new Date(run.releasedAt), "MMM d, yyyy · h:mm a")}.
             </GlassPanel>
           ) : null}

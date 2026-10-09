@@ -30,7 +30,7 @@ export default function FinancePaymentsPage() {
           </Button>
           <div className="flex items-center gap-2">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
-              <Banknote className="h-5 w-5 text-emerald-200" />
+              <Banknote className="h-5 w-5 text-(--ws-emerald)" />
             </span>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg)">Payment Inbox</h1>
@@ -65,7 +65,7 @@ export default function FinancePaymentsPage() {
 
       <section className="rounded-xl border border-emerald-300/15 bg-emerald-500/10 p-4 text-emerald-50">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-100" />
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-(--ws-emerald)" />
           <div>
             <p className="text-sm font-semibold">Payment control workflow</p>
             <p className="mt-1 text-sm leading-6 text-emerald-50/75">

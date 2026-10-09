@@ -280,7 +280,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                           {g.photoUrl ? (
                             <AvatarImage src={g.photoUrl} alt={g.fullName} />
                           ) : null}
-                          <AvatarFallback className="bg-linear-to-br from-slate-700 to-slate-900 text-base font-bold text-slate-200">
+                          <AvatarFallback className="bg-linear-to-br from-slate-700 to-slate-900 text-base font-bold text-(--ws-fg-70)">
                             {getInitials(g.fullName)}
                           </AvatarFallback>
                         </Avatar>
@@ -436,7 +436,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                           item.finalOutcome === "promote" && "border-emerald-500/40 bg-emerald-500/10 text-(--ws-emerald)",
                           item.finalOutcome === "repeat" && "border-amber-500/40 bg-amber-500/10 text-(--ws-amber)",
                           item.finalOutcome === "graduate" && "border-violet-500/40 bg-violet-500/10 text-(--ws-violet)",
-                          (item.finalOutcome === "hold" || !["promote", "repeat", "graduate"].includes(item.finalOutcome)) && "border-slate-500/40 bg-slate-500/10 text-slate-200"
+                          (item.finalOutcome === "hold" || !["promote", "repeat", "graduate"].includes(item.finalOutcome)) && "border-slate-500/40 bg-slate-500/10 text-(--ws-fg-70)"
                         )}
                       >
                         {item.finalOutcome}
@@ -597,7 +597,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                           {doc.source === "school" ? (
                             <Badge
                               variant="outline"
-                              className="border-sky-500/30 bg-sky-500/10 text-[9px] text-sky-200"
+                              className="border-sky-500/30 bg-sky-500/10 text-[9px] text-(--ws-cyan)"
                             >
                               School upload
                             </Badge>

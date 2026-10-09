@@ -27,7 +27,7 @@ export function SubjectPerformanceTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-(--ws-line) bg-(--ws-popover)">
-      <div className="grid grid-cols-12 border-b border-(--ws-line) bg-(--ws-fill) px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-slate-300">
+      <div className="grid grid-cols-12 border-b border-(--ws-line) bg-(--ws-fill) px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-(--ws-fg-70)">
         <div className="col-span-3">Subject</div>
         <div className="col-span-2 text-right">CA</div>
         <div className="col-span-2 text-right">Exam</div>
@@ -40,7 +40,7 @@ export function SubjectPerformanceTable({
         {subjects.map((s) => (
           <div
             key={s.subjectId}
-            className="grid grid-cols-12 items-center px-4 py-2 text-xs text-slate-100/90 hover:bg-(--ws-fill)"
+            className="grid grid-cols-12 items-center px-4 py-2 text-xs text-(--ws-fg-70) hover:bg-(--ws-fill)"
           >
             <div className="col-span-3 flex flex-col">
               <span className="font-medium">{s.subjectName}</span>
@@ -73,13 +73,13 @@ export function SubjectPerformanceTable({
                     ? s.isPassed
                       ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-50"
                       : "border-red-400/60 bg-red-500/15 text-red-50"
-                    : "border-slate-600/60 bg-slate-800/60 text-slate-200"
+                    : "border-slate-600/60 bg-slate-800/60 text-(--ws-fg-70)"
                 )}
               >
                 {s.gradeLetter ?? "--"}
               </span>
             </div>
-            <div className="col-span-1 text-right text-[11px] text-slate-300">
+            <div className="col-span-1 text-right text-[11px] text-(--ws-fg-70)">
               {s.teacherName ?? "--"}
             </div>
             <div className="col-span-1 flex justify-center">

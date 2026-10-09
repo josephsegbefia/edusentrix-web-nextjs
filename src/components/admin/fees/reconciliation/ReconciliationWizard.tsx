@@ -83,7 +83,7 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function statusBadgeClass(status: ReconciliationStatus) {
   if (status === "matched") return "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)";
-  if (status === "ambiguous") return "border-amber-500/25 bg-amber-500/10 text-amber-300";
+  if (status === "ambiguous") return "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)";
   if (status === "ignored") return "border-white/10 bg-white/5 text-white/50";
   return "border-rose-500/25 bg-rose-500/10 text-(--ws-rose)";
 }
@@ -400,7 +400,7 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
                   isCurrent
                     ? "bg-indigo-500/30 text-(--ws-violet) ring-1 ring-indigo-400/50"
                     : isCompleted || isPast
-                    ? "bg-emerald-500/20 text-emerald-200"
+                    ? "bg-emerald-500/20 text-(--ws-emerald)"
                     : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
                 )}
               >
@@ -448,7 +448,7 @@ export function ReconciliationWizard({ session, onComplete, onCancel }: Reconcil
               type="button"
               onClick={() => void goNext()}
               disabled={updateSession.isPending}
-              className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+              className="bg-indigo-500/20 text-(--ws-violet) hover:bg-indigo-500/30 disabled:opacity-50"
             >
               Next <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
@@ -488,7 +488,7 @@ function NoteField({ label, value, onChange, placeholder }: { label: string; val
 }
 
 function KPI({ label, value, color = "default" }: { label: string; value: string | number; color?: "default" | "green" | "red" | "amber" }) {
-  const colors = { default: "text-white", green: "text-(--ws-emerald)", red: "text-(--ws-rose)", amber: "text-amber-300" };
+  const colors = { default: "text-white", green: "text-(--ws-emerald)", red: "text-(--ws-rose)", amber: "text-(--ws-amber)" };
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
       <p className={`text-xl font-bold ${colors[color]}`}>{value}</p>
@@ -610,7 +610,7 @@ function ImportStep({
       </div>
 
       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-        <p className="text-xs text-emerald-200">
+        <p className="text-xs text-(--ws-emerald)">
           You can import multiple batches. Each import is additive — duplicates are handled by the deduplication system.
         </p>
       </div>
@@ -665,7 +665,7 @@ function MatchStep({
             <span><strong className="text-white">Exact reference token</strong> — normalized reference matches receipt/external reference (96% confidence)</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-300">3</span>
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-(--ws-amber)">3</span>
             <span><strong className="text-white">Amount + date</strong> — same amount within ±2 days, only if one candidate (78% confidence)</span>
           </div>
         </div>
@@ -739,7 +739,7 @@ function ReviewStep({
 
       {alerts.length > 0 && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-amber-300">Active Alerts</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-(--ws-amber)">Active Alerts</p>
           <div className="mt-2 space-y-2">
             {alerts.map((alert, i) => (
               <div key={i} className="flex items-center gap-2 text-sm text-(--ws-amber)">
@@ -763,7 +763,7 @@ function ReviewStep({
 
       {summary.unmatched === 0 && summary.ambiguous === 0 && totalIngested > 0 && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-          <div className="flex items-center gap-2 text-sm text-emerald-200">
+          <div className="flex items-center gap-2 text-sm text-(--ws-emerald)">
             <CheckCircle2 className="h-4 w-4" />
             All items are matched or ignored. You can proceed to finalize.
           </div>
@@ -887,7 +887,7 @@ function ResolveStep({
       {/* AI Suggestions */}
       {aiSuggestions.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-purple-300">AI Recommendations</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-(--ws-violet)">AI Recommendations</p>
           {aiSuggestions.map((suggestion) => (
             <div key={suggestion.ingestionId} className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -912,7 +912,7 @@ function ResolveStep({
                       type="button"
                       size="sm"
                       onClick={() => onAccept(suggestion)}
-                      className="h-8 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
+                      className="h-8 bg-emerald-500/20 text-(--ws-emerald) hover:bg-emerald-500/30"
                     >
                       <Check className="mr-1 h-3 w-3" /> Accept
                     </Button>
@@ -1082,7 +1082,7 @@ function FinalizeStep({
 
       {isLocked && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-          <div className="flex items-center gap-2 text-emerald-200">
+          <div className="flex items-center gap-2 text-(--ws-emerald)">
             <Lock className="h-5 w-5" />
             <span className="text-sm font-medium">This session is locked.</span>
           </div>
@@ -1135,12 +1135,12 @@ function FinalizeStep({
             <p className="text-sm text-white">{generatedReport.executiveSummary}</p>
             {generatedReport.sections.map((section, i) => (
               <div key={i}>
-                <p className="text-xs font-semibold text-purple-200">{section.title}</p>
+                <p className="text-xs font-semibold text-(--ws-violet)">{section.title}</p>
                 <p className="mt-1 text-xs text-white/60">{section.content}</p>
                 {section.highlights && section.highlights.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
                     {section.highlights.map((h, j) => (
-                      <li key={j} className="text-[11px] text-purple-300">• {h}</li>
+                      <li key={j} className="text-[11px] text-(--ws-violet)">• {h}</li>
                     ))}
                   </ul>
                 )}
@@ -1150,13 +1150,13 @@ function FinalizeStep({
               <div>
                 <p className="text-xs font-semibold text-(--ws-amber)">Exceptions</p>
                 {generatedReport.exceptions.map((e, i) => (
-                  <p key={i} className="text-xs text-amber-300/70">• {e}</p>
+                  <p key={i} className="text-xs text-(--ws-amber)">• {e}</p>
                 ))}
               </div>
             )}
             {generatedReport.recommendations.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-emerald-200">Recommendations</p>
+                <p className="text-xs font-semibold text-(--ws-emerald)">Recommendations</p>
                 {generatedReport.recommendations.map((r, i) => (
                   <p key={i} className="text-xs text-(--ws-emerald)">• {r}</p>
                 ))}
@@ -1167,9 +1167,9 @@ function FinalizeStep({
 
         {verificationId && (
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
-            <p className="text-xs text-emerald-200">
+            <p className="text-xs text-(--ws-emerald)">
               Verification ID: <span className="font-mono font-semibold">{verificationId}</span>
-              <a href={`/verify/report/${verificationId}`} target="_blank" rel="noopener noreferrer" className="ml-2 underline hover:text-emerald-100">
+              <a href={`/verify/report/${verificationId}`} target="_blank" rel="noopener noreferrer" className="ml-2 underline hover:text-(--ws-emerald)">
                 Verify →
               </a>
             </p>

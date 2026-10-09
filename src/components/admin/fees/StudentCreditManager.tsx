@@ -131,7 +131,7 @@ export function StudentCreditManager({
       case "credit":
         return <CheckCircle2 className="h-4 w-4 text-(--ws-emerald)" />;
       case "application":
-        return <ArrowRight className="h-4 w-4 text-blue-300" />;
+        return <ArrowRight className="h-4 w-4 text-(--ws-cyan)" />;
       default:
         return <AlertCircle className="h-4 w-4 text-(--ws-amber)" />;
     }
@@ -140,7 +140,7 @@ export function StudentCreditManager({
   const getEntryBadge = (type: string) => {
     const colors: Record<string, string> = {
       credit: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
-      application: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      application: "bg-blue-500/20 text-(--ws-cyan) border-blue-500/30",
       debit: "bg-orange-500/20 text-(--ws-amber) border-orange-500/30",
     };
     return (
@@ -205,7 +205,7 @@ export function StudentCreditManager({
                         entry.type === "credit"
                           ? "text-(--ws-emerald)"
                           : entry.type === "application"
-                          ? "text-blue-300"
+                          ? "text-(--ws-cyan)"
                           : "text-(--ws-amber)"
                       }`}
                     >

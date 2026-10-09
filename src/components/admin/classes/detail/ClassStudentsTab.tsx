@@ -150,11 +150,11 @@ export function ClassStudentsTab({
     },
     inactive: {
       label: "Inactive",
-      className: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+      className: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
     },
     withdrawn: {
       label: "Withdrawn",
-      className: "border-red-500/30 bg-red-500/10 text-red-300",
+      className: "border-red-500/30 bg-red-500/10 text-(--ws-rose)",
     },
   };
 

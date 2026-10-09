@@ -65,18 +65,18 @@ const TAB_OPTIONS: Array<{
     id: "info",
     label: "Info",
     icon: Info,
-    tone: "text-sky-200",
+    tone: "text-(--ws-cyan)",
   },
 ];
 
 const SEVERITY_STYLES: Record<ExamConflictSeverity, string> = {
   error: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   warning: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  info: "border-sky-500/30 bg-sky-500/10 text-sky-100",
+  info: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
 };
 
 function readinessTone(score: number) {
-  if (score >= 85) return "text-emerald-200";
+  if (score >= 85) return "text-(--ws-emerald)";
   if (score >= 60) return "text-(--ws-amber)";
   return "text-(--ws-rose)";
 }
@@ -330,7 +330,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                   label: "Blocking errors",
                   value: summary?.errors ?? 0,
                   icon: ShieldAlert,
-                  tone: (summary?.errors ?? 0) > 0 ? "text-(--ws-rose)" : "text-emerald-200",
+                  tone: (summary?.errors ?? 0) > 0 ? "text-(--ws-rose)" : "text-(--ws-emerald)",
                 },
                 {
                   label: "Warnings",
@@ -342,13 +342,13 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                   label: "Overridden",
                   value: summary?.overridden ?? 0,
                   icon: CheckCircle2,
-                  tone: (summary?.overridden ?? 0) > 0 ? "text-emerald-200" : "text-white/70",
+                  tone: (summary?.overridden ?? 0) > 0 ? "text-(--ws-emerald)" : "text-white/70",
                 },
                 {
                   label: "Info notices",
                   value: summary?.info ?? 0,
                   icon: Info,
-                  tone: "text-sky-200",
+                  tone: "text-(--ws-cyan)",
                 },
               ].map((card) => (
                 <GlassPanel key={card.label} className="p-4">
@@ -400,7 +400,7 @@ export function ExamConflictReview({ sessionId }: ExamConflictReviewProps) {
                 {activeTab === "error" ? (
                   <CheckCircle2 className="mx-auto h-10 w-10 text-(--ws-emerald)" />
                 ) : (
-                  <CalendarRange className="mx-auto h-10 w-10 text-cyan-300/80" />
+                  <CalendarRange className="mx-auto h-10 w-10 text-(--ws-cyan)" />
                 )}
                 <h3 className="mt-4 text-lg font-semibold text-white">
                   {activeTab === "error"
@@ -502,7 +502,7 @@ function ConflictCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-cyan-100">
+            <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)">
               {formatExamConflictType(conflict.type)}
             </Badge>
             <Badge variant="outline" className={SEVERITY_STYLES[conflict.severity]}>
@@ -511,7 +511,7 @@ function ConflictCard({
             {isOverridden ? (
               <Badge
                 variant="outline"
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+                className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
               >
                 Overridden
               </Badge>
@@ -519,7 +519,7 @@ function ConflictCard({
           </div>
           <p className="text-sm leading-relaxed text-white">{conflict.message}</p>
           {isOverridden && conflict.overrideReason ? (
-            <p className="text-sm text-emerald-100/80">
+            <p className="text-sm text-(--ws-emerald)">
               Override reason: {conflict.overrideReason}
             </p>
           ) : null}

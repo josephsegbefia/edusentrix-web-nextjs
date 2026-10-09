@@ -88,13 +88,13 @@ function ClassDetailContent() {
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
-                <AlertTriangle className="h-5 w-5 text-red-300" />
+                <AlertTriangle className="h-5 w-5 text-(--ws-rose)" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">
+                <div className="font-semibold text-(--ws-rose)">
                   Missing class identifier
                 </div>
-                <p className="text-xs text-red-200/70">
+                <p className="text-xs text-(--ws-rose)">
                   The class ID was not provided in the URL.
                 </p>
               </div>
@@ -104,7 +104,7 @@ function ClassDetailContent() {
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/grades")}
-              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to Grades
@@ -179,13 +179,13 @@ function ClassDetailContent() {
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
-                <AlertTriangle className="h-5 w-5 text-red-300" />
+                <AlertTriangle className="h-5 w-5 text-(--ws-rose)" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">
+                <div className="font-semibold text-(--ws-rose)">
                   Unable to load class details
                 </div>
-                <p className="text-xs text-red-200/70">
+                <p className="text-xs text-(--ws-rose)">
                   The class might not exist or you might not have access.
                 </p>
               </div>
@@ -195,7 +195,7 @@ function ClassDetailContent() {
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/grades")}
-              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to Grades

@@ -200,7 +200,7 @@ export function FeesCharts({ studentId }: Props) {
               </div>
               <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
                 <div className="text-muted-foreground">All Time</div>
-                <div className="mt-1 font-semibold text-red-200">
+                <div className="mt-1 font-semibold text-(--ws-rose)">
                   {formatMoney(summary.allTime.totalOutstanding)}
                 </div>
               </div>
@@ -245,7 +245,7 @@ export function FeesCharts({ studentId }: Props) {
             </div>
             <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="text-xs text-muted-foreground">Credit Balance</div>
-              <div className="mt-2 text-2xl font-bold text-sky-200">
+              <div className="mt-2 text-2xl font-bold text-(--ws-cyan)">
                 {formatMoney(summary.creditBalance)}
               </div>
             </div>

@@ -251,7 +251,7 @@ export function PreviewTab() {
             </div>
             <div>
               <p className="text-xs text-(--ws-fg-50)">Graduate</p>
-              <p className="text-xl font-semibold text-purple-300">{lastResult.totals.graduate}</p>
+              <p className="text-xl font-semibold text-(--ws-violet)">{lastResult.totals.graduate}</p>
             </div>
             <div>
               <p className="text-xs text-(--ws-fg-50)">Hold</p>

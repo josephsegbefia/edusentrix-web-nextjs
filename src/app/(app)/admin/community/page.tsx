@@ -43,7 +43,7 @@ const TONE_STYLES = {
     gradient: "from-emerald-500/15 via-emerald-500/5 to-transparent",
     iconBg: "bg-emerald-500/20 border-emerald-500/30",
     iconColor: "text-(--ws-emerald)",
-    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    badge: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   },
   pending: {
     gradient: "from-amber-500/15 via-amber-500/5 to-transparent",
@@ -54,13 +54,13 @@ const TONE_STYLES = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+  draft: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
   pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
-  live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+  approved: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
+  live: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   paused: "border-orange-500/30 bg-orange-500/10 text-(--ws-amber)",
-  closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-  reconciled: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
+  closed: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
+  reconciled: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
   archived: "border-slate-600/30 bg-slate-600/10 text-slate-400",
 };
 
@@ -292,7 +292,7 @@ export default function CommunityHubPage() {
             </Button>
           </Link>
           <Link href="/admin/community/fundraising?create=1">
-            <Button className="group gap-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
+            <Button className="group gap-2 border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20">
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               Create Campaign
             </Button>

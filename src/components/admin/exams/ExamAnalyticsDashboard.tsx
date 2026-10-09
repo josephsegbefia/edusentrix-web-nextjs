@@ -209,7 +209,7 @@ export function ExamAnalyticsDashboard({
                     <span className="text-sm text-(--ws-fg-80)">
                       {row.teacherName ?? "Teacher"}
                     </span>
-                    <span className="text-sm font-medium text-cyan-100">
+                    <span className="text-sm font-medium text-(--ws-cyan)">
                       {row.assignmentCount}
                     </span>
                   </div>

@@ -312,7 +312,7 @@ export default function SubjectsPage() {
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/15 bg-linear-to-br from-amber-300/16 via-orange-300/10 to-transparent shadow-lg shadow-amber-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
-                <Shapes className="h-5 w-5 text-amber-100 sm:h-6 sm:w-6" />
+                <Shapes className="h-5 w-5 text-(--ws-amber) sm:h-6 sm:w-6" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -374,7 +374,7 @@ export default function SubjectsPage() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
-                  <Sparkles className="h-4 w-4 text-amber-200 sm:h-5 sm:w-5" />
+                  <Sparkles className="h-4 w-4 text-(--ws-amber) sm:h-5 sm:w-5" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-teal-300 sm:h-3 sm:w-3" />
               </div>
@@ -388,7 +388,7 @@ export default function SubjectsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[10px] font-medium text-amber-100">
+              <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[10px] font-medium text-(--ws-amber)">
                 {totalFiltered} total
               </span>
             </div>
@@ -477,7 +477,7 @@ export default function SubjectsPage() {
                 {isLoading ? "Loading..." : `${totalFiltered} offerings found`}
               </p>
               {!isLoading && activeGradeBandHeading && (
-                <p className="text-xs font-medium text-amber-100/80">
+                <p className="text-xs font-medium text-(--ws-amber)">
                   Now showing subject offerings for {activeGradeBandHeading}
                 </p>
               )}
@@ -492,7 +492,7 @@ export default function SubjectsPage() {
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
-                    ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
+                    ? "border-amber-300/20 bg-amber-300/10 text-(--ws-amber)"
                     : "border-white/10 bg-white/5 text-white/60"
                 )}
               >
@@ -508,7 +508,7 @@ export default function SubjectsPage() {
               <div className="relative">
                 <div className="h-12 w-12 animate-spin rounded-full border-2 border-amber-300/20 border-t-amber-300" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Shapes className="h-5 w-5 text-amber-200/70" />
+                  <Shapes className="h-5 w-5 text-(--ws-amber)" />
                 </div>
               </div>
               <div className="text-center">
@@ -526,17 +526,17 @@ export default function SubjectsPage() {
                 <AlertCircle className="h-7 w-7 text-red-400" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-red-300">
+                <p className="text-sm font-medium text-(--ws-rose)">
                   Failed to load subject offerings
                 </p>
-                <p className="text-xs text-red-300/60">
+                <p className="text-xs text-(--ws-rose)">
                   Please try refreshing the page
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                className="border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
                 onClick={() => window.location.reload()}
               >
                 Retry
@@ -546,7 +546,7 @@ export default function SubjectsPage() {
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="relative">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-                  <Shapes className="h-10 w-10 text-amber-100/45" />
+                  <Shapes className="h-10 w-10 text-(--ws-amber)" />
                 </div>
               </div>
               <div className="text-center">
@@ -569,7 +569,7 @@ export default function SubjectsPage() {
             <div className="space-y-4 sm:space-y-5">
               <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-xs text-white/70 sm:text-sm">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-300/15 text-[9px] font-bold text-amber-100 sm:h-6 sm:w-6 sm:text-[10px]">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-300/15 text-[9px] font-bold text-(--ws-amber) sm:h-6 sm:w-6 sm:text-[10px]">
                     {subjects.length}
                   </span>
                   <span>
@@ -881,7 +881,7 @@ function SetupSubjectOfferingsDialog({
               <DialogHeader className="space-y-3 text-left">
                 <div className="flex items-start gap-3">
                   <div className="flex size-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10">
-                    <WandSparkles className="size-5 text-amber-100" />
+                    <WandSparkles className="size-5 text-(--ws-amber)" />
                   </div>
                   <div>
                     <DialogTitle>Set up subject offerings</DialogTitle>
@@ -988,7 +988,7 @@ function SetupSubjectOfferingsDialog({
                               </span>
                               <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-white/45">
                                 <span>{offering.code}</span>
-                                <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-1.5 py-0.5 text-emerald-100">
+                                <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-1.5 py-0.5 text-(--ws-emerald)">
                                   saved custom
                                 </span>
                                 <span className="rounded-full border border-white/10 px-1.5 py-0.5">

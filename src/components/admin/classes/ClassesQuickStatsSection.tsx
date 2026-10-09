@@ -34,7 +34,7 @@ const toneConfig: Record<
     bg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
     iconBg: "from-emerald-500/20 to-emerald-600/20",
     iconColor: "text-(--ws-emerald)",
-    valueColor: "text-emerald-100",
+    valueColor: "text-(--ws-emerald)",
     glow: "bg-emerald-500/20",
   },
   green: {
@@ -42,7 +42,7 @@ const toneConfig: Record<
     bg: "from-green-500/10 via-green-500/5 to-transparent",
     iconBg: "from-green-500/20 to-green-600/20",
     iconColor: "text-(--ws-emerald)",
-    valueColor: "text-green-100",
+    valueColor: "text-(--ws-emerald)",
     glow: "bg-green-500/20",
   },
   lime: {
@@ -57,8 +57,8 @@ const toneConfig: Record<
     border: "border-teal-500/30",
     bg: "from-teal-500/10 via-teal-500/5 to-transparent",
     iconBg: "from-teal-500/20 to-teal-600/20",
-    iconColor: "text-teal-300",
-    valueColor: "text-teal-100",
+    iconColor: "text-(--ws-teal)",
+    valueColor: "text-(--ws-teal)",
     glow: "bg-teal-500/20",
   },
 };

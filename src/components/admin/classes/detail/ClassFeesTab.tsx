@@ -28,10 +28,10 @@ type Props = {
 };
 
 function feeStatusTone(status: "clear" | "partial" | "overdue" | "unbilled") {
-  if (status === "clear") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  if (status === "clear") return "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)";
   if (status === "partial") return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
   if (status === "overdue") return "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)";
-  return "border-slate-500/30 bg-slate-500/10 text-slate-200";
+  return "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)";
 }
 
 export function ClassFeesTab({ classId, className }: Props) {
@@ -103,7 +103,7 @@ export function ClassFeesTab({ classId, className }: Props) {
 
       {feesQuery.isLoading && !analytics ? (
         <div className="flex items-center justify-center gap-3 py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-amber-300" />
+          <Loader2 className="h-6 w-6 animate-spin text-(--ws-amber)" />
           <p className="text-sm text-(--ws-fg-60)">Loading class fee analytics...</p>
         </div>
       ) : feesQuery.isError ? (
@@ -220,7 +220,7 @@ export function ClassFeesTab({ classId, className }: Props) {
                           secondary={row.admissionNo ? `Adm. ${row.admissionNo}` : null}
                         />
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-emerald-200">
+                          <p className="text-sm font-semibold text-(--ws-emerald)">
                             {formatMoney(row.totalPaidMinor)}
                           </p>
                           <p className="text-[11px] text-(--ws-fg-40)">Fully clear</p>
@@ -236,7 +236,7 @@ export function ClassFeesTab({ classId, className }: Props) {
                     <p className="text-[11px] text-(--ws-fg-40)">{analytics.summary.studentCount} students</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-emerald-200">
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 text-(--ws-emerald)">
                       Clear: {analytics.byStatus.clear}
                     </div>
                     <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-(--ws-amber)">
@@ -245,7 +245,7 @@ export function ClassFeesTab({ classId, className }: Props) {
                     <div className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-3 py-2 text-(--ws-rose)">
                       Overdue: {analytics.byStatus.overdue}
                     </div>
-                    <div className="rounded-xl border border-slate-500/20 bg-slate-500/8 px-3 py-2 text-slate-200">
+                    <div className="rounded-xl border border-slate-500/20 bg-slate-500/8 px-3 py-2 text-(--ws-fg-70)">
                       Unbilled: {analytics.byStatus.unbilled}
                     </div>
                   </div>
@@ -299,7 +299,7 @@ export function ClassFeesTab({ classId, className }: Props) {
                           <td className="px-4 py-3.5 text-right font-semibold text-(--ws-fg)">
                             {formatMoney(row.totalOutstandingMinor)}
                           </td>
-                          <td className="px-4 py-3.5 text-right text-emerald-200">
+                          <td className="px-4 py-3.5 text-right text-(--ws-emerald)">
                             {formatMoney(row.totalPaidMinor)}
                           </td>
                         </tr>
@@ -327,7 +327,7 @@ export function ClassFeesTab({ classId, className }: Props) {
                       photoUrl={payment.photoUrl}
                       secondary={`${prettyDate(payment.paymentDate)} • ${payment.paymentMethod.replaceAll("_", " ")}`}
                     />
-                    <span className="text-sm font-semibold text-emerald-200">
+                    <span className="text-sm font-semibold text-(--ws-emerald)">
                       {formatMoney(payment.amountMinor)}
                     </span>
                   </div>

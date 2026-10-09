@@ -317,8 +317,8 @@ function RolesDutiesContent() {
     good: {
       border: "border-emerald-400/30",
       bg: "bg-emerald-500/10",
-      text: "text-emerald-100",
-      pill: "bg-emerald-500/20 text-emerald-100",
+      text: "text-(--ws-emerald)",
+      pill: "bg-emerald-500/20 text-(--ws-emerald)",
       icon: CheckCircle2,
     },
   };
@@ -906,7 +906,7 @@ function RolesDutiesContent() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="rounded-lg border border-purple-400/30 bg-purple-500/20 p-1.5">
-                <LeoIcon className="h-4 w-4 text-purple-200" />
+                <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
               </span>
               <div>
                 <p className="text-sm font-semibold text-white">Leo Insights & Recommendations</p>
@@ -925,16 +925,16 @@ function RolesDutiesContent() {
               </div>
             ) : leoAI.isError && !leoInsights ? (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
-                <p className="text-sm text-red-200 mb-2">
+                <p className="text-sm text-(--ws-rose) mb-2">
                   Leo couldn&apos;t generate insights
                 </p>
-                <p className="text-xs text-red-200/70 mb-4">{leoAI.error?.message}</p>
+                <p className="text-xs text-(--ws-rose) mb-4">{leoAI.error?.message}</p>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => leoAI.mutate()}
                   disabled={leoAI.isPending}
-                  className="gap-2 border-red-500/30 text-red-200 hover:bg-red-500/20"
+                  className="gap-2 border-red-500/30 text-(--ws-rose) hover:bg-red-500/20"
                 >
                   {leoAI.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -946,7 +946,7 @@ function RolesDutiesContent() {
               <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
                 <div className="flex justify-center mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
-                    <LeoIcon className="h-6 w-6 text-purple-300" />
+                    <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
                   </div>
                 </div>
                 <p className="text-sm text-white/70 mb-4">
@@ -983,7 +983,7 @@ function RolesDutiesContent() {
                       size="sm"
                       onClick={() => leoAI.mutate()}
                       disabled={leoAI.isPending}
-                      className="h-7 gap-1 text-xs text-purple-200 hover:bg-purple-500/20"
+                      className="h-7 gap-1 text-xs text-(--ws-violet) hover:bg-purple-500/20"
                     >
                       {leoAI.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1498,10 +1498,10 @@ function RolesDutiesContent() {
                 <div className="flex gap-3">
                   <BookOpen className="h-5 w-5 shrink-0 text-blue-400" />
                   <div>
-                    <p className="text-sm font-medium text-blue-300">
+                    <p className="text-sm font-medium text-(--ws-cyan)">
                       Managing Class Roles
                     </p>
-                    <p className="mt-1 text-xs text-blue-300/70">
+                    <p className="mt-1 text-xs text-(--ws-cyan)">
                       Class roles are assigned to students on a per-class basis. To assign
                       a role to a student, navigate to the specific class page and use the
                       &quot;Roles&quot; tab. This allows each class to have their own Class Captain,

@@ -137,7 +137,7 @@ export function UnallocatedGapActions({
         This slice is <span className="text-(--ws-fg-70)">unallocated in the day model</span> for this
         class&apos;s grade: it is not a subject cell. Agree a school use below (saved for the whole
         grade for this day and time window) or change the day in{" "}
-        <Link href={dailyScheduleSettingsHref} className="text-cyan-300 underline hover:text-cyan-200">
+        <Link href={dailyScheduleSettingsHref} className="text-(--ws-cyan) underline hover:text-(--ws-cyan)">
           Daily schedules
         </Link>
         .

@@ -47,12 +47,12 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
-  scheduled: "border-sky-500/30 bg-sky-500/10 text-sky-100",
+  scheduled: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
   conflict_review: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  in_progress: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
-  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  locked: "border-violet-500/30 bg-violet-500/10 text-violet-100",
+  published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  in_progress: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
+  completed: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  locked: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
   archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/45",
   cancelled: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
 };
@@ -303,7 +303,7 @@ export default function ExamSessionsPage() {
           />
         ) : sessions.length === 0 ? (
           <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
-            <CalendarRange className="mx-auto h-10 w-10 text-cyan-300/80" />
+            <CalendarRange className="mx-auto h-10 w-10 text-(--ws-cyan)" />
             <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">No exam sessions yet</h3>
             <p className="mx-auto mt-2 max-w-xl text-sm text-(--ws-fg-60)">
               Create an exam session to start building exam timetables and assigning

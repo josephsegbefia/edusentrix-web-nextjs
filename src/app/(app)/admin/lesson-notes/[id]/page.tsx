@@ -95,7 +95,7 @@ export default function AdminLessonNoteDetailPage() {
       <div className="mx-auto flex min-h-[50vh] w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
         <div className="h-9 w-44 animate-pulse rounded-lg border border-(--ws-line) bg-(--ws-fill) backdrop-blur-xl" />
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-(--ws-fg-50)">
-          <Loader2 className="h-8 w-8 animate-spin text-sky-200" />
+          <Loader2 className="h-8 w-8 animate-spin text-(--ws-cyan)" />
           <p className="text-sm">Loading lesson note…</p>
         </div>
       </div>
@@ -166,7 +166,7 @@ export default function AdminLessonNoteDetailPage() {
               type="button"
               size="sm"
               onClick={() => handleResolve(comment.id)}
-              className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
+              className="bg-emerald-500/20 text-(--ws-emerald) hover:bg-emerald-500/30"
             >
               <CheckCheck className="mr-2 h-3.5 w-3.5" />
               Resolve

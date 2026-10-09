@@ -35,8 +35,8 @@ const tabColors: Record<TeachersTabId, { active: string; icon: string }> = {
     icon: "bg-emerald-500/20 text-(--ws-emerald) border-emerald-500/30",
   },
   inactive: {
-    active: "border-slate-400/40 bg-slate-500/15 text-slate-200 shadow-slate-500/20",
-    icon: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    active: "border-slate-400/40 bg-slate-500/15 text-(--ws-fg-80) shadow-slate-500/20",
+    icon: "bg-slate-500/20 text-(--ws-fg-70) border-slate-500/30",
   },
   on_leave: {
     active: "border-amber-500/40 bg-amber-500/15 text-(--ws-amber) shadow-amber-500/20",
@@ -47,8 +47,8 @@ const tabColors: Record<TeachersTabId, { active: string; icon: string }> = {
     icon: "bg-rose-500/20 text-(--ws-rose) border-rose-500/30",
   },
   homeroom: {
-    active: "border-purple-500/40 bg-purple-500/15 text-purple-200 shadow-purple-500/20",
-    icon: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    active: "border-purple-500/40 bg-purple-500/15 text-(--ws-violet) shadow-purple-500/20",
+    icon: "bg-purple-500/20 text-(--ws-violet) border-purple-500/30",
   },
 };
 

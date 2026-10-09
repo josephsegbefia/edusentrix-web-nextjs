@@ -125,7 +125,7 @@ export function AdminLessonNotesInbox({
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-3 py-1 text-xs font-medium text-(--ws-fg-70) backdrop-blur-sm">
-              <ClipboardCheck className="h-3.5 w-3.5 text-sky-200" />
+              <ClipboardCheck className="h-3.5 w-3.5 text-(--ws-cyan)" />
               Instructional review
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg) sm:text-3xl">{title}</h1>
@@ -141,9 +141,9 @@ export function AdminLessonNotesInbox({
                 key={step.label}
                 className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 backdrop-blur-sm"
               >
-                <step.icon className="h-4 w-4 text-sky-200" />
+                <step.icon className="h-4 w-4 text-(--ws-cyan)" />
                 <p className="mt-2 text-sm font-medium text-(--ws-fg)">{step.label}</p>
-                <p className="mt-0.5 text-xs text-(--ws-fg-40)">{step.text}</p>
+                <p className="mt-0.5 text-xs text-(--ws-fg-70)">{step.text}</p>
               </div>
             ))}
           </div>
@@ -154,11 +154,11 @@ export function AdminLessonNotesInbox({
         <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-2">
-              <Sparkles className="h-5 w-5 text-sky-100" />
+              <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-(--ws-fg)">What admins do here</h2>
-              <p className="mt-1 text-sm leading-6 text-(--ws-fg-50)">
+              <p className="mt-1 text-sm leading-6 text-(--ws-fg-70)">
                 Scan the inbox, open a note to read every section, leave precise comments for teachers,
                 and move work through submitted → approved → published when it meets school standards.
               </p>
@@ -175,12 +175,12 @@ export function AdminLessonNotesInbox({
                 {summary?.openComments} open comments
               </Badge>
             ) : (
-              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
+              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-(--ws-emerald)">
                 No open comments
               </Badge>
             )}
           </div>
-          <p className="mt-3 text-xs leading-5 text-(--ws-fg-40)">
+          <p className="mt-3 text-xs leading-5 text-(--ws-fg-70)">
             Filters apply to this list only. Teacher picklists grow as notes appear in the current
             result set.
           </p>
@@ -190,19 +190,19 @@ export function AdminLessonNotesInbox({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className={glassPanel}>
           <CardContent className="p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-sky-200/80">Visible notes</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Visible notes</div>
             <div className="mt-3 text-3xl font-semibold text-(--ws-fg)">{summary?.total || 0}</div>
           </CardContent>
         </Card>
         <Card className={glassPanel}>
           <CardContent className="p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-sky-200/80">Open comments</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Open comments</div>
             <div className="mt-3 text-3xl font-semibold text-(--ws-fg)">{summary?.openComments || 0}</div>
           </CardContent>
         </Card>
         <Card className={glassPanel}>
           <CardContent className="p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-sky-200/80">Submitted</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Submitted</div>
             <div className="mt-3 text-3xl font-semibold text-(--ws-fg)">
               {summary?.byStatus?.submitted || 0}
             </div>
@@ -210,7 +210,7 @@ export function AdminLessonNotesInbox({
         </Card>
         <Card className={glassPanel}>
           <CardContent className="p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-sky-200/80">Published</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Published</div>
             <div className="mt-3 text-3xl font-semibold text-(--ws-fg)">
               {summary?.byStatus?.published || 0}
             </div>
@@ -222,7 +222,7 @@ export function AdminLessonNotesInbox({
         <CardHeader className="border-b border-(--ws-line) pb-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
-              <Filter className="h-5 w-5 text-sky-200" />
+              <Filter className="h-5 w-5 text-(--ws-cyan)" />
               Filters
             </CardTitle>
             <Badge variant="outline" className="w-fit border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
@@ -333,7 +333,7 @@ export function AdminLessonNotesInbox({
         <Card className={glassPanel}>
           <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill) backdrop-blur-sm">
-              <BookOpen className="h-8 w-8 text-sky-200/70" />
+              <BookOpen className="h-8 w-8 text-(--ws-cyan)" />
             </div>
             <div>
               <h2 className="text-lg font-medium text-(--ws-fg)">No lesson notes found</h2>
@@ -355,7 +355,7 @@ export function AdminLessonNotesInbox({
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-2">
-                    <CardTitle className="text-base text-(--ws-fg) transition-colors group-hover:text-sky-100">
+                    <CardTitle className="text-base text-(--ws-fg) transition-colors group-hover:text-(--ws-cyan)">
                       {note.topic}
                     </CardTitle>
                     <div className="text-sm text-(--ws-fg-50)">
@@ -372,7 +372,7 @@ export function AdminLessonNotesInbox({
                         event.stopPropagation();
                         router.push(`/admin/lesson-notes/${note.id}`);
                       }}
-                      className="h-8 w-8 rounded-full border border-(--ws-line) bg-(--ws-fill) p-0 text-sky-200 hover:bg-sky-500/15"
+                      className="h-8 w-8 rounded-full border border-(--ws-line) bg-(--ws-fill) p-0 text-(--ws-cyan) hover:bg-sky-500/15"
                       aria-label={`Review ${note.topic}`}
                     >
                       <BookOpen className="h-4 w-4" />
@@ -408,7 +408,7 @@ export function AdminLessonNotesInbox({
                     <Badge className="border border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg)/75">
                       {note.status}
                     </Badge>
-                    <Badge className="border border-sky-400/20 bg-sky-500/15 text-sky-100">
+                    <Badge className="border border-sky-400/20 bg-sky-500/15 text-(--ws-cyan)">
                       <MessageSquare className="mr-1 h-3 w-3" />
                       {note.openCommentCount} open
                     </Badge>

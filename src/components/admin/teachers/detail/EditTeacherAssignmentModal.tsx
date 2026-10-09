@@ -133,8 +133,8 @@ function Callout({
   const colorClass = tone === "warning"
     ? "border-amber-400/20 bg-amber-500/10 text-(--ws-amber)"
     : tone === "success"
-    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
-    : "border-sky-400/20 bg-sky-500/10 text-sky-100";
+    ? "border-emerald-400/20 bg-emerald-500/10 text-(--ws-emerald)"
+    : "border-sky-400/20 bg-sky-500/10 text-(--ws-cyan)";
   return (
     <div className={cn("rounded-2xl border p-4 backdrop-blur", colorClass)}>
       <div className="flex items-start gap-3">
@@ -637,7 +637,7 @@ export function EditTeacherAssignmentModal({
                               {p.isCurrent ? (
                                 <Badge
                                   variant="outline"
-                                  className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                                  className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)"
                                 >
                                   Current
                                 </Badge>
@@ -648,7 +648,7 @@ export function EditTeacherAssignmentModal({
                       </SelectContent>
                     </Select>
                     {form.formState.errors.academicPeriodId ? (
-                      <p className="text-xs text-red-300/80">
+                      <p className="text-xs text-(--ws-rose)">
                         {form.formState.errors.academicPeriodId.message}
                       </p>
                     ) : null}
@@ -724,7 +724,7 @@ export function EditTeacherAssignmentModal({
                     }}
                   />
                   {form.formState.errors.subjectId ? (
-                    <p className="text-xs text-red-300/80 -mt-2">
+                    <p className="text-xs text-(--ws-rose) -mt-2">
                       {form.formState.errors.subjectId.message}
                     </p>
                   ) : null}
@@ -747,7 +747,7 @@ export function EditTeacherAssignmentModal({
                     }}
                   />
                   {form.formState.errors.classGroupId ? (
-                    <p className="text-xs text-red-300/80 -mt-2">
+                    <p className="text-xs text-(--ws-rose) -mt-2">
                       {form.formState.errors.classGroupId.message}
                     </p>
                   ) : null}
@@ -819,7 +819,7 @@ export function EditTeacherAssignmentModal({
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7 text-red-300 hover:text-red-200 hover:bg-red-500/10"
+                                  className="h-7 w-7 text-(--ws-rose) hover:text-(--ws-rose) hover:bg-red-500/10"
                                   onClick={() => {
                                     const current = form.getValues("schedules") || [];
                                     form.setValue(
@@ -865,7 +865,7 @@ export function EditTeacherAssignmentModal({
                                     </SelectContent>
                                   </Select>
                                   {form.formState.errors?.schedules?.[idx]?.dayOfWeek ? (
-                                    <p className="text-xs text-red-300/80">
+                                    <p className="text-xs text-(--ws-rose)">
                                       {String(
                                         form.formState.errors.schedules[idx]
                                           ?.dayOfWeek?.message
@@ -902,7 +902,7 @@ export function EditTeacherAssignmentModal({
                                     }}
                                   />
                                   {form.formState.errors?.schedules?.[idx]?.location ? (
-                                    <p className="text-xs text-red-300/80">
+                                    <p className="text-xs text-(--ws-rose)">
                                       {String(
                                         form.formState.errors.schedules[idx]
                                           ?.location?.message
@@ -929,7 +929,7 @@ export function EditTeacherAssignmentModal({
                                     }}
                                   />
                                   {form.formState.errors?.schedules?.[idx]?.startTime ? (
-                                    <p className="text-xs text-red-300/80">
+                                    <p className="text-xs text-(--ws-rose)">
                                       {String(
                                         form.formState.errors.schedules[idx]
                                           ?.startTime?.message
@@ -956,7 +956,7 @@ export function EditTeacherAssignmentModal({
                                     }}
                                   />
                                   {form.formState.errors?.schedules?.[idx]?.endTime ? (
-                                    <p className="text-xs text-red-300/80">
+                                    <p className="text-xs text-(--ws-rose)">
                                       {String(
                                         form.formState.errors.schedules[idx]
                                           ?.endTime?.message

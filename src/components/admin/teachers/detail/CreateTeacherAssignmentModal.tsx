@@ -142,7 +142,7 @@ function Callout({
         "rounded-2xl border p-4",
         tone === "warning"
           ? "border-amber-400/20 bg-amber-500/10 text-(--ws-amber)"
-          : "border-sky-400/20 bg-sky-500/10 text-sky-100"
+          : "border-sky-400/20 bg-sky-500/10 text-(--ws-cyan)"
       )}
     >
       <div className="flex items-start gap-3">
@@ -712,7 +712,7 @@ export function CreateTeacherAssignmentModal({
 
             {result ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-100">
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-(--ws-emerald)">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
                   <Check className="h-5 w-5" />
@@ -838,7 +838,7 @@ export function CreateTeacherAssignmentModal({
                           {p.isCurrent ? (
                             <Badge
                               variant="outline"
-                              className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                              className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)"
                             >
                               Current
                             </Badge>

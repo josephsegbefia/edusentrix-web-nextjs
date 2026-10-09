@@ -59,11 +59,11 @@ function formatDateTime(value: string | Date | null | undefined) {
 
 function statusBadge(status: SessionStatus) {
   const map: Record<SessionStatus, { label: string; class: string }> = {
-    preparing: { label: "Preparing", class: "border-sky-500/25 bg-sky-500/10 text-sky-300" },
-    in_progress: { label: "In Progress", class: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
-    review: { label: "Review", class: "border-indigo-500/25 bg-indigo-500/10 text-indigo-300" },
-    locked: { label: "Locked", class: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" },
-    reopened: { label: "Reopened", class: "border-orange-500/25 bg-orange-500/10 text-orange-300" },
+    preparing: { label: "Preparing", class: "border-sky-500/25 bg-sky-500/10 text-(--ws-cyan)" },
+    in_progress: { label: "In Progress", class: "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)" },
+    review: { label: "Review", class: "border-indigo-500/25 bg-indigo-500/10 text-(--ws-violet)" },
+    locked: { label: "Locked", class: "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)" },
+    reopened: { label: "Reopened", class: "border-orange-500/25 bg-orange-500/10 text-(--ws-amber)" },
   };
   const s = map[status] || { label: status, class: "border-white/10 bg-white/5 text-white/50" };
   return <Badge variant="outline" className={`text-[10px] ${s.class}`}>{s.label}</Badge>;
@@ -215,7 +215,7 @@ export default function ReconciliationSessionsPage() {
                 {(runsQuery.data || []).slice(0, 3).map((run) => (
                   <div key={run.id} className="flex justify-between gap-2">
                     <span className="truncate">{formatDateTime(run.startedAt)}</span>
-                    <span className="shrink-0 text-emerald-300/90">{run.summary?.matched ?? 0} matched</span>
+                    <span className="shrink-0 text-(--ws-emerald)">{run.summary?.matched ?? 0} matched</span>
                   </div>
                 ))}
               </div>
@@ -313,11 +313,11 @@ export default function ReconciliationSessionsPage() {
                   </button>
                   <div className="hidden gap-3 text-right text-xs text-white/50 sm:flex">
                     <div>
-                      <p className="font-semibold text-emerald-300">{session.summary.matched}</p>
+                      <p className="font-semibold text-(--ws-emerald)">{session.summary.matched}</p>
                       <p>matched</p>
                     </div>
                     <div>
-                      <p className="font-semibold text-amber-300">{session.summary.ambiguous}</p>
+                      <p className="font-semibold text-(--ws-amber)">{session.summary.ambiguous}</p>
                       <p>ambiguous</p>
                     </div>
                   </div>
@@ -338,7 +338,7 @@ export default function ReconciliationSessionsPage() {
                         href={`/verify/report/${session.reportVerificationId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300 hover:bg-emerald-500/20"
+                        className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-(--ws-emerald) hover:bg-emerald-500/20"
                       >
                         <CheckCircle2 className="mr-1 inline h-3 w-3" /> Verified
                       </a>
@@ -375,7 +375,7 @@ export default function ReconciliationSessionsPage() {
         description={`Reopen "${reopenTarget?.label || ""}" — this action is audited and requires a reason.`}
       >
         <div className="space-y-4">
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-(--ws-amber)">
             Only school administrators can reopen locked sessions. This will be recorded in the audit trail.
           </div>
           <Textarea

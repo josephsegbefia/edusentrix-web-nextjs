@@ -115,11 +115,11 @@ export function LibraryScanCameraPane({
       </div>
       <video
         ref={videoRef}
-        className="max-h-56 w-full rounded-lg border border-(--ws-line-strong) bg-black/40 object-contain"
+        className="max-h-56 w-full rounded-lg border border-(--ws-line-strong) bg-(--ws-fill-strong) object-contain"
         muted
         playsInline
       />
-      <p className="text-[11px] text-(--ws-fg)/45">
+      <p className="text-[11px] text-(--ws-fg-70)">
         Point at a barcode or QR code. If your browser does not support BarcodeDetector, use the field
         above or a USB wedge scanner.
       </p>

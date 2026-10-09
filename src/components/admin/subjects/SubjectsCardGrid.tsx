@@ -27,7 +27,7 @@ export function SubjectsCardGrid({
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-          <Shapes className="h-8 w-8 text-amber-100/45" />
+          <Shapes className="h-8 w-8 text-(--ws-amber)" />
         </div>
         <p className="mt-4 text-sm font-medium text-white/70">
           No subjects found

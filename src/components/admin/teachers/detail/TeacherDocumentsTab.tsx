@@ -68,7 +68,7 @@ const expiryConfig = {
   expired: {
     bg: "bg-red-500/10",
     border: "border-red-500/30",
-    text: "text-red-200",
+    text: "text-(--ws-rose)",
     label: "Expired",
   },
   expiring_soon: {
@@ -80,7 +80,7 @@ const expiryConfig = {
   valid: {
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/30",
-    text: "text-emerald-200",
+    text: "text-(--ws-emerald)",
     label: "Valid",
   },
 } as const;
@@ -148,7 +148,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-amber-500/20 to-orange-500/20 shadow-inner shadow-white/5">
-              <FolderOpen className="h-5 w-5 text-amber-300" />
+              <FolderOpen className="h-5 w-5 text-(--ws-amber)" />
             </div>
             <div className="space-y-0.5">
               <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
@@ -162,7 +162,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
           </div>
           <Button
             variant="outline"
-            className="gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+            className="gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-(--ws-amber) hover:bg-amber-500/20 hover:text-(--ws-amber)"
             onClick={() => setUploadModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -177,13 +177,13 @@ export function TeacherDocumentsTab({ teacher }: Props) {
           {expiredDocs.length > 0 && (
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 shadow-[var(--ws-shadow)]">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 text-red-300" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 text-(--ws-rose)" />
                 <div>
-                  <p className="text-sm font-semibold text-red-200">
+                  <p className="text-sm font-semibold text-(--ws-rose)">
                     {expiredDocs.length} Expired Document
                     {expiredDocs.length !== 1 ? "s" : ""}
                   </p>
-                  <p className="text-sm text-red-200/70">
+                  <p className="text-sm text-(--ws-rose)">
                     Some documents have expired and may need renewal.
                   </p>
                 </div>
@@ -193,7 +193,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
           {expiringSoonDocs.length > 0 && (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 shadow-[var(--ws-shadow)]">
               <div className="flex items-start gap-3">
-                <Clock className="mt-0.5 h-5 w-5 text-amber-300" />
+                <Clock className="mt-0.5 h-5 w-5 text-(--ws-amber)" />
                 <div>
                   <p className="text-sm font-semibold text-(--ws-amber)">
                     {expiringSoonDocs.length} Document
@@ -230,7 +230,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
             <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-amber-500/20 to-orange-500/20">
-                  <FileText className="h-7 w-7 text-amber-300" />
+                  <FileText className="h-7 w-7 text-(--ws-amber)" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-(--ws-fg)">
@@ -242,7 +242,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
                 </div>
                 <Button
                   variant="outline"
-                  className="mt-2 gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                  className="mt-2 gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-(--ws-amber) hover:bg-amber-500/20 hover:text-(--ws-amber)"
                   onClick={() => setUploadModalOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
@@ -310,7 +310,7 @@ function DocumentCard({
       <div className="flex items-start justify-between gap-4 pl-3">
         <div className="flex items-start gap-4 flex-1 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
-            <File className="h-5 w-5 text-amber-300" />
+            <File className="h-5 w-5 text-(--ws-amber)" />
           </div>
           <div className="flex-1 min-w-0 space-y-2">
             <div className="flex items-start justify-between gap-2">
@@ -397,7 +397,7 @@ function DocumentCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-red-500/10 hover:text-red-300"
+            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-red-500/10 hover:text-(--ws-rose)"
             onClick={() => onDelete(doc)}
             disabled={isDeleting}
             title="Delete document"

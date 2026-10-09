@@ -250,7 +250,7 @@ export function ClassCard({
           <div className="mt-3">
             <Badge
               variant="outline"
-              className="rounded-full border-slate-500/30 bg-slate-500/10 px-2 py-0.5 text-[10px] text-slate-300"
+              className="rounded-full border-slate-500/30 bg-slate-500/10 px-2 py-0.5 text-[10px] text-(--ws-fg-70)"
             >
               Inactive
             </Badge>

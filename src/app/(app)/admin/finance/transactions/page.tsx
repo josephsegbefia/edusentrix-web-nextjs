@@ -148,7 +148,7 @@ function getReconciliationBadge(
     return (
       <Badge
         variant="outline"
-        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+        className="border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
       >
         Matched
       </Badge>
@@ -158,7 +158,7 @@ function getReconciliationBadge(
     return (
       <Badge
         variant="outline"
-        className="border-red-500/30 bg-red-500/10 text-red-300"
+        className="border-red-500/30 bg-red-500/10 text-(--ws-rose)"
       >
         Disputed
       </Badge>
@@ -168,7 +168,7 @@ function getReconciliationBadge(
     return (
       <Badge
         variant="outline"
-        className="border-slate-500/30 bg-slate-500/10 text-slate-300"
+        className="border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)"
       >
         Ignored
       </Badge>
@@ -177,7 +177,7 @@ function getReconciliationBadge(
   return (
     <Badge
       variant="outline"
-      className="border-amber-500/30 bg-amber-500/10 text-amber-200"
+      className="border-amber-500/30 bg-amber-500/10 text-(--ws-amber)"
     >
       Unmatched
     </Badge>

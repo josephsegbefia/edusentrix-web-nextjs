@@ -52,11 +52,11 @@ function formatGrade(value: number | null): string {
 
 function getRatingColor(rating: number): string {
   if (rating >= 4.5)
-    return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
-  if (rating >= 3.5) return "border-blue-400/30 bg-blue-500/10 text-blue-200";
+    return "border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)";
+  if (rating >= 3.5) return "border-blue-400/30 bg-blue-500/10 text-(--ws-cyan)";
   if (rating >= 2.5)
     return "border-amber-400/30 bg-amber-500/10 text-(--ws-amber)";
-  return "border-red-400/30 bg-red-500/10 text-red-200";
+  return "border-red-400/30 bg-red-500/10 text-(--ws-rose)";
 }
 
 // Stat Card Component
@@ -82,7 +82,7 @@ function StatCard({
     purple: {
       gradient: "from-purple-500/10 via-purple-500/5 to-transparent",
       iconBg: "bg-purple-500/20 border-purple-500/30",
-      iconColor: "text-purple-300",
+      iconColor: "text-(--ws-violet)",
     },
     emerald: {
       gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
@@ -92,7 +92,7 @@ function StatCard({
     amber: {
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
       iconBg: "bg-amber-500/20 border-amber-500/30",
-      iconColor: "text-amber-300",
+      iconColor: "text-(--ws-amber)",
     },
   };
 
@@ -179,7 +179,7 @@ export function TeacherPerformanceTab({ teacher }: Props) {
           </div>
           <Button
             variant="outline"
-            className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
+            className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-(--ws-emerald)"
             onClick={() => setEvaluationModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -301,7 +301,7 @@ export function TeacherPerformanceTab({ teacher }: Props) {
                 </div>
                 <Button
                   variant="outline"
-                  className="mt-2 gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20"
+                  className="mt-2 gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-(--ws-emerald)"
                   onClick={() => setEvaluationModalOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
@@ -381,7 +381,7 @@ function EvaluationCard({ evaluation }: { evaluation: EvaluationHistoryDTO }) {
                   <Badge
                     key={idx}
                     variant="outline"
-                    className="rounded-lg border-emerald-400/30 bg-emerald-500/10 text-xs text-emerald-200"
+                    className="rounded-lg border-emerald-400/30 bg-emerald-500/10 text-xs text-(--ws-emerald)"
                   >
                     {strength}
                   </Badge>
@@ -423,7 +423,7 @@ function EvaluationCard({ evaluation }: { evaluation: EvaluationHistoryDTO }) {
                   <Badge
                     key={idx}
                     variant="outline"
-                    className="rounded-lg border-blue-400/30 bg-blue-500/10 text-xs text-blue-200"
+                    className="rounded-lg border-blue-400/30 bg-blue-500/10 text-xs text-(--ws-cyan)"
                   >
                     {goal}
                   </Badge>

@@ -74,7 +74,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
     return {
       bg: "bg-blue-500/10",
       border: "border-blue-500/30",
-      text: "text-blue-300",
+      text: "text-(--ws-cyan)",
       icon: Edit,
       gradient: "from-blue-500 to-blue-600",
     };
@@ -93,7 +93,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
       return {
         bg: "bg-red-500/10",
         border: "border-red-500/30",
-        text: "text-red-300",
+        text: "text-(--ws-rose)",
         icon: Trash2,
         gradient: "from-red-500 to-red-600",
       };
@@ -101,7 +101,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
     return {
       bg: "bg-purple-500/10",
       border: "border-purple-500/30",
-      text: "text-purple-300",
+      text: "text-(--ws-violet)",
       icon: BookOpen,
       gradient: "from-purple-500 to-purple-600",
     };
@@ -110,7 +110,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
     return {
       bg: "bg-amber-500/10",
       border: "border-amber-500/30",
-      text: "text-amber-300",
+      text: "text-(--ws-amber)",
       icon: CheckCircle,
       gradient: "from-amber-500 to-amber-600",
     };
@@ -120,7 +120,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
       return {
         bg: "bg-red-500/10",
         border: "border-red-500/30",
-        text: "text-red-300",
+        text: "text-(--ws-rose)",
         icon: XCircle,
         gradient: "from-red-500 to-red-600",
       };
@@ -128,7 +128,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
     return {
       bg: "bg-cyan-500/10",
       border: "border-cyan-500/30",
-      text: "text-cyan-300",
+      text: "text-(--ws-cyan)",
       icon: FileText,
       gradient: "from-cyan-500 to-cyan-600",
     };
@@ -138,7 +138,7 @@ function getActivityStyle(type: TeacherActivityType): ActivityStyle {
       return {
         bg: "bg-red-500/10",
         border: "border-red-500/30",
-        text: "text-red-300",
+        text: "text-(--ws-rose)",
         icon: Trash2,
         gradient: "from-red-500 to-red-600",
       };

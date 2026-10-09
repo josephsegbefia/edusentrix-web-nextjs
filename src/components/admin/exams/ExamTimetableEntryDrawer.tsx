@@ -309,7 +309,7 @@ export function ExamTimetableEntryDrawer({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-sm transition disabled:opacity-50",
                       selected
-                        ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
+                        ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
                         : "border-white/10 bg-white/5 text-white/60 hover:text-white"
                     )}
                   >

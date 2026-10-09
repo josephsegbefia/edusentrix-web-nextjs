@@ -47,10 +47,10 @@ import {
 function InvoiceStatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     draft: "bg-gray-500/20 text-gray-300",
-    issued: "bg-blue-500/20 text-blue-300",
-    partially_paid: "bg-yellow-500/20 text-yellow-300",
+    issued: "bg-blue-500/20 text-(--ws-cyan)",
+    partially_paid: "bg-yellow-500/20 text-(--ws-amber)",
     paid: "bg-green-500/20 text-(--ws-emerald)",
-    overdue: "bg-red-500/20 text-red-300",
+    overdue: "bg-red-500/20 text-(--ws-rose)",
     cancelled: "bg-gray-500/20 text-gray-400",
   };
 

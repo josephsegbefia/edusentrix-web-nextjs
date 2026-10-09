@@ -607,7 +607,7 @@ export default function AdminLessonAnalyticsPage() {
         <RankingPanel
           title="Collaboration hotspots"
           icon={BookOpen}
-          iconClassName="text-amber-300"
+          iconClassName="text-(--ws-amber)"
           subtitle="Lessons with most unresolved collaboration notes."
         >
           {isLoading ? (

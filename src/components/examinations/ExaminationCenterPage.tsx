@@ -279,7 +279,7 @@ function CreateExamPaperDialog({ role }: Props) {
           >
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2 md:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Paper title</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Paper title</span>
                 <Input
                   value={state.title}
                   onChange={(event) => setState((prev) => ({ ...prev, title: event.target.value }))}
@@ -289,7 +289,7 @@ function CreateExamPaperDialog({ role }: Props) {
               </label>
 
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Exam type</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Exam type</span>
                 <Select value={state.examTypeId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, examTypeId: value }))}>
                   <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <SelectValue placeholder="Choose exam type" />
@@ -303,7 +303,7 @@ function CreateExamPaperDialog({ role }: Props) {
               </label>
 
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Academic period</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Academic period</span>
                 <Select value={state.academicPeriodId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, academicPeriodId: value }))}>
                   <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <SelectValue placeholder="Choose period" />
@@ -317,7 +317,7 @@ function CreateExamPaperDialog({ role }: Props) {
               </label>
 
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Grade</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Grade</span>
                 <Select
                   value={state.gradeId || undefined}
                   onValueChange={(value) =>
@@ -336,7 +336,7 @@ function CreateExamPaperDialog({ role }: Props) {
               </label>
 
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Subject</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Subject</span>
                 <Select value={state.subjectId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, subjectId: value }))}>
                   <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <SelectValue placeholder="Choose subject" />
@@ -367,7 +367,7 @@ function CreateExamPaperDialog({ role }: Props) {
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-sm font-medium transition",
                       state.scope === scope
-                        ? "border-cyan-300/35 bg-cyan-300/15 text-cyan-100"
+                        ? "border-cyan-300/35 bg-cyan-300/15 text-(--ws-cyan)"
                         : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) hover:bg-(--ws-fill-strong)"
                     )}
                   >
@@ -403,7 +403,7 @@ function CreateExamPaperDialog({ role }: Props) {
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Total marks</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Total marks</span>
                 <Input
                   value={state.totalMarks}
                   onChange={(event) => setState((prev) => ({ ...prev, totalMarks: event.target.value }))}
@@ -412,7 +412,7 @@ function CreateExamPaperDialog({ role }: Props) {
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Duration minutes</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Duration minutes</span>
                 <Input
                   value={state.durationMinutes}
                   onChange={(event) => setState((prev) => ({ ...prev, durationMinutes: event.target.value }))}
@@ -421,7 +421,7 @@ function CreateExamPaperDialog({ role }: Props) {
                 />
               </label>
               <label className="space-y-2 md:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg)/38">Candidate instructions</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Candidate instructions</span>
                 <Textarea
                   value={state.candidateInstructions}
                   onChange={(event) => setState((prev) => ({ ...prev, candidateInstructions: event.target.value }))}
@@ -491,14 +491,14 @@ export function ExaminationCenterPage({ role }: Props) {
       <section className="rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-cyan)">
               <BookOpenCheck className="h-3.5 w-3.5" />
               Examinations
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-(--ws-fg) md:text-4xl">
               Exam papers and question bank
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-(--ws-fg)/62">
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-(--ws-fg-70)">
               Set formal exam papers, review readiness, print question-only PDFs, and reuse
               school-owned questions without mixing them into classroom assignments.
             </p>
@@ -525,10 +525,10 @@ export function ExaminationCenterPage({ role }: Props) {
           <Card key={item.label} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
             <CardContent className="flex items-center justify-between p-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg)/42">{item.label}</p>
+                <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">{item.label}</p>
                 <p className="mt-2 text-2xl font-semibold">{item.value}</p>
               </div>
-              <item.icon className="h-5 w-5 text-cyan-200" />
+              <item.icon className="h-5 w-5 text-(--ws-cyan)" />
             </CardContent>
           </Card>
         ))}
@@ -604,7 +604,7 @@ export function ExaminationCenterPage({ role }: Props) {
                       <Badge variant="outline" className="border-(--ws-line) text-(--ws-fg-50)">{item.type}</Badge>
                       <span className="text-xs text-(--ws-fg-40)">{item.marks} marks · reused {item.usedCount}x</span>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-(--ws-fg)/72">{item.prompt}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-(--ws-fg-70)">{item.prompt}</p>
                     {item.topic ? <p className="mt-1 text-xs text-(--ws-fg-40)">{item.topic}</p> : null}
                   </div>
                 </CardContent>
@@ -622,11 +622,11 @@ export function ExaminationCenterPage({ role }: Props) {
           <Card className="border-cyan-300/15 bg-cyan-300/[0.04] text-(--ws-fg)">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-cyan-200" />
+                <Brain className="h-5 w-5 text-(--ws-cyan)" />
                 Leo for examinations
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 text-sm text-(--ws-fg)/62 md:grid-cols-2">
+            <CardContent className="grid gap-3 text-sm text-(--ws-fg-70) md:grid-cols-2">
               <p>Generate blueprints, draft questions, estimate difficulty, and check paper readiness.</p>
               <p>Leo never approves or prints papers automatically. Student PDFs remain question-only.</p>
             </CardContent>

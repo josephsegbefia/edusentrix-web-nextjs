@@ -479,7 +479,7 @@ function FieldRow({
   return (
     <div
       className={cn(
-        "rounded-xl border border-(--ws-line) bg-black/20 p-3",
+        "rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3",
         !field.visible && "opacity-60"
       )}
     >
@@ -611,7 +611,7 @@ function OptionsEditor({
   disabled?: boolean;
 }) {
   return (
-    <div className="space-y-1.5 rounded-lg border border-(--ws-line) bg-black/20 p-2">
+    <div className="space-y-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-(--ws-fg-40)">
         Choices
       </p>
@@ -703,7 +703,7 @@ function DocumentRequirementsEditor({
           requirements.map((req, idx) => (
             <div
               key={req.id}
-              className="flex flex-wrap items-center gap-2 rounded-xl border border-(--ws-line) bg-black/20 p-3"
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3"
             >
               <Input
                 value={req.label}

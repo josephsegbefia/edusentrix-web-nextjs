@@ -43,7 +43,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
 
     if (status === "partially_paid") {
       return (
-        <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
+        <Badge className="bg-yellow-500/20 text-(--ws-amber) border-yellow-500/30">
           <Clock className="h-3 w-3 mr-1" />
           Partially Paid
         </Badge>
@@ -60,7 +60,7 @@ export function InstallmentScheduleView({ lineItemId, lineItemName, installments
     }
 
     return (
-      <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+      <Badge className="bg-blue-500/20 text-(--ws-cyan) border-blue-500/30">
         <Clock className="h-3 w-3 mr-1" />
         Pending
       </Badge>

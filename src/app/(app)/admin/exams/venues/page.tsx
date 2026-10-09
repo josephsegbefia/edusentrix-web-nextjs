@@ -59,7 +59,7 @@ function VenueRow({
               variant="outline"
               className={
                 venue.isActive
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
                   : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)/45"
               }
             >
@@ -215,7 +215,7 @@ export default function ExamVenuesPage() {
           />
         ) : venues.length === 0 ? (
           <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
-            <Building2 className="mx-auto h-10 w-10 text-cyan-300/80" />
+            <Building2 className="mx-auto h-10 w-10 text-(--ws-cyan)" />
             <h3 className="mt-4 text-lg font-semibold text-(--ws-fg)">No exam venues yet</h3>
             <p className="mx-auto mt-2 max-w-xl text-sm text-(--ws-fg-60)">
               Add classrooms, halls, and labs before scheduling exam papers.

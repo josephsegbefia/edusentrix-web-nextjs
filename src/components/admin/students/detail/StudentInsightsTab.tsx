@@ -64,7 +64,7 @@ function HealthScorecard({ data }: { data: InsightsData }) {
       color: "red",
       bg: "bg-red-500/15",
       border: "border-red-500/30",
-      text: "text-red-300",
+      text: "text-(--ws-rose)",
       icon: ShieldAlert,
     },
   };
@@ -82,7 +82,7 @@ function HealthScorecard({ data }: { data: InsightsData }) {
     rb.trend === "up"
       ? "text-(--ws-emerald)"
       : rb.trend === "down"
-        ? "text-red-300"
+        ? "text-(--ws-rose)"
         : "text-(--ws-fg-50)";
 
   return (
@@ -143,7 +143,7 @@ function HealthScorecard({ data }: { data: InsightsData }) {
           <CalendarCheck
             className={cn(
               "h-4 w-4",
-              rb.attendanceFlag ? "text-red-300" : "text-(--ws-cyan)"
+              rb.attendanceFlag ? "text-(--ws-rose)" : "text-(--ws-cyan)"
             )}
           />
           <span className="text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-50)">
@@ -153,13 +153,13 @@ function HealthScorecard({ data }: { data: InsightsData }) {
         <div
           className={cn(
             "text-xl font-bold",
-            rb.attendanceFlag ? "text-red-300" : "text-(--ws-fg)"
+            rb.attendanceFlag ? "text-(--ws-rose)" : "text-(--ws-fg)"
           )}
         >
           {rb.attendanceRate != null ? `${rb.attendanceRate}%` : "--"}
         </div>
         {rb.attendanceFlag && (
-          <p className="text-[10px] text-red-300/70 mt-1">Below 80%</p>
+          <p className="text-[10px] text-(--ws-rose) mt-1">Below 80%</p>
         )}
       </div>
 
@@ -181,7 +181,7 @@ function HealthScorecard({ data }: { data: InsightsData }) {
               rb.feesStatus === "clear"
                 ? "text-(--ws-emerald)"
                 : rb.feesStatus === "owing"
-                  ? "text-red-300"
+                  ? "text-(--ws-rose)"
                   : "text-(--ws-amber)"
             )}
           />
@@ -195,14 +195,14 @@ function HealthScorecard({ data }: { data: InsightsData }) {
             rb.feesStatus === "clear"
               ? "text-(--ws-emerald)"
               : rb.feesStatus === "owing"
-                ? "text-red-300"
+                ? "text-(--ws-rose)"
                 : "text-(--ws-amber)"
           )}
         >
           {rb.feesStatus ?? "--"}
         </div>
         {rb.overdueInvoices > 0 && (
-          <p className="text-[10px] text-red-300/70 mt-1">
+          <p className="text-[10px] text-(--ws-rose) mt-1">
             {rb.overdueInvoices} overdue
           </p>
         )}
@@ -245,7 +245,7 @@ function AISummaryCard({
       <Card className="border-dashed border-purple-500/30 bg-purple-500/[0.05]">
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
-            <LeoIcon className="h-6 w-6 text-purple-300" />
+            <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-(--ws-fg-80) mb-1">
@@ -257,7 +257,7 @@ function AISummaryCard({
             </p>
           </div>
           {generateError && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-200">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-(--ws-rose)">
               {generateError}
             </div>
           )}
@@ -284,7 +284,7 @@ function AISummaryCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/20">
-              <LeoIcon className="h-4 w-4 text-purple-300" />
+              <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
             </div>
             <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
               Leo Summary
@@ -353,7 +353,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
                     "ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-semibold",
                     rb.positionMovement > 0
                       ? "text-(--ws-emerald)"
-                      : "text-red-300"
+                      : "text-(--ws-rose)"
                   )}
                 >
                   {rb.positionMovement > 0 ? (
@@ -375,7 +375,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
               <span
                 className={cn(
                   "font-bold",
-                  rb.caVsExamGap > 0 ? "text-(--ws-emerald)" : "text-red-300"
+                  rb.caVsExamGap > 0 ? "text-(--ws-emerald)" : "text-(--ws-rose)"
                 )}
               >
                 {rb.caVsExamGap > 0 ? "+" : ""}
@@ -438,15 +438,15 @@ function AcademicSection({ data }: { data: InsightsData }) {
                 className="rounded-lg border border-red-500/20 bg-red-500/[0.06] px-3 py-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-red-200">
+                  <span className="text-xs font-medium text-(--ws-rose)">
                     {s.subject}
                   </span>
-                  <span className="text-xs font-bold text-red-300">
+                  <span className="text-xs font-bold text-(--ws-rose)">
                     {s.score}%
                   </span>
                 </div>
                 {"reason" in s && (
-                  <p className="text-[10px] text-red-200/60 mt-0.5">
+                  <p className="text-[10px] text-(--ws-rose) mt-0.5">
                     {(s as { reason: string }).reason}
                   </p>
                 )}
@@ -469,7 +469,7 @@ function AcademicSection({ data }: { data: InsightsData }) {
             {ai.prioritySubjects.map((sub, i) => (
               <span
                 key={i}
-                className="rounded-full border border-purple-500/30 bg-purple-500/15 px-3 py-1 text-xs font-medium text-purple-200"
+                className="rounded-full border border-purple-500/30 bg-purple-500/15 px-3 py-1 text-xs font-medium text-(--ws-violet)"
               >
                 {sub}
               </span>
@@ -530,7 +530,7 @@ function AttendanceSection({ data }: { data: InsightsData }) {
 
   const stats = [
     { label: "Present", value: att.present, color: "text-(--ws-emerald)" },
-    { label: "Absent", value: att.absent, color: "text-red-300" },
+    { label: "Absent", value: att.absent, color: "text-(--ws-rose)" },
     { label: "Late", value: att.late, color: "text-(--ws-amber)" },
     { label: "Excused", value: att.excused, color: "text-(--ws-cyan)" },
   ];
@@ -662,7 +662,7 @@ function FinancialSection({ data }: { data: InsightsData }) {
           <div
             className={cn(
               "text-sm font-bold",
-              fees.outstandingMinor > 0 ? "text-red-300" : "text-(--ws-emerald)"
+              fees.outstandingMinor > 0 ? "text-(--ws-rose)" : "text-(--ws-emerald)"
             )}
           >
             {fmt(fees.outstandingMinor)}
@@ -685,8 +685,8 @@ function FinancialSection({ data }: { data: InsightsData }) {
         )}
         {rb.overdueInvoices > 0 && (
           <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/[0.06] px-3 py-2">
-            <AlertTriangle className="h-3.5 w-3.5 text-red-300" />
-            <span className="text-xs text-red-200">
+            <AlertTriangle className="h-3.5 w-3.5 text-(--ws-rose)" />
+            <span className="text-xs text-(--ws-rose)">
               {rb.overdueInvoices} overdue bill
               {rb.overdueInvoices > 1 ? "s" : ""}
             </span>
@@ -812,7 +812,7 @@ function RecommendationsCard({ data }: { data: InsightsData }) {
                 className={cn(
                   "flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors -mb-px",
                   activeTab === tab.id
-                    ? "border-purple-500 text-purple-300"
+                    ? "border-purple-500 text-(--ws-violet)"
                     : "border-transparent text-(--ws-fg-40) hover:text-(--ws-fg)/60"
                 )}
               >
@@ -937,7 +937,7 @@ function AskAIChat({
     <Card className="border-(--ws-line) bg-(--ws-fill)">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <LeoIcon className="h-4 w-4 text-purple-300" />
+          <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
           <CardTitle className="text-sm font-semibold text-(--ws-fg-80)">
             Ask Leo
           </CardTitle>
@@ -955,7 +955,7 @@ function AskAIChat({
                 className={cn(
                   "text-xs leading-relaxed",
                   m.role === "user"
-                    ? "text-purple-200 font-medium"
+                    ? "text-(--ws-violet) font-medium"
                     : "text-(--ws-fg-70)"
                 )}
               >
@@ -1022,8 +1022,8 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
     return (
       <Card className="border-red-500/30 bg-red-500/[0.05]">
         <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-          <AlertTriangle className="h-8 w-8 text-red-300" />
-          <p className="text-sm text-red-200/70">
+          <AlertTriangle className="h-8 w-8 text-(--ws-rose)" />
+          <p className="text-sm text-(--ws-rose)">
             Failed to load insights. Please try again.
           </p>
         </CardContent>
@@ -1053,7 +1053,7 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/20">
-          <LeoIcon className="h-5 w-5 text-purple-300" />
+          <LeoIcon className="h-5 w-5 text-(--ws-violet)" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-(--ws-fg-90)">
@@ -1092,7 +1092,7 @@ export function StudentInsightsTab({ studentId }: { studentId: string }) {
               className={cn(
                 "flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors -mb-px",
                 activeSection === sec.id
-                  ? "border-purple-500 text-purple-300"
+                  ? "border-purple-500 text-(--ws-violet)"
                   : "border-transparent text-(--ws-fg-40) hover:text-(--ws-fg)/60"
               )}
             >

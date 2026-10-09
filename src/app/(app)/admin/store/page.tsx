@@ -95,8 +95,8 @@ function StatCard({
   tone: "cyan" | "emerald" | "amber" | "violet";
 }) {
   const tones = {
-    cyan: "border-cyan-300/20 bg-cyan-400/10 text-cyan-200",
-    emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-200",
+    cyan: "border-cyan-300/20 bg-cyan-400/10 text-(--ws-cyan)",
+    emerald: "border-emerald-300/20 bg-emerald-400/10 text-(--ws-emerald)",
     amber: "border-amber-300/20 bg-amber-400/10 text-(--ws-amber)",
     violet: "border-violet-300/20 bg-violet-400/10 text-(--ws-violet)",
   };
@@ -121,7 +121,7 @@ function StatCard({
 }
 
 function statusTone(status: string) {
-  if (status === "paid" || status === "fulfilled") return "border-emerald-300/25 text-emerald-100 bg-emerald-400/10";
+  if (status === "paid" || status === "fulfilled") return "border-emerald-300/25 text-(--ws-emerald) bg-emerald-400/10";
   if (status === "pending" || status === "awaiting_payment") return "border-amber-300/25 text-(--ws-amber) bg-amber-400/10";
   if (status === "cancelled" || status === "failed") return "border-rose-300/25 text-(--ws-rose) bg-rose-400/10";
   return "border-(--ws-line-strong) text-(--ws-fg)/75 bg-(--ws-fill)";
@@ -261,7 +261,7 @@ export default function AdminSchoolStorePage() {
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex min-w-0 gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-lg shadow-cyan-500/10">
-              <Store className="h-6 w-6 text-cyan-200" />
+              <Store className="h-6 w-6 text-(--ws-cyan)" />
             </div>
             <div className="min-w-0">
               <p className="text-sm text-(--ws-fg-50)">Commerce</p>
@@ -280,7 +280,7 @@ export default function AdminSchoolStorePage() {
               {activeProducts} active
             </Badge>
             <Badge className="border border-(--ws-line) bg-(--ws-fill) px-3 py-1.5 text-(--ws-fg-70)">
-              <ReceiptText className="mr-1.5 h-3.5 w-3.5 text-cyan-200" />
+              <ReceiptText className="mr-1.5 h-3.5 w-3.5 text-(--ws-cyan)" />
               {orders.length} orders
             </Badge>
           </div>
@@ -324,14 +324,14 @@ export default function AdminSchoolStorePage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-base text-(--ws-fg)">
-                <PackagePlus className="h-4 w-4 text-cyan-200" />
+                <PackagePlus className="h-4 w-4 text-(--ws-cyan)" />
                 Add product
               </CardTitle>
               <p className="mt-1 text-sm text-(--ws-fg-50)">
                 Create a parent-facing item with price, description, and optional image.
               </p>
             </div>
-            <Badge variant="outline" className="w-fit border-cyan-300/20 bg-cyan-400/10 text-cyan-100">
+            <Badge variant="outline" className="w-fit border-cyan-300/20 bg-cyan-400/10 text-(--ws-cyan)">
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
               Parent checkout ready
             </Badge>
@@ -344,7 +344,7 @@ export default function AdminSchoolStorePage() {
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-11 border-(--ws-line) bg-black/30 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
+                className="h-11 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 placeholder="e.g. Exercise books (pack)"
               />
             </div>
@@ -353,14 +353,14 @@ export default function AdminSchoolStorePage() {
               <Input
                 value={priceGhs}
                 onChange={(e) => setPriceGhs(e.target.value)}
-                className="h-11 border-(--ws-line) bg-black/30 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
+                className="h-11 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 placeholder="12.00"
                 inputMode="decimal"
               />
             </div>
             <div className="space-y-2 lg:row-span-3">
               <Label className="text-(--ws-fg-80)">Photo</Label>
-              <div className="rounded-xl border border-(--ws-line) bg-black/25 p-3">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 {schoolId ? (
                   <>
                     <ImageUploader
@@ -388,7 +388,7 @@ export default function AdminSchoolStorePage() {
               <Input
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="h-11 border-(--ws-line) bg-black/30 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
+                className="h-11 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 placeholder="Short parent-facing note"
               />
             </div>
@@ -396,7 +396,7 @@ export default function AdminSchoolStorePage() {
               <Button
                 type="submit"
                 disabled={saving}
-                className="h-11 bg-linear-to-r from-teal-500 to-cyan-600 px-5 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+                className="h-11 bg-linear-to-r from-teal-500 to-cyan-600 px-5 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700 hover:text-white"
               >
                 {saving ? (
                   <>
@@ -430,7 +430,7 @@ export default function AdminSchoolStorePage() {
               <Input
                 value={catalogSearch}
                 onChange={(event) => setCatalogSearch(event.target.value)}
-                className="h-10 border-(--ws-line) bg-black/30 pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-40)"
+                className="h-10 border-(--ws-line) bg-(--ws-fill) pl-9 text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 placeholder="Search catalog..."
               />
             </div>
@@ -476,7 +476,7 @@ export default function AdminSchoolStorePage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate font-medium text-(--ws-fg)">{p.name}</p>
-                          <p className="mt-1 text-sm font-semibold text-cyan-200">
+                          <p className="mt-1 text-sm font-semibold text-(--ws-cyan)">
                             {formatMoney(p.priceMinor)}
                           </p>
                         </div>
@@ -495,7 +495,7 @@ export default function AdminSchoolStorePage() {
                           className={cn(
                             "border text-[10px]",
                             p.isActive
-                              ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-100"
+                              ? "border-emerald-300/25 bg-emerald-400/10 text-(--ws-emerald)"
                               : "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-50)"
                           )}
                         >
@@ -515,7 +515,7 @@ export default function AdminSchoolStorePage() {
         <PanelChrome />
         <CardHeader className="relative z-10 border-b border-(--ws-line)">
           <CardTitle className="flex items-center gap-2 text-base text-(--ws-fg)">
-            <ReceiptText className="h-4 w-4 text-cyan-200" />
+            <ReceiptText className="h-4 w-4 text-(--ws-cyan)" />
             Orders
           </CardTitle>
           <p className="text-sm text-(--ws-fg-50)">
@@ -557,7 +557,7 @@ export default function AdminSchoolStorePage() {
                         {o.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-semibold text-cyan-200">
+                    <TableCell className="font-semibold text-(--ws-cyan)">
                       {formatMoney(o.totalMinor)}
                     </TableCell>
                   </TableRow>

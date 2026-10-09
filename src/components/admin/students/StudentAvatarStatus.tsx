@@ -46,7 +46,7 @@ export function StudentAvatarStatus({
       <Avatar
         className={cn(
           sizeClasses[size],
-          "border border-(--ws-line-strong) bg-slate-800/80 text-xs font-semibold text-slate-100 shadow-md shadow-black/40"
+          "border border-(--ws-line-strong) bg-slate-800/80 text-xs font-semibold text-(--ws-fg-70) shadow-md shadow-black/40"
         )}
       >
         {photoUrl ? (

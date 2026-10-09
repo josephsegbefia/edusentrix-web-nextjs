@@ -83,7 +83,7 @@ export function SchoolTimeZoneSettingsCard() {
   if (isError || !school) {
     return (
       <Card className="border border-rose-500/25 bg-rose-950/20">
-        <CardContent className="p-6 text-sm text-rose-200">Could not load school.</CardContent>
+        <CardContent className="p-6 text-sm text-(--ws-rose)">Could not load school.</CardContent>
       </Card>
     );
   }
@@ -94,7 +94,7 @@ export function SchoolTimeZoneSettingsCard() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1.5">
             <CardTitle className="flex items-center gap-2 text-lg text-white">
-              <Globe className="h-5 w-5 text-cyan-300" />
+              <Globe className="h-5 w-5 text-(--ws-cyan)" />
               Regional and time zone
             </CardTitle>
             <CardDescription className="text-white/55">
@@ -104,7 +104,7 @@ export function SchoolTimeZoneSettingsCard() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge
               variant="outline"
-              className="border-cyan-500/30 bg-cyan-500/10 text-[11px] text-cyan-100"
+              className="border-cyan-500/30 bg-cyan-500/10 text-[11px] text-(--ws-cyan)"
             >
               <Sparkles className="mr-1 h-3 w-3" />
               Suggested: {suggested}
@@ -141,7 +141,7 @@ export function SchoolTimeZoneSettingsCard() {
             </datalist>
           </div>
           {draft.trim() && !isValidIanaTimeZone(draft.trim()) ? (
-            <p className="text-sm text-amber-200/90">Enter a valid IANA zone (e.g. Africa/Accra).</p>
+            <p className="text-sm text-(--ws-amber)">Enter a valid IANA zone (e.g. Africa/Accra).</p>
           ) : (
             <p className="text-xs text-white/45">
               Pick from the list or type any valid IANA identifier your browser accepts.

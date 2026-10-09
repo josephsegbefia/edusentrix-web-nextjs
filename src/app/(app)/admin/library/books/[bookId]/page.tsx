@@ -300,7 +300,7 @@ export default function AdminLibraryBookDetailPage() {
           icon={isArchived ? Archive : CheckCircle2}
           label="Catalogue status"
           value={
-            <span className={isArchived ? "text-(--ws-amber)" : "text-emerald-100"}>
+            <span className={isArchived ? "text-(--ws-amber)" : "text-(--ws-emerald)"}>
               {isArchived ? "Archived" : "Active"}
             </span>
           }

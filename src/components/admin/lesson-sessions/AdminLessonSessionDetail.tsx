@@ -107,13 +107,13 @@ const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-amber-400/30 bg-amber-500/10 text-(--ws-amber)",
-  ready: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100",
-  published: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+  ready: "border-cyan-400/30 bg-cyan-500/10 text-(--ws-cyan)",
+  published: "border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)",
   archived: "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)",
-  scheduled: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100",
-  in_progress: "border-teal-400/30 bg-teal-500/10 text-teal-100",
-  delivered: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
-  completed: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+  scheduled: "border-cyan-400/30 bg-cyan-500/10 text-(--ws-cyan)",
+  in_progress: "border-teal-400/30 bg-teal-500/10 text-(--ws-teal)",
+  delivered: "border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)",
+  completed: "border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)",
   cancelled: "border-rose-400/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
@@ -169,7 +169,7 @@ function MetricCard({
   return (
     <div className={cn(glassInsetClass, "p-4")}>
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-400/20 bg-teal-500/10 text-teal-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-400/20 bg-teal-500/10 text-(--ws-teal)">
           <Icon className="h-5 w-5" />
         </div>
         <div>

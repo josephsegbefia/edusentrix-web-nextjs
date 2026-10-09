@@ -122,7 +122,7 @@ const STATUS_ACTION_CONFIG: Record<
     emptyMessage: "No eligible teachers found for inactive status.",
     actionLabel: "Make Inactive",
     actionClassName:
-      "border-slate-400/40 bg-slate-500/20 text-slate-100 hover:bg-slate-500/30",
+      "border-slate-400/40 bg-slate-500/20 text-(--ws-fg-70) hover:bg-slate-500/30",
   },
   on_leave: {
     ctaLabel: "Add a teacher on leave",
@@ -161,7 +161,7 @@ const STATUS_LABELS: Record<TeacherStatus, string> = {
 
 const STATUS_BADGE_STYLES: Record<TeacherStatus, string> = {
   active: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
-  inactive: "border-slate-400/30 bg-slate-500/10 text-slate-300",
+  inactive: "border-slate-400/30 bg-slate-500/10 text-(--ws-fg-70)",
   on_leave: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   terminated: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
 };
@@ -823,17 +823,17 @@ export default function TeachersPage() {
                 <AlertCircle className="h-7 w-7 text-red-400" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-red-300">
+                <p className="text-sm font-medium text-(--ws-rose)">
                   Failed to load teachers
                 </p>
-                <p className="text-xs text-red-300/60">
+                <p className="text-xs text-(--ws-rose)">
                   Please try refreshing the page
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                className="border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
                 onClick={() => window.location.reload()}
               >
                 Retry
@@ -1118,7 +1118,7 @@ export default function TeachersPage() {
                   </div>
 
                   {!isLeavePeriodValid && leaveStartDate && leaveEndDate ? (
-                    <p className="text-xs text-red-300/80">
+                    <p className="text-xs text-(--ws-rose)">
                       End date must be on or after the start date.
                     </p>
                   ) : null}
@@ -1144,7 +1144,7 @@ export default function TeachersPage() {
               ) : isStatusSearchError ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
                   <AlertCircle className="h-5 w-5 text-red-400/70" />
-                  <p className="text-sm text-red-300/80">
+                  <p className="text-sm text-(--ws-rose)">
                     Failed to search teachers. Try again.
                   </p>
                 </div>
@@ -1269,7 +1269,7 @@ export default function TeachersPage() {
           >
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <AlertCircle className="h-8 w-8 text-red-400/60" />
-              <p className="text-sm text-red-300/80">Teacher not found</p>
+              <p className="text-sm text-(--ws-rose)">Teacher not found</p>
             </div>
           </TeacherModalShell>
         )

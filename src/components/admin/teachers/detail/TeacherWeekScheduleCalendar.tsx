@@ -236,7 +236,7 @@ function EventCard({
             className={cn(
               "h-3 w-3 shrink-0",
               eyebrowClassName,
-              isCurrent && "text-sky-100"
+              isCurrent && "text-(--ws-cyan)"
             )}
           />
           {isCurrent ? (
@@ -287,7 +287,7 @@ function EventCard({
         <Icon className="h-3.5 w-3.5 shrink-0" />
         <span className="min-w-0 flex-1 truncate">{eyebrow}</span>
         {isCurrent ? (
-          <span className="shrink-0 rounded-full bg-sky-200/18 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-sky-100">
+          <span className="shrink-0 rounded-full bg-sky-200/18 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-(--ws-cyan)">
             NOW
           </span>
         ) : null}
@@ -407,7 +407,7 @@ function renderEventContent(arg: EventContentArg) {
         durationMinutes={minutesBetween(lesson.startTime, lesson.endTime)}
         isCurrent={isCurrent}
         bodyClassName="border-cyan-400/30 bg-linear-to-br from-cyan-500/20 via-sky-500/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]"
-        eyebrowClassName="text-cyan-100/85"
+        eyebrowClassName="text-(--ws-cyan)"
         metaClassName="text-(--ws-fg-90)"
       />
     );
@@ -451,7 +451,7 @@ function renderEventContent(arg: EventContentArg) {
 
 function TodayBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-100/90">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/20 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-cyan)">
       <Sparkles className="h-3 w-3" />
       Current week
     </span>
@@ -509,7 +509,7 @@ export function TeacherWeekScheduleCalendar({
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-2">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
-              <CalendarDays className="h-5 w-5 text-cyan-300" />
+              <CalendarDays className="h-5 w-5 text-(--ws-cyan)" />
               Weekly schedule · {teacherName}
             </CardTitle>
             <p className="max-w-3xl text-sm leading-relaxed text-(--ws-fg-50)">
@@ -554,11 +554,11 @@ export function TeacherWeekScheduleCalendar({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] font-medium text-(--ws-fg-90)">
-            <Clock className="h-3 w-3 text-cyan-300" />
+            <Clock className="h-3 w-3 text-(--ws-cyan)" />
             {weekLabel}
           </span>
           {isCurrentWeek ? <TodayBadge /> : null}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-cyan-100/90">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-cyan)">
             <BookOpen className="h-3 w-3" />
             {agenda.summary.lessonCount} lessons
           </span>
@@ -567,7 +567,7 @@ export function TeacherWeekScheduleCalendar({
             {agenda.summary.dutyCount} duties
           </span>
           {hasDraft ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-100/90">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-(--ws-violet)">
               <Layers3 className="h-3 w-3" />
               Using draft timetable data where available
             </span>
@@ -667,11 +667,11 @@ export function TeacherWeekScheduleCalendar({
 
         <div className="grid gap-px border-t border-(--ws-line) bg-(--ws-fill) px-4 py-3 text-xs text-(--ws-fg-50) sm:grid-cols-3">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-3.5 w-3.5 text-cyan-300" />
+            <BookOpen className="h-3.5 w-3.5 text-(--ws-cyan)" />
             Lessons repeat weekly inside the academic period.
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="h-3.5 w-3.5 text-amber-300" />
+            <MapPin className="h-3.5 w-3.5 text-(--ws-amber)" />
             Duties appear only on active dates and active date ranges.
           </div>
           <div className="flex items-center gap-2">

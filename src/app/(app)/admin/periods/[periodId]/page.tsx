@@ -183,13 +183,13 @@ function PeriodDetailContent() {
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
-                <AlertTriangle className="h-5 w-5 text-red-300" />
+                <AlertTriangle className="h-5 w-5 text-(--ws-rose)" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">
+                <div className="font-semibold text-(--ws-rose)">
                   Missing period identifier
                 </div>
-                <p className="text-xs text-red-200/70">
+                <p className="text-xs text-(--ws-rose)">
                   The period ID was not provided in the URL.
                 </p>
               </div>
@@ -199,7 +199,7 @@ function PeriodDetailContent() {
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/periods")}
-              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to Periods
@@ -266,13 +266,13 @@ function PeriodDetailContent() {
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
-                <AlertTriangle className="h-5 w-5 text-red-300" />
+                <AlertTriangle className="h-5 w-5 text-(--ws-rose)" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">
+                <div className="font-semibold text-(--ws-rose)">
                   Unable to load period details
                 </div>
-                <p className="text-xs text-red-200/70">
+                <p className="text-xs text-(--ws-rose)">
                   The period might not exist or you might not have access.
                 </p>
               </div>
@@ -282,7 +282,7 @@ function PeriodDetailContent() {
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/periods")}
-              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to Periods
@@ -313,7 +313,7 @@ function PeriodDetailContent() {
               variant="ghost"
               size="icon"
               onClick={() => router.push("/admin/periods")}
-              className="h-10 w-10 shrink-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) transition-all duration-200 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-300"
+              className="h-10 w-10 shrink-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) transition-all duration-200 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-(--ws-teal)"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

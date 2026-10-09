@@ -127,8 +127,8 @@ export default function NewReconciliationSessionPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <FileSearch className={`h-4 w-4 ${selected ? "text-indigo-300" : "text-white/40"}`} />
-                        <span className={`text-sm font-medium ${selected ? "text-indigo-200" : "text-white/70"}`}>
+                        <FileSearch className={`h-4 w-4 ${selected ? "text-(--ws-violet)" : "text-white/40"}`} />
+                        <span className={`text-sm font-medium ${selected ? "text-(--ws-violet)" : "text-white/70"}`}>
                           {option.label}
                         </span>
                       </div>

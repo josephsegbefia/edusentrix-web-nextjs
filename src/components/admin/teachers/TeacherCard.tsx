@@ -89,7 +89,7 @@ const toneConfig: Record<
     bg: "from-slate-600/20 via-slate-700/15 to-transparent",
     glow: "bg-slate-500/20",
     accent: "bg-slate-500",
-    badge: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+    badge: "bg-slate-500/20 text-(--ws-fg-70) border-slate-500/30",
   },
 };
 
@@ -316,7 +316,7 @@ export function TeacherCard({
         {/* Info badges */}
         <div className="flex flex-wrap items-center gap-2">
           {teacher.homeroom && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 px-2.5 py-1 text-[10px] font-medium text-purple-200">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 px-2.5 py-1 text-[10px] font-medium text-(--ws-violet)">
               <Home className="h-3 w-3" />
               {teacher.homeroom.name}
             </span>

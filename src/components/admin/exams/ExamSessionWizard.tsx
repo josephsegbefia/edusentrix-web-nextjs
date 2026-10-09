@@ -198,7 +198,7 @@ export function ExamSessionWizard({
               className={cn(
                 "rounded-full border px-3 py-1 text-xs",
                 currentStep === step.id
-                  ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
+                  ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
                   : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)"
               )}
             >
@@ -209,7 +209,7 @@ export function ExamSessionWizard({
 
         <div className={cn(glassInsetClass, "p-4")}>
           <div className="mb-4 flex items-center gap-2 text-sm text-(--ws-fg-70)">
-            <StepIcon className="h-4 w-4 text-cyan-300" />
+            <StepIcon className="h-4 w-4 text-(--ws-cyan)" />
             {EXAM_SESSION_WIZARD_STEPS[currentStep - 1]?.description}
           </div>
 
@@ -314,7 +314,7 @@ export function ExamSessionWizard({
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-sm transition",
                           selected
-                            ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
+                            ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
                             : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:text-(--ws-fg)"
                         )}
                       >
@@ -348,7 +348,7 @@ export function ExamSessionWizard({
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-sm transition",
                             selected
-                              ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
+                              ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
                               : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60) hover:text-(--ws-fg)"
                           )}
                         >

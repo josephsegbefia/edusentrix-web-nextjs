@@ -196,7 +196,7 @@ export function ApplyCreditModal(props: {
         <Card className="border border-white/10 bg-white/5 p-4">
           <div className="flex items-center justify-between text-sm">
             <div className="text-white/50">Available Credit</div>
-            <div className="font-semibold text-sky-200">
+            <div className="font-semibold text-(--ws-cyan)">
               {formatMoney(creditBalanceMinor)}
             </div>
           </div>

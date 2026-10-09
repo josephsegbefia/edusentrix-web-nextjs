@@ -140,14 +140,14 @@ export function ClassOverviewTab({
           title="Subjects"
           value={subjectCount}
           icon={BookOpen}
-          iconColor="bg-blue-500/20 text-blue-300"
+          iconColor="bg-blue-500/20 text-(--ws-cyan)"
         />
         <StatCard
           title="Teachers"
           value={teacherCount}
           subtitle="Subject teachers"
           icon={UserCheck}
-          iconColor="bg-purple-500/20 text-purple-300"
+          iconColor="bg-purple-500/20 text-(--ws-violet)"
         />
         <StatCard
           title="Capacity"
@@ -156,8 +156,8 @@ export function ClassOverviewTab({
           icon={Percent}
           iconColor={
             capacityPercent && capacityPercent >= 90
-              ? "bg-amber-500/20 text-amber-300"
-              : "bg-teal-500/20 text-teal-300"
+              ? "bg-amber-500/20 text-(--ws-amber)"
+              : "bg-teal-500/20 text-(--ws-teal)"
           }
         />
       </div>
@@ -250,7 +250,7 @@ export function ClassOverviewTab({
               <Button
                 variant="outline"
                 onClick={onManageSubjects}
-                className="h-auto flex-col gap-2 border-(--ws-line) bg-(--ws-fill) py-4 text-(--ws-fg-70) hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-300"
+                className="h-auto flex-col gap-2 border-(--ws-line) bg-(--ws-fill) py-4 text-(--ws-fg-70) hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-(--ws-cyan)"
               >
                 <BookPlus className="h-5 w-5" />
                 <span className="text-xs">Manage Subjects</span>
@@ -289,7 +289,7 @@ export function ClassOverviewTab({
                   "rounded-full text-[10px]",
                   classData.isActive
                     ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
-                    : "border-slate-500/30 bg-slate-500/10 text-slate-300"
+                    : "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)"
                 )}
               >
                 {classData.isActive ? "Active" : "Inactive"}

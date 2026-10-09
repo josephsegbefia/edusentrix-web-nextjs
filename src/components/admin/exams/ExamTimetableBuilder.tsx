@@ -96,10 +96,10 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 const ENTRY_STATUS_STYLES: Record<string, string> = {
   draft: "border-white/10 bg-white/5 text-white/70",
-  ready: "border-sky-500/30 bg-sky-500/10 text-sky-100",
-  published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  in_progress: "border-cyan-500/30 bg-cyan-500/10 text-cyan-100",
-  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  ready: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
+  published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  in_progress: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
+  completed: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   cancelled: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   rescheduled: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
@@ -391,7 +391,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
               {currentVersionLabel ? (
                 <Badge
                   variant="outline"
-                  className="ml-2 border-cyan-500/30 bg-cyan-500/10 text-cyan-100"
+                  className="ml-2 border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)"
                 >
                   {currentVersionLabel}
                 </Badge>
@@ -547,33 +547,33 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
             label: "Exam papers",
             value: summary.total,
             icon: ClipboardList,
-            tone: "text-cyan-200",
+            tone: "text-(--ws-cyan)",
           },
           {
             label: "Unscheduled",
             value: summary.unscheduled,
             icon: Sparkles,
-            tone: summary.unscheduled > 0 ? "text-(--ws-amber)" : "text-emerald-200",
+            tone: summary.unscheduled > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)",
           },
           {
             label: "Missing venue",
             value: summary.missingVenue,
             icon: MapPin,
-            tone: summary.missingVenue > 0 ? "text-(--ws-amber)" : "text-emerald-200",
+            tone: summary.missingVenue > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)",
           },
           {
             label: "Missing invigilators",
             value: summary.missingInvigilators,
             icon: Users,
             tone:
-              summary.missingInvigilators > 0 ? "text-(--ws-amber)" : "text-emerald-200",
+              summary.missingInvigilators > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)",
           },
           {
             label: "Missing assessment links",
             value: summary.missingAssessmentLink,
             icon: Link2,
             tone:
-              summary.missingAssessmentLink > 0 ? "text-(--ws-amber)" : "text-emerald-200",
+              summary.missingAssessmentLink > 0 ? "text-(--ws-amber)" : "text-(--ws-emerald)",
           },
           {
             label: "Published version",
@@ -653,7 +653,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
           </div>
         ) : entries.length === 0 ? (
           <div className={cn(glassInsetClass, "px-6 py-12 text-center")}>
-            <ClipboardList className="mx-auto h-10 w-10 text-cyan-300/80" />
+            <ClipboardList className="mx-auto h-10 w-10 text-(--ws-cyan)" />
             <h3 className="mt-4 text-lg font-semibold text-white">
               No exam papers have been added yet
             </h3>
@@ -768,7 +768,7 @@ export function ExamTimetableBuilder({ sessionId }: ExamTimetableBuilderProps) {
                             {canMutate ? (
                               <button
                                 type="button"
-                                className="text-xs text-cyan-200/90 hover:text-cyan-100"
+                                className="text-xs text-(--ws-cyan) hover:text-(--ws-cyan)"
                                 onClick={() => openInvigilatorDrawer(entry)}
                               >
                                 Manage

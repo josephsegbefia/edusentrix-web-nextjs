@@ -276,7 +276,7 @@ function AdminSchemeImportInner() {
 
       <section className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-5">
         <div className="flex items-center gap-2 text-(--ws-fg)">
-          <FileUp className="h-5 w-5 text-blue-200" />
+          <FileUp className="h-5 w-5 text-(--ws-cyan)" />
           <h2 className="text-lg font-semibold">1. Upload</h2>
         </div>
         {!jobId || job?.status === "failed" || job?.status === "cancelled" ? (
@@ -305,14 +305,14 @@ function AdminSchemeImportInner() {
             ) : null}
             {uploadError ? <p className="mt-2 text-sm text-(--ws-rose)">{uploadError}</p> : null}
             {createMutation.isPending || parsePhase ? (
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-100">
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-sm text-(--ws-cyan)">
                 <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
                 <p>{parsePhase || "Processing import…"}</p>
               </div>
             ) : null}
           </div>
         ) : (
-          <div className="mt-4 flex items-center gap-2 text-sm text-emerald-100">
+          <div className="mt-4 flex items-center gap-2 text-sm text-(--ws-emerald)">
             <CheckCircle2 className="h-4 w-4" />
             Uploaded: {job?.fileName}
           </div>
@@ -321,7 +321,7 @@ function AdminSchemeImportInner() {
 
       {jobLoading && jobId ? <p className="text-sm text-(--ws-fg-60)">Loading import...</p> : null}
       {job?.status === "queued" || job?.status === "parsing" ? (
-        <div className="flex items-start gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-blue-100">
+        <div className="flex items-start gap-2 rounded-xl border border-blue-400/20 bg-blue-500/10 p-4 text-sm text-(--ws-cyan)">
           <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
           <p>
             {job.status === "queued"
@@ -357,7 +357,7 @@ function AdminSchemeImportInner() {
 
       {job?.status === "parsed" &&
       (job.sourceKind === "pdf_ai" || job.sourceKind === "pdf_gemini") ? (
-        <div className="rounded-xl border border-teal-500/30 bg-teal-950/20 p-4 text-sm text-teal-100">
+        <div className="rounded-xl border border-teal-500/30 bg-teal-950/20 p-4 text-sm text-(--ws-teal)">
           <p className="font-medium">Extracted by Leo (AI)</p>
           <p className="mt-1">
             {job.sourceKind === "pdf_gemini"
@@ -372,7 +372,7 @@ function AdminSchemeImportInner() {
       (job.sourceKind === "pdf_parse_tables" ||
         job.sourceKind === "pdf_excavator" ||
         job.sourceKind === "pdf_text_grid") ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-sm text-emerald-100">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-sm text-(--ws-emerald)">
           <p className="font-medium">Extracted locally from PDF (no AI required)</p>
           <p className="mt-1">
             {job.sourceKind === "pdf_parse_tables"
@@ -494,7 +494,7 @@ function AdminSchemeImportInner() {
                 <Badge variant="outline" className="border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-60)">
                   {stats?.total ?? 0} rows
                 </Badge>
-                <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
+                <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-(--ws-emerald)">
                   {stats?.usable ?? 0} usable
                 </Badge>
                 {stats?.issues ? (
@@ -596,7 +596,7 @@ function AdminSchemeImportInner() {
           <section className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 text-blue-200" />
+                <Sparkles className="mt-0.5 h-5 w-5 text-(--ws-cyan)" />
                 <div>
                   <h2 className="text-lg font-semibold text-(--ws-fg)">4. Create approved scheme</h2>
                   <p className="mt-1 text-sm text-(--ws-fg-50)">

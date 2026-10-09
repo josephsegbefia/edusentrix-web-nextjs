@@ -104,7 +104,7 @@ export function AssignDelegateModal({
       >
         <div className="space-y-4">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-40)" />
             <Input
               type="search"
               placeholder="Search active teachers by name or email"
@@ -115,25 +115,25 @@ export function AssignDelegateModal({
             />
           </div>
 
-          <div className="max-h-[55vh] overflow-y-auto rounded-2xl border border-white/10 bg-black/20">
+          <div className="max-h-[55vh] overflow-y-auto rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
             {teacherQuery.isLoading ? (
-              <div className="flex items-center justify-center gap-2 p-8 text-sm text-white/55">
+              <div className="flex items-center justify-center gap-2 p-8 text-sm text-(--ws-fg-60)">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading teachers…
               </div>
             ) : teachers.length === 0 ? (
               <div className="flex flex-col items-center gap-2 p-10 text-center">
-                <ShieldAlert className="h-7 w-7 text-white/35" />
-                <p className="text-sm font-medium text-white">
+                <ShieldAlert className="h-7 w-7 text-(--ws-fg-40)" />
+                <p className="text-sm font-medium text-(--ws-fg)">
                   No teachers match this search
                 </p>
-                <p className="max-w-sm text-xs text-white/55">
+                <p className="max-w-sm text-xs text-(--ws-fg-60)">
                   Try a different name or email. Only active teachers can be
                   delegated.
                 </p>
               </div>
             ) : (
-              <ul className="divide-y divide-white/5">
+              <ul className="divide-y divide-(--ws-line)">
                 {teachers.map((t) => {
                   const isCurrent =
                     currentDelegate && currentDelegate.teacherId === t._id;
@@ -153,10 +153,10 @@ export function AssignDelegateModal({
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">
+                          <p className="truncate text-sm font-semibold text-(--ws-fg)">
                             {fullName || "Teacher"}
                           </p>
-                          <p className="truncate text-xs text-white/50">
+                          <p className="truncate text-xs text-(--ws-fg-60)">
                             {t.email}
                           </p>
                         </div>
@@ -164,7 +164,7 @@ export function AssignDelegateModal({
                       {isCurrent ? (
                         <Badge
                           variant="outline"
-                          className="gap-1.5 border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                          className="gap-1.5 border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald)"
                         >
                           <ShieldCheck className="h-3 w-3" />
                           Current
@@ -188,10 +188,11 @@ export function AssignDelegateModal({
             )}
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-white/10 pt-4">
+          <div className="flex justify-end gap-2 border-t border-(--ws-line) pt-4">
             <Button
               type="button"
               variant="outline"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               onClick={() => onOpenChange(false)}
             >
               Close

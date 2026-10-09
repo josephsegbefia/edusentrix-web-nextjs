@@ -113,8 +113,8 @@ function StatCard({
   tone: "cyan" | "emerald" | "amber" | "violet";
 }) {
   const tones = {
-    cyan: "border-cyan-300/20 bg-cyan-400/10 text-cyan-200",
-    emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-200",
+    cyan: "border-cyan-300/20 bg-cyan-400/10 text-(--ws-cyan)",
+    emerald: "border-emerald-300/20 bg-emerald-400/10 text-(--ws-emerald)",
     amber: "border-amber-300/20 bg-amber-400/10 text-(--ws-amber)",
     violet: "border-violet-300/20 bg-violet-400/10 text-(--ws-violet)",
   };
@@ -139,10 +139,10 @@ function StatCard({
 }
 
 function statusTone(status: string) {
-  if (status === "published") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+  if (status === "published") return "border-emerald-300/25 bg-emerald-400/10 text-(--ws-emerald)";
   if (status === "draft") return "border-amber-300/25 bg-amber-400/10 text-(--ws-amber)";
   if (status === "archived") return "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-50)";
-  return "border-cyan-300/20 bg-cyan-400/10 text-cyan-100";
+  return "border-cyan-300/20 bg-cyan-400/10 text-(--ws-cyan)";
 }
 
 function audienceLabel(value: string) {
@@ -364,14 +364,14 @@ export default function AdminSupplyProgramsPage() {
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex min-w-0 gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-lg shadow-cyan-500/10">
-              <ClipboardList className="h-6 w-6 text-cyan-200" />
+              <ClipboardList className="h-6 w-6 text-(--ws-cyan)" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm text-(--ws-fg-50)">Store programs</p>
+              <p className="text-sm text-(--ws-fg-70)">Store programs</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">
                 Supply programs
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--ws-fg-50)">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-(--ws-fg-70)">
                 Build targeted supply lists by grade, class, or student, then connect each
                 requirement to store products and parent checkout.
               </p>
@@ -381,7 +381,7 @@ export default function AdminSupplyProgramsPage() {
             <Button
               type="button"
               onClick={() => setShowWizard(true)}
-              className="bg-linear-to-r from-teal-500 to-cyan-600 text-(--ws-fg) shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+              className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700 hover:text-white"
             >
               <Wand2 className="mr-2 h-4 w-4" />
               New program wizard
@@ -494,7 +494,7 @@ export default function AdminSupplyProgramsPage() {
                     <div className="min-w-0">
                       <button
                         type="button"
-                        className="flex min-w-0 items-center gap-2 text-left font-medium text-(--ws-fg) hover:text-cyan-200"
+                        className="flex min-w-0 items-center gap-2 text-left font-medium text-(--ws-fg) hover:text-(--ws-cyan)"
                         onClick={() =>
                           setSelectedId((cur) => (cur === p.id ? null : p.id))
                         }
@@ -503,7 +503,7 @@ export default function AdminSupplyProgramsPage() {
                         <ChevronRight
                           className={cn(
                             "h-4 w-4 shrink-0 text-(--ws-fg-40) transition-transform",
-                            selectedId === p.id && "rotate-90 text-cyan-200"
+                            selectedId === p.id && "rotate-90 text-(--ws-cyan)"
                           )}
                         />
                       </button>
@@ -526,7 +526,7 @@ export default function AdminSupplyProgramsPage() {
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="border-emerald-500/30 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/15"
+                            className="border-emerald-500/30 bg-emerald-400/10 text-(--ws-emerald) hover:bg-emerald-400/15"
                             onClick={() => void publishProgram(p)}
                           >
                             Publish
@@ -547,7 +547,7 @@ export default function AdminSupplyProgramsPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-red-300 hover:bg-red-400/10 hover:text-red-200"
+                          className="text-(--ws-rose) hover:bg-red-400/10 hover:text-(--ws-rose)"
                           onClick={() => void deleteProgram(p)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -568,7 +568,7 @@ export default function AdminSupplyProgramsPage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-base text-(--ws-fg)">
-                  <Boxes className="h-4 w-4 text-cyan-200" />
+                  <Boxes className="h-4 w-4 text-(--ws-cyan)" />
                   Lines & products
                 </CardTitle>
                 <p className="mt-1 text-sm text-(--ws-fg-50)">
@@ -578,13 +578,13 @@ export default function AdminSupplyProgramsPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="border-cyan-300/20 bg-cyan-400/10 text-cyan-100">
+                <Badge variant="outline" className="border-cyan-300/20 bg-cyan-400/10 text-(--ws-cyan)">
                   {lines.length} lines
                 </Badge>
-                <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
+                <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-(--ws-emerald)">
                   {requiredLines} required
                 </Badge>
-                <Badge variant="outline" className="border-violet-300/20 bg-violet-400/10 text-violet-100">
+                <Badge variant="outline" className="border-violet-300/20 bg-violet-400/10 text-(--ws-violet)">
                   {formatMoney(selectedLinesValueMinor)}
                 </Badge>
               </div>
@@ -724,7 +724,7 @@ export default function AdminSupplyProgramsPage() {
                         <TableCell className="text-(--ws-fg-80)">{ln.quantity}</TableCell>
                         <TableCell className="text-(--ws-fg-80)">
                           {ln.required ? (
-                            <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
+                            <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-(--ws-emerald)">
                               <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                               Yes
                             </Badge>
@@ -734,7 +734,7 @@ export default function AdminSupplyProgramsPage() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="font-semibold text-cyan-200">
+                        <TableCell className="font-semibold text-(--ws-cyan)">
                           {formatMoney(ln.productPriceMinor)}
                         </TableCell>
                         <TableCell>
@@ -742,7 +742,7 @@ export default function AdminSupplyProgramsPage() {
                             type="button"
                             size="icon"
                             variant="ghost"
-                            className="text-red-300 hover:bg-red-400/10 hover:text-red-200"
+                            className="text-(--ws-rose) hover:bg-red-400/10 hover:text-(--ws-rose)"
                             onClick={() => void deleteLine(ln)}
                           >
                             <Trash2 className="h-4 w-4" />

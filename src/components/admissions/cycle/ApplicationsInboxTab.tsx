@@ -42,7 +42,7 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
   {
     id: "submitted",
     label: "New",
-    tone: "border-blue-500/30 bg-blue-500/10 text-blue-100",
+    tone: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
   },
   {
     id: "under_review",
@@ -52,7 +52,7 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
   {
     id: "interview_scheduled",
     label: "Interview",
-    tone: "border-violet-500/30 bg-violet-500/10 text-violet-100",
+    tone: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
   },
   {
     id: "waitlisted",
@@ -62,7 +62,7 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
   {
     id: "accepted",
     label: "Accepted",
-    tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+    tone: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   },
   {
     id: "rejected",
@@ -77,11 +77,11 @@ const STATUS_FILTERS: Array<{ id: string; label: string; tone: string }> = [
 ];
 
 const STATUS_BADGES: Record<AdmissionApplicationListItem["status"], string> = {
-  submitted: "border-blue-500/30 bg-blue-500/10 text-blue-100",
+  submitted: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
   under_review: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   interview_scheduled:
-    "border-violet-500/30 bg-violet-500/10 text-violet-100",
-  accepted: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+    "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
+  accepted: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   rejected: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   waitlisted: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   withdrawn: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
@@ -205,7 +205,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
                 view === "list"
-                  ? "bg-cyan-500/20 text-cyan-100"
+                  ? "bg-cyan-500/20 text-(--ws-cyan)"
                   : "text-(--ws-fg-50) hover:text-(--ws-fg)"
               )}
               title="List view"
@@ -219,7 +219,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition",
                 view === "kanban"
-                  ? "bg-cyan-500/20 text-cyan-100"
+                  ? "bg-cyan-500/20 text-(--ws-cyan)"
                   : "text-(--ws-fg-50) hover:text-(--ws-fg)"
               )}
               title="Kanban board"

@@ -44,7 +44,7 @@ type EventVisual = {
 const EVENT_VISUALS: Record<string, EventVisual> = {
   "cycle.created": {
     Icon: PlayCircle,
-    iconClass: "text-cyan-300",
+    iconClass: "text-(--ws-cyan)",
     title: "Cycle created",
     detail: (e) => {
       const tpl = (e.metadata?.templateId as string) ?? "";
@@ -63,7 +63,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "cycle.paused": {
     Icon: PauseCircle,
-    iconClass: "text-amber-300",
+    iconClass: "text-(--ws-amber)",
     title: "Cycle paused",
   },
   "cycle.closed": {
@@ -91,7 +91,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "cycle.delegate_assigned": {
     Icon: UserCheck,
-    iconClass: "text-cyan-300",
+    iconClass: "text-(--ws-cyan)",
     title: "Delegate assigned",
     detail: (e) => (e.metadata?.label as string) ?? null,
   },
@@ -102,19 +102,19 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "form.updated": {
     Icon: FileText,
-    iconClass: "text-cyan-300",
+    iconClass: "text-(--ws-cyan)",
     title: "Application form updated",
     detail: (e) =>
       e.metadata?.version ? `Saved as version ${e.metadata.version}` : null,
   },
   "form.reset_to_defaults": {
     Icon: RotateCcw,
-    iconClass: "text-amber-300",
+    iconClass: "text-(--ws-amber)",
     title: "Form reset to defaults",
   },
   "application.submitted": {
     Icon: Inbox,
-    iconClass: "text-cyan-300",
+    iconClass: "text-(--ws-cyan)",
     title: "Application submitted",
     detail: (e) => (e.metadata?.referenceCode as string) ?? null,
   },
@@ -125,7 +125,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "application.note_added": {
     Icon: StickyNote,
-    iconClass: "text-amber-300",
+    iconClass: "text-(--ws-amber)",
     title: "Internal note added",
   },
   "application.status_changed": {
@@ -151,7 +151,7 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
   },
   "application.email_sent": {
     Icon: Mail,
-    iconClass: "text-cyan-300",
+    iconClass: "text-(--ws-cyan)",
     title: "Email sent",
     detail: (e) => (e.metadata?.kind as string) ?? null,
   },
@@ -246,7 +246,7 @@ export function AuditTab({ cycleId }: AuditTabProps) {
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                     isActive
-                      ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
+                      ? "border-cyan-400/40 bg-cyan-500/15 text-(--ws-cyan)"
                       : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                   )}
                 >

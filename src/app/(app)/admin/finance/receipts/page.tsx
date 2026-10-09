@@ -48,7 +48,7 @@ function shortDate(value: string | null) {
 }
 
 function statusTone(status: string) {
-  if (status === "succeeded" || status === "completed") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+  if (status === "succeeded" || status === "completed") return "border-emerald-300/25 bg-emerald-400/10 text-(--ws-emerald)";
   if (status === "failed" || status === "cancelled" || status === "expired") return "border-rose-300/25 bg-rose-400/10 text-(--ws-rose)";
   return "border-amber-300/25 bg-amber-400/10 text-(--ws-amber)";
 }
@@ -160,7 +160,7 @@ export default async function AdminFinanceReceiptsPage() {
                               </Link>
                               <Link
                                 href={`/api/admin/finance/receipts/${row.type}/${row.id}/download`}
-                                className="inline-flex items-center gap-1 rounded-lg border border-teal-300/20 bg-teal-400/10 px-2 py-1 text-[11px] font-medium text-teal-100 transition hover:bg-teal-400/15"
+                                className="inline-flex items-center gap-1 rounded-lg border border-teal-300/20 bg-teal-400/10 px-2 py-1 text-[11px] font-medium text-(--ws-teal) transition hover:bg-teal-400/15"
                               >
                                 <Download className="h-3 w-3" />
                                 PDF

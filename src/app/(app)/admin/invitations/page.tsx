@@ -56,7 +56,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
   > = {
     pending: {
       icon: Clock,
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+      className: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
       label: "Pending",
     },
     accepted: {
@@ -66,7 +66,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
     },
     expired: {
       icon: XCircle,
-      className: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+      className: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
       label: "Expired",
     },
     revoked: {
@@ -76,7 +76,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
     },
     failed: {
       icon: AlertCircle,
-      className: "border-red-500/30 bg-red-500/10 text-red-300",
+      className: "border-red-500/30 bg-red-500/10 text-(--ws-rose)",
       label: "Failed",
     },
   };
@@ -108,19 +108,19 @@ function RoleBadge({
   > = {
     teacher: {
       label: "Teacher",
-      className: "border-purple-500/30 bg-purple-500/10 text-purple-300",
+      className: "border-purple-500/30 bg-purple-500/10 text-(--ws-violet)",
     },
     staff: {
       label: "Staff",
-      className: "border-blue-500/30 bg-blue-500/10 text-blue-300",
+      className: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
     },
     school_admin: {
       label: "School Admin",
-      className: "border-brand/30 bg-brand/20 text-brand",
+      className: "border-cyan-500/30 bg-cyan-500/15 text-(--ws-cyan)",
     },
     billing_owner: {
       label: "Billing Owner",
-      className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+      className: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
     },
     parent: {
       label: "Parent",
@@ -128,13 +128,13 @@ function RoleBadge({
     },
     bursar: {
       label: "Bursar",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+      className: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
     },
   };
 
   if (role === "bursar" && metadata?.accessSurface === "payment_setup_delegate") {
     return (
-      <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-medium text-cyan-300">
+      <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-medium text-(--ws-cyan)">
         Finance Delegate
       </span>
     );
@@ -169,12 +169,12 @@ function StatCard({
     amber:
       "border-amber-500/30 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent text-(--ws-amber)",
     emerald:
-      "border-emerald-500/30 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent text-emerald-200",
+      "border-emerald-500/30 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent text-(--ws-emerald)",
     slate:
-      "border-slate-500/30 bg-linear-to-br from-slate-500/15 via-slate-500/5 to-transparent text-slate-200",
+      "border-slate-500/30 bg-linear-to-br from-slate-500/15 via-slate-500/5 to-transparent text-(--ws-fg-70)",
     rose:
       "border-rose-500/30 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent text-(--ws-rose)",
-    red: "border-red-500/30 bg-linear-to-br from-red-500/15 via-red-500/5 to-transparent text-red-200",
+    red: "border-red-500/30 bg-linear-to-br from-red-500/15 via-red-500/5 to-transparent text-(--ws-rose)",
   } as const;
 
   return (
@@ -450,7 +450,7 @@ export default function InvitationsPage() {
                       className={cn(
                         "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-all",
                         active
-                          ? "border-brand/40 bg-brand/20 text-brand"
+                          ? "border-cyan-500/40 bg-cyan-500/15 text-(--ws-cyan)"
                           : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                       )}
                     >
@@ -581,7 +581,7 @@ export default function InvitationsPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong) hover:bg-black/30"
+                    className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line-strong) hover:bg-(--ws-fill-strong)"
                   >
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                       <div className="min-w-0 space-y-1">

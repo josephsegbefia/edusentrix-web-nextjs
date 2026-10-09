@@ -145,7 +145,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                           className={cn(
                             "text-[10px]",
                             subject.score < 50
-                              ? "text-red-200/70"
+                              ? "text-(--ws-rose)"
                               : "text-(--ws-amber)"
                           )}
                         >
@@ -171,7 +171,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                           className={cn(
                             "text-[10px]",
                             subject.score < 50
-                              ? "text-red-200/70"
+                              ? "text-(--ws-rose)"
                               : "text-(--ws-amber)"
                           )}
                         >

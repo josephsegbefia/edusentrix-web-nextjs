@@ -282,7 +282,7 @@ function CycleFeeSettingsTab({
                     effectiveCharge.source === "cycle_override"
                       ? "border border-violet-400/25 bg-violet-500/10 text-(--ws-violet)"
                       : effectiveCharge.source === "global_policy"
-                      ? "border border-teal-400/25 bg-teal-500/10 text-teal-300"
+                      ? "border border-teal-400/25 bg-teal-500/10 text-(--ws-teal)"
                       : "border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-40)"
                   )}>
                     {effectiveCharge.source === "cycle_override"
@@ -369,7 +369,7 @@ function CycleFeeSettingsTab({
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/15 px-4 py-2 text-sm font-semibold text-teal-300 transition hover:bg-teal-500/25 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/15 px-4 py-2 text-sm font-semibold text-(--ws-teal) transition hover:bg-teal-500/25 disabled:opacity-50"
               >
                 {saving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -51,9 +51,9 @@ function queuePillClass(queue: PaymentInboxQueue, active: boolean) {
     return `${base} ${active ? "border-rose-400/40 bg-rose-500/15 text-(--ws-rose)" : ""}`;
   }
   if (queue === "needs_reconciliation") {
-    return `${base} ${active ? "border-blue-400/40 bg-blue-500/15 text-blue-100" : ""}`;
+    return `${base} ${active ? "border-blue-400/40 bg-blue-500/15 text-(--ws-cyan)" : ""}`;
   }
-  return `${base} ${active ? "border-cyan-400/40 bg-cyan-500/15 text-cyan-100" : ""}`;
+  return `${base} ${active ? "border-cyan-400/40 bg-cyan-500/15 text-(--ws-cyan)" : ""}`;
 }
 
 function formatAge(ageHours: number) {
@@ -378,7 +378,7 @@ export function PendingApprovalsCard(props: {
               <span className="text-(--ws-fg-50)">Variance: </span>
               <span
                 className={
-                  varianceMinor === 0 ? "text-emerald-200" : "text-(--ws-amber)"
+                  varianceMinor === 0 ? "text-(--ws-emerald)" : "text-(--ws-amber)"
                 }
               >
                 {formatMoney(varianceMinor)}
@@ -398,7 +398,7 @@ export function PendingApprovalsCard(props: {
             ) : null}
 
             {closureToday ? (
-              <div className="mt-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-[11px] text-emerald-100">
+              <div className="mt-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-[11px] text-(--ws-emerald)">
                 Closed for {closureToday.closureDate}
               </div>
             ) : null}

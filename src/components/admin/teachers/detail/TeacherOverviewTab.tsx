@@ -98,19 +98,19 @@ const statusConfig: Record<
   inactive: {
     bg: "bg-slate-500/15",
     border: "border-slate-500/40",
-    text: "text-slate-300",
+    text: "text-(--ws-fg-70)",
     dot: "bg-slate-500",
   },
   on_leave: {
     bg: "bg-amber-500/15",
     border: "border-amber-500/40",
-    text: "text-amber-300",
+    text: "text-(--ws-amber)",
     dot: "bg-amber-500",
   },
   terminated: {
     bg: "bg-red-500/15",
     border: "border-red-500/40",
-    text: "text-red-300",
+    text: "text-(--ws-rose)",
     dot: "bg-red-500",
   },
 };
@@ -150,7 +150,7 @@ const toneStyles: Record<
   },
   purple: {
     iconBg: "bg-purple-500/15 border-purple-500/25",
-    iconColor: "text-purple-300",
+    iconColor: "text-(--ws-violet)",
   },
   emerald: {
     iconBg: "bg-emerald-500/15 border-emerald-500/25",
@@ -158,11 +158,11 @@ const toneStyles: Record<
   },
   amber: {
     iconBg: "bg-amber-500/15 border-amber-500/25",
-    iconColor: "text-amber-300",
+    iconColor: "text-(--ws-amber)",
   },
   cyan: {
     iconBg: "bg-cyan-500/15 border-cyan-500/25",
-    iconColor: "text-cyan-300",
+    iconColor: "text-(--ws-cyan)",
   },
   rose: {
     iconBg: "bg-rose-500/15 border-rose-500/25",
@@ -389,7 +389,7 @@ export function TeacherOverviewTab({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-lg border-indigo-500/25 bg-indigo-500/10 text-(--ws-violet) hover:bg-indigo-500/15"
+                className="gap-2 rounded-lg border-indigo-500/25 bg-indigo-500/10 text-(--ws-violet) hover:bg-indigo-500/15 hover:text-(--ws-violet)"
                 onClick={() => setAssignSubjectOpen(true)}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -398,7 +398,7 @@ export function TeacherOverviewTab({
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 rounded-lg border-purple-500/25 bg-purple-500/10 text-purple-300 hover:bg-purple-500/15"
+                className="gap-2 rounded-lg border-purple-500/25 bg-purple-500/10 text-(--ws-violet) hover:bg-purple-500/15 hover:text-(--ws-violet)"
                 onClick={() => setAssignHomeroomOpen(true)}
               >
                 <Home className="h-3.5 w-3.5" />
@@ -503,7 +503,7 @@ export function TeacherOverviewTab({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 gap-1.5 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-(--ws-amber) hover:bg-amber-500/20"
+                        className="h-8 gap-1.5 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-(--ws-amber) hover:bg-amber-500/20 hover:text-(--ws-amber)"
                         onClick={(e) => {
                           e.stopPropagation();
                           onUpdateLeave();
@@ -550,7 +550,7 @@ export function TeacherOverviewTab({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 gap-1 rounded-lg text-xs text-purple-300 hover:bg-purple-500/10 hover:text-purple-200"
+                    className="h-7 gap-1 rounded-lg text-xs text-(--ws-violet) hover:bg-purple-500/10 hover:text-(--ws-violet)"
                     onClick={() => setAssignHomeroomOpen(true)}
                   >
                     {homeroom ? (
@@ -570,7 +570,7 @@ export function TeacherOverviewTab({
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
-                      className="gap-1.5 rounded-lg border-purple-500/30 bg-purple-500/10 pr-1.5 text-purple-200"
+                      className="gap-1.5 rounded-lg border-purple-500/30 bg-purple-500/10 pr-1.5 text-(--ws-violet)"
                     >
                       {homeroomLabel}
                       <button
@@ -623,15 +623,15 @@ export function TeacherOverviewTab({
                           className="group flex w-full items-start justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5 text-(--ws-violet)"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="break-words text-sm font-medium leading-snug text-indigo-100">
+                            <p className="break-words text-sm font-medium leading-snug text-(--ws-violet)">
                               {s.name}
                             </p>
                             {classGroups?.length ? (
-                              <p className="mt-1 break-words text-xs leading-relaxed text-indigo-100/75">
+                              <p className="mt-1 break-words text-xs leading-relaxed text-(--ws-violet)">
                                 {classGroups.join(", ")}
                               </p>
                             ) : s.gradeNames?.length ? (
-                              <p className="mt-1 break-words text-xs leading-relaxed text-indigo-100/75">
+                              <p className="mt-1 break-words text-xs leading-relaxed text-(--ws-violet)">
                                 {s.gradeNames.join(", ")}
                               </p>
                             ) : null}
@@ -692,7 +692,7 @@ export function TeacherOverviewTab({
                   workload.warnings.isAboveAverage) && (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-300" />
+                      <AlertTriangle className="mt-0.5 h-4 w-4 text-(--ws-amber)" />
                       <div className="flex-1 text-xs">
                         {workload.warnings.isOverCapacity && (
                           <p className="font-medium text-(--ws-amber)">
@@ -1079,7 +1079,7 @@ function LeaveInfoCard({
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/15">
-            <Clock className="h-5 w-5 text-amber-300" />
+            <Clock className="h-5 w-5 text-(--ws-amber)" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-(--ws-fg)">Leave Status</h3>

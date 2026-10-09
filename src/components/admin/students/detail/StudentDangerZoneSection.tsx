@@ -30,9 +30,9 @@ function statusPillClass(status: StudentLifecycleStatus): string {
     case "active":
       return "border-emerald-400/40 bg-emerald-500/15 text-(--ws-emerald)";
     case "inactive":
-      return "border-slate-400/40 bg-slate-500/15 text-slate-200";
+      return "border-slate-400/40 bg-slate-500/15 text-(--ws-fg-70)";
     case "withdrawn":
-      return "border-red-400/40 bg-red-500/15 text-red-200";
+      return "border-red-400/40 bg-red-500/15 text-(--ws-rose)";
     case "graduated":
       return "border-violet-400/40 bg-violet-500/15 text-(--ws-violet)";
   }

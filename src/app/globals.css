@@ -18,6 +18,7 @@
   /* Brand palette */
   --color-brand: #0ea5e9; /* accents */
   --color-primary: #6d28d9; /* primary buttons, focus */
+  --color-primary-foreground: #ffffff; /* labels and icons on primary buttons */
   --color-danger: #ef4444; /* errors */
 }
 

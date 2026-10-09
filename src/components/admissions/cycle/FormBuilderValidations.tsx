@@ -36,7 +36,7 @@ function classForSeverity(severity: AdmissionFormIssue["severity"]) {
   if (severity === "warning") {
     return "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)";
   }
-  return "border-cyan-500/30 bg-cyan-500/10 text-cyan-100";
+  return "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)";
 }
 
 export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) {
@@ -51,11 +51,11 @@ export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) 
 
   if (total === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+      <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-(--ws-emerald)">
         <ShieldCheck className="h-5 w-5" />
         <div>
           <p className="font-semibold">No form issues</p>
-          <p className="text-xs text-emerald-100/80">
+          <p className="text-xs text-(--ws-emerald)">
             Platform requirements are satisfied and the form looks consistent.
           </p>
         </div>
@@ -72,7 +72,7 @@ export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) 
     <div className={cn("rounded-2xl border p-4", tone)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-black/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
             {summary.errorCount > 0 ? (
               <AlertOctagon className="h-4 w-4" />
             ) : (
@@ -121,7 +121,7 @@ export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) 
       </div>
 
       {expanded ? (
-        <ul className="mt-3 space-y-1.5 rounded-xl border border-(--ws-line) bg-black/15 p-3">
+        <ul className="mt-3 space-y-1.5 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
           {issues.map((issue) => {
             const Icon = iconForSeverity(issue.severity);
             return (
@@ -138,7 +138,7 @@ export function FormBuilderValidations({ schema }: FormBuilderValidationsProps) 
             );
           })}
           {summary.errorCount === 0 ? (
-            <li className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+            <li className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-(--ws-emerald)">
               <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>No blocking issues. Warnings are safe to publish.</span>
             </li>

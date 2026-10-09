@@ -364,7 +364,7 @@ export function ClassSubjectsTeachersTab({
         </Card>
         <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-(--ws-cyan)">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
@@ -377,7 +377,7 @@ export function ClassSubjectsTeachersTab({
         </Card>
         <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-(--ws-violet)">
               <Users className="h-5 w-5" />
             </div>
             <div>
@@ -393,7 +393,7 @@ export function ClassSubjectsTeachersTab({
         <Card className="border border-amber-500/30 bg-amber-500/10 backdrop-blur">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
-              <AlertTriangle className="h-5 w-5 text-amber-300" />
+              <AlertTriangle className="h-5 w-5 text-(--ws-amber)" />
             </div>
             <div className="flex-1">
               <p className="font-medium text-(--ws-amber)">
@@ -412,20 +412,20 @@ export function ClassSubjectsTeachersTab({
         <Card className="border border-blue-500/30 bg-blue-500/10 backdrop-blur">
           <CardContent className="flex items-center gap-4 p-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20">
-              <Clock className="h-5 w-5 text-blue-300" />
+              <Clock className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div className="flex-1">
-              <p className="font-medium text-blue-200">
+              <p className="font-medium text-(--ws-cyan)">
                 Contact hours have not been set yet
               </p>
-              <p className="text-xs text-blue-200/70">
+              <p className="text-xs text-(--ws-cyan)">
                 Set weekly contact-hour targets here. Actual lesson times should be created only on the Schedule tab.
               </p>
             </div>
             <Button
               onClick={() => router.push(`/admin/classes/${classId}?tab=schedule`)}
               size="sm"
-              className="gap-2 bg-blue-500/20 text-blue-200 hover:bg-blue-500/30"
+              className="gap-2 bg-blue-500/20 text-(--ws-cyan) hover:bg-blue-500/30"
             >
               <Calendar className="h-3.5 w-3.5" />
               Open Schedule Tab
@@ -545,7 +545,7 @@ export function ClassSubjectsTeachersTab({
                             {subject.teachers.length > 1 && (
                               <Badge
                                 variant="outline"
-                                className="mt-1 rounded-full border-purple-500/30 bg-purple-500/10 text-[10px] text-purple-300"
+                                className="mt-1 rounded-full border-purple-500/30 bg-purple-500/10 text-[10px] text-(--ws-violet)"
                               >
                                 Co-teaching
                               </Badge>
@@ -579,7 +579,7 @@ export function ClassSubjectsTeachersTab({
                                   {contactHours > 0 ? (
                                     <Badge
                                       variant="outline"
-                                      className="gap-1 border-blue-500/30 bg-blue-500/10 text-[10px] text-blue-300"
+                                      className="gap-1 border-blue-500/30 bg-blue-500/10 text-[10px] text-(--ws-cyan)"
                                     >
                                       <Clock className="h-3 w-3" />
                                       {formatHoursMinutes(contactHours)}/week

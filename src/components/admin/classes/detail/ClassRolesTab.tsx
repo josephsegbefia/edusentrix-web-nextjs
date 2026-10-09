@@ -158,7 +158,7 @@ function RoleCard({
             <PremiumDropdownMenuSeparator className="bg-(--ws-fill-strong)" />
             <PremiumDropdownMenuItem
               onClick={handleRemove}
-              className="cursor-pointer gap-2 text-red-400 focus:text-red-300"
+              className="cursor-pointer gap-2 text-red-400 focus:text-(--ws-rose)"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Remove Role
@@ -277,7 +277,7 @@ export function ClassRolesTab({
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-(--ws-amber)">
               <Award className="h-5 w-5" />
             </div>
             <div>
@@ -288,7 +288,7 @@ export function ClassRolesTab({
         </Card>
         <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-(--ws-cyan)">
               <Users className="h-5 w-5" />
             </div>
             <div>
@@ -299,7 +299,7 @@ export function ClassRolesTab({
         </Card>
         <Card className="border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-(--ws-violet)">
               <Crown className="h-5 w-5" />
             </div>
             <div>

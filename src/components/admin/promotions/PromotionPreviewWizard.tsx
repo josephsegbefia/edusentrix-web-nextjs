@@ -612,7 +612,7 @@ export function PromotionPreviewWizard({
                       </p>
                     </div>
                     <div className="rounded-2xl border border-slate-500/20 bg-slate-500/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-100/70">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                         Hold
                       </p>
                       <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">
@@ -620,10 +620,10 @@ export function PromotionPreviewWizard({
                       </p>
                     </div>
                     <div className="rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-100/70">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-violet)">
                         Graduate
                       </p>
-                      <p className="mt-2 text-2xl font-semibold text-fuchsia-100">
+                      <p className="mt-2 text-2xl font-semibold text-(--ws-violet)">
                         {lastResult.totals.graduate}
                       </p>
                     </div>

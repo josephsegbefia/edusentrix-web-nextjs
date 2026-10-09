@@ -20,9 +20,9 @@ import { WorkspaceScope } from "@/components/theme/workspace-scope";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
-  published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-  paused: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-  closed: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  paused: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+  closed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-50)",
 };
 
@@ -101,7 +101,7 @@ export default function AdminAdmissionCyclePage({
           Loading cycle…
         </div>
       ) : error || !cycle ? (
-        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-(--ws-rose)">
           {error instanceof Error ? error.message : "Cycle not found"}
         </div>
       ) : (
@@ -125,7 +125,7 @@ export default function AdminAdmissionCyclePage({
                 </div>
                 <p className="mt-1 text-xs text-(--ws-fg-50)">
                   Cycle slug{" "}
-                  <code className="rounded bg-black/30 px-1.5 py-0.5 text-[11px] text-(--ws-fg-90)">
+                  <code className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 text-[11px] text-(--ws-fg)">
                     {cycle.slug}
                   </code>
                 </p>
@@ -159,7 +159,7 @@ export default function AdminAdmissionCyclePage({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="border-rose-500/25 bg-rose-500/5 text-rose-100 hover:bg-rose-500/10"
+                      className="border-rose-500/25 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
                       onClick={() => void handleRemove()}
                       disabled={deleteCycle.isPending}
                     >

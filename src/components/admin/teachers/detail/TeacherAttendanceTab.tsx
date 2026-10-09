@@ -43,13 +43,13 @@ const statusConfig: Record<
   present: {
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/30",
-    text: "text-emerald-200",
+    text: "text-(--ws-emerald)",
     icon: Check,
   },
   absent: {
     bg: "bg-red-500/10",
     border: "border-red-500/30",
-    text: "text-red-200",
+    text: "text-(--ws-rose)",
     icon: X,
   },
   late: {
@@ -61,19 +61,19 @@ const statusConfig: Record<
   on_leave: {
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
-    text: "text-blue-200",
+    text: "text-(--ws-cyan)",
     icon: CalendarX,
   },
   sick: {
     bg: "bg-purple-500/10",
     border: "border-purple-500/30",
-    text: "text-purple-200",
+    text: "text-(--ws-violet)",
     icon: AlertCircle,
   },
   other: {
     bg: "bg-slate-500/10",
     border: "border-slate-500/30",
-    text: "text-slate-200",
+    text: "text-(--ws-fg-70)",
     icon: Calendar,
   },
 };
@@ -192,7 +192,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
         <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-blue-500/20 shadow-inner shadow-white/5">
-              <CalendarCheck className="h-5 w-5 text-cyan-300" />
+              <CalendarCheck className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div className="space-y-0.5">
               <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
@@ -211,7 +211,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                 setSelectedDate(undefined);
                 setRecordModalOpen(true);
               }}
-              className="gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+              className="gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan) hover:bg-cyan-500/20 hover:text-(--ws-cyan)"
             >
               <Plus className="h-4 w-4" />
               Record Attendance
@@ -265,9 +265,9 @@ export function TeacherAttendanceTab({ teacher }: Props) {
           <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
             <div className="flex items-center gap-3 pb-4">
               {viewMode === "list" ? (
-                <List className="h-5 w-5 text-cyan-300" />
+                <List className="h-5 w-5 text-(--ws-cyan)" />
               ) : (
-                <Calendar className="h-5 w-5 text-cyan-300" />
+                <Calendar className="h-5 w-5 text-(--ws-cyan)" />
               )}
               <CardTitle className="text-base font-semibold text-(--ws-fg)">
                 {viewMode === "list"
@@ -287,7 +287,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
               <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
                 <div className="flex flex-col items-center gap-4 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-cyan-500/20 to-blue-500/20">
-                    <CalendarCheck className="h-7 w-7 text-cyan-300" />
+                    <CalendarCheck className="h-7 w-7 text-(--ws-cyan)" />
                   </div>
                   <div className="space-y-1">
                     <p className="text-base font-semibold text-(--ws-fg)">
@@ -299,7 +299,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                   </div>
                   <Button
                     variant="outline"
-                    className="mt-2 gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                    className="mt-2 gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan) hover:bg-cyan-500/20 hover:text-(--ws-cyan)"
                     onClick={() => setRecordModalOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
@@ -401,7 +401,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
 
           <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
             <div className="flex items-center gap-3 pb-4">
-              <CalendarX className="h-5 w-5 text-blue-300" />
+              <CalendarX className="h-5 w-5 text-(--ws-cyan)" />
               <CardTitle className="text-base font-semibold text-(--ws-fg)">
                 Pending Leave Requests
               </CardTitle>
@@ -434,7 +434,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                       </p>
                       <Badge
                         variant="outline"
-                        className="rounded-lg border-blue-500/30 bg-blue-500/10 text-xs text-blue-200"
+                        className="rounded-lg border-blue-500/30 bg-blue-500/10 text-xs text-(--ws-cyan)"
                       >
                         {request.leaveType}
                       </Badge>
@@ -448,7 +448,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 gap-1 rounded-lg border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
+                        className="flex-1 gap-1 rounded-lg border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-(--ws-emerald)"
                         onClick={() => handleApproveLeave(request.id)}
                         disabled={
                           approveLeaveMutation.isPending ||
@@ -461,7 +461,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 gap-1 rounded-lg border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
+                        className="flex-1 gap-1 rounded-lg border-red-500/30 bg-red-500/10 text-(--ws-rose) hover:bg-red-500/20 hover:text-(--ws-rose)"
                         onClick={() => handleRejectLeave(request.id)}
                         disabled={
                           approveLeaveMutation.isPending ||

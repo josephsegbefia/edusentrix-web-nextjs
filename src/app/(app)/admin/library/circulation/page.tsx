@@ -591,7 +591,7 @@ function OpenLoanRow({
             <Button
               size="sm"
               variant="outline"
-              className="h-8 border-orange-400/30 text-orange-100"
+              className="h-8 border-orange-400/30 text-(--ws-amber)"
               onClick={() => void doMarkDamaged()}
               disabled={onMarkDamaged.isPending}
             >

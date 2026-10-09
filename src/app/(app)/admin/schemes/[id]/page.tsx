@@ -197,7 +197,7 @@ export default function AdminSchemeReviewDetailPage() {
     return (
       <WorkspaceScope>
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-(--ws-fg-50)">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-200" />
+        <Loader2 className="h-8 w-8 animate-spin text-(--ws-cyan)" />
         <p className="text-sm">Loading Scheme of Learning…</p>
       </div>
       </WorkspaceScope>
@@ -276,7 +276,7 @@ export default function AdminSchemeReviewDetailPage() {
           <Card className={glassPanel}>
             <CardHeader className="border-b border-(--ws-line)">
               <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
-                <BookOpen className="h-5 w-5 text-blue-200" />
+                <BookOpen className="h-5 w-5 text-(--ws-cyan)" />
                 Scheme rows
               </CardTitle>
             </CardHeader>
@@ -375,7 +375,7 @@ export default function AdminSchemeReviewDetailPage() {
                             {(status === "approved" || status === "active") ? (
                               <Link
                                 href={`/teacher/lesson-notes?createFromSchemeItem=${item.id}`}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5 text-xs font-medium text-teal-200 hover:bg-(--ws-fill-strong)"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5 text-xs font-medium text-(--ws-teal) hover:bg-(--ws-fill-strong)"
                               >
                                 <FilePlus className="h-3.5 w-3.5" />
                                 Create note
@@ -441,7 +441,7 @@ export default function AdminSchemeReviewDetailPage() {
             {status === "submitted" ? (
               <>
                 <Button
-                  className="w-full justify-start gap-2 bg-blue-500/20 text-blue-100 hover:bg-blue-500/30"
+                  className="w-full justify-start gap-2 bg-blue-500/20 text-(--ws-cyan) hover:bg-blue-500/30"
                   onClick={() => setApproveOpen(true)}
                   disabled={reviewMut.isPending}
                 >
@@ -450,7 +450,7 @@ export default function AdminSchemeReviewDetailPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2 border-orange-300/25 bg-orange-500/10 text-orange-100"
+                  className="w-full justify-start gap-2 border-orange-300/25 bg-orange-500/10 text-(--ws-amber)"
                   onClick={() => setRevisionOpen(true)}
                   disabled={reviewMut.isPending}
                 >
@@ -472,7 +472,7 @@ export default function AdminSchemeReviewDetailPage() {
             {status === "approved" ? (
               <>
                 <Button
-                  className="w-full justify-start gap-2 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
+                  className="w-full justify-start gap-2 bg-emerald-500/20 text-(--ws-emerald) hover:bg-emerald-500/30"
                   onClick={() => setActivateOpen(true)}
                   disabled={activateMut.isPending}
                 >

@@ -26,7 +26,7 @@ import type {
 import { ExamAssessmentLinkExistingModal } from "@/components/admin/exams/ExamAssessmentLinkExistingModal";
 
 const STATUS_BADGE_STYLES = {
-  linked: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  linked: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   missing: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   not_required: "border-white/10 bg-white/5 text-white/55",
 } as const;
@@ -121,7 +121,7 @@ export function ExamAssessmentLinkSection({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Link2 className="h-4 w-4 text-cyan-300" />
+              <Link2 className="h-4 w-4 text-(--ws-cyan)" />
               <h3 className="text-sm font-semibold text-white">Assessment link</h3>
               <Badge variant="outline" className={overall.tone}>
                 {overall.label}

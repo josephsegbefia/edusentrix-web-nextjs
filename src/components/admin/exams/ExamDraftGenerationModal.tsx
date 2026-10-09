@@ -198,7 +198,7 @@ export function ExamDraftGenerationModal({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-sm transition",
                       selected
-                        ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
+                        ? "border-cyan-500/40 bg-cyan-500/10 text-(--ws-cyan)"
                         : "border-white/10 bg-white/5 text-white/60 hover:text-white"
                     )}
                   >
@@ -232,7 +232,7 @@ export function ExamDraftGenerationModal({
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-sm transition",
                       selected
-                        ? "border-violet-500/40 bg-violet-500/10 text-violet-100"
+                        ? "border-violet-500/40 bg-violet-500/10 text-(--ws-violet)"
                         : "border-white/10 bg-white/5 text-white/60 hover:text-white"
                     )}
                   >

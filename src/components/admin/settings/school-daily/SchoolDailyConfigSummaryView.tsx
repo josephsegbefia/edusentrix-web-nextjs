@@ -27,7 +27,7 @@ export function ConfigSummaryView({
     <div className="space-y-4 text-sm text-white/80">
       <div>
         <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-white">
-          <CalendarClock className="h-4 w-4 text-violet-300" />
+          <CalendarClock className="h-4 w-4 text-(--ws-violet)" />
           Default day
         </h3>
         <ul className="ml-1 space-y-1.5 text-white/70">
@@ -82,7 +82,7 @@ export function ConfigSummaryView({
               const p = effectivePeriodsFor(config, ex.weekday, null);
               return (
                 <li key={ex.weekday} className="rounded-lg border border-white/5 bg-white/5 px-3 py-2">
-                  <span className="font-medium capitalize text-violet-200">
+                  <span className="font-medium capitalize text-(--ws-violet)">
                     {ex.weekday}:
                   </span>{" "}
                   {formatHhmm12(ex.lessonStart)}–{formatHhmm12(ex.dayEnd)}, {ex.periodLengthMinutes}{" "}

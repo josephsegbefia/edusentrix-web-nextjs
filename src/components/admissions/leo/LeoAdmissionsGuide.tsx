@@ -287,10 +287,10 @@ export function LeoAdmissionsGuide(props: LeoAdmissionsGuideProps) {
   const guidance = pickGuidance(props);
   const toneClass =
     guidance.tone === "success"
-      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-100"
+      ? "border-emerald-500/25 bg-emerald-500/10 text-(--ws-emerald)"
       : guidance.tone === "warning"
-        ? "border-amber-500/25 bg-amber-500/10 text-amber-100"
-        : "border-cyan-500/25 bg-cyan-500/10 text-cyan-100";
+        ? "border-amber-500/25 bg-amber-500/10 text-(--ws-amber)"
+        : "border-cyan-500/25 bg-cyan-500/10 text-(--ws-cyan)";
   const Icon =
     guidance.tone === "success"
       ? CheckCircle2
@@ -301,7 +301,7 @@ export function LeoAdmissionsGuide(props: LeoAdmissionsGuideProps) {
   return (
     <aside className={`rounded-2xl border p-5 ${toneClass}`}>
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
           <LeoIcon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
@@ -311,23 +311,23 @@ export function LeoAdmissionsGuide(props: LeoAdmissionsGuideProps) {
               Leo guidance
             </p>
           </div>
-          <h3 className="mt-1.5 text-base font-semibold text-white">
+          <h3 className="mt-1.5 text-base font-semibold text-(--ws-fg)">
             {guidance.title}
           </h3>
-          <p className="mt-1 text-sm text-white/70">{guidance.body}</p>
+          <p className="mt-1 text-sm text-(--ws-fg-70)">{guidance.body}</p>
         </div>
       </div>
 
       {guidance.actions.length > 0 ? (
-        <div className="mt-4 rounded-xl border border-white/10 bg-black/15 p-3">
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-white/60">
+        <div className="mt-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-(--ws-fg-80)">
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-(--ws-fg-60)">
             <ListChecks className="h-3 w-3" />
             Suggested next steps
           </div>
-          <ul className="space-y-1.5 text-xs text-white/75">
+          <ul className="space-y-1.5 text-xs text-(--ws-fg-80)">
             {guidance.actions.map((action) => (
               <li key={action} className="flex items-start gap-2">
-                <Sparkles className="mt-0.5 h-3 w-3 shrink-0 opacity-60" />
+                <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
                 <span>{action}</span>
               </li>
             ))}

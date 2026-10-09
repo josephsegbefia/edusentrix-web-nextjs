@@ -380,7 +380,7 @@ function CapacitySection({
                 </td>
                 <td className="px-3 py-2 text-right text-(--ws-fg-70)">{row.inProgress}</td>
                 <td className="px-3 py-2 text-right text-(--ws-fg-70)">{row.waitlisted}</td>
-                <td className="px-3 py-2 text-right font-medium text-emerald-100">
+                <td className="px-3 py-2 text-right font-medium text-(--ws-emerald)">
                   {row.accepted}
                 </td>
                 <td className="px-3 py-2 text-right text-(--ws-fg-70)">{row.provisioned}</td>
@@ -559,9 +559,9 @@ function FeeCard({
   helper?: React.ReactNode;
 }) {
   const toneClasses: Record<typeof tone, string> = {
-    emerald: "border-emerald-500/30 bg-emerald-500/5 text-emerald-100",
+    emerald: "border-emerald-500/30 bg-emerald-500/5 text-(--ws-emerald)",
     amber: "border-amber-500/30 bg-amber-500/5 text-(--ws-amber)",
-    cyan: "border-cyan-500/30 bg-cyan-500/5 text-cyan-100",
+    cyan: "border-cyan-500/30 bg-cyan-500/5 text-(--ws-cyan)",
   };
   return (
     <div className={cn("rounded-2xl border p-4", toneClasses[tone])}>

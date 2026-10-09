@@ -205,7 +205,7 @@ export function AdminLessonSessionsOverview() {
           label="In progress"
           value={stats?.inProgress ?? null}
           icon={Clock}
-          color="bg-blue-500/15 text-blue-200"
+          color="bg-blue-500/15 text-(--ws-cyan)"
         />
         <StatCard
           label="Not started"

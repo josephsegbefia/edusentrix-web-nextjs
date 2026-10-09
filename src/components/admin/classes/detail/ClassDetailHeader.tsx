@@ -100,7 +100,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
             <div className="relative shrink-0">
               <div className="relative">
                 <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-(--ws-line-strong) bg-linear-to-br from-emerald-500/30 to-green-600/30 shadow-2xl shadow-black/50 ring-4 ring-emerald-500/20">
-                  <School className="h-10 w-10 text-emerald-200" />
+                  <School className="h-10 w-10 text-(--ws-emerald)" />
                 </div>
                 {/* Status indicator */}
                 <div
@@ -128,7 +128,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                       "rounded-lg border px-2.5 py-1 text-xs font-semibold",
                       isActive
                         ? "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald)"
-                        : "border-slate-500/40 bg-slate-500/15 text-slate-300"
+                        : "border-slate-500/40 bg-slate-500/15 text-(--ws-fg-70)"
                     )}
                   >
                     {isActive ? "Active" : "Inactive"}
@@ -162,8 +162,8 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center gap-1.5">
-                      <Home className="h-3.5 w-3.5 text-purple-300" />
-                      <span className="text-xs font-medium text-purple-200">
+                      <Home className="h-3.5 w-3.5 text-(--ws-violet)" />
+                      <span className="text-xs font-medium text-(--ws-violet)">
                         {homeroomTeacher.fullName}
                       </span>
                     </div>
@@ -176,7 +176,7 @@ export function ClassDetailHeader({ classData }: ClassDetailHeaderProps) {
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium",
                       capacityPercent && capacityPercent >= 90
-                        ? "border-amber-500/30 bg-amber-500/15 text-amber-300"
+                        ? "border-amber-500/30 bg-amber-500/15 text-(--ws-amber)"
                         : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-60)"
                     )}
                   >

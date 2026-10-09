@@ -54,7 +54,7 @@ function getActivityColors(type: string) {
     incident: {
       bg: "bg-red-500/10",
       border: "border-red-500/30",
-      text: "text-red-300",
+      text: "text-(--ws-rose)",
       gradient: "from-red-500 to-red-600",
     },
     document: {

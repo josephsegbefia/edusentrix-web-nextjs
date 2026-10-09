@@ -88,7 +88,7 @@ export function StudentBehaviourTab({ student }: Props) {
                 </p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-linear-to-br from-red-500/20 to-red-600/20 shadow-inner shadow-white/5">
-                <AlertCircle className="h-5 w-5 text-red-300" />
+                <AlertCircle className="h-5 w-5 text-(--ws-rose)" />
               </div>
             </div>
           </CardContent>
@@ -201,7 +201,7 @@ export function StudentBehaviourTab({ student }: Props) {
                           event.status === "present" &&
                             "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
                           event.status === "absent" &&
-                            "border-red-500/30 bg-red-500/10 text-red-200",
+                            "border-red-500/30 bg-red-500/10 text-(--ws-rose)",
                           event.status === "late" &&
                             "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
                           event.status === "excused" &&
@@ -396,7 +396,7 @@ export function StudentBehaviourTab({ student }: Props) {
                               className={cn(
                                 "text-[9px] font-medium",
                                 incident.severity === "high" &&
-                                  "border-red-500/30 bg-red-500/10 text-red-200",
+                                  "border-red-500/30 bg-red-500/10 text-(--ws-rose)",
                                 incident.severity === "medium" &&
                                   "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
                                 incident.severity === "low" &&

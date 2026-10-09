@@ -56,7 +56,7 @@ export function InvoicesBulkActionsBar({
             <button
               type="button"
               onClick={onClearSelection}
-              className="inline-flex items-center gap-1 text-[11px] text-slate-300/80 hover:text-slate-50"
+              className="inline-flex items-center gap-1 text-[11px] text-(--ws-fg-70) hover:text-slate-50"
             >
               <X className="h-3 w-3" />
               <span>Clear</span>

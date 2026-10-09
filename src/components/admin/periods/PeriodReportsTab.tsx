@@ -114,7 +114,7 @@ export function PeriodReportsTab({
                 </p>
                 {reportQuery.data.content.sections?.map((section, i) => (
                   <div key={i}>
-                    <p className="text-xs font-semibold text-cyan-300">
+                    <p className="text-xs font-semibold text-(--ws-cyan)">
                       {section.title}
                     </p>
                     <p className="mt-1 text-sm text-(--ws-fg-80) whitespace-pre-wrap">
@@ -131,7 +131,7 @@ export function PeriodReportsTab({
                 ))}
                 {reportQuery.data.content.suggestions?.length ? (
                   <div className="mt-4 border-t border-(--ws-line) pt-4">
-                    <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold text-(--ws-amber)">
                       <Lightbulb className="h-3.5 w-3.5" />
                       Suggestions for improvement
                     </p>

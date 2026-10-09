@@ -62,12 +62,12 @@ function statusBadge(status: string) {
     },
     reversed: {
       label: "Reversed",
-      className: "border-red-400/25 bg-red-500/10 text-red-200",
+      className: "border-red-400/25 bg-red-500/10 text-(--ws-rose)",
       icon: XCircle,
     },
     failed: {
       label: "Failed",
-      className: "border-red-400/25 bg-red-500/10 text-red-200",
+      className: "border-red-400/25 bg-red-500/10 text-(--ws-rose)",
       icon: AlertCircle,
     },
   };
@@ -403,7 +403,7 @@ export function PaymentHistory({
               Loading payments...
             </div>
           ) : isError ? (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-(--ws-rose)">
               Failed to load payments. Please try again.
             </div>
           ) : filteredAndSorted.length === 0 ? (

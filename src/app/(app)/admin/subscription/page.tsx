@@ -640,13 +640,13 @@ function PlanChangePanel({
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-semibold text-(--ws-fg-80)">{plan.name}</span>
                 {plan.pricing?.pricePerStudentPerTermMinor ? (
-                  <span className="text-[11px] text-(--ws-fg-40)">
+                  <span className="text-[11px] text-(--ws-fg-70)">
                     {formatGHS(plan.pricing.pricePerStudentPerTermMinor)} / student / term
                   </span>
                 ) : null}
               </div>
               {plan.description ? (
-                <p className="mt-1 text-xs text-(--ws-fg-40)">{plan.description}</p>
+                <p className="mt-1 text-xs text-(--ws-fg-70)">{plan.description}</p>
               ) : null}
             </button>
           ))}
@@ -665,7 +665,7 @@ function PlanChangePanel({
                 "rounded-lg px-3 py-2 text-xs font-medium capitalize transition",
                 targetBillingCadence === cadence
                   ? "bg-cyan-400/15 text-(--ws-cyan)"
-                  : "text-(--ws-fg-40) hover:bg-(--ws-fill) hover:text-(--ws-fg-70)"
+                  : "text-(--ws-fg-70) hover:bg-(--ws-fill) hover:text-(--ws-fg)"
               )}
             >
               {cadence === "term" ? "Termly" : "Annual"}

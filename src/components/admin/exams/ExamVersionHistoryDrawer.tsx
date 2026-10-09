@@ -21,7 +21,7 @@ type ExamVersionHistoryDrawerProps = {
 };
 
 const VERSION_STATUS_STYLES: Record<string, string> = {
-  published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   superseded: "border-white/10 bg-white/5 text-white/55",
   rolled_back: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
 };
@@ -48,7 +48,7 @@ function VersionRow({ version, isCurrent }: { version: ExamTimetableVersionDTO; 
           {version.status.replace("_", " ")}
         </Badge>
         {isCurrent ? (
-          <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-cyan-100">
+          <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)">
             Current
           </Badge>
         ) : null}
@@ -95,7 +95,7 @@ export function ExamVersionHistoryDrawer({
       ) : (
         <div className="space-y-3">
           {currentVersion ? (
-            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100">
+            <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-sm text-(--ws-cyan)">
               Current published version: v{currentVersion.versionNumber}
             </div>
           ) : null}

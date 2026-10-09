@@ -45,7 +45,7 @@ export default function ReconciliationSessionDetailPage() {
           </Button>
           <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-8 text-center">
             <Shield className="mx-auto h-10 w-10 text-rose-400/50" />
-            <p className="mt-3 text-sm text-rose-300">
+            <p className="mt-3 text-sm text-(--ws-rose)">
               {sessionQuery.error instanceof Error ? sessionQuery.error.message : "Session not found."}
             </p>
             <Button

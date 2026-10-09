@@ -39,12 +39,15 @@ type CyclesTabProps = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-white/10 bg-white/5 text-white/70",
-  published: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
+  draft: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
+  published: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   paused: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   closed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
-  archived: "border-white/10 bg-white/5 text-white/50",
+  archived: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
 };
+
+const outlineActionClass =
+  "gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)";
 
 function formatDate(value?: string | null) {
   if (!value) return "Not set";
@@ -199,17 +202,17 @@ export function CyclesTab({
   return (
     <>
       <section className="rounded-[1.6rem] border border-(--ws-line) bg-(--ws-panel-from) p-6">
-        <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
+        <div className="mb-6 flex flex-col gap-4 border-b border-(--ws-line) pb-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-(--ws-fg-40)">
               Admission cycles
             </p>
-            <h3 className="mt-2 text-2xl font-semibold text-white">
+            <h3 className="mt-2 text-2xl font-semibold text-(--ws-fg)">
               Cycles & application links
             </h3>
-            <p className="mt-2 text-sm text-white/50">
+            <p className="mt-2 text-sm text-(--ws-fg-60)">
               Each cycle has its own public link, form, and decision queue. Use{" "}
-              <span className="font-semibold text-white/70">Open cycle</span> to
+              <span className="font-semibold text-(--ws-fg-80)">Open cycle</span> to
               reach the applications inbox, Kanban board, analytics, form
               builder, and distribution tools.
             </p>
@@ -223,16 +226,16 @@ export function CyclesTab({
         </div>
 
         {isLoading ? (
-          <div className="rounded-2xl border border-white/10 bg-black/10 p-8 text-center text-sm text-white/55">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8 text-center text-sm text-(--ws-fg-60)">
             Loading cycles...
           </div>
         ) : cycles.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-black/10 p-10 text-center">
-            <ClipboardList className="mx-auto h-9 w-9 text-white/35" />
-            <p className="mt-4 text-base font-semibold text-white">
+          <div className="rounded-2xl border border-dashed border-(--ws-line) bg-(--ws-fill) p-10 text-center">
+            <ClipboardList className="mx-auto h-9 w-9 text-(--ws-fg-40)" />
+            <p className="mt-4 text-base font-semibold text-(--ws-fg)">
               No admission cycles yet
             </p>
-            <p className="mt-2 max-w-md mx-auto text-sm text-white/55">
+            <p className="mt-2 max-w-md mx-auto text-sm text-(--ws-fg-60)">
               {isAdmin
                 ? "Open your first cycle to share the application link with prospective families. Leo will seed the standard form so you can launch in minutes."
                 : "Once the school admin opens a cycle, you will see it here and can begin reviewing incoming applications."}
@@ -253,12 +256,12 @@ export function CyclesTab({
               return (
                 <article
                   key={cycle.id}
-                  className="rounded-2xl border border-white/10 bg-black/10 p-5"
+                  className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-5"
                 >
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-lg font-semibold text-white">
+                        <h4 className="text-lg font-semibold text-(--ws-fg)">
                           {cycle.name}
                         </h4>
                         <Badge
@@ -266,13 +269,13 @@ export function CyclesTab({
                           className={cn(
                             "capitalize",
                             STATUS_STYLES[cycle.status] ??
-                              "border-white/10 bg-white/5 text-white/70"
+                              "border-(--ws-line) bg-(--ws-fill-strong) text-(--ws-fg-70)"
                           )}
                         >
                           {cycle.status}
                         </Badge>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/50">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-(--ws-fg-60)">
                         <span className="inline-flex items-center gap-1.5">
                           <CalendarDays className="h-3.5 w-3.5" />
                           {formatDate(cycle.acceptsApplicationsFrom)} →{" "}
@@ -295,17 +298,17 @@ export function CyclesTab({
                   {isLive ? (
                     <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-100/80">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ws-emerald)">
                           Public application link
                         </p>
-                        <p className="break-all text-sm text-emerald-50/90">
+                        <p className="break-all text-sm text-(--ws-fg)">
                           {url || "Available after publishing"}
                         </p>
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="gap-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-50 hover:bg-emerald-500/20"
+                        className="gap-2 border-emerald-400/30 bg-emerald-500/10 text-(--ws-emerald) hover:bg-emerald-500/20 hover:text-(--ws-emerald)"
                         onClick={() => handleCopyLink(cycle)}
                       >
                         {copiedCycleId === cycle.id ? (
@@ -337,7 +340,7 @@ export function CyclesTab({
                       <Button
                         type="button"
                         variant="outline"
-                        className="gap-2 border-white/10 bg-white/3 text-white hover:bg-white/8"
+                        className={outlineActionClass}
                         onClick={() => handlePublish(cycle)}
                         disabled={publishCycle.isPending}
                       >
@@ -350,7 +353,7 @@ export function CyclesTab({
                       <Button
                         type="button"
                         variant="outline"
-                        className="gap-2 border-white/10 bg-white/3 text-white hover:bg-white/8"
+                        className={outlineActionClass}
                         onClick={() => handlePublish(cycle)}
                         disabled={publishCycle.isPending}
                       >
@@ -363,7 +366,7 @@ export function CyclesTab({
                       <Button
                         type="button"
                         variant="outline"
-                        className="gap-2 border-white/10 bg-white/3 text-white hover:bg-white/8"
+                        className={outlineActionClass}
                         onClick={() => handlePause(cycle)}
                         disabled={pauseCycle.isPending}
                       >
@@ -379,7 +382,7 @@ export function CyclesTab({
                       <Button
                         type="button"
                         variant="outline"
-                        className="gap-2 border-rose-500/20 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
+                        className="gap-2 border-rose-500/20 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                         onClick={() => handleClose(cycle)}
                         disabled={closeCycle.isPending}
                       >
@@ -400,7 +403,7 @@ export function CyclesTab({
                         <Button
                           type="button"
                           variant="outline"
-                          className="gap-2 border-white/10 bg-white/3 text-white hover:bg-white/8"
+                          className={outlineActionClass}
                           onClick={() => handleEdit(cycle)}
                         >
                           <Pencil className="h-4 w-4" />
@@ -409,7 +412,7 @@ export function CyclesTab({
                         <Button
                           type="button"
                           variant="outline"
-                          className="gap-2 border-rose-500/20 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10"
+                          className="gap-2 border-rose-500/20 bg-rose-500/5 text-(--ws-rose) hover:bg-rose-500/10 hover:text-(--ws-rose)"
                           onClick={() => void handleRemove(cycle)}
                           disabled={deleteCycle.isPending}
                         >

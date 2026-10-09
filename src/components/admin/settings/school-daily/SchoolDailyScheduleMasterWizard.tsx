@@ -60,10 +60,10 @@ function LeoTip({ title, children }: { title: string; children: React.ReactNode 
     <div className="rounded-xl border border-violet-500/25 bg-violet-500/10 p-4">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/20">
-          <LeoIcon className="h-5 w-5 text-violet-200" />
+          <LeoIcon className="h-5 w-5 text-(--ws-violet)" />
         </div>
         <div className="min-w-0 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-violet-200/90">{title}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-violet)">{title}</p>
           <div className="text-sm leading-relaxed text-white/70">{children}</div>
         </div>
       </div>
@@ -355,7 +355,7 @@ export function SchoolDailyScheduleMasterWizard({
                           : "border-white/10 bg-white/5 hover:border-white/20"
                       )}
                     >
-                      <Users className="mb-3 h-8 w-8 text-indigo-300" />
+                      <Users className="mb-3 h-8 w-8 text-(--ws-violet)" />
                       <p className="font-semibold text-white">Same schedule for all grades</p>
                       <p className="mt-2 text-sm text-white/55">
                         One school day pattern for every grade. Use different grade bands above if parts of the
@@ -372,7 +372,7 @@ export function SchoolDailyScheduleMasterWizard({
                           : "border-white/10 bg-white/5 hover:border-white/20"
                       )}
                     >
-                      <Layers className="mb-3 h-8 w-8 text-amber-300" />
+                      <Layers className="mb-3 h-8 w-8 text-(--ws-amber)" />
                       <p className="font-semibold text-white">Different groups of grades</p>
                       <p className="mt-2 text-sm text-white/55">
                         Example: JHS 1–3 together, upper primary together. Each group gets its own day template.
@@ -384,7 +384,7 @@ export function SchoolDailyScheduleMasterWizard({
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="border-violet-400/40 text-violet-100"
+                      className="border-violet-400/40 text-(--ws-violet)"
                       disabled={leoLoading}
                       onClick={() => runLeoCoach("scope")}
                     >
@@ -434,7 +434,7 @@ export function SchoolDailyScheduleMasterWizard({
                     </Button>
                   </div>
                   {unassigned.length > 0 && (
-                    <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                    <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-(--ws-amber)">
                       <strong>{unassigned.length}</strong> grade{unassigned.length === 1 ? "" : "s"} not in any
                       group: {unassigned.map(gradeName).filter(Boolean).join(", ")}
                     </div>
@@ -517,7 +517,7 @@ export function SchoolDailyScheduleMasterWizard({
                           variant="outline"
                           className={cn(
                             "cursor-pointer border-white/15 px-3 py-1",
-                            i === groupIdx ? "border-indigo-400/60 bg-indigo-500/20 text-indigo-100" : "text-white/50"
+                            i === groupIdx ? "border-indigo-400/60 bg-indigo-500/20 text-(--ws-violet)" : "text-white/50"
                           )}
                           onClick={() => setGroupIdx(i)}
                         >
@@ -527,7 +527,7 @@ export function SchoolDailyScheduleMasterWizard({
                     </div>
                   ) : (
                     <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200/90">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-violet)">
                         Editing: {groups[groupIdx].label?.trim() || `Group ${groupIdx + 1}`}
                       </p>
                       <p className="mt-1 text-sm text-white/60">
@@ -603,10 +603,10 @@ export function SchoolDailyScheduleMasterWizard({
                             : "border-white/10 opacity-80"
                         )}
                       >
-                        <p className="font-medium text-indigo-200">
+                        <p className="font-medium text-(--ws-violet)">
                           {g.label?.trim() || `Group ${i + 1}`}
                           {partialGroupedEdit && g.id === groups[groupIdx]?.id ? (
-                            <Badge variant="outline" className="ml-2 border-indigo-400/40 text-[10px] text-indigo-100">
+                            <Badge variant="outline" className="ml-2 border-indigo-400/40 text-[10px] text-(--ws-violet)">
                               Updated
                             </Badge>
                           ) : partialGroupedEdit ? (
@@ -621,7 +621,7 @@ export function SchoolDailyScheduleMasterWizard({
                         {g.config ? (
                           <ConfigSummaryView config={g.config} gradeNames={gradeName} />
                         ) : (
-                          <p className="text-sm text-rose-300">Missing schedule — go back and complete each group.</p>
+                          <p className="text-sm text-(--ws-rose)">Missing schedule — go back and complete each group.</p>
                         )}
                       </div>
                     ))}

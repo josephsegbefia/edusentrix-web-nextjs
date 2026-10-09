@@ -172,7 +172,7 @@ export function SubjectCard({
                   <PremiumDropdownMenuItem
                     onClick={handleAction(onDelete)}
                     icon={<Trash2 className="h-3.5 w-3.5" />}
-                    className="text-rose-200 focus:text-rose-100"
+                    className="text-(--ws-rose) focus:text-(--ws-rose)"
                   >
                     Delete subject
                   </PremiumDropdownMenuItem>
@@ -182,7 +182,7 @@ export function SubjectCard({
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {gradeCoverage && (
-                <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-cyan-300/15 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-medium capitalize text-cyan-100">
+                <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-cyan-300/15 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-medium capitalize text-(--ws-cyan)">
                   <Layers3 className="size-3 shrink-0" />
                   <span className="truncate">{gradeCoverage}</span>
                 </span>
@@ -191,7 +191,7 @@ export function SubjectCard({
                 className={cn(
                   "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium",
                   subject.isActive
-                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                    ? "border-emerald-400/20 bg-emerald-400/10 text-(--ws-emerald)"
                     : "border-white/10 bg-white/5 text-white/55"
                 )}
               >

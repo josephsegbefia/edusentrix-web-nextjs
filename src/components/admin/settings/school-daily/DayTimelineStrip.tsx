@@ -23,7 +23,7 @@ const VARIANT: Record<
     dot: "bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.35)]",
     label: "Opening",
     helper: "Assembly, registration, or other pre-lesson blocks",
-    chip: "border-amber-400/20 bg-amber-400/15 text-amber-100/90",
+    chip: "border-amber-400/20 bg-amber-400/15 text-(--ws-amber)",
   },
   teaching: {
     block:
@@ -31,7 +31,7 @@ const VARIANT: Record<
     dot: "bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.35)]",
     label: "Periods",
     helper: "Teaching periods available for timetable lessons",
-    chip: "border-cyan-400/20 bg-cyan-400/15 text-cyan-100/90",
+    chip: "border-cyan-400/20 bg-cyan-400/15 text-(--ws-cyan)",
   },
   break: {
     block:
@@ -39,15 +39,15 @@ const VARIANT: Record<
     dot: "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.35)]",
     label: "Breaks",
     helper: "Protected non-teaching break time",
-    chip: "border-emerald-400/20 bg-emerald-400/15 text-emerald-100/90",
+    chip: "border-emerald-400/20 bg-emerald-400/15 text-(--ws-emerald)",
   },
   gap: {
     block:
-      "border-white/12 bg-linear-to-br from-slate-500/[0.12] via-slate-600/[0.06] to-transparent text-slate-100 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+      "border-white/12 bg-linear-to-br from-slate-500/[0.12] via-slate-600/[0.06] to-transparent text-(--ws-fg-70) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
     dot: "bg-slate-400 shadow-[0_0_6px_rgba(148,163,184,0.3)]",
     label: "Unallocated",
     helper: "Slack time not assigned to periods or breaks",
-    chip: "border-white/10 bg-white/8 text-slate-200/85",
+    chip: "border-white/10 bg-white/8 text-(--ws-fg-70)",
   },
 };
 
@@ -127,9 +127,9 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0 space-y-2">
-          <div className="flex items-center gap-2 text-violet-300/90">
+          <div className="flex items-center gap-2 text-(--ws-violet)">
             <Sun className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-200/70">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-(--ws-violet)">
               Day preview
             </span>
           </div>

@@ -100,7 +100,7 @@ export function TeacherAssignmentsTab({
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br from-purple-500/20 to-indigo-500/20 shadow-inner shadow-white/5">
-                <ClipboardList className="h-5 w-5 text-purple-300" />
+                <ClipboardList className="h-5 w-5 text-(--ws-violet)" />
               </div>
               <div className="space-y-0.5">
                 <CardTitle className="text-lg font-semibold tracking-tight text-(--ws-fg)">
@@ -153,13 +153,13 @@ export function TeacherAssignmentsTab({
             </div>
           ) : isError ? (
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center">
-              <p className="text-sm text-red-300">Failed to load assignments.</p>
+              <p className="text-sm text-(--ws-rose)">Failed to load assignments.</p>
             </div>
           ) : assignments.length === 0 ? (
             <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-8">
               <div className="flex flex-col items-center gap-4 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-purple-500/20 to-indigo-500/20">
-                  <ClipboardList className="h-7 w-7 text-purple-300" />
+                  <ClipboardList className="h-7 w-7 text-(--ws-violet)" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-(--ws-fg)">
@@ -190,7 +190,7 @@ function AssignmentCard({ assignment }: { assignment: TeacherAssignmentDTO }) {
   const hasSchedules = schedules.length > 0;
   const sourceTone =
     assignment.scheduleSource === "timetable"
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
       : "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-70)";
 
   return (
@@ -212,7 +212,7 @@ function AssignmentCard({ assignment }: { assignment: TeacherAssignmentDTO }) {
           <span className="text-(--ws-fg-40)">•</span>
           <Badge
             variant="outline"
-            className="rounded-lg border-purple-500/30 bg-purple-500/10 text-purple-200"
+            className="rounded-lg border-purple-500/30 bg-purple-500/10 text-(--ws-violet)"
           >
             {assignment.classGroup?.label || assignment.classGroup?.name || "—"}
           </Badge>

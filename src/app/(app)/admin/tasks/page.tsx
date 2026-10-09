@@ -189,7 +189,7 @@ export default function TasksPage() {
         <CardContent className="relative z-10 p-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-              <BookOpen className="h-4 w-4 text-amber-300" />
+              <BookOpen className="h-4 w-4 text-(--ws-amber)" />
             </div>
             <div className="flex-1">
               <p className="text-sm text-(--ws-fg) font-medium mb-1">

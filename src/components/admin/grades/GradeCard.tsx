@@ -54,9 +54,9 @@ export function GradeCard({
         if (e.key === "Enter" || e.key === " ") handleCardClick();
       }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl border bg-linear-to-br backdrop-blur-xl",
-        "border-blue-500/30 from-blue-500/10 via-indigo-500/5 to-transparent",
-        "shadow-xl shadow-black/30 transition-all duration-300",
+        "group relative flex flex-col overflow-hidden rounded-2xl border bg-(--ws-panel-to)",
+        "border-(--ws-line)",
+        "shadow-[var(--ws-shadow)] transition-all duration-300",
         "hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--ws-shadow)] cursor-pointer"
       )}
     >
@@ -83,7 +83,7 @@ export function GradeCard({
         {/* Header: Icon + Name + Menu */}
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-500/30 bg-linear-to-br from-blue-500/20 to-indigo-500/20 shadow-lg shadow-blue-500/10 sm:h-12 sm:w-12">
-            <GraduationCap className="h-5 w-5 text-blue-300 sm:h-6 sm:w-6" />
+            <GraduationCap className="h-5 w-5 text-(--ws-cyan) sm:h-6 sm:w-6" />
           </div>
 
           <div className="flex-1 min-w-0">
@@ -92,7 +92,7 @@ export function GradeCard({
                 <h3 className="truncate text-sm font-semibold text-(--ws-fg) sm:text-base">
                   {grade.name}
                 </h3>
-                <p className="truncate text-xs text-(--ws-fg-50)">
+                <p className="truncate text-xs text-(--ws-fg-70)">
                   {grade.code ? `${grade.code} • ${grade.stage}` : grade.stage}
                 </p>
               </div>
@@ -135,8 +135,8 @@ export function GradeCard({
                 className={cn(
                   "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium",
                   grade.isActive
-                    ? "border-blue-500/30 bg-blue-500/20 text-blue-300"
-                    : "border-slate-500/30 bg-slate-500/20 text-slate-300"
+                    ? "border-(--ws-line-strong) bg-(--ws-fill) text-(--ws-fg-80)"
+                    : "border-slate-500/30 bg-slate-500/20 text-(--ws-fg-70)"
                 )}
               >
                 {grade.isActive ? "Active" : "Inactive"}
@@ -148,13 +148,13 @@ export function GradeCard({
         {/* Stats */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
-            <Layers className="h-3.5 w-3.5 text-blue-300" />
+            <Layers className="h-3.5 w-3.5 text-(--ws-cyan)" />
             <span className="text-xs font-medium text-(--ws-fg-80)">
               {classCount} class{classCount !== 1 ? "es" : ""}
             </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
-            <Users className="h-3.5 w-3.5 text-blue-300" />
+            <Users className="h-3.5 w-3.5 text-(--ws-cyan)" />
             <span className="text-xs font-medium text-(--ws-fg-80)">
               {studentCount} student{studentCount !== 1 ? "s" : ""}
             </span>

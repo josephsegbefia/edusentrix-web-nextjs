@@ -187,51 +187,51 @@ const TONE_STYLES: Record<
   emerald: {
     gradient: "from-emerald-500/15 via-emerald-500/5 to-transparent",
     iconBg: "bg-emerald-500/20 border-emerald-500/30",
-    iconColor: "text-emerald-300",
-    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-    button: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    iconColor: "text-(--ws-emerald)",
+    badge: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+    button: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
   },
   sky: {
     gradient: "from-sky-500/15 via-sky-500/5 to-transparent",
     iconBg: "bg-sky-500/20 border-sky-500/30",
-    iconColor: "text-sky-300",
-    badge: "border-sky-500/30 bg-sky-500/10 text-sky-200",
-    button: "border-sky-500/30 bg-sky-500/10 text-sky-200",
+    iconColor: "text-(--ws-cyan)",
+    badge: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
+    button: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
   },
   violet: {
     gradient: "from-violet-500/15 via-violet-500/5 to-transparent",
     iconBg: "bg-violet-500/20 border-violet-500/30",
-    iconColor: "text-violet-300",
-    badge: "border-violet-500/30 bg-violet-500/10 text-violet-200",
-    button: "border-violet-500/30 bg-violet-500/10 text-violet-200",
+    iconColor: "text-(--ws-violet)",
+    badge: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
+    button: "border-violet-500/30 bg-violet-500/10 text-(--ws-violet)",
   },
   amber: {
     gradient: "from-amber-500/15 via-amber-500/5 to-transparent",
     iconBg: "bg-amber-500/20 border-amber-500/30",
-    iconColor: "text-amber-200",
-    badge: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-    button: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+    iconColor: "text-(--ws-amber)",
+    badge: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+    button: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
   },
   cyan: {
     gradient: "from-cyan-500/15 via-cyan-500/5 to-transparent",
     iconBg: "bg-cyan-500/20 border-cyan-500/30",
-    iconColor: "text-cyan-300",
-    badge: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
-    button: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
+    iconColor: "text-(--ws-cyan)",
+    badge: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
+    button: "border-cyan-500/30 bg-cyan-500/10 text-(--ws-cyan)",
   },
   rose: {
     gradient: "from-rose-500/15 via-rose-500/5 to-transparent",
     iconBg: "bg-rose-500/20 border-rose-500/30",
-    iconColor: "text-rose-300",
-    badge: "border-rose-500/30 bg-rose-500/10 text-rose-200",
-    button: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+    iconColor: "text-(--ws-rose)",
+    badge: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
+    button: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
   },
   slate: {
     gradient: "from-slate-500/15 via-slate-500/5 to-transparent",
     iconBg: "bg-slate-500/20 border-slate-500/30",
-    iconColor: "text-slate-200",
-    badge: "border-slate-500/30 bg-slate-500/10 text-slate-200",
-    button: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+    iconColor: "text-(--ws-fg-70)",
+    badge: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
+    button: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
   },
 };
 
@@ -294,10 +294,10 @@ const CATEGORY_META: Array<{
 ];
 
 const EXPORT_STATUS_STYLES: Record<string, string> = {
-  queued: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-  processing: "border-sky-500/30 bg-sky-500/10 text-sky-200",
-  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  failed: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+  queued: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
+  processing: "border-sky-500/30 bg-sky-500/10 text-(--ws-cyan)",
+  completed: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  failed: "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)",
 };
 
 function formatDateLabel(value: string | Date | null | undefined) {
@@ -597,7 +597,7 @@ function renderExportItemStatus(
   }
   if (status === "failed") {
     return (
-      <Badge className="border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200">
+      <Badge className="border border-rose-500/30 bg-rose-500/10 text-xs text-(--ws-rose)">
         Failed
       </Badge>
     );
@@ -639,7 +639,7 @@ function RecentExportsCard({
     }
     if (exportsQuery.isError) {
       return (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-100">
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-(--ws-rose)">
           We could not load recent exports. Please try refreshing.
         </div>
       );
@@ -1037,7 +1037,7 @@ function ReportTemplateCard({
             </Badge>
           ))}
           {disabled && disabledMessage ? (
-            <Badge className="border border-amber-500/30 bg-amber-500/10 text-[10px] uppercase tracking-[0.2em] text-amber-200">
+            <Badge className="border border-amber-500/30 bg-amber-500/10 text-[10px] uppercase tracking-[0.2em] text-(--ws-amber)">
               {disabledMessage}
             </Badge>
           ) : null}
@@ -1166,7 +1166,7 @@ function ExportDialog({
             </div>
 
             {modalRangeHint ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-(--ws-amber)">
                 {modalRangeHint}
               </div>
             ) : null}
@@ -1308,7 +1308,7 @@ function LeoExecutiveBriefCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="rounded-lg border border-purple-400/30 bg-purple-500/20 p-1.5">
-            <LeoIcon className="h-4 w-4 text-purple-200" />
+            <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
           </span>
           <div>
             <p className="text-sm font-semibold text-white">Leo Executive Brief</p>
@@ -1318,7 +1318,7 @@ function LeoExecutiveBriefCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className="border border-purple-400/30 bg-purple-500/10 text-[10px] uppercase tracking-[0.2em] text-purple-100">
+          <Badge className="border border-purple-400/30 bg-purple-500/10 text-[10px] uppercase tracking-[0.2em] text-(--ws-violet)">
             {reportType}
           </Badge>
           <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
@@ -1370,12 +1370,12 @@ function LeoExecutiveBriefCard({
       </div>
 
       {isLeoError ? (
-        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-100">
+        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-(--ws-rose)">
           {leoError.message}
         </div>
       ) : null}
       {pdfError ? (
-        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-100">
+        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-(--ws-rose)">
           {pdfError}
         </div>
       ) : null}
@@ -1383,10 +1383,10 @@ function LeoExecutiveBriefCard({
       <div className="mt-4">
         {!periodId ? (
           <div className="rounded-xl border border-dashed border-amber-500/30 bg-amber-500/10 px-6 py-8 text-center">
-            <p className="text-sm text-amber-100">
+            <p className="text-sm text-(--ws-amber)">
               No academic periods are available yet.
             </p>
-            <p className="mt-2 text-xs text-amber-100/70">
+            <p className="mt-2 text-xs text-(--ws-amber)">
               Leo uses an academic period as the school context for this report window.
             </p>
           </div>
@@ -1399,7 +1399,7 @@ function LeoExecutiveBriefCard({
           <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
             <div className="mb-3 flex justify-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
-                <LeoIcon className="h-6 w-6 text-purple-300" />
+                <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
               </div>
             </div>
             <p className="text-sm text-white/70">
@@ -1429,7 +1429,7 @@ function LeoExecutiveBriefCard({
                   size="sm"
                   onClick={() => void handleGenerate(true)}
                   disabled={isGeneratingLeo}
-                  className="h-8 gap-1 text-xs text-purple-200 hover:bg-purple-500/20"
+                  className="h-8 gap-1 text-xs text-(--ws-violet) hover:bg-purple-500/20"
                 >
                   {isGeneratingLeo ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1458,7 +1458,7 @@ function LeoExecutiveBriefCard({
             <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-5">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="mb-2 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-purple-300" />
+                  <FileText className="h-4 w-4 text-(--ws-violet)" />
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
                     Executive Summary
                   </p>
@@ -1475,7 +1475,7 @@ function LeoExecutiveBriefCard({
                       key={`${section.title}-${index}`}
                       className="rounded-xl border border-white/10 bg-white/5 p-4"
                     >
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                         {section.title}
                       </p>
                       <p className="mt-2 text-sm leading-relaxed text-white/80">
@@ -1488,7 +1488,7 @@ function LeoExecutiveBriefCard({
                               key={`${section.title}-${highlightIndex}`}
                               className="flex items-start gap-2 text-xs text-white/65"
                             >
-                              <span className="mt-0.5 text-purple-300">•</span>
+                              <span className="mt-0.5 text-(--ws-violet)">•</span>
                               <span>{highlight}</span>
                             </li>
                           ))}
@@ -1502,8 +1502,8 @@ function LeoExecutiveBriefCard({
               {brief.content.suggestions.length > 0 ? (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-amber-300" />
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-100/80">
+                    <Lightbulb className="h-4 w-4 text-(--ws-amber)" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-amber)">
                       Recommended Actions
                     </p>
                   </div>
@@ -1513,7 +1513,7 @@ function LeoExecutiveBriefCard({
                         key={`${suggestion.text}-${index}`}
                         className="flex items-start gap-2 text-sm text-white/80"
                       >
-                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-amber)" />
                         <div className="min-w-0">
                           <p>{suggestion.text}</p>
                           {suggestion.category ? (
@@ -1980,7 +1980,7 @@ export default function ReportsPage() {
 
       {summaryQuery.isError ? (
         <Card className="border border-rose-500/30 bg-rose-500/10">
-          <CardContent className="p-4 text-sm text-rose-100">
+          <CardContent className="p-4 text-sm text-(--ws-rose)">
             We could not load the reports summary. Please try refreshing.
           </CardContent>
         </Card>
@@ -1990,7 +1990,7 @@ export default function ReportsPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10">
-              <BarChart3 className="h-5 w-5 text-sky-200" />
+              <BarChart3 className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
               <h2 className="text-xl font-semibold">Insights and Charts</h2>
@@ -2009,7 +2009,7 @@ export default function ReportsPage() {
 
         {chartsQuery.isError ? (
           <Card className="border border-rose-500/30 bg-rose-500/10">
-            <CardContent className="p-4 text-sm text-rose-100">
+            <CardContent className="p-4 text-sm text-(--ws-rose)">
               We could not load the charts. Please try refreshing.
             </CardContent>
           </Card>
@@ -2426,7 +2426,7 @@ export default function ReportsPage() {
                   meta={
                     <Badge
                       variant="secondary"
-                      className="border border-violet-500/30 bg-violet-500/10 text-violet-200"
+                      className="border border-violet-500/30 bg-violet-500/10 text-(--ws-violet)"
                     >
                       School-wide
                     </Badge>
@@ -2910,7 +2910,7 @@ export default function ReportsPage() {
             <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10">
-                  <Lightbulb className="h-5 w-5 text-cyan-200" />
+                  <Lightbulb className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
                 <div className="space-y-1">
                   <h2 className="text-lg font-semibold text-cyan-50">

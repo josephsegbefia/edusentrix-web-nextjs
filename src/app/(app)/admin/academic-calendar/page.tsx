@@ -1128,7 +1128,7 @@ export default function AcademicCalendarPage() {
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70 backdrop-blur-sm">
-              <CalendarRange className="h-3.5 w-3.5 text-sky-200" />
+              <CalendarRange className="h-3.5 w-3.5 text-(--ws-cyan)" />
               School schedule
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -1154,7 +1154,7 @@ export default function AcademicCalendarPage() {
                 key={step.label}
                 className="rounded-xl border border-white/10 bg-white/4 p-3 backdrop-blur-sm"
               >
-                <step.icon className="h-4 w-4 text-sky-200" />
+                <step.icon className="h-4 w-4 text-(--ws-cyan)" />
                 <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
                 <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
               </div>
@@ -1173,7 +1173,7 @@ export default function AcademicCalendarPage() {
         <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-2">
-              <Sparkles className="h-5 w-5 text-sky-100" />
+              <Sparkles className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-white">What admins do here</h2>
@@ -1190,7 +1190,7 @@ export default function AcademicCalendarPage() {
               {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} in period
             </Badge>
             {activeCalendar?.isPublished ? (
-              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
+              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-(--ws-emerald)">
                 Calendar published
               </Badge>
             ) : (
@@ -1210,7 +1210,7 @@ export default function AcademicCalendarPage() {
         <div className="space-y-4">
           <Card className={glassPanel}>
             <CardHeader className="border-b border-white/10 pb-4">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 School Calendar
               </CardTitle>
             </CardHeader>
@@ -1225,7 +1225,7 @@ export default function AcademicCalendarPage() {
                       One school-wide calendar, organised by academic period.
                     </div>
                   </div>
-                  <Badge className="bg-emerald-500/15 text-emerald-100">
+                  <Badge className="bg-emerald-500/15 text-(--ws-emerald)">
                     {activeCalendar?.isPublished ? "Published" : "Draft"}
                   </Badge>
                 </div>
@@ -1235,10 +1235,10 @@ export default function AcademicCalendarPage() {
 
           <Card className={glassPanel}>
             <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Filters
               </CardTitle>
-              <ListFilter className="h-4 w-4 text-sky-200/70" />
+              <ListFilter className="h-4 w-4 text-(--ws-cyan)" />
             </CardHeader>
             <CardContent className="space-y-3 pt-4">
               <div className="space-y-2">
@@ -1291,7 +1291,7 @@ export default function AcademicCalendarPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-4">
-                  <p className="text-xs text-emerald-100/75">
+                  <p className="text-xs text-(--ws-emerald)">
                     {describePeriod(previousPeriod)} had recurring events. Recreate only the ones needed for {describePeriod(selectedPeriod)}.
                   </p>
                   <div className="space-y-2">
@@ -1325,10 +1325,10 @@ export default function AcademicCalendarPage() {
 
           <Card className={glassPanel}>
             <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Publishing
               </CardTitle>
-              <Settings className="h-4 w-4 text-sky-200/70" />
+              <Settings className="h-4 w-4 text-(--ws-cyan)" />
             </CardHeader>
             <CardContent className="space-y-3 pt-4">
               {activeCalendar ? (
@@ -1965,7 +1965,7 @@ export default function AcademicCalendarPage() {
 
           <Card className={glassPanel}>
             <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Audience & Roles
               </CardTitle>
             </CardHeader>
@@ -2122,7 +2122,7 @@ export default function AcademicCalendarPage() {
 
           <Card className={glassPanel}>
             <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Recurrence
               </CardTitle>
             </CardHeader>
@@ -2256,7 +2256,7 @@ export default function AcademicCalendarPage() {
 
           <Card className={glassPanel}>
             <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Reminders
               </CardTitle>
             </CardHeader>
@@ -2301,7 +2301,7 @@ export default function AcademicCalendarPage() {
 
           <Card className={glassPanel}>
             <CardHeader className="border-b border-white/10 pb-4">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-(--ws-cyan)">
                 Editor Delegation
               </CardTitle>
             </CardHeader>

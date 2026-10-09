@@ -268,7 +268,7 @@ export function TeacherProfessionalInfoCard({
                   onClick={handleGenerateId}
                   disabled={suggestId.isPending || updateTeacher.isPending}
                 >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-300/90" />
+                  <Sparkles className="h-3.5 w-3.5 text-(--ws-amber)" />
                   Generate
                 </Button>
               </div>

@@ -188,10 +188,10 @@ export default function EmailPreferencesPage() {
           <CardContent className="flex items-center gap-4 p-6">
             <AlertCircle className="h-8 w-8 text-red-400" />
             <div>
-              <p className="font-medium text-red-200">
+              <p className="font-medium text-(--ws-rose)">
                 Failed to load preferences
               </p>
-              <p className="text-sm text-red-300/70">
+              <p className="text-sm text-(--ws-rose)">
                 Please refresh the page to try again
               </p>
             </div>
@@ -223,7 +223,7 @@ export default function EmailPreferencesPage() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/20">
-              <Bell className="h-6 w-6 text-blue-300" />
+              <Bell className="h-6 w-6 text-(--ws-cyan)" />
             </div>
             <div>
               <div className="flex items-center gap-3">
@@ -232,7 +232,7 @@ export default function EmailPreferencesPage() {
                 </h1>
                 <Badge
                   variant="outline"
-                  className="border-blue-500/30 bg-blue-500/10 text-blue-300"
+                  className="border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)"
                 >
                   <Sparkles className="mr-1 h-3 w-3" />
                   Notifications
@@ -265,7 +265,7 @@ export default function EmailPreferencesPage() {
         <Card className="border border-red-500/30 bg-red-950/20">
           <CardContent className="flex items-center gap-3 p-4">
             <AlertCircle className="h-5 w-5 text-red-400" />
-            <p className="text-sm text-red-300">
+            <p className="text-sm text-(--ws-rose)">
               {updatePreferences.error?.message || "Failed to save preferences"}
             </p>
           </CardContent>
@@ -341,7 +341,7 @@ export default function EmailPreferencesPage() {
                     className={cn(
                       "flex h-9 w-9 items-center justify-center rounded-lg",
                       enabled
-                        ? "bg-emerald-500/20 text-emerald-300"
+                        ? "bg-emerald-500/20 text-(--ws-emerald)"
                         : "bg-white/10 text-white/40",
                     )}
                   >
@@ -431,7 +431,7 @@ export default function EmailPreferencesPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-blue-300" />
+                  <Clock className="h-5 w-5 text-(--ws-cyan)" />
                   Quiet Hours
                 </h2>
                 <p className="text-sm text-white/40">
@@ -504,10 +504,10 @@ export default function EmailPreferencesPage() {
           <div className="border-t border-white/10 pt-6">
             <div className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
               <div>
-                <p className="text-sm font-medium text-amber-200">
+                <p className="text-sm font-medium text-(--ws-amber)">
                   Urgent Only Mode
                 </p>
-                <p className="text-xs text-amber-300/50">
+                <p className="text-xs text-(--ws-amber)">
                   Only receive critical and transactional emails
                 </p>
               </div>

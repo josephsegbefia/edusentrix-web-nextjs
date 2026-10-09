@@ -41,14 +41,14 @@ function getActivityIcon(type: ActivityType): LucideIcon {
 }
 
 function getActivityColor(type: ActivityType): string {
-  if (type.startsWith("student.")) return "text-blue-300";
-  if (type.startsWith("teacher.")) return "text-purple-300";
+  if (type.startsWith("student.")) return "text-(--ws-cyan)";
+  if (type.startsWith("teacher.")) return "text-(--ws-violet)";
   if (type.startsWith("class_group.")) return "text-(--ws-violet)";
   if (type.startsWith("invitation.")) return "text-(--ws-violet)";
   if (type.startsWith("subject.")) return "text-(--ws-emerald)";
-  if (type.startsWith("academic_period.")) return "text-amber-300";
+  if (type.startsWith("academic_period.")) return "text-(--ws-amber)";
   if (type.startsWith("fee.") || type.startsWith("payment.")) return "text-(--ws-emerald)";
-  if (type.startsWith("report.")) return "text-cyan-300";
+  if (type.startsWith("report.")) return "text-(--ws-cyan)";
   if (type.startsWith("settings.")) return "text-gray-300";
   return "text-white/60";
 }

@@ -475,7 +475,7 @@ export function ClassTimetableGridBoard({
                   >
                     <div className="border-t border-amber-500/20 bg-amber-500/10 px-3 py-3 text-sm text-(--ws-amber) lg:border-r lg:border-amber-500/15">
                       <span className="flex items-center gap-2 font-medium">
-                        <Coffee className="h-4 w-4 shrink-0 text-amber-300" />
+                        <Coffee className="h-4 w-4 shrink-0 text-(--ws-amber)" />
                         {row.name}
                       </span>
                       <span className="mt-1 block text-xs text-(--ws-amber)">
@@ -739,7 +739,7 @@ function DraggablePaletteCard({
         "flex min-w-0 w-full max-w-none items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium",
         warnNoTeacher
           ? "border-amber-500/40 bg-amber-500/15 text-(--ws-fg)"
-          : "border-violet-400/40 bg-violet-500/20 text-violet-100",
+          : "border-violet-400/40 bg-violet-500/20 text-(--ws-violet)",
         disabled && "cursor-not-allowed opacity-40"
       )}
       {...listeners}

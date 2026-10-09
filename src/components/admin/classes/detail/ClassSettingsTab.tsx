@@ -214,7 +214,7 @@ export function ClassSettingsTab({
               <Button
                 variant="outline"
                 onClick={onAssignHomeroom}
-                className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-violet-500/30 hover:bg-violet-500/10 hover:text-violet-100"
+                className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-violet-500/30 hover:bg-violet-500/10 hover:text-(--ws-violet)"
               >
                 <Home className="h-4 w-4 text-(--ws-violet)" />
                 Assign Homeroom Teacher
@@ -222,7 +222,7 @@ export function ClassSettingsTab({
               <Button
                 variant="outline"
                 onClick={onManageSubjects}
-                className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-sky-500/30 hover:bg-sky-500/10 hover:text-sky-100"
+                className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-sky-500/30 hover:bg-sky-500/10 hover:text-(--ws-cyan)"
               >
                 <BookOpen className="h-4 w-4 text-(--ws-cyan)" />
                 Manage Subjects
@@ -230,7 +230,7 @@ export function ClassSettingsTab({
               <Button
                 variant="outline"
                 onClick={onGoStudents}
-                className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-100"
+                className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-(--ws-emerald)"
               >
                 <Users className="h-4 w-4 text-(--ws-emerald)" />
                 Review Students
@@ -240,7 +240,7 @@ export function ClassSettingsTab({
                 onClick={onGoRoles}
                 className="justify-start gap-3 rounded-2xl border-(--ws-line) bg-(--ws-fill) px-4 py-6 text-left text-(--ws-fg-80) hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-(--ws-amber)"
               >
-                <Settings2 className="h-4 w-4 text-amber-300" />
+                <Settings2 className="h-4 w-4 text-(--ws-amber)" />
                 Review Class Roles
               </Button>
             </CardContent>

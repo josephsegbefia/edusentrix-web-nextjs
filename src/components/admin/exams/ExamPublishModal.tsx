@@ -127,7 +127,7 @@ export function ExamPublishModal({
                   variant="outline"
                   className={
                     readiness.canPublish
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)"
                       : "border-rose-500/30 bg-rose-500/10 text-(--ws-rose)"
                   }
                 >
@@ -222,7 +222,7 @@ export function ExamPublishModal({
 
         {!readiness?.canPublish ? (
           <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-(--ws-amber)" />
             <span>
               Publishing is blocked until all required issues are resolved. Use conflict review and
               assessment linking tools first.

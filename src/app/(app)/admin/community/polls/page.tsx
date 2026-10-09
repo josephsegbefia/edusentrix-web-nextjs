@@ -69,11 +69,11 @@ const CreatePollModal = dynamic(() => import("@/components/modals/CreatePollModa
 // ============================================================================
 
 const STATUS_STYLES: Record<string, string> = {
-  draft: "border-slate-500/30 bg-slate-500/10 text-slate-200",
+  draft: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
   pending_approval: "border-amber-500/30 bg-amber-500/10 text-(--ws-amber)",
-  approved: "border-blue-500/30 bg-blue-500/10 text-blue-200",
-  live: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  closed: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+  approved: "border-blue-500/30 bg-blue-500/10 text-(--ws-cyan)",
+  live: "border-emerald-500/30 bg-emerald-500/10 text-(--ws-emerald)",
+  closed: "border-slate-500/30 bg-slate-500/10 text-(--ws-fg-70)",
   archived: "border-slate-600/30 bg-slate-600/10 text-slate-400",
 };
 

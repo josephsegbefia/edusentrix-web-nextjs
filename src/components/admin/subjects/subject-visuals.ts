@@ -37,9 +37,9 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
     accent: "bg-linear-to-b from-amber-200 via-amber-400 to-orange-500",
     iconShell:
       "border-amber-300/20 bg-linear-to-br from-amber-300/18 via-orange-300/10 to-transparent",
-    iconColor: "text-amber-100",
+    iconColor: "text-(--ws-amber)",
     codeBadge: "border-amber-300/15 bg-amber-300/10 text-amber-50/85",
-    statIcon: "text-amber-200/80",
+    statIcon: "text-(--ws-amber)",
   },
   teal: {
     card:
@@ -48,9 +48,9 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
     accent: "bg-linear-to-b from-teal-200 via-teal-400 to-cyan-500",
     iconShell:
       "border-teal-300/20 bg-linear-to-br from-teal-300/16 via-cyan-300/10 to-transparent",
-    iconColor: "text-teal-100",
+    iconColor: "text-(--ws-teal)",
     codeBadge: "border-teal-300/15 bg-teal-300/10 text-teal-50/85",
-    statIcon: "text-teal-200/80",
+    statIcon: "text-(--ws-teal)",
   },
   violet: {
     card:
@@ -59,9 +59,9 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
     accent: "bg-linear-to-b from-violet-200 via-violet-400 to-fuchsia-500",
     iconShell:
       "border-violet-300/20 bg-linear-to-br from-violet-300/16 via-fuchsia-300/10 to-transparent",
-    iconColor: "text-violet-100",
+    iconColor: "text-(--ws-violet)",
     codeBadge: "border-violet-300/15 bg-violet-300/10 text-violet-50/85",
-    statIcon: "text-violet-200/80",
+    statIcon: "text-(--ws-violet)",
   },
   emerald: {
     card:
@@ -70,9 +70,9 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
     accent: "bg-linear-to-b from-emerald-200 via-emerald-400 to-lime-500",
     iconShell:
       "border-emerald-300/20 bg-linear-to-br from-emerald-300/16 via-lime-300/10 to-transparent",
-    iconColor: "text-emerald-100",
+    iconColor: "text-(--ws-emerald)",
     codeBadge: "border-emerald-300/15 bg-emerald-300/10 text-emerald-50/85",
-    statIcon: "text-emerald-200/80",
+    statIcon: "text-(--ws-emerald)",
   },
   rose: {
     card:
@@ -81,9 +81,9 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
     accent: "bg-linear-to-b from-rose-200 via-rose-400 to-pink-500",
     iconShell:
       "border-rose-300/20 bg-linear-to-br from-rose-300/16 via-pink-300/10 to-transparent",
-    iconColor: "text-rose-100",
+    iconColor: "text-(--ws-rose)",
     codeBadge: "border-rose-300/15 bg-rose-300/10 text-rose-50/85",
-    statIcon: "text-rose-200/80",
+    statIcon: "text-(--ws-rose)",
   },
   stone: {
     card:
@@ -94,7 +94,7 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
       "border-orange-200/18 bg-linear-to-br from-orange-200/14 via-amber-200/8 to-transparent",
     iconColor: "text-orange-50",
     codeBadge: "border-orange-200/12 bg-orange-200/8 text-orange-50/80",
-    statIcon: "text-orange-100/80",
+    statIcon: "text-(--ws-amber)",
   },
   sky: {
     card:
@@ -103,9 +103,9 @@ const visualMap: Record<string, Omit<SubjectVisual, "icon">> = {
     accent: "bg-linear-to-b from-sky-200 via-sky-400 to-blue-500",
     iconShell:
       "border-sky-300/20 bg-linear-to-br from-sky-300/16 via-blue-300/10 to-transparent",
-    iconColor: "text-sky-100",
+    iconColor: "text-(--ws-cyan)",
     codeBadge: "border-sky-300/15 bg-sky-300/10 text-sky-50/85",
-    statIcon: "text-sky-200/80",
+    statIcon: "text-(--ws-cyan)",
   },
 };
 

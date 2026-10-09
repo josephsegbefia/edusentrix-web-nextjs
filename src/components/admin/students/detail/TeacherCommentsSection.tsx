@@ -148,7 +148,7 @@ function LegacyCommentsContent({ comments }: { comments: TeacherCommentDTO[] }) 
       {comments.map((comment) => (
         <div
           key={comment.id}
-          className={cn(glassInsetClass, "space-y-1 px-3 py-2.5 text-xs text-slate-100")}
+          className={cn(glassInsetClass, "space-y-1 px-3 py-2.5 text-xs text-(--ws-fg-70)")}
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -159,13 +159,13 @@ function LegacyCommentsContent({ comments }: { comments: TeacherCommentDTO[] }) 
                     ? "border-sky-400/40 bg-sky-500/20 text-sky-50"
                     : comment.commentType === "behavior"
                       ? "border-amber-400/40 bg-amber-500/20 text-amber-50"
-                      : "border-slate-500/60 bg-slate-700/70 text-slate-100"
+                      : "border-slate-500/60 bg-slate-700/70 text-(--ws-fg-70)"
                 )}
               >
                 {legacyTypeLabel[comment.commentType] ?? comment.commentType}
               </span>
               {comment.subjectName ? (
-                <span className="text-[11px] text-slate-300">{comment.subjectName}</span>
+                <span className="text-[11px] text-(--ws-fg-70)">{comment.subjectName}</span>
               ) : null}
             </div>
             <span className="text-[10px] text-slate-400">
@@ -173,7 +173,7 @@ function LegacyCommentsContent({ comments }: { comments: TeacherCommentDTO[] }) 
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
           </div>
-          <p className="text-[11px] leading-snug text-slate-100/90">{comment.comment}</p>
+          <p className="text-[11px] leading-snug text-(--ws-fg-70)">{comment.comment}</p>
         </div>
       ))}
     </div>

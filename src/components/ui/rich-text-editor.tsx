@@ -84,8 +84,8 @@ function ToolbarButton({
             onClick={onClick}
             disabled={disabled}
             className={cn(
-              "h-8 w-8 p-0 text-white/60 hover:bg-white/10 hover:text-white",
-              isActive && "bg-white/10 text-indigo-300"
+              "h-8 w-8 p-0 text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)",
+              isActive && "bg-(--ws-fill-strong) text-(--ws-violet)"
             )}
           >
             {children}
@@ -104,7 +104,7 @@ function ToolbarButton({
 // ============================================================================
 
 function ToolbarSeparator() {
-  return <div className="mx-1 h-6 w-px bg-white/10" />;
+  return <div className="mx-1 h-6 w-px bg-(--ws-line)" />;
 }
 
 // ============================================================================
@@ -144,7 +144,7 @@ function EditorToolbar({ editor, variant }: EditorToolbarProps) {
 
   return (
     <>
-    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-white/10 bg-white/5 px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-(--ws-line) bg-(--ws-fill) px-2 py-1.5">
       {/* History */}
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
@@ -340,7 +340,7 @@ export function RichTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-indigo-300 underline hover:text-indigo-200",
+          class: "text-(--ws-violet) underline hover:text-(--ws-violet)",
         },
       }),
     ],
@@ -357,16 +357,16 @@ export function RichTextEditor({
         autoCorrect: "on",
         autoCapitalize: "sentences",
         class: cn(
-          "prose prose-invert prose-sm max-w-none focus:outline-none",
-          "prose-headings:text-white prose-headings:font-semibold",
-          "prose-p:text-white/80 prose-p:leading-relaxed",
-          "prose-strong:text-white prose-em:text-white/80",
-          "prose-ul:text-white/80 prose-ol:text-white/80",
-          "prose-li:text-white/80 prose-li:marker:text-white/50",
-          "prose-blockquote:border-l-indigo-400 prose-blockquote:text-white/60",
-          "prose-code:text-indigo-300 prose-code:bg-white/5 prose-code:px-1 prose-code:rounded",
-          "prose-pre:bg-white/5 prose-pre:text-white/80",
-          "prose-a:text-indigo-300 prose-a:no-underline hover:prose-a:underline",
+          "prose prose-sm max-w-none focus:outline-none",
+          "prose-headings:text-(--ws-fg) prose-headings:font-semibold",
+          "prose-p:text-(--ws-fg-80) prose-p:leading-relaxed",
+          "prose-strong:text-(--ws-fg) prose-em:text-(--ws-fg-80)",
+          "prose-ul:text-(--ws-fg-80) prose-ol:text-(--ws-fg-80)",
+          "prose-li:text-(--ws-fg-80) prose-li:marker:text-(--ws-fg-50)",
+          "prose-blockquote:border-l-(--ws-violet) prose-blockquote:text-(--ws-fg-70)",
+          "prose-code:text-(--ws-violet) prose-code:bg-(--ws-fill) prose-code:px-1 prose-code:rounded",
+          "prose-pre:bg-(--ws-fill) prose-pre:text-(--ws-fg-80)",
+          "prose-a:text-(--ws-violet) prose-a:no-underline hover:prose-a:underline",
           editorClassName
         ),
       },
@@ -390,7 +390,7 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        "rounded-xl border border-white/10 bg-white/5 overflow-hidden transition-colors",
+        "rounded-xl border border-(--ws-line) bg-(--ws-fill) overflow-hidden transition-colors",
         "focus-within:border-indigo-400/50 focus-within:ring-1 focus-within:ring-indigo-400/30",
         disabled && "opacity-50 cursor-not-allowed",
         className
@@ -406,7 +406,7 @@ export function RichTextEditor({
           className={cn(
             "min-h-full",
             "[&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]",
-            "[&_.is-editor-empty:first-child::before]:text-white/30",
+            "[&_.is-editor-empty:first-child::before]:text-(--ws-fg-50)",
             "[&_.is-editor-empty:first-child::before]:float-left",
             "[&_.is-editor-empty:first-child::before]:pointer-events-none",
             "[&_.is-editor-empty:first-child::before]:h-0"

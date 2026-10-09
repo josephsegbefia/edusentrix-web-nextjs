@@ -158,7 +158,7 @@ export function GuardianList({
                 size="icon"
                 onClick={() => onEdit(guardian)}
                 disabled={isLoading}
-                className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-blue-200 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-(--ws-cyan) hover:shadow-md hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Edit guardian"
               >
                 <Edit className="h-4 w-4" />
@@ -169,7 +169,7 @@ export function GuardianList({
                 size="icon"
                 onClick={() => onDelete(guardian.id)}
                 disabled={isLoading}
-                className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-red-400/50 hover:bg-red-500/20 hover:text-red-200 hover:shadow-md hover:shadow-red-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-8 w-8 cursor-pointer border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition-all duration-200 hover:scale-105 hover:border-red-400/50 hover:bg-red-500/20 hover:text-(--ws-rose) hover:shadow-md hover:shadow-red-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Remove guardian"
               >
                 <Trash2 className="h-4 w-4" />

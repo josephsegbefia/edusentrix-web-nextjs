@@ -188,7 +188,15 @@ During a page/component migration:
 - replace structural hardcoded dark colors with semantic theme tokens/classes;
 - use explicit brand colors only when the color is semantically brand-specific;
 - do not mechanically replace every `text-white` with `text-black`;
-- do not create light mode by stacking hundreds of one-off `dark:` classes where a semantic shared token is appropriate.
+- do not create light mode by stacking hundreds of one-off `dark:` classes where a semantic shared token is appropriate;
+- accent labels on tinted fills (`bg-*-500/10` through `/20`, including active tabs, chips, and outline actions) must use theme ink: `text-(--ws-violet)`, `text-(--ws-cyan)`, `text-(--ws-emerald)`, `text-(--ws-amber)`, `text-(--ws-rose)`, `text-(--ws-teal)`, or `text-(--ws-fg*)`. Do not use `text-*-100`, `text-*-200`, `text-*-300`, `text-white/*`, or `text-amber-50` on those fills — those pastels were written for dark glass and disappear in light mode. Do not append an opacity suffix to `text-(--ws-*)` (`text-(--ws-amber)/80` does not compile). Solid `bg-violet-500 text-white` buttons stay white;
+- solid primary buttons use white labels and icons (`--color-primary-foreground: #ffffff`). Do not leave a default `Button` inheriting near-black text on purple;
+- inside `.workspace`, do not use `text-white`, `bg-white/5`, `bg-black/10` through `/30`, or `border-white/10` for cards, insets, fields, or outline actions. Use `--ws-fg*`, `--ws-fill`, and `--ws-line`;
+- `text-brand` (`#0ea5e9`) is too light for small badges on pale fills. Use `--ws-cyan` or another dark accent token for that ink;
+- Leo callouts follow the dashboard checklist: a tinted shell, navy title and body (`--ws-fg` / `--ws-fg-70`), and an inset steps box (`bg-(--ws-fill)`). Do not put `text-white` on a light tint;
+- do not hardcode dark hex card backgrounds (`bg-[#080d16]` and similar) inside `.workspace`. Use `--ws-panel-*` and `--ws-fill`;
+- small uppercase labels and helper lines use `--ws-fg-70` or darker. Do not use `--ws-fg-40`, accent pastels, or `text-(--ws-fg)/NN` (the opacity suffix does not compile);
+- pastel `bg-clip-text` titles (`from-*-200` / `via-*-200`) and `bg-black/20` through `/40` field fills are not light-mode surfaces. Use `text-(--ws-fg)` for titles and `--ws-fill` for fields.
 
 ---
 

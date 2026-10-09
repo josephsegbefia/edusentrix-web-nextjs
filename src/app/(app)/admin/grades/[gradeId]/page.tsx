@@ -77,10 +77,10 @@ function StatCard({
   href?: string;
 }) {
   const config: Record<string, { border: string; bg: string; iconBg: string; iconColor: string; valueColor: string }> = {
-    teal: { border: "border-teal-500/30", bg: "from-teal-500/10 via-teal-500/5 to-transparent", iconBg: "from-teal-500/20 to-teal-600/20", iconColor: "text-teal-300", valueColor: "text-teal-100" },
-    emerald: { border: "border-emerald-500/30", bg: "from-emerald-500/10 via-emerald-500/5 to-transparent", iconBg: "from-emerald-500/20 to-emerald-600/20", iconColor: "text-emerald-300", valueColor: "text-emerald-100" },
-    rose: { border: "border-rose-500/30", bg: "from-rose-500/10 via-rose-500/5 to-transparent", iconBg: "from-rose-500/20 to-rose-600/20", iconColor: "text-rose-300", valueColor: "text-rose-100" },
-    amber: { border: "border-amber-500/30", bg: "from-amber-500/10 via-amber-500/5 to-transparent", iconBg: "from-amber-500/20 to-amber-600/20", iconColor: "text-amber-300", valueColor: "text-amber-100" },
+    teal: { border: "border-teal-500/30", bg: "from-teal-500/10 via-teal-500/5 to-transparent", iconBg: "from-teal-500/20 to-teal-600/20", iconColor: "text-(--ws-teal)", valueColor: "text-(--ws-teal)" },
+    emerald: { border: "border-emerald-500/30", bg: "from-emerald-500/10 via-emerald-500/5 to-transparent", iconBg: "from-emerald-500/20 to-emerald-600/20", iconColor: "text-(--ws-emerald)", valueColor: "text-(--ws-emerald)" },
+    rose: { border: "border-rose-500/30", bg: "from-rose-500/10 via-rose-500/5 to-transparent", iconBg: "from-rose-500/20 to-rose-600/20", iconColor: "text-(--ws-rose)", valueColor: "text-(--ws-rose)" },
+    amber: { border: "border-amber-500/30", bg: "from-amber-500/10 via-amber-500/5 to-transparent", iconBg: "from-amber-500/20 to-amber-600/20", iconColor: "text-(--ws-amber)", valueColor: "text-(--ws-amber)" },
   };
   const c = config[tone];
   const content = (
@@ -221,7 +221,7 @@ function PreschoolLearningAreasPanel({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
-              <BookOpen className="h-5 w-5 text-teal-300" />
+              <BookOpen className="h-5 w-5 text-(--ws-teal)" />
               Preschool Learning Areas
             </CardTitle>
             <p className="mt-1 text-xs text-white/50">
@@ -234,7 +234,7 @@ function PreschoolLearningAreasPanel({
             size="sm"
             onClick={clearLearningAreas}
             disabled={clearMutation.isPending || isLoading}
-            className="gap-2 border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
+            className="gap-2 border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/15"
           >
             {clearMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +248,7 @@ function PreschoolLearningAreasPanel({
       <CardContent className="relative z-10 space-y-5 p-4 sm:p-6">
         {isLoading ? (
           <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/60">
-            <Loader2 className="h-4 w-4 animate-spin text-teal-300" />
+            <Loader2 className="h-4 w-4 animate-spin text-(--ws-teal)" />
             Loading learning areas...
           </div>
         ) : (
@@ -262,7 +262,7 @@ function PreschoolLearningAreasPanel({
                     className={cn(
                       "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors",
                       checked
-                        ? "border-teal-500/40 bg-teal-500/10 text-teal-100"
+                        ? "border-teal-500/40 bg-teal-500/10 text-(--ws-teal)"
                         : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
                     )}
                   >
@@ -308,13 +308,13 @@ function PreschoolLearningAreasPanel({
                 {selected.map((name) => (
                   <span
                     key={name}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs text-teal-100"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs text-(--ws-teal)"
                   >
                     {name}
                     <button
                       type="button"
                       onClick={() => toggleLearningArea(name, false)}
-                      className="rounded-full text-teal-100/70 hover:text-white"
+                      className="rounded-full text-(--ws-teal) hover:text-white"
                       aria-label={`Remove ${name}`}
                     >
                       <X className="h-3 w-3" />
@@ -492,11 +492,11 @@ function GradeDetailContent() {
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
-                <AlertCircle className="h-5 w-5 text-red-300" />
+                <AlertCircle className="h-5 w-5 text-(--ws-rose)" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">Missing grade identifier</div>
-                <p className="text-xs text-red-200/70">The grade ID was not provided.</p>
+                <div className="font-semibold text-(--ws-rose)">Missing grade identifier</div>
+                <p className="text-xs text-(--ws-rose)">The grade ID was not provided.</p>
               </div>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => router.push("/admin/grades")} className="border-white/10">
@@ -515,8 +515,8 @@ function GradeDetailContent() {
           <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 py-16">
             <AlertCircle className="h-12 w-12 text-red-400" />
             <div className="text-center">
-              <p className="font-semibold text-red-100">Grade not found</p>
-              <p className="text-sm text-red-200/70">The grade you&apos;re looking for doesn&apos;t exist or was removed.</p>
+              <p className="font-semibold text-(--ws-rose)">Grade not found</p>
+              <p className="text-sm text-(--ws-rose)">The grade you&apos;re looking for doesn&apos;t exist or was removed.</p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => router.push("/admin/grades")} className="border-white/10">
               Back to Grades
@@ -546,7 +546,7 @@ function GradeDetailContent() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-teal-500/20 via-cyan-500/10 to-transparent blur-3xl" aria-hidden="true" />
         <div className="relative z-10 space-y-4">
           <nav className="flex items-center gap-2 text-sm">
-            <Link href="/admin/grades" className="text-white/60 hover:text-teal-300 transition-colors">
+            <Link href="/admin/grades" className="text-white/60 hover:text-(--ws-teal) transition-colors">
               Grades
             </Link>
             <span className="text-white/40">/</span>
@@ -555,7 +555,7 @@ function GradeDetailContent() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-lg shadow-teal-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
-                <School className="h-5 w-5 text-teal-300 sm:h-6 sm:w-6" />
+                <School className="h-5 w-5 text-(--ws-teal) sm:h-6 sm:w-6" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{gradeName}</h1>
@@ -564,7 +564,7 @@ function GradeDetailContent() {
                   {grade?.stage ?? "—"}
                   {overview?.currentPeriod && (
                     <span className="ml-2">
-                      <Badge variant="outline" className="border-teal-500/30 bg-teal-500/10 text-teal-300 text-[10px]">
+                      <Badge variant="outline" className="border-teal-500/30 bg-teal-500/10 text-(--ws-teal) text-[10px]">
                         {overview.currentPeriod.yearLabel} • {overview.currentPeriod.term}
                       </Badge>
                     </span>
@@ -645,7 +645,7 @@ function GradeDetailContent() {
           {overview.stats.classesWithoutHomeroom > 0 && (
             <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
               <AlertCircle className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-200">
+              <span className="text-sm font-medium text-(--ws-amber)">
                 {overview.stats.classesWithoutHomeroom} class{overview.stats.classesWithoutHomeroom !== 1 ? "es" : ""} without homeroom
               </span>
             </div>
@@ -653,7 +653,7 @@ function GradeDetailContent() {
           {overview.stats.subjectsWithoutTeacher > 0 && (
             <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5">
               <AlertCircle className="h-4 w-4 text-rose-400" />
-              <span className="text-sm font-medium text-rose-200">
+              <span className="text-sm font-medium text-(--ws-rose)">
                 {overview.stats.subjectsWithoutTeacher} {academicUnitLabelLower} assignment{overview.stats.subjectsWithoutTeacher !== 1 ? "s" : ""} without teacher
               </span>
             </div>
@@ -676,7 +676,7 @@ function GradeDetailContent() {
         <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 lg:col-span-1">
           <CardHeader className="relative z-10 border-b border-white/5">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
-              <BookOpen className="h-5 w-5 text-teal-300" />
+              <BookOpen className="h-5 w-5 text-(--ws-teal)" />
               {academicUnitLabel} Overview
             </CardTitle>
             <p className="text-xs text-white/50">Which classes have each {academicUnitLabelLower.slice(0, -1)}, gaps</p>
@@ -726,9 +726,9 @@ function GradeDetailContent() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-teal-300">{s.classesWithSubject}/{overview?.stats.totalClasses ?? 0}</span>
+                      <span className="text-xs text-(--ws-teal)">{s.classesWithSubject}/{overview?.stats.totalClasses ?? 0}</span>
                       {s.classesWithoutSubject > 0 && (
-                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-300 text-[10px]">
+                        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-(--ws-amber) text-[10px]">
                           {s.classesWithoutSubject} gap{s.classesWithoutSubject !== 1 ? "s" : ""}
                         </Badge>
                       )}
@@ -751,7 +751,7 @@ function GradeDetailContent() {
         <CardHeader className="relative z-10 border-b border-white/5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
-              <School className="h-5 w-5 text-teal-300" />
+              <School className="h-5 w-5 text-(--ws-teal)" />
               Classes
             </CardTitle>
             <div className="flex flex-wrap items-center gap-2">
@@ -883,7 +883,7 @@ function GradeDetailContent() {
                       <td className="px-4 py-3 text-white/80">{cls.homeroomTeacher?.fullName ?? "—"}</td>
                       <td className="px-4 py-3 text-white/80">{cls.subjectCount}</td>
                       <td className="px-4 py-3">
-                        <Badge variant="outline" className={cls.isActive ? "border-emerald-500/40 text-emerald-300" : "border-amber-500/40 text-amber-300"}>
+                        <Badge variant="outline" className={cls.isActive ? "border-emerald-500/40 text-(--ws-emerald)" : "border-amber-500/40 text-(--ws-amber)"}>
                           {cls.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </td>
@@ -905,7 +905,7 @@ function GradeDetailContent() {
       <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 sm:rounded-2xl">
         <CardHeader className="relative z-10 border-b border-white/5">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
-            <UserCheck className="h-5 w-5 text-teal-300" />
+            <UserCheck className="h-5 w-5 text-(--ws-teal)" />
             Teachers
           </CardTitle>
           <p className="text-xs text-white/50">Homeroom and {academicUnitLabelLower} teachers for classes in this grade</p>
@@ -926,14 +926,14 @@ function GradeDetailContent() {
                   href={`/admin/teachers/${t.id}`}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5",
-                    "text-sm text-white/90 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-200",
+                    "text-sm text-white/90 hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-(--ws-teal)",
                     "transition-colors"
                   )}
                 >
-                  <Users className="h-4 w-4 text-teal-300" />
+                  <Users className="h-4 w-4 text-(--ws-teal)" />
                   <span>{t.fullName}</span>
                   {t.roles.length > 0 && (
-                    <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-300">
+                    <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-[10px] text-(--ws-teal)">
                       {t.roles.includes("homeroom") && t.roles.includes("subject") ? "Homeroom & Subject" : t.roles.includes("homeroom") ? "Homeroom" : "Subject"}
                     </span>
                   )}
@@ -954,7 +954,7 @@ function GradeDetailContent() {
         <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/10">
-              <Users className="h-8 w-8 text-cyan-300" />
+              <Users className="h-8 w-8 text-(--ws-cyan)" />
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-white">View students in {gradeName}</h3>
@@ -976,7 +976,7 @@ function GradeDetailContent() {
         <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10">
-              <Calendar className="h-8 w-8 text-amber-300" />
+              <Calendar className="h-8 w-8 text-(--ws-amber)" />
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-white">View class schedules for {gradeName}</h3>
@@ -998,7 +998,7 @@ function GradeDetailContent() {
         <Card className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black">
           <CardContent className="flex flex-col items-center justify-center gap-6 py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10">
-              <FileDown className="h-8 w-8 text-violet-300" />
+              <FileDown className="h-8 w-8 text-(--ws-violet)" />
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-white">Export class list</h3>

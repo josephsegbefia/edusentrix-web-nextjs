@@ -65,7 +65,7 @@ const categoryConfig: Record<
   performance: {
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/30",
-    text: "text-emerald-200",
+    text: "text-(--ws-emerald)",
   },
   behavior: {
     bg: "bg-amber-500/10",
@@ -75,22 +75,22 @@ const categoryConfig: Record<
   disciplinary: {
     bg: "bg-red-500/10",
     border: "border-red-500/30",
-    text: "text-red-200",
+    text: "text-(--ws-rose)",
   },
   professional_development: {
     bg: "bg-blue-500/10",
     border: "border-blue-500/30",
-    text: "text-blue-200",
+    text: "text-(--ws-cyan)",
   },
   general: {
     bg: "bg-slate-500/10",
     border: "border-slate-500/30",
-    text: "text-slate-200",
+    text: "text-(--ws-fg-70)",
   },
   other: {
     bg: "bg-purple-500/10",
     border: "border-purple-500/30",
-    text: "text-purple-200",
+    text: "text-(--ws-violet)",
   },
 };
 
@@ -189,7 +189,7 @@ export function TeacherNotesTab({ teacher }: Props) {
           </div>
           <Button
             variant="outline"
-            className="gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
+            className="gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20 hover:text-(--ws-rose)"
             onClick={() => setAddModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -274,7 +274,7 @@ export function TeacherNotesTab({ teacher }: Props) {
                 {!categoryFilter && (
                   <Button
                     variant="outline"
-                    className="mt-2 gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20"
+                    className="mt-2 gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-(--ws-rose) hover:bg-rose-500/20 hover:text-(--ws-rose)"
                     onClick={() => setAddModalOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
@@ -463,7 +463,7 @@ function NoteCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-red-500/10 hover:text-red-300"
+            className="h-8 w-8 rounded-lg text-(--ws-fg-60) hover:bg-red-500/10 hover:text-(--ws-rose)"
             onClick={() => onDelete(note)}
             disabled={isDeleting}
             title="Delete note"

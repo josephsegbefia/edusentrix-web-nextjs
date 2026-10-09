@@ -48,7 +48,7 @@ export function TeacherAvatarStatus({
       <Avatar
         className={cn(
           sizeClasses[size],
-          "border border-(--ws-line-strong) bg-slate-800/80 text-xs font-semibold text-slate-100 shadow-md shadow-[var(--ws-shadow)]"
+          "border border-(--ws-line-strong) bg-slate-800/80 text-xs font-semibold text-(--ws-fg-70) shadow-md shadow-[var(--ws-shadow)]"
         )}
       >
         <AvatarImage src={photoUrl || ""} alt={fullName} />

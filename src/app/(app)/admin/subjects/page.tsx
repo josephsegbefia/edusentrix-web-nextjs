@@ -1,6 +1,7 @@
 // src/app/(app)/admin/subjects/page.tsx
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -292,9 +293,9 @@ export default function SubjectsPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <WorkspaceScope className="space-y-6 sm:space-y-8">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
         <div
           className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-amber-400/18 via-orange-400/10 to-transparent blur-3xl"
           aria-hidden="true"
@@ -315,15 +316,15 @@ export default function SubjectsPage() {
                 <Shapes className="h-5 w-5 text-(--ws-amber) sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-(--ws-fg) sm:text-3xl">
                   Subject Offerings
                 </h1>
-                <p className="text-xs text-white/60 sm:text-sm">
+                <p className="text-xs text-(--ws-fg-70) sm:text-sm">
                   Curriculum-aware subject setup and assignments
                 </p>
               </div>
             </div>
-            <p className="hidden max-w-lg text-sm leading-relaxed text-white/50 sm:block">
+            <p className="hidden max-w-lg text-sm leading-relaxed text-(--ws-fg-70) sm:block">
               Manage the actual subjects taught by curriculum, stage, and grade
               band without mixing JHS, Primary, or custom offerings.
             </p>
@@ -342,12 +343,12 @@ export default function SubjectsPage() {
           </div>
         </div>
 
-        <div className="relative z-10 mt-4 hidden flex-wrap items-center gap-3 border-t border-white/10 pt-4 sm:mt-6 sm:flex">
-          <span className="text-[11px] uppercase tracking-wider text-white/40">
+        <div className="relative z-10 mt-4 hidden flex-wrap items-center gap-3 border-t border-(--ws-line) pt-4 sm:mt-6 sm:flex">
+          <span className="text-[11px] uppercase tracking-wider text-(--ws-fg-70)">
             Shortcuts
           </span>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
-            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+          <div className="flex items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[11px] text-(--ws-fg-70)">
+            <kbd className="rounded bg-(--ws-fill-strong) px-1.5 py-0.5 font-mono text-[10px]">
               /
             </kbd>
             <span>Focus search</span>
@@ -359,7 +360,7 @@ export default function SubjectsPage() {
       <SubjectsQuickStatsSection />
 
       {/* Subject directory shell */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-amber-400/6 via-transparent to-transparent"
           aria-hidden="true"
@@ -369,20 +370,20 @@ export default function SubjectsPage() {
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-3 sm:gap-4 sm:pb-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-(--ws-line) bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
                   <Sparkles className="h-4 w-4 text-(--ws-amber) sm:h-5 sm:w-5" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-teal-300 sm:h-3 sm:w-3" />
               </div>
               <div className="space-y-0.5">
-                <CardTitle className="text-base font-semibold tracking-tight text-white sm:text-lg">
+                <CardTitle className="text-base font-semibold tracking-tight text-(--ws-fg) sm:text-lg">
                   Subject Offerings Directory
                 </CardTitle>
-                <p className="text-[11px] text-white/50 sm:text-xs">
+                <p className="text-[11px] text-(--ws-fg-70) sm:text-xs">
                   Search, filter, and manage curriculum-aware offerings
                 </p>
               </div>
@@ -457,7 +458,7 @@ export default function SubjectsPage() {
       </Card>
 
       {/* Data summary shell */}
-      <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
+      <Card className="relative overflow-hidden rounded-xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
           aria-hidden="true"
@@ -467,13 +468,13 @@ export default function SubjectsPage() {
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+        <CardHeader className="relative z-10 border-b border-(--ws-line) pb-0">
           <div className="flex flex-col gap-3 pb-3 sm:pb-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                 Directory Results
               </CardTitle>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-(--ws-fg-70)">
                 {isLoading ? "Loading..." : `${totalFiltered} offerings found`}
               </p>
               {!isLoading && activeGradeBandHeading && (
@@ -482,7 +483,7 @@ export default function SubjectsPage() {
                 </p>
               )}
               {!isLoading && !activeGradeBandHeading && subjects.length > 0 && (
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-70)">
                   Grouped by grade band for easier curriculum review.
                 </p>
               )}
@@ -493,7 +494,7 @@ export default function SubjectsPage() {
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
                     ? "border-amber-300/20 bg-amber-300/10 text-(--ws-amber)"
-                    : "border-white/10 bg-white/5 text-white/60"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                 )}
               >
                 {viewMode === "cards" ? "Cards" : "Table"} view
@@ -512,10 +513,10 @@ export default function SubjectsPage() {
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-sm font-medium text-(--ws-fg-70)">
                   Loading subject offerings...
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-70)">
                   Fetching your curriculum-aware directory
                 </p>
               </div>
@@ -523,7 +524,7 @@ export default function SubjectsPage() {
           ) : isError ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="flex h-14 w-14 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10">
-                <AlertCircle className="h-7 w-7 text-red-400" />
+                <AlertCircle className="h-7 w-7 text-(--ws-rose)" />
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-(--ws-rose)">
@@ -545,15 +546,15 @@ export default function SubjectsPage() {
           ) : subjects.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-(--ws-line) bg-linear-to-br from-white/10 to-white/5">
                   <Shapes className="h-10 w-10 text-(--ws-amber)" />
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-base font-medium text-white/80">
+                <p className="text-base font-medium text-(--ws-fg-70)">
                   No subject offerings found
                 </p>
-                <p className="mt-1 max-w-xs text-sm text-white/50">
+                <p className="mt-1 max-w-xs text-sm text-(--ws-fg-70)">
                   Start from your selected curriculum or create custom offerings
                   after the curriculum setup is ready.
                 </p>
@@ -567,14 +568,14 @@ export default function SubjectsPage() {
             </div>
           ) : (
             <div className="space-y-4 sm:space-y-5">
-              <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-2 text-xs text-white/70 sm:text-sm">
+              <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-linear-to-r from-white/5 to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-xs text-(--ws-fg-70) sm:text-sm">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-300/15 text-[9px] font-bold text-(--ws-amber) sm:h-6 sm:w-6 sm:text-[10px]">
                     {subjects.length}
                   </span>
                   <span>
                     showing{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-(--ws-fg)">
                       {subjects.length}
                     </span>{" "}
                     offering{subjects.length === 1 ? "" : "s"}
@@ -587,16 +588,16 @@ export default function SubjectsPage() {
                   <div className="space-y-6">
                     {groupedSubjects.map(([band, items]) => (
                       <section key={band} className="space-y-3">
-                        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+                        <div className="flex items-center justify-between gap-3 border-b border-(--ws-line) pb-2">
                           <div>
-                            <h2 className="text-sm font-semibold text-white">
+                            <h2 className="text-sm font-semibold text-(--ws-fg)">
                               {gradeBandHeading(band)}
                             </h2>
-                            <p className="text-xs text-white/45">
+                            <p className="text-xs text-(--ws-fg-70)">
                               {items.length} offering{items.length === 1 ? "" : "s"}
                             </p>
                           </div>
-                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-white/45">
+                          <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-(--ws-fg-70)">
                             {band.replace(/_/g, " ")}
                           </span>
                         </div>
@@ -626,12 +627,12 @@ export default function SubjectsPage() {
                   <div className="space-y-6">
                     {groupedSubjects.map(([band, items]) => (
                       <section key={band} className="space-y-3">
-                        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+                        <div className="flex items-center justify-between gap-3 border-b border-(--ws-line) pb-2">
                           <div>
-                            <h2 className="text-sm font-semibold text-white">
+                            <h2 className="text-sm font-semibold text-(--ws-fg)">
                               {gradeBandHeading(band)}
                             </h2>
-                            <p className="text-xs text-white/45">
+                            <p className="text-xs text-(--ws-fg-70)">
                               {items.length} offering{items.length === 1 ? "" : "s"}
                             </p>
                           </div>
@@ -710,7 +711,7 @@ export default function SubjectsPage() {
         />
       )}
       {confirmationDialog}
-    </div>
+    </WorkspaceScope>
   );
 }
 
@@ -873,11 +874,11 @@ function SetupSubjectOfferingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] !max-w-6xl overflow-hidden border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl shadow-black/60">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] !max-w-6xl overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl shadow-black/60">
         <div className="relative overflow-hidden rounded-lg">
           <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-300/10 blur-3xl" />
           <div className="relative flex max-h-[88vh] flex-col">
-            <div className="border-b border-white/10 p-6">
+            <div className="border-b border-(--ws-line) p-6">
               <DialogHeader className="space-y-3 text-left">
                 <div className="flex items-start gap-3">
                   <div className="flex size-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10">
@@ -885,7 +886,7 @@ function SetupSubjectOfferingsDialog({
                   </div>
                   <div>
                     <DialogTitle>Set up subject offerings</DialogTitle>
-                    <DialogDescription className="mt-1 max-w-2xl text-white/55">
+                    <DialogDescription className="mt-1 max-w-2xl text-(--ws-fg-70)">
                       Generate curriculum-aware offerings, tie them to matching grades,
                       and optionally assign them to class groups in those grades.
                     </DialogDescription>
@@ -897,7 +898,7 @@ function SetupSubjectOfferingsDialog({
             <div className="space-y-5 overflow-y-auto p-6 lg:p-7">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Curriculum
                   </p>
                   <PremiumSelect value={curriculumCode} onValueChange={setCurriculumCode}>
@@ -911,12 +912,12 @@ function SetupSubjectOfferingsDialog({
                     </PremiumSelectContent>
                   </PremiumSelect>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:col-span-2">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 md:col-span-2">
                   <label className="flex cursor-pointer items-start gap-3">
                     <Checkbox checked={autoAssign} onCheckedChange={(checked) => setAutoAssign(Boolean(checked))} />
                     <span>
-                      <span className="block text-sm font-medium text-white">Assign to matching class groups</span>
-                  <span className="mt-1 block text-xs leading-relaxed text-white/50">
+                      <span className="block text-sm font-medium text-(--ws-fg)">Assign to matching class groups</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-(--ws-fg-70)">
                         {initialGrade
                           ? `This setup is currently scoped to ${initialGrade.name}.`
                           : "For example, Mathematics - JHS will be assigned to every class group inside JHS 1, JHS 2, and JHS 3."}
@@ -926,23 +927,23 @@ function SetupSubjectOfferingsDialog({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-white">Grades covered</p>
-                    <p className="text-xs text-white/45">
+                    <p className="text-sm font-medium text-(--ws-fg)">Grades covered</p>
+                    <p className="text-xs text-(--ws-fg-70)">
                       {initialGrade
                         ? `Showing setup for ${initialGrade.name}. You can add more grades if needed.`
                         : "Only selected grades receive matching offerings."}
                     </p>
                   </div>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-white/55">
+                  <span className="rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-[10px] text-(--ws-fg-70)">
                     {selectedGradeIds.length} selected
                   </span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {grades.map((grade) => (
-                    <label key={grade.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white/75">
+                    <label key={grade.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
                       <Checkbox checked={selectedGradeIds.includes(grade.id)} onCheckedChange={() => toggle(grade.id, selectedGradeIds, setSelectedGradeIds)} />
                       <span>{grade.name}</span>
                     </label>
@@ -957,21 +958,21 @@ function SetupSubjectOfferingsDialog({
                   const totalItems = items.length + customItems.length;
 
                   return (
-                    <div key={band} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <div key={band} className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-white">{formatOfferingLabel(band)}</p>
-                        <span className="text-xs text-white/45">{totalItems} offerings</span>
+                        <p className="text-sm font-semibold text-(--ws-fg)">{formatOfferingLabel(band)}</p>
+                        <span className="text-xs text-(--ws-fg-70)">{totalItems} offerings</span>
                       </div>
                       <div className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
                         {items.map((template) => (
-                        <label key={template.code} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition hover:border-amber-300/25 hover:bg-amber-300/5">
+                        <label key={template.code} className="flex cursor-pointer items-start gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 transition hover:border-amber-300/25 hover:bg-amber-300/5">
                           <Checkbox checked={selectedCodes.includes(template.code)} onCheckedChange={() => toggle(template.code, selectedCodes, setSelectedCodes)} />
                           <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-white">{template.displayName}</span>
-                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                            <span className="block truncate text-sm font-medium text-(--ws-fg)">{template.displayName}</span>
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-(--ws-fg-70)">
                               <span>{template.code}</span>
-                              <span className="rounded-full border border-white/10 px-1.5 py-0.5">{template.category.replace(/_/g, " ")}</span>
-                              <span className="rounded-full border border-white/10 px-1.5 py-0.5">{template.lessonNoteTemplateVariant?.replace(/_/g, " ") ?? "classic"}</span>
+                              <span className="rounded-full border border-(--ws-line) px-1.5 py-0.5">{template.category.replace(/_/g, " ")}</span>
+                              <span className="rounded-full border border-(--ws-line) px-1.5 py-0.5">{template.lessonNoteTemplateVariant?.replace(/_/g, " ") ?? "classic"}</span>
                             </span>
                           </span>
                         </label>
@@ -983,19 +984,19 @@ function SetupSubjectOfferingsDialog({
                           >
                             <Checkbox checked disabled />
                             <span className="min-w-0">
-                              <span className="block truncate text-sm font-medium text-white">
+                              <span className="block truncate text-sm font-medium text-(--ws-fg)">
                                 {offering.displayName}
                               </span>
-                              <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                              <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-(--ws-fg-70)">
                                 <span>{offering.code}</span>
                                 <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-1.5 py-0.5 text-(--ws-emerald)">
                                   saved custom
                                 </span>
-                                <span className="rounded-full border border-white/10 px-1.5 py-0.5">
+                                <span className="rounded-full border border-(--ws-line) px-1.5 py-0.5">
                                   {offering.category.replace(/_/g, " ")}
                                 </span>
                               </span>
-                              <span className="mt-1 block text-xs text-white/45">
+                              <span className="mt-1 block text-xs text-(--ws-fg-70)">
                                 {offering.gradeNames.join(", ")}
                               </span>
                             </span>
@@ -1009,8 +1010,8 @@ function SetupSubjectOfferingsDialog({
 
               <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4">
                 <div className="mb-4 flex flex-col gap-1">
-                  <p className="text-sm font-semibold text-white">Add a custom subject offering</p>
-                  <p className="text-xs text-white/45">
+                  <p className="text-sm font-semibold text-(--ws-fg)">Add a custom subject offering</p>
+                  <p className="text-xs text-(--ws-fg-70)">
                     Use this when a school teaches a subject outside the default NaCCA list.
                     Select one grade for a grade-specific offering, or multiple grades for a grade-band offering.
                   </p>
@@ -1027,7 +1028,7 @@ function SetupSubjectOfferingsDialog({
                       }))
                     }
                     placeholder="Subject family, e.g. Robotics"
-                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-white/35 outline-none focus:border-amber-300/35"
+                    className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />
                   <input
                     value={customForm.displayName}
@@ -1038,7 +1039,7 @@ function SetupSubjectOfferingsDialog({
                       }))
                     }
                     placeholder="Display name"
-                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-white/35 outline-none focus:border-amber-300/35"
+                    className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />
                   <input
                     value={customForm.code}
@@ -1049,7 +1050,7 @@ function SetupSubjectOfferingsDialog({
                       }))
                     }
                     placeholder="Code, e.g. CUSTOM-P4-ROB"
-                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm uppercase text-white placeholder:text-white/35 outline-none focus:border-amber-300/35"
+                    className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm uppercase text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />
                   <PremiumSelect
                     value={customForm.gradeBand}
@@ -1076,7 +1077,7 @@ function SetupSubjectOfferingsDialog({
                   </PremiumSelect>
                 </div>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-(--ws-fg-70)">
                     {customForm.gradeBand === "custom"
                       ? "Custom offering will use the selected grades above and can be assigned to matching class groups automatically."
                       : `Custom offering will use ${formatOfferingLabel(customForm.gradeBand)} grades only and can be assigned to matching class groups automatically.`}
@@ -1091,7 +1092,7 @@ function SetupSubjectOfferingsDialog({
                       customGradeIds.length === 0
                     }
                     onClick={handleCreateCustom}
-                    className="border-amber-300/20 bg-amber-300/10 text-amber-50 hover:bg-amber-300/15"
+                    className="border-amber-300/20 bg-amber-300/10 text-(--ws-amber) hover:bg-amber-300/15"
                   >
                     Add custom offering
                   </Button>
@@ -1099,8 +1100,8 @@ function SetupSubjectOfferingsDialog({
               </div>
             </div>
 
-            <DialogFooter className="border-t border-white/10 p-6">
-              <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
+            <DialogFooter className="border-t border-(--ws-line) p-6">
+              <Button variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button
@@ -1166,25 +1167,25 @@ function AssignSubjectOfferingToClassesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] !max-w-4xl border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white">
+      <DialogContent className="w-[calc(100vw-2rem)] !max-w-4xl border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
         <DialogHeader>
           <DialogTitle>Assign offering to class groups</DialogTitle>
-          <DialogDescription className="text-white/55">
+          <DialogDescription className="text-(--ws-fg-70)">
             {offering?.displayName ?? "Subject offering"} can only be assigned to
             class groups inside its grade coverage.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           {compatibleClasses.length === 0 ? (
-            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-50">
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-(--ws-amber)">
               No compatible class groups were found for this offering.
             </div>
           ) : (
             compatibleClasses.map((classGroup) => (
-              <label key={classGroup.id} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+              <label key={classGroup.id} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
                 <span>
-                  <span className="block text-sm font-medium text-white">{classGroup.fullLabel}</span>
-                  <span className="text-xs text-white/45">{classGroup.grade.name}</span>
+                  <span className="block text-sm font-medium text-(--ws-fg)">{classGroup.fullLabel}</span>
+                  <span className="text-xs text-(--ws-fg-70)">{classGroup.grade.name}</span>
                 </span>
                 <Checkbox
                   checked={selectedIds.includes(classGroup.id)}
@@ -1201,7 +1202,7 @@ function AssignSubjectOfferingToClassesDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button disabled={!offering || assignMutation.isPending} onClick={handleSave}>

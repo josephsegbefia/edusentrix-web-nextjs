@@ -22,6 +22,7 @@ import {
 import { validateAndNormalizeSubmission } from "@/lib/admissions/submission";
 import type { AdmissionFormSchema } from "@/lib/admissions/types";
 import { deleteUploadedFiles } from "@/lib/uploads/delete";
+import { isAcceptedUploadedFileUrl } from "@/lib/storage/urls";
 
 type Params = Promise<{ schoolId: string; cycleSlug: string }>;
 
@@ -41,7 +42,12 @@ const SubmissionSchema = z.object({
       z.object({
         requirementId: z.string().min(1),
         label: z.string().min(1).optional(),
-        fileUrl: z.string().url(),
+        fileUrl: z
+          .string()
+          .refine(
+            isAcceptedUploadedFileUrl,
+            "File must use an internal storage URL or an absolute http(s) URL"
+          ),
         fileName: z.string().optional(),
         sizeBytes: z.number().int().nonnegative().optional(),
         mimeType: z.string().optional(),

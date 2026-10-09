@@ -26,13 +26,13 @@ export function SubjectsCardGrid({
   if (subjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
           <Shapes className="h-8 w-8 text-(--ws-amber)" />
         </div>
-        <p className="mt-4 text-sm font-medium text-white/70">
+        <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">
           No subjects found
         </p>
-        <p className="mt-1 text-xs text-white/50">
+        <p className="mt-1 text-xs text-(--ws-fg-70)">
           Create your first subject to get started
         </p>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -211,20 +212,20 @@ export default function CurriculumSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-brand" />
-      </div>
+      <WorkspaceScope className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-(--ws-cyan)" />
+      </WorkspaceScope>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <WorkspaceScope className="space-y-6">
       {confirmationDialog}
 
       <div className="flex items-center gap-4">
         <Link
           href="/admin/settings"
-          className="inline-flex items-center gap-2 text-xs text-white/50 hover:text-white"
+          className="inline-flex items-center gap-2 text-xs text-(--ws-fg-70) hover:text-(--ws-fg)"
         >
           <ArrowLeft className="h-4 w-4" />
           Settings
@@ -232,50 +233,50 @@ export default function CurriculumSettingsPage() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold text-white">
+        <h1 className="text-2xl font-semibold text-(--ws-fg)">
           Curriculum Configuration
         </h1>
-        <p className="text-sm text-white/60 mt-1">
+        <p className="text-sm text-(--ws-fg-70) mt-1">
           Choose and configure the academic curriculum your school follows
         </p>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border border-white/10 bg-linear-to-br from-emerald-500/10 to-transparent backdrop-blur">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-emerald-500/10 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-emerald-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-emerald-500/20">
               <BookOpen className="h-5 w-5 text-(--ws-emerald)" />
             </div>
             <div>
-              <p className="text-xs text-white/50">Current Curriculum</p>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-xs text-(--ws-fg-70)">Current Curriculum</p>
+              <p className="text-sm font-semibold text-(--ws-fg)">
                 {curriculum?.label || "Not set"}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-linear-to-br from-blue-500/10 to-transparent backdrop-blur">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-blue-500/10 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-blue-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-blue-500/20">
               <GraduationCap className="h-5 w-5 text-(--ws-cyan)" />
             </div>
             <div>
-              <p className="text-xs text-white/50">Assessment Model</p>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-xs text-(--ws-fg-70)">Assessment Model</p>
+              <p className="text-sm font-semibold text-(--ws-fg)">
                 {ASSESSMENT_MODEL_LABELS[curriculum?.assessmentModel] || "\u2014"}
               </p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border border-white/10 bg-linear-to-br from-violet-500/10 to-transparent backdrop-blur">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-violet-500/10 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-violet-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-violet-500/20">
               <Globe className="h-5 w-5 text-(--ws-violet)" />
             </div>
             <div>
-              <p className="text-xs text-white/50">Grading System</p>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-xs text-(--ws-fg-70)">Grading System</p>
+              <p className="text-sm font-semibold text-(--ws-fg)">
                 {GRADING_LABELS[curriculum?.gradingSystem] || "\u2014"}
               </p>
             </div>
@@ -294,7 +295,7 @@ export default function CurriculumSettingsPage() {
                 <p className="text-sm font-semibold text-(--ws-cyan)">
                   Cambridge profile snapshot
                 </p>
-                <p className="text-xs text-white/60">
+                <p className="text-xs text-(--ws-fg-70)">
                   Download a read-only CSV of your Cambridge profile labels and
                   academic periods from{" "}
                   <Link
@@ -323,8 +324,8 @@ export default function CurriculumSettingsPage() {
                 <p className="text-sm font-semibold text-(--ws-amber)">
                   Curriculum Change Scheduled
                 </p>
-                <p className="text-xs text-white/60">
-                  <strong className="text-white/80">
+                <p className="text-xs text-(--ws-fg-70)">
+                  <strong className="text-(--ws-fg-70)">
                     {pendingCurriculum.label}
                   </strong>{" "}
                   will take effect at the start of the next academic year.
@@ -353,7 +354,7 @@ export default function CurriculumSettingsPage() {
 
       {/* Academic data warning */}
       {!canSwitchImmediately && (
-        <Card className="border border-white/10 bg-linear-to-br from-rose-500/5 to-transparent backdrop-blur">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-rose-500/5 to-transparent backdrop-blur">
           <CardContent className="p-4 flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 mt-0.5">
               <ShieldAlert className="h-4 w-4 text-(--ws-rose)" />
@@ -362,13 +363,13 @@ export default function CurriculumSettingsPage() {
               <p className="text-sm font-semibold text-(--ws-rose)">
                 Immediate Switch Restricted
               </p>
-              <p className="text-xs text-white/60 mt-0.5">
+              <p className="text-xs text-(--ws-fg-70) mt-0.5">
                 Your school has{" "}
-                <strong className="text-white/80">
+                <strong className="text-(--ws-fg-70)">
                   {academicData!.assessmentCount.toLocaleString()} assessment(s)
                 </strong>{" "}
                 and{" "}
-                <strong className="text-white/80">
+                <strong className="text-(--ws-fg-70)">
                   {academicData!.publishedGradeCount.toLocaleString()} published
                   grade(s)
                 </strong>{" "}
@@ -382,16 +383,16 @@ export default function CurriculumSettingsPage() {
       )}
 
       {/* Change Curriculum Card */}
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg backdrop-blur">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Layers className="h-5 w-5 text-brand" />
+            <Layers className="h-5 w-5 text-(--ws-cyan)" />
             Change Curriculum
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
               Select curriculum
             </label>
             <PremiumSelect
@@ -413,7 +414,7 @@ export default function CurriculumSettingsPage() {
                   >
                     {c.label}
                     {c.code === curriculum?.code && (
-                      <span className="ml-2 text-[10px] text-emerald-400 font-medium">
+                      <span className="ml-2 text-[10px] text-(--ws-emerald) font-medium">
                         (current)
                       </span>
                     )}
@@ -424,10 +425,10 @@ export default function CurriculumSettingsPage() {
           </div>
 
           {selectedInfo && !isCurrentCurriculum && (
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4">
+            <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-4">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-brand shrink-0 mt-0.5" />
-                <p className="text-sm text-white/80">
+                <Info className="h-4 w-4 text-(--ws-cyan) shrink-0 mt-0.5" />
+                <p className="text-sm text-(--ws-fg-70)">
                   {selectedInfo.description}
                 </p>
               </div>
@@ -461,17 +462,17 @@ export default function CurriculumSettingsPage() {
 
               {/* What changes */}
               {!isCurrentCurriculum && (
-                <div className="rounded-lg border border-white/10 bg-white/3 p-3 space-y-2">
+                <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <FileWarning className="h-4 w-4 text-amber-400" />
-                    <span className="text-xs font-semibold text-white/70">
+                    <span className="text-xs font-semibold text-(--ws-fg-70)">
                       What will change
                     </span>
                   </div>
-                  <ul className="text-xs text-white/50 space-y-1 ml-6 list-disc">
+                  <ul className="text-xs text-(--ws-fg-70) space-y-1 ml-6 list-disc">
                     <li>
                       Assessment model:{" "}
-                      <span className="text-white/70">
+                      <span className="text-(--ws-fg-70)">
                         {ASSESSMENT_MODEL_LABELS[curriculum?.assessmentModel]}{" "}
                         \u2192{" "}
                         {ASSESSMENT_MODEL_LABELS[selectedInfo.assessmentModel]}
@@ -479,14 +480,14 @@ export default function CurriculumSettingsPage() {
                     </li>
                     <li>
                       Grading system:{" "}
-                      <span className="text-white/70">
+                      <span className="text-(--ws-fg-70)">
                         {GRADING_LABELS[curriculum?.gradingSystem]} \u2192{" "}
                         {GRADING_LABELS[selectedInfo.gradingSystem]}
                       </span>
                     </li>
                     <li>
                       Term structure:{" "}
-                      <span className="text-white/70">
+                      <span className="text-(--ws-fg-70)">
                         {TERM_LABELS[curriculum?.termStructure]} \u2192{" "}
                         {TERM_LABELS[selectedInfo.termStructure]}
                       </span>
@@ -499,9 +500,9 @@ export default function CurriculumSettingsPage() {
               )}
 
               {selectedCode === "hybrid" && (
-                <div className="rounded-lg border border-brand/20 bg-brand/5 p-3 text-sm text-white/80">
+                <div className="rounded-lg border border-brand/20 bg-brand/5 p-3 text-sm text-(--ws-fg-70)">
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles className="h-4 w-4 text-brand" />
+                    <Sparkles className="h-4 w-4 text-(--ws-cyan)" />
                     <span className="font-semibold">Hybrid Mode</span>
                   </div>
                   <p>
@@ -517,8 +518,8 @@ export default function CurriculumSettingsPage() {
 
           {isCurrentCurriculum && selectedCode && (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
-              <p className="text-sm text-white/70">
+              <CheckCircle2 className="h-5 w-5 text-(--ws-emerald) shrink-0" />
+              <p className="text-sm text-(--ws-fg-70)">
                 This is your school&apos;s current curriculum. Select a
                 different one to make changes.
               </p>
@@ -526,14 +527,14 @@ export default function CurriculumSettingsPage() {
           )}
 
           {!isCurrentCurriculum && selectedCode && (
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/5 pt-4">
+            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-(--ws-line) pt-4">
               {!canSwitchImmediately && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleForceSwitch}
                   disabled={updateMutation.isPending}
-                  className="text-rose-400 hover:text-(--ws-rose) hover:bg-rose-500/10"
+                  className="text-(--ws-rose) hover:text-(--ws-rose) hover:bg-rose-500/10"
                 >
                   <AlertTriangle className="h-4 w-4 mr-1.5" />
                   Force Immediate Switch
@@ -562,13 +563,13 @@ export default function CurriculumSettingsPage() {
 
       {/* Current Configuration */}
       {curriculum && (
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg backdrop-blur">
+        <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg backdrop-blur">
           <CardHeader>
             <CardTitle className="text-lg">Current Configuration</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40 mb-2">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70) mb-2">
                 Grade Levels ({curriculum.grades?.length || 0})
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -576,17 +577,17 @@ export default function CurriculumSettingsPage() {
                   <Badge
                     key={g.code}
                     variant="outline"
-                    className="border-white/10 bg-white/5 text-white/70 text-xs"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) text-xs"
                   >
                     {g.name}{" "}
-                    <span className="text-white/30 ml-1">({g.stage})</span>
+                    <span className="text-(--ws-fg-70) ml-1">({g.stage})</span>
                   </Badge>
                 ))}
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40 mb-2">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70) mb-2">
                 Subjects ({curriculum.subjects?.length || 0})
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -594,7 +595,7 @@ export default function CurriculumSettingsPage() {
                   <Badge
                     key={s.name}
                     variant="outline"
-                    className="border-white/10 bg-white/5 text-white/70 text-xs"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) text-xs"
                   >
                     {s.name}
                   </Badge>
@@ -604,7 +605,7 @@ export default function CurriculumSettingsPage() {
 
             {curriculum.gradingPreset && (
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40 mb-2">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70) mb-2">
                   Grading Scale
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -613,7 +614,7 @@ export default function CurriculumSettingsPage() {
                       <Badge
                         key={i}
                         variant="outline"
-                        className="border-white/10 bg-white/5 text-white/70 text-xs"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) text-xs"
                       >
                         {m.letter} ({m.minPercentage}\u2013{m.maxPercentage}%)
                       </Badge>
@@ -625,6 +626,6 @@ export default function CurriculumSettingsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </WorkspaceScope>
   );
 }

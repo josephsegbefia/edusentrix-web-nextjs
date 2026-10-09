@@ -253,17 +253,17 @@ export function AssignTeacherDutyModal({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              className="w-full max-w-lg max-h-[90vh] rounded-2xl border border-white/10 bg-card/95 shadow-2xl flex flex-col"
+              className="w-full max-w-lg max-h-[90vh] rounded-2xl border border-(--ws-line) bg-card/95 shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="px-5 py-4 border-b border-(--ws-line) flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-brand" />
+                  <Clock className="h-5 w-5 text-(--ws-cyan)" />
                   <span className="text-base font-semibold">Assign Teacher Duty</span>
                 </div>
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="text-white/60 hover:text-white"
+                  className="text-(--ws-fg-70) hover:text-(--ws-fg)"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -271,7 +271,7 @@ export function AssignTeacherDutyModal({
 
               {/* Step Indicator */}
               <div className="px-5 pt-4 flex items-center justify-between">
-                <div className="text-sm text-white/70">
+                <div className="text-sm text-(--ws-fg-70)">
                   Step <span className="font-semibold">{displayStepIndex}</span> of{" "}
                   {totalWizardSteps}
                 </div>
@@ -281,7 +281,7 @@ export function AssignTeacherDutyModal({
                       key={s}
                       className={cn(
                         "h-1.5 w-6 rounded-full transition-all",
-                        s <= displayStepIndex ? "bg-brand" : "bg-white/20"
+                        s <= displayStepIndex ? "bg-brand" : "bg-(--ws-fill-strong)"
                       )}
                     />
                   ))}
@@ -302,13 +302,13 @@ export function AssignTeacherDutyModal({
                     {/* Step 1: Select Duty */}
                     {step === 1 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Duty
                         </h2>
                         {assignToTeacher && (
-                          <p className="text-sm text-white/65">
+                          <p className="text-sm text-(--ws-fg-70)">
                             This duty will be assigned to{" "}
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-(--ws-fg)">
                               {assignToTeacher.fullName}
                             </span>
                             .
@@ -323,7 +323,7 @@ export function AssignTeacherDutyModal({
                                 "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                 selectedDutyId === duty.id
                                   ? "border-brand bg-brand/10"
-                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                                  : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                               )}
                               whileHover={{ scale: 1.01 }}
                               whileTap={{ scale: 0.99 }}
@@ -347,8 +347,8 @@ export function AssignTeacherDutyModal({
                                 />
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-white">{duty.name}</p>
-                                <div className="flex items-center gap-2 text-xs text-white/50">
+                                <p className="text-sm font-medium text-(--ws-fg)">{duty.name}</p>
+                                <div className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
                                   <span className="capitalize">{duty.category}</span>
                                   {duty.location && (
                                     <>
@@ -376,29 +376,29 @@ export function AssignTeacherDutyModal({
                     {/* Step 2: Select Teacher */}
                     {step === 2 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Teacher for {selectedDuty?.name}
                         </h2>
 
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--ws-fg-70)" />
                           <input
                             type="text"
                             placeholder="Search teachers..."
                             value={teacherQuery}
                             onChange={(e) => setTeacherQuery(e.target.value)}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                           />
                         </div>
 
                         {isLoadingTeachers ? (
                           <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                            <Loader2 className="h-6 w-6 animate-spin text-(--ws-cyan)" />
                           </div>
                         ) : teachers.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-8">
-                            <AlertCircle className="h-6 w-6 text-white/30" />
-                            <p className="mt-2 text-sm text-white/50">No teachers found</p>
+                            <AlertCircle className="h-6 w-6 text-(--ws-fg-70)" />
+                            <p className="mt-2 text-sm text-(--ws-fg-70)">No teachers found</p>
                           </div>
                         ) : (
                           <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -410,7 +410,7 @@ export function AssignTeacherDutyModal({
                                   "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                   selectedTeacherId === teacher.id
                                     ? "border-brand bg-brand/10"
-                                    : "border-white/10 bg-white/5 hover:border-white/20"
+                                    : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                                 )}
                                 whileHover={{ scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
@@ -424,17 +424,17 @@ export function AssignTeacherDutyModal({
                                   onChange={() => setSelectedTeacherId(teacher.id)}
                                   className="sr-only"
                                 />
-                                <Avatar className="h-10 w-10 border-2 border-white/20">
+                                <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
                                   <AvatarImage src={teacher.photoUrl || ""} alt={teacher.fullName} />
                                   <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-semibold text-white">
                                     {getInitials(teacher.firstName, teacher.lastName)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="truncate text-sm font-medium text-white">
+                                  <p className="truncate text-sm font-medium text-(--ws-fg)">
                                     {teacher.fullName}
                                   </p>
-                                  <p className="truncate text-xs text-white/50">
+                                  <p className="truncate text-xs text-(--ws-fg-70)">
                                     {teacher.department || teacher.email || "Teacher"}
                                   </p>
                                 </div>
@@ -457,12 +457,12 @@ export function AssignTeacherDutyModal({
                     {/* Step 3: Schedule */}
                     {step === 3 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Set Schedule
                         </h2>
 
                         <div>
-                          <label className="block text-xs font-medium text-white/70 mb-2">
+                          <label className="block text-xs font-medium text-(--ws-fg-70) mb-2">
                             Days of the Week
                           </label>
                           <div className="flex flex-wrap gap-2">
@@ -475,7 +475,7 @@ export function AssignTeacherDutyModal({
                                   "rounded-lg px-3 py-2 text-sm font-medium transition-all",
                                   selectedDays.includes(index)
                                     ? "bg-brand text-black"
-                                    : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                                    : "bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                                 )}
                               >
                                 {day}
@@ -486,31 +486,31 @@ export function AssignTeacherDutyModal({
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs font-medium text-white/70 mb-2">
+                            <label className="block text-xs font-medium text-(--ws-fg-70) mb-2">
                               Start Time
                             </label>
                             <input
                               type="time"
                               value={startTime}
                               onChange={(e) => setStartTime(e.target.value)}
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                              className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-sm text-(--ws-fg) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-white/70 mb-2">
+                            <label className="block text-xs font-medium text-(--ws-fg-70) mb-2">
                               End Time
                             </label>
                             <input
                               type="time"
                               value={endTime}
                               onChange={(e) => setEndTime(e.target.value)}
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                              className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-sm text-(--ws-fg) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                             />
                           </div>
                         </div>
 
                         {selectedDuty?.location && (
-                          <div className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/60">
+                          <div className="flex items-center gap-2 rounded-lg bg-(--ws-fill) px-3 py-2 text-sm text-(--ws-fg-70)">
                             <MapPin className="h-4 w-4" />
                             Location: {selectedDuty.location}
                           </div>
@@ -519,6 +519,7 @@ export function AssignTeacherDutyModal({
                         {/* Date Range */}
                         <div className="grid grid-cols-2 gap-4">
                           <CustomDatePicker
+                            surface="theme"
                             value={startDate}
                             onChange={setStartDate}
                             label="Start Date"
@@ -526,6 +527,7 @@ export function AssignTeacherDutyModal({
                             minDate={new Date()}
                           />
                           <CustomDatePicker
+                            surface="theme"
                             value={endDate}
                             onChange={setEndDate}
                             label="End Date (Optional)"
@@ -539,18 +541,18 @@ export function AssignTeacherDutyModal({
                     {/* Step 4: Review & Confirm */}
                     {step === 4 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Review Assignment
                         </h2>
                         {assignToTeacher && (
-                          <p className="text-sm text-white/65">
+                          <p className="text-sm text-(--ws-fg-70)">
                             Confirm this duty and teacher are correct before saving.
                           </p>
                         )}
 
                         <div className="rounded-xl border border-brand/20 bg-brand/10 p-4 space-y-4">
                           <div className="flex items-center gap-4">
-                            <Avatar className="h-14 w-14 border-2 border-white/20">
+                            <Avatar className="h-14 w-14 border-2 border-(--ws-line)">
                               <AvatarImage
                                 src={selectedTeacher?.photoUrl || ""}
                                 alt={selectedTeacher?.fullName || ""}
@@ -563,10 +565,10 @@ export function AssignTeacherDutyModal({
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-lg font-semibold text-white">
+                              <p className="text-lg font-semibold text-(--ws-fg)">
                                 {selectedTeacher?.fullName}
                               </p>
-                              <p className="text-sm text-white/60">
+                              <p className="text-sm text-(--ws-fg-70)">
                                 {selectedTeacher?.department || "Teacher"}
                               </p>
                             </div>
@@ -574,35 +576,35 @@ export function AssignTeacherDutyModal({
 
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-white/50" />
-                              <span className="text-sm text-white">
+                              <Clock className="h-4 w-4 text-(--ws-fg-70)" />
+                              <span className="text-sm text-(--ws-fg)">
                                 {selectedDuty?.name}
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-white/50" />
-                              <span className="text-sm text-white">
+                              <Calendar className="h-4 w-4 text-(--ws-fg-70)" />
+                              <span className="text-sm text-(--ws-fg)">
                                 {selectedDays.map((d) => DAY_NAMES[d]).join(", ")}
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-white/50" />
-                              <span className="text-sm text-white">
+                              <Clock className="h-4 w-4 text-(--ws-fg-70)" />
+                              <span className="text-sm text-(--ws-fg)">
                                 {startTime} - {endTime}
                               </span>
                             </div>
                             {selectedDuty?.location && (
                               <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-white/50" />
-                                <span className="text-sm text-white">
+                                <MapPin className="h-4 w-4 text-(--ws-fg-70)" />
+                                <span className="text-sm text-(--ws-fg)">
                                   {selectedDuty.location}
                                 </span>
                               </div>
                             )}
                             {startDate && (
                               <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-white/50" />
-                                <span className="text-sm text-white">
+                                <Calendar className="h-4 w-4 text-(--ws-fg-70)" />
+                                <span className="text-sm text-(--ws-fg)">
                                   {startDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                   {endDate && ` - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
                                 </span>
@@ -612,7 +614,7 @@ export function AssignTeacherDutyModal({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-muted mb-2">
+                          <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70) mb-2">
                             Notes (Optional)
                           </label>
                           <textarea
@@ -620,7 +622,7 @@ export function AssignTeacherDutyModal({
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Add any notes about this assignment..."
                             rows={3}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                           />
                         </div>
                       </section>
@@ -630,12 +632,12 @@ export function AssignTeacherDutyModal({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between border-t border-white/10 p-5 shrink-0">
+              <div className="flex items-center justify-between border-t border-(--ws-line) p-5 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={showCancelFooter ? () => onOpenChange(false) : handleBack}
-                  className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   {showCancelFooter ? "Cancel" : "Back"}
@@ -685,20 +687,20 @@ export function AssignTeacherDutyModal({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 250, damping: 28 }}
-              className="rounded-t-2xl border border-white/10 bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
+              className="rounded-t-2xl border border-(--ws-line) bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
             >
               <div className="py-2 shrink-0">
-                <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+                <div className="mx-auto h-1.5 w-12 rounded-full bg-(--ws-fill-strong)" />
               </div>
               <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
                 <div className="flex items-center gap-2 mb-4">
-                  <Clock className="h-5 w-5 text-brand" />
+                  <Clock className="h-5 w-5 text-(--ws-cyan)" />
                   <span className="text-base font-semibold">Assign Teacher Duty</span>
                 </div>
 
                 {/* Step Indicator */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-sm text-white/70">
+                  <div className="text-sm text-(--ws-fg-70)">
                     Step <span className="font-semibold">{displayStepIndex}</span> of{" "}
                     {totalWizardSteps}
                   </div>
@@ -708,7 +710,7 @@ export function AssignTeacherDutyModal({
                         key={s}
                         className={cn(
                           "h-1.5 w-6 rounded-full transition-all",
-                          s <= displayStepIndex ? "bg-brand" : "bg-white/20"
+                          s <= displayStepIndex ? "bg-brand" : "bg-(--ws-fill-strong)"
                         )}
                       />
                     ))}
@@ -727,13 +729,13 @@ export function AssignTeacherDutyModal({
                   >
                     {step === 1 && (
                       <section className="space-y-3">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Duty
                         </h2>
                         {assignToTeacher && (
-                          <p className="text-sm text-white/65">
+                          <p className="text-sm text-(--ws-fg-70)">
                             For{" "}
-                            <span className="font-medium text-white">
+                            <span className="font-medium text-(--ws-fg)">
                               {assignToTeacher.fullName}
                             </span>
                           </p>
@@ -746,7 +748,7 @@ export function AssignTeacherDutyModal({
                                 "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                 selectedDutyId === duty.id
                                   ? "border-brand bg-brand/10"
-                                  : "border-white/10 bg-white/5"
+                                  : "border-(--ws-line) bg-(--ws-fill)"
                               )}
                             >
                               <input
@@ -767,8 +769,8 @@ export function AssignTeacherDutyModal({
                                 />
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-white">{duty.name}</p>
-                                <p className="text-xs text-white/50 capitalize">{duty.category}</p>
+                                <p className="text-sm font-medium text-(--ws-fg)">{duty.name}</p>
+                                <p className="text-xs text-(--ws-fg-70) capitalize">{duty.category}</p>
                               </div>
                               {selectedDutyId === duty.id && (
                                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-black">
@@ -783,22 +785,22 @@ export function AssignTeacherDutyModal({
 
                     {step === 2 && (
                       <section className="space-y-3">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Teacher
                         </h2>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--ws-fg-70)" />
                           <input
                             type="text"
                             placeholder="Search teachers..."
                             value={teacherQuery}
                             onChange={(e) => setTeacherQuery(e.target.value)}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none"
                           />
                         </div>
                         {isLoadingTeachers ? (
                           <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                            <Loader2 className="h-6 w-6 animate-spin text-(--ws-cyan)" />
                           </div>
                         ) : (
                           <div className="grid gap-2 max-h-[35vh] overflow-y-auto">
@@ -809,7 +811,7 @@ export function AssignTeacherDutyModal({
                                   "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                   selectedTeacherId === teacher.id
                                     ? "border-brand bg-brand/10"
-                                    : "border-white/10 bg-white/5"
+                                    : "border-(--ws-line) bg-(--ws-fill)"
                                 )}
                               >
                                 <input
@@ -820,17 +822,17 @@ export function AssignTeacherDutyModal({
                                   onChange={() => setSelectedTeacherId(teacher.id)}
                                   className="sr-only"
                                 />
-                                <Avatar className="h-10 w-10 border-2 border-white/20">
+                                <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
                                   <AvatarImage src={teacher.photoUrl || ""} alt={teacher.fullName} />
                                   <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-semibold text-white">
                                     {getInitials(teacher.firstName, teacher.lastName)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="truncate text-sm font-medium text-white">
+                                  <p className="truncate text-sm font-medium text-(--ws-fg)">
                                     {teacher.fullName}
                                   </p>
-                                  <p className="truncate text-xs text-white/50">
+                                  <p className="truncate text-xs text-(--ws-fg-70)">
                                     {teacher.department || "Teacher"}
                                   </p>
                                 </div>
@@ -848,11 +850,11 @@ export function AssignTeacherDutyModal({
 
                     {step === 3 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Schedule
                         </h2>
                         <div>
-                          <label className="block text-xs font-medium text-white/70 mb-2">Days</label>
+                          <label className="block text-xs font-medium text-(--ws-fg-70) mb-2">Days</label>
                           <div className="flex flex-wrap gap-2">
                             {DAY_NAMES.map((day, index) => (
                               <button
@@ -863,7 +865,7 @@ export function AssignTeacherDutyModal({
                                   "rounded-lg px-3 py-2 text-sm font-medium transition-all",
                                   selectedDays.includes(index)
                                     ? "bg-brand text-black"
-                                    : "bg-white/5 text-white/60"
+                                    : "bg-(--ws-fill) text-(--ws-fg-70)"
                                 )}
                               >
                                 {day}
@@ -873,21 +875,21 @@ export function AssignTeacherDutyModal({
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs font-medium text-white/70 mb-2">Start</label>
+                            <label className="block text-xs font-medium text-(--ws-fg-70) mb-2">Start</label>
                             <input
                               type="time"
                               value={startTime}
                               onChange={(e) => setStartTime(e.target.value)}
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none"
+                              className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-sm text-(--ws-fg) focus:border-brand focus:outline-none"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-white/70 mb-2">End</label>
+                            <label className="block text-xs font-medium text-(--ws-fg-70) mb-2">End</label>
                             <input
                               type="time"
                               value={endTime}
                               onChange={(e) => setEndTime(e.target.value)}
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white focus:border-brand focus:outline-none"
+                              className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2.5 text-sm text-(--ws-fg) focus:border-brand focus:outline-none"
                             />
                           </div>
                         </div>
@@ -896,17 +898,17 @@ export function AssignTeacherDutyModal({
 
                     {step === 4 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Review
                         </h2>
                         {assignToTeacher && (
-                          <p className="text-sm text-white/65">
+                          <p className="text-sm text-(--ws-fg-70)">
                             Confirm duty and teacher before saving.
                           </p>
                         )}
                         <div className="rounded-xl border border-brand/20 bg-brand/10 p-4 space-y-3">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 border-2 border-white/20">
+                            <Avatar className="h-12 w-12 border-2 border-(--ws-line)">
                               <AvatarImage
                                 src={selectedTeacher?.photoUrl || ""}
                                 alt={selectedTeacher?.fullName || ""}
@@ -919,11 +921,11 @@ export function AssignTeacherDutyModal({
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-semibold text-white">{selectedTeacher?.fullName}</p>
-                              <p className="text-xs text-white/60">{selectedDuty?.name}</p>
+                              <p className="font-semibold text-(--ws-fg)">{selectedTeacher?.fullName}</p>
+                              <p className="text-xs text-(--ws-fg-70)">{selectedDuty?.name}</p>
                             </div>
                           </div>
-                          <div className="text-sm text-white/80">
+                          <div className="text-sm text-(--ws-fg-70)">
                             {selectedDays.map((d) => DAY_NAMES[d]).join(", ")} • {startTime} - {endTime}
                           </div>
                         </div>
@@ -932,7 +934,7 @@ export function AssignTeacherDutyModal({
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder="Notes (optional)..."
                           rows={2}
-                          className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none resize-none"
+                          className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none resize-none"
                         />
                       </section>
                     )}
@@ -940,12 +942,12 @@ export function AssignTeacherDutyModal({
                 </AnimatePresence>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-4 mt-4 border-t border-white/10">
+                <div className="flex items-center justify-between pt-4 mt-4 border-t border-(--ws-line)">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={showCancelFooter ? () => onOpenChange(false) : handleBack}
-                    className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     {showCancelFooter ? "Cancel" : "Back"}

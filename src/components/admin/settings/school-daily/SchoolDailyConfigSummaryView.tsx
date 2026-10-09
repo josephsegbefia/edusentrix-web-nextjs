@@ -24,26 +24,26 @@ export function ConfigSummaryView({
 }) {
   const def = effectivePeriodsFor(config, "monday", null);
   return (
-    <div className="space-y-4 text-sm text-white/80">
+    <div className="space-y-4 text-sm text-(--ws-fg-70)">
       <div>
-        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-white">
+        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-(--ws-fg)">
           <CalendarClock className="h-4 w-4 text-(--ws-violet)" />
           Default day
         </h3>
-        <ul className="ml-1 space-y-1.5 text-white/70">
+        <ul className="ml-1 space-y-1.5 text-(--ws-fg-70)">
           <li>
-            <span className="text-white/50">First bell (gate):</span> {formatHhmm12(config.dayGateStart)}
+            <span className="text-(--ws-fg-70)">First bell (gate):</span> {formatHhmm12(config.dayGateStart)}
           </li>
           <li>
-            <span className="text-white/50">Lessons start:</span> {formatHhmm12(config.lessonStart)}
+            <span className="text-(--ws-fg-70)">Lessons start:</span> {formatHhmm12(config.lessonStart)}
           </li>
           <li>
-            <span className="text-white/50">End:</span> {formatHhmm12(config.dayEnd)}
+            <span className="text-(--ws-fg-70)">End:</span> {formatHhmm12(config.dayEnd)}
           </li>
           <li>
-            <span className="text-white/50">Period length:</span> {config.periodLengthMinutes} min
+            <span className="text-(--ws-fg-70)">Period length:</span> {config.periodLengthMinutes} min
             {(config.periodLengthOverrides?.length ?? 0) > 0 ? (
-              <span className="text-white/45">
+              <span className="text-(--ws-fg-70)">
                 {" "}
                 (overrides:{" "}
                 {config
@@ -54,18 +54,18 @@ export function ConfigSummaryView({
             ) : null}
           </li>
           <li>
-            <span className="text-white/50">~Periods (sample weekday):</span> {def.fullPeriods}
+            <span className="text-(--ws-fg-70)">~Periods (sample weekday):</span> {def.fullPeriods}
           </li>
           {(config.openingBlocks?.length ?? 0) > 0 && (
             <li>
-              <span className="text-white/50">Non-teaching (before P1):</span>{" "}
+              <span className="text-(--ws-fg-70)">Non-teaching (before P1):</span>{" "}
               {config.openingBlocks!
                 .map((o) => `${o.name} (${o.startTime}–${o.endTime}, ${o.kind})`)
                 .join(" · ")}
             </li>
           )}
           <li>
-            <span className="text-white/50">Breaks:</span>{" "}
+            <span className="text-(--ws-fg-70)">Breaks:</span>{" "}
             {config.breaks.length
               ? config.breaks
                   .map((b) => `${b.name} (${b.startTime}–${b.endTime})`)
@@ -76,12 +76,12 @@ export function ConfigSummaryView({
       </div>
       {!config.allWeekdaysSame && config.weekdayExceptions.length > 0 && (
         <div>
-          <h3 className="mb-2 font-semibold text-white">Exceptions</h3>
-          <ul className="space-y-2 text-white/70">
+          <h3 className="mb-2 font-semibold text-(--ws-fg)">Exceptions</h3>
+          <ul className="space-y-2 text-(--ws-fg-70)">
             {config.weekdayExceptions.map((ex) => {
               const p = effectivePeriodsFor(config, ex.weekday, null);
               return (
-                <li key={ex.weekday} className="rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+                <li key={ex.weekday} className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2">
                   <span className="font-medium capitalize text-(--ws-violet)">
                     {ex.weekday}:
                   </span>{" "}

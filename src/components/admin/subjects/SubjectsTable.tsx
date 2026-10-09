@@ -74,7 +74,7 @@ function SortableHeader({
     return (
       <span
         className={cn(
-          "text-xs font-medium text-muted-foreground",
+          "text-xs font-medium text-(--ws-fg-70)-foreground",
           align === "center" && "text-center",
           align === "right" && "text-right"
         )}
@@ -89,13 +89,13 @@ function SortableHeader({
       type="button"
       onClick={() => onSortChange(column)}
       className={cn(
-        "group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground",
+        "group inline-flex items-center gap-1 text-xs font-medium text-(--ws-fg-70)-foreground hover:text-foreground",
         align === "right" && "ml-auto",
         align === "center" && "mx-auto"
       )}
     >
       <span>{label}</span>
-      <Icon className="h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-foreground" />
+      <Icon className="h-3.5 w-3.5 text-(--ws-fg-70)-foreground/70 group-hover:text-foreground" />
     </button>
   );
 }
@@ -130,11 +130,11 @@ export function SubjectsTable({
   if (subjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-white/10 to-white/5">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-linear-to-br from-white/10 to-white/5">
           <Shapes className="h-8 w-8 text-(--ws-amber)" />
         </div>
-        <p className="mt-4 text-sm font-medium text-white/70">No subjects found</p>
-        <p className="mt-1 text-xs text-white/50">
+        <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">No subjects found</p>
+        <p className="mt-1 text-xs text-(--ws-fg-70)">
           Create your first subject to get started
         </p>
       </div>
@@ -142,17 +142,17 @@ export function SubjectsTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/10">
+    <div className="overflow-x-auto rounded-xl border border-(--ws-line) bg-(--ws-fill)">
       <table className="min-w-full border-collapse text-xs md:text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-white/5 text-xs text-muted-foreground">
+          <tr className="border-b border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg-70)-foreground">
             {onToggleRow && (
               <th className="w-8 px-3 py-2 text-left align-middle">
                 <Checkbox
                   checked={allVisibleSelected}
                   onCheckedChange={handleHeaderCheckboxChange}
                   className={cn(
-                    "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                    "h-4 w-4 border-(--ws-line) bg-(--ws-popover)/80 data-[state=checked]:bg-primary"
                   )}
                   aria-label="Select all visible subjects"
                   indeterminate={someVisibleSelected}
@@ -169,7 +169,7 @@ export function SubjectsTable({
               />
             </th>
             <th className="min-w-[100px] px-3 py-2 text-left align-middle">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-(--ws-fg-70)-foreground">
                 Coverage
               </span>
             </th>
@@ -192,12 +192,12 @@ export function SubjectsTable({
               />
             </th>
             <th className="min-w-[80px] px-3 py-2 text-left align-middle">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-(--ws-fg-70)-foreground">
                 Status
               </span>
             </th>
             <th className="w-12 px-3 py-2 text-right align-middle">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-(--ws-fg-70)-foreground">
                 Actions
               </span>
             </th>
@@ -214,8 +214,8 @@ export function SubjectsTable({
                 key={subject.id}
                 onClick={() => onView?.(subject.id)}
                 className={cn(
-                  "border-b border-white/5 transition-colors cursor-pointer",
-                  "hover:bg-white/5",
+                  "border-b border-(--ws-line) transition-colors cursor-pointer",
+                  "hover:bg-(--ws-fill-strong)",
                   isSelected && "bg-blue-500/10"
                 )}
               >
@@ -224,7 +224,7 @@ export function SubjectsTable({
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => onToggleRow(subject.id)}
-                      className="h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
+                      className="h-4 w-4 border-(--ws-line) bg-(--ws-popover)/80 data-[state=checked]:bg-primary"
                       aria-label={`Select ${subject.name}`}
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -241,7 +241,7 @@ export function SubjectsTable({
                       <SubjectIcon className={cn("h-4 w-4", visual.iconColor)} />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-medium text-white">
+                      <p className="truncate text-xs font-medium text-(--ws-fg)">
                         {subject.name}
                       </p>
                       <span
@@ -253,25 +253,25 @@ export function SubjectsTable({
                         {subject.code ?? "No code"}
                       </span>
                       {subject.curriculumCode && (
-                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.1em] text-white/35">
+                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.1em] text-(--ws-fg-70)">
                           {subject.curriculumCode.replace(/_/g, " ")}
                         </p>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs capitalize text-white/65">
+                <td className="px-3 py-2 align-middle text-xs capitalize text-(--ws-fg-70)">
                   {subject.gradeNames?.length
                     ? subject.gradeNames.join(", ")
                     : subject.gradeBand?.replace(/_/g, " ") ?? "No coverage"}
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-70)">
                   <div className="flex items-center gap-1.5">
                     <School className={cn("h-3.5 w-3.5", visual.statIcon)} />
                     <span>{subject.classCount}</span>
                   </div>
                 </td>
-                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                <td className="px-3 py-2 align-middle text-xs text-(--ws-fg-70)">
                   <div className="flex items-center gap-1.5">
                     <Users className={cn("h-3.5 w-3.5", visual.statIcon)} />
                     <span>{subject.teacherCount}</span>
@@ -296,7 +296,7 @@ export function SubjectsTable({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                        className="h-7 w-7 rounded-lg text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MoreHorizontal className="h-4 w-4" />

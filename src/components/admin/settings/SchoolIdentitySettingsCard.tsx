@@ -103,16 +103,16 @@ export function SchoolIdentitySettingsCard() {
 
   if (isLoading) {
     return (
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
         <CardContent className="p-6">
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-4">
-              <div className="h-6 w-40 animate-pulse rounded bg-white/10" />
-              <div className="h-11 w-full animate-pulse rounded-xl bg-white/5" />
-              <div className="h-28 w-full animate-pulse rounded-xl bg-white/5" />
-              <div className="h-11 w-full animate-pulse rounded-xl bg-white/5" />
+              <div className="h-6 w-40 animate-pulse rounded bg-(--ws-fill-strong)" />
+              <div className="h-11 w-full animate-pulse rounded-xl bg-(--ws-fill)" />
+              <div className="h-28 w-full animate-pulse rounded-xl bg-(--ws-fill)" />
+              <div className="h-11 w-full animate-pulse rounded-xl bg-(--ws-fill)" />
             </div>
-            <div className="h-[340px] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[340px] animate-pulse rounded-2xl bg-(--ws-fill)" />
           </div>
         </CardContent>
       </Card>
@@ -121,10 +121,10 @@ export function SchoolIdentitySettingsCard() {
 
   if (isError || !school || !form) {
     return (
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 text-white/70">
-            <School className="h-5 w-5 text-white/40" />
+          <div className="flex items-center gap-3 text-(--ws-fg-70)">
+            <School className="h-5 w-5 text-(--ws-fg-70)" />
             School identity could not be loaded right now.
           </div>
         </CardContent>
@@ -135,7 +135,7 @@ export function SchoolIdentitySettingsCard() {
   const previewLogo = form.logo || SCHOOL_PLACEHOLDER_SRC;
 
   return (
-    <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+    <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
       <CardContent className="p-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5">
@@ -144,10 +144,10 @@ export function SchoolIdentitySettingsCard() {
                 <Camera className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-(--ws-fg)">
                   School Identity
                 </h3>
-                <p className="mt-1 max-w-2xl text-sm text-white/60">
+                <p className="mt-1 max-w-2xl text-sm text-(--ws-fg-70)">
                   Update the school name, motto, logo, and key identity details
                   shown across the admin, teacher, parent, and student sidebars.
                 </p>
@@ -156,7 +156,7 @@ export function SchoolIdentitySettingsCard() {
 
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/70">School Name</Label>
+                <Label className="text-(--ws-fg-70)">School Name</Label>
                 <Input
                   value={form.name}
                   onChange={(event) =>
@@ -166,13 +166,13 @@ export function SchoolIdentitySettingsCard() {
                         : current
                     )
                   }
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   placeholder="Enter school name"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/70">GES School Code</Label>
+                <Label className="text-(--ws-fg-70)">GES School Code</Label>
                 <Input
                   value={form.gesSchoolCode}
                   onChange={(event) =>
@@ -182,14 +182,14 @@ export function SchoolIdentitySettingsCard() {
                         : current
                     )
                   }
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   placeholder="Optional"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">School Motto</Label>
+              <Label className="text-(--ws-fg-70)">School Motto</Label>
               <Textarea
                 value={form.motto}
                 onChange={(event) =>
@@ -201,10 +201,10 @@ export function SchoolIdentitySettingsCard() {
                 }
                 maxLength={160}
                 rows={4}
-                className="min-h-[120px] border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                className="min-h-[120px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50)"
                 placeholder="Add a motto that represents the school's identity"
               />
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-70)">
                 Keep it short. This appears as a supporting identity line in the
                 sidebar.
               </p>
@@ -213,19 +213,19 @@ export function SchoolIdentitySettingsCard() {
             <div className="flex flex-wrap gap-2">
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/5 text-white/70"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
               >
                 {school.type}
               </Badge>
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/5 text-white/70"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
               >
                 {curriculumLabel(school.curriculumCode)}
               </Badge>
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/5 text-white/70"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
               >
                 <ShieldCheck className="mr-1 h-3.5 w-3.5" />
                 School Admin visible
@@ -233,14 +233,14 @@ export function SchoolIdentitySettingsCard() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/40">
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ws-fg-70)">
               Sidebar Preview
             </p>
 
-            <div className="mt-4 rounded-2xl border border-white/10 bg-card/60 p-4 shadow-lg shadow-black/20">
+            <div className="mt-4 rounded-2xl border border-(--ws-line) bg-card/60 p-4 shadow-lg shadow-black/20">
               <div className="flex items-start gap-3">
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-900 to-slate-950 ring-1 ring-white/5">
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) ring-1 ring-(--ws-line)">
                   <div
                     aria-hidden
                     className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/10"
@@ -257,10 +257,10 @@ export function SchoolIdentitySettingsCard() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">
+                      <p className="truncate text-sm font-semibold text-(--ws-fg)">
                         {form.name.trim() || school.name}
                       </p>
-                      <p className="mt-1 text-xs italic leading-5 text-white/55">
+                      <p className="mt-1 text-xs italic leading-5 text-(--ws-fg-70)">
                         {form.motto.trim()
                           ? `"${form.motto.trim()}"`
                           : `${curriculumLabel(school.curriculumCode)} curriculum`}
@@ -277,14 +277,14 @@ export function SchoolIdentitySettingsCard() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge
                       variant="outline"
-                      className="border-white/10 bg-white/5 text-[10px] text-white/70"
+                      className="border-(--ws-line) bg-(--ws-fill) text-[10px] text-(--ws-fg-70)"
                     >
                       {school.type}
                     </Badge>
                     {(form.gesSchoolCode.trim() || school.gesSchoolCode) ? (
                       <Badge
                         variant="outline"
-                        className="border-white/10 bg-white/5 text-[10px] text-white/70"
+                        className="border-(--ws-line) bg-(--ws-fill) text-[10px] text-(--ws-fg-70)"
                       >
                         GES {form.gesSchoolCode.trim() || school.gesSchoolCode}
                       </Badge>
@@ -316,7 +316,7 @@ export function SchoolIdentitySettingsCard() {
                     current ? { ...current, logo: null } : current
                   )
                 }
-                className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
               >
                 Use Placeholder
               </Button>
@@ -340,7 +340,7 @@ export function SchoolIdentitySettingsCard() {
               </Button>
             </div>
 
-            <p className="mt-3 text-xs leading-5 text-white/45">
+            <p className="mt-3 text-xs leading-5 text-(--ws-fg-70)">
               Identity changes save separately from the timetable and attendance
               settings below.
             </p>

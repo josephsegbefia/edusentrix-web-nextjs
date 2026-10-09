@@ -289,8 +289,8 @@ export function SchoolDailySchedulePanel() {
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <div className="h-8 w-48 animate-pulse rounded bg-white/10" />
-        <div className="h-40 animate-pulse rounded-xl bg-white/5" />
+        <div className="h-8 w-48 animate-pulse rounded bg-(--ws-fill-strong)" />
+        <div className="h-40 animate-pulse rounded-xl bg-(--ws-fill)" />
       </div>
     );
   }
@@ -321,22 +321,22 @@ export function SchoolDailySchedulePanel() {
     return (
       <>
         {confirmationDialog}
-        <Card className="overflow-hidden border border-violet-500/20 bg-linear-to-br from-violet-500/10 via-slate-950/90 to-slate-950/95">
+        <Card className="overflow-hidden border border-violet-500/20 bg-linear-to-br from-violet-500/10 via-(--ws-panel-via) to-(--ws-panel-to)">
           <CardContent className="space-y-4 p-6 sm:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
                 <LeoIcon className="h-8 w-8 text-(--ws-violet)" />
               </div>
               <div className="min-w-0 space-y-2">
-                <h3 className="text-lg font-semibold text-white sm:text-xl">
+                <h3 className="text-lg font-semibold text-(--ws-fg) sm:text-xl">
                   Let’s set up {schoolName}&apos;s daily schedule
                 </h3>
-                <p className="text-sm leading-relaxed text-white/65">
+                <p className="text-sm leading-relaxed text-(--ws-fg-70)">
                   A clear school day (start, end, period length, and breaks) tells the system how many teaching
                   periods exist each day, so class timetables and future scheduling stay realistic and
                   consistent with how your school actually runs.
                 </p>
-                <p className="text-xs text-white/40">
+                <p className="text-xs text-(--ws-fg-70)">
                   Leo will guide you through a few short steps — no long forms, just what we need to power your
                   timetables.
                 </p>
@@ -402,12 +402,12 @@ export function SchoolDailySchedulePanel() {
     <>
       {confirmationDialog}
       <div className="min-w-0 max-w-full space-y-4">
-        <Card className="min-w-0 max-w-full border border-white/10 bg-slate-950/80">
+        <Card className="min-w-0 max-w-full border border-(--ws-line) bg-(--ws-popover)/80">
           <CardContent className="min-w-0 max-w-full p-6">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-semibold text-white">Your daily schedule</h3>
+                  <h3 className="text-lg font-semibold text-(--ws-fg)">Your daily schedule</h3>
                   {isGrouped ? (
                     <Badge
                       variant="secondary"
@@ -418,13 +418,13 @@ export function SchoolDailySchedulePanel() {
                   ) : (
                     <Badge
                       variant="secondary"
-                      className="border border-white/15 bg-white/10 text-[11px] font-medium text-white/80"
+                      className="border border-(--ws-line) bg-(--ws-fill-strong) text-[11px] font-medium text-(--ws-fg-70)"
                     >
                       School-wide
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-(--ws-fg-70)">
                   Revision {row.revision ?? 0} · Last updated:{" "}
                   {row.updatedAt
                     ? new Date(row.updatedAt).toLocaleString(undefined, {
@@ -439,7 +439,7 @@ export function SchoolDailySchedulePanel() {
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="border border-white/10 bg-white/5 text-white"
+                  className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                   onClick={() => void startFullSetup()}
                 >
                   <Settings2 className="mr-2 h-4 w-4" />
@@ -455,28 +455,28 @@ export function SchoolDailySchedulePanel() {
             ) : null}
             {scheduleCards.length > 0 ? (
               <div className="mb-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-white/40">Saved schedules</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{scheduleCards.length}</p>
-                  <p className="mt-1 text-xs text-white/45">
+                <div className="min-w-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-70)">Saved schedules</p>
+                  <p className="mt-2 text-2xl font-semibold text-(--ws-fg)">{scheduleCards.length}</p>
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     {isGrouped
                       ? "Every schedule group saved for this school."
                       : "The one schedule used by all grades."}
                   </p>
                 </div>
-                <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-white/40">Mode</p>
-                  <p className="mt-2 text-lg font-semibold text-white">
+                <div className="min-w-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-70)">Mode</p>
+                  <p className="mt-2 text-lg font-semibold text-(--ws-fg)">
                     {isGrouped ? "Different grade groups" : "School-wide"}
                   </p>
-                  <p className="mt-1 text-xs text-white/45">
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     Timetable generation picks the matching schedule for each class grade.
                   </p>
                 </div>
-                <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-white/40">Revision</p>
-                  <p className="mt-2 text-lg font-semibold text-white">r{row.revision ?? 0}</p>
-                  <p className="mt-1 text-xs text-white/45">
+                <div className="min-w-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-(--ws-fg-70)">Revision</p>
+                  <p className="mt-2 text-lg font-semibold text-(--ws-fg)">r{row.revision ?? 0}</p>
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     Last updated{" "}
                     {row.updatedAt
                       ? new Date(row.updatedAt).toLocaleDateString(undefined, { dateStyle: "medium" })
@@ -488,8 +488,8 @@ export function SchoolDailySchedulePanel() {
             {scheduleCards.length > 0 ? (
               <div className="mb-5 space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <h4 className="text-sm font-semibold text-white">All created daily schedules</h4>
-                  <span className="text-xs text-white/40">
+                  <h4 className="text-sm font-semibold text-(--ws-fg)">All created daily schedules</h4>
+                  <span className="text-xs text-(--ws-fg-70)">
                     {scheduleCards.length} schedule{scheduleCards.length === 1 ? "" : "s"}
                   </span>
                 </div>
@@ -497,17 +497,17 @@ export function SchoolDailySchedulePanel() {
                   {scheduleCards.map((schedule) => (
                     <div
                       key={schedule.id}
-                      className="min-w-0 rounded-xl border border-white/10 bg-white/3 p-4"
+                      className="min-w-0 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                         <div className="min-w-0">
-                          <p className="font-semibold text-white">{schedule.label}</p>
-                          <p className="mt-1 flex items-start gap-1.5 text-xs text-white/45">
+                          <p className="font-semibold text-(--ws-fg)">{schedule.label}</p>
+                          <p className="mt-1 flex items-start gap-1.5 text-xs text-(--ws-fg-70)">
                             <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-(--ws-violet)" />
                             <span className="min-w-0 break-words">{schedule.gradesLabel}</span>
                           </p>
                         </div>
-                        <span className="inline-flex w-full min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs leading-snug text-white/60 sm:max-w-[min(100%,20rem)] sm:shrink-0 sm:justify-end sm:text-right">
+                        <span className="inline-flex w-full min-w-0 items-center gap-1.5 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1 text-xs leading-snug text-(--ws-fg-70) sm:max-w-[min(100%,20rem)] sm:shrink-0 sm:justify-end sm:text-right">
                           <Clock3 className="h-3.5 w-3.5 shrink-0 text-(--ws-cyan)" />
                           <span className="min-w-0 break-words text-left sm:text-right">
                             {schedule.meta}
@@ -521,17 +521,17 @@ export function SchoolDailySchedulePanel() {
             ) : null}
             {previewStripConfig && !(isGrouped && row.scheduleGroups && row.scheduleGroups.length > 0) ? (
               <div className="mb-4 space-y-3">
-                <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white">School-wide day</p>
-                    <p className="text-xs text-white/45">Edit or remove the single schedule used by all grades.</p>
+                    <p className="text-sm font-medium text-(--ws-fg)">School-wide day</p>
+                    <p className="text-xs text-(--ws-fg-70)">Edit or remove the single schedule used by all grades.</p>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="border border-white/10 bg-white/5 text-white"
+                      className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       onClick={() => void startEditUnified()}
                     >
                       <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -557,7 +557,7 @@ export function SchoolDailySchedulePanel() {
                 <DayTimelineStrip config={previewStripConfig} gradeOptions={grades} />
               </div>
             ) : isGrouped && row.scheduleGroups && row.scheduleGroups.length > 0 ? (
-              <p className="mb-4 text-xs text-white/45">
+              <p className="mb-4 text-xs text-(--ws-fg-70)">
                 Each grade group has its own day timeline and breakdown below.
               </p>
             ) : !previewStripConfig ? (
@@ -572,20 +572,20 @@ export function SchoolDailySchedulePanel() {
                     g.gradeIds.map((id) => gradeNames(id)).filter(Boolean).join(", ") ||
                     "Grades in this group";
                   return (
-                    <div key={g.id} className="space-y-4 rounded-xl border border-white/10 bg-white/2 p-4 sm:p-5">
+                    <div key={g.id} className="space-y-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:p-5">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                          <h4 className="text-base font-semibold text-white">
+                          <h4 className="text-base font-semibold text-(--ws-fg)">
                             {g.label?.trim() || "Schedule group"}
                           </h4>
-                          <p className="text-xs text-white/45">{gradesLabel}</p>
+                          <p className="text-xs text-(--ws-fg-70)">{gradesLabel}</p>
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2">
                           <Button
                             type="button"
                             variant="secondary"
                             size="sm"
-                            className="border border-white/10 bg-white/5 text-white"
+                            className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                             onClick={() => void startEditGroup(g.id)}
                           >
                             <Pencil className="mr-2 h-3.5 w-3.5" />
@@ -608,7 +608,7 @@ export function SchoolDailySchedulePanel() {
                           </Button>
                         </div>
                       </div>
-                      <div className="rounded-lg border border-white/5 bg-slate-950/50 p-3">
+                      <div className="rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                         <DayTimelineStrip config={g.config} gradeOptions={grades} />
                       </div>
                       <ConfigSummaryView config={g.config} gradeNames={gradeNames} />
@@ -620,29 +620,29 @@ export function SchoolDailySchedulePanel() {
               <ConfigSummaryView config={row.config} gradeNames={gradeNames} />
             ) : null}
             {row.history && row.history.length > 0 && (
-              <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-4">
-                <h4 className="flex items-center gap-2 text-sm font-medium text-white">
+              <div className="mt-4 space-y-2 rounded-lg border border-(--ws-line) bg-(--ws-popover)/40 p-4">
+                <h4 className="flex items-center gap-2 text-sm font-medium text-(--ws-fg)">
                   <History className="h-4 w-4 text-(--ws-violet)" />
                   Recent changes (older snapshots)
                 </h4>
-                <p className="text-xs text-white/45">
+                <p className="text-xs text-(--ws-fg-70)">
                   Each save stores the previous config so you can see what was active before. Labels help tie a
                   version to a term or week.
                 </p>
-                <ul className="max-h-48 space-y-1.5 overflow-y-auto text-xs text-white/65">
+                <ul className="max-h-48 space-y-1.5 overflow-y-auto text-xs text-(--ws-fg-70)">
                   {row.history
                     .slice()
                     .reverse()
                     .map((h) => (
                       <li
                         key={`${h.revision}-${h.savedAt ?? "x"}`}
-                        className="flex flex-col gap-0.5 rounded border border-white/5 bg-white/5 px-2 py-1.5 sm:flex-row sm:items-baseline sm:justify-between"
+                        className="flex flex-col gap-0.5 rounded border border-(--ws-line) bg-(--ws-fill) px-2 py-1.5 sm:flex-row sm:items-baseline sm:justify-between"
                       >
                         <span>
                           <span className="text-(--ws-violet)">r{h.revision}</span>
                           {h.label ? ` — ${h.label}` : ""}
                         </span>
-                        <span className="text-white/40">
+                        <span className="text-(--ws-fg-70)">
                           {h.savedAt
                             ? new Date(h.savedAt).toLocaleString(undefined, {
                                 dateStyle: "short",
@@ -655,13 +655,13 @@ export function SchoolDailySchedulePanel() {
                 </ul>
               </div>
             )}
-            <div className="mt-4 min-w-0 rounded-lg border border-white/5 bg-white/5 p-3 text-xs text-white/45">
-              <span className="text-white/60">At a glance — </span>
+            <div className="mt-4 min-w-0 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-xs text-(--ws-fg-70)">
+              <span className="text-(--ws-fg-70)">At a glance — </span>
               {isGrouped && row.scheduleGroups ? (
                 <span className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1.5">
                   {row.scheduleGroups.map((g) => (
                     <span key={g.id} className="min-w-0 break-words">
-                      <span className="text-white/55">
+                      <span className="text-(--ws-fg-70)">
                         {(g.label?.trim() || "Group").slice(0, 24)}
                         {": "}
                       </span>

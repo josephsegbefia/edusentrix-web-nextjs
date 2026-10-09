@@ -19,7 +19,7 @@ const VARIANT: Record<
 > = {
   opening: {
     block:
-      "border-amber-400/25 bg-linear-to-br from-amber-500/[0.18] via-amber-600/[0.08] to-transparent text-amber-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
+      "border-amber-400/25 bg-linear-to-br from-amber-500/[0.18] via-amber-600/[0.08] to-transparent text-(--ws-amber) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
     dot: "bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.35)]",
     label: "Opening",
     helper: "Assembly, registration, or other pre-lesson blocks",
@@ -27,7 +27,7 @@ const VARIANT: Record<
   },
   teaching: {
     block:
-      "border-cyan-400/25 bg-linear-to-br from-cyan-500/[0.18] via-cyan-600/[0.08] to-transparent text-cyan-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
+      "border-cyan-400/25 bg-linear-to-br from-cyan-500/[0.18] via-cyan-600/[0.08] to-transparent text-(--ws-cyan) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
     dot: "bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.35)]",
     label: "Periods",
     helper: "Teaching periods available for timetable lessons",
@@ -35,7 +35,7 @@ const VARIANT: Record<
   },
   break: {
     block:
-      "border-emerald-400/25 bg-linear-to-br from-emerald-500/[0.18] via-emerald-600/[0.08] to-transparent text-emerald-50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
+      "border-emerald-400/25 bg-linear-to-br from-emerald-500/[0.18] via-emerald-600/[0.08] to-transparent text-(--ws-emerald) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]",
     dot: "bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.35)]",
     label: "Breaks",
     helper: "Protected non-teaching break time",
@@ -43,11 +43,11 @@ const VARIANT: Record<
   },
   gap: {
     block:
-      "border-white/12 bg-linear-to-br from-slate-500/[0.12] via-slate-600/[0.06] to-transparent text-(--ws-fg-70) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
+      "border-(--ws-line) bg-linear-to-br from-slate-500/[0.12] via-slate-600/[0.06] to-transparent text-(--ws-fg-70) shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]",
     dot: "bg-slate-400 shadow-[0_0_6px_rgba(148,163,184,0.3)]",
     label: "Unallocated",
     helper: "Slack time not assigned to periods or breaks",
-    chip: "border-white/10 bg-white/8 text-(--ws-fg-70)",
+    chip: "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)",
   },
 };
 
@@ -119,10 +119,10 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
   return (
     <div
       className={cn(
-        "min-w-0 max-w-full space-y-4 rounded-2xl border border-white/9",
-        "bg-linear-to-br from-slate-900/75 via-slate-950/92 to-violet-950/18",
+        "min-w-0 max-w-full space-y-4 rounded-2xl border border-(--ws-line)",
+        "bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)",
         "p-4 shadow-lg shadow-black/20 sm:p-5",
-        "ring-1 ring-inset ring-white/4"
+        "ring-1 ring-inset ring-(--ws-line)"
       )}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -134,8 +134,8 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
             </span>
           </div>
           <div>
-            <h4 className="text-base font-semibold tracking-tight text-white sm:text-lg">Timeline</h4>
-            <p className="mt-1 max-w-xl text-xs leading-relaxed text-white/50 sm:text-sm">
+            <h4 className="text-base font-semibold tracking-tight text-(--ws-fg) sm:text-lg">Timeline</h4>
+            <p className="mt-1 max-w-xl text-xs leading-relaxed text-(--ws-fg-70) sm:text-sm">
               {periodsCount} teaching period{periodsCount === 1 ? "" : "s"} in the day. The strip uses the full width;
               the morning half stacks above the afternoon half when there are many blocks.
             </p>
@@ -143,7 +143,7 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
         </div>
         <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
           <PremiumSelect value={weekday} onValueChange={(v) => setWeekday(v as WeekdayKey)}>
-            <PremiumSelectTrigger className="h-9 min-w-40 border-white/12 bg-slate-950/50 text-xs text-white">
+            <PremiumSelectTrigger className="h-9 min-w-40 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg)">
               <PremiumSelectValue placeholder="Day" />
             </PremiumSelectTrigger>
             <PremiumSelectContent>
@@ -160,7 +160,7 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
             value={gradeId ?? "__all__"}
             onValueChange={(v) => setGradeId(v === "__all__" ? null : v)}
           >
-            <PremiumSelectTrigger className="h-9 min-w-44 border-white/12 bg-slate-950/50 text-xs text-white">
+            <PremiumSelectTrigger className="h-9 min-w-44 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg)">
               <PremiumSelectValue placeholder="Preview as grade" />
             </PremiumSelectTrigger>
             <PremiumSelectContent>
@@ -179,22 +179,22 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
         {legendOrder.map((variant) => (
           <div
             key={variant}
-            className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-slate-950/35 px-2.5 py-1 text-[11px] shadow-sm shadow-black/15"
+            className="flex min-w-0 items-center gap-2 rounded-full border border-(--ws-line) bg-(--ws-popover)/35 px-2.5 py-1 text-[11px] shadow-sm shadow-black/15"
             title={VARIANT[variant].helper}
           >
             <span className={cn("h-2 w-2 shrink-0 rounded-full", VARIANT[variant].dot)} />
-            <span className="font-medium text-white/80">{VARIANT[variant].label}</span>
+            <span className="font-medium text-(--ws-fg-70)">{VARIANT[variant].label}</span>
           </div>
         ))}
       </div>
 
       <div
         className={cn(
-          "rounded-2xl border border-white/7 bg-slate-950/40 p-3 sm:p-4",
-          "shadow-inner shadow-black/30 ring-1 ring-white/3"
+          "rounded-2xl border border-(--ws-line) bg-(--ws-popover)/40 p-3 sm:p-4",
+          "shadow-inner ring-1 ring-(--ws-line)"
         )}
       >
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-white/35">
+        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-(--ws-fg-70)">
           Full day · proportional widths
         </p>
         <div className="space-y-2">
@@ -206,7 +206,7 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
               row.length > 0 && (
                 <div key={label} className="space-y-1.5">
                   {rowB.length > 0 ? (
-                    <p className="text-[10px] text-white/40">{label}</p>
+                    <p className="text-[10px] text-(--ws-fg-70)">{label}</p>
                   ) : null}
                   <div className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable]">
                     <div className="flex w-max min-w-full flex-nowrap gap-1.5 sm:gap-2">
@@ -246,13 +246,13 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
                                 {meta.label}
                               </span>
                             </div>
-                            <p className={cn("mt-1.5 line-clamp-2 font-semibold text-white", blockTitleClass(minutes))}>
+                            <p className={cn("mt-1.5 line-clamp-2 font-semibold text-(--ws-fg)", blockTitleClass(minutes))}>
                               {dupGapLabel ? "Flexible time" : seg.label}
                             </p>
                           </div>
-                          <p className="mt-1.5 truncate font-mono text-[9px] tabular-nums text-white/70 sm:text-[10px]">
+                          <p className="mt-1.5 truncate font-mono text-[9px] tabular-nums text-(--ws-fg-70) sm:text-[10px]">
                             {seg.start} — {seg.end}
-                            <span className="text-white/35"> · </span>
+                            <span className="text-(--ws-fg-70)"> · </span>
                             {minutes}m
                           </p>
                         </div>
@@ -266,11 +266,11 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
         </div>
       </div>
 
-      <p className="text-xs leading-relaxed text-white/38">
-        <span className="tabular-nums text-white/55">{rangeStart}</span>
-        <span className="mx-1.5 text-white/20">→</span>
-        <span className="tabular-nums text-white/55">{rangeEnd}</span>
-        <span className="mx-1.5 text-white/25">·</span>
+      <p className="text-xs leading-relaxed text-(--ws-fg-70)">
+        <span className="tabular-nums text-(--ws-fg-70)">{rangeStart}</span>
+        <span className="mx-1.5 text-(--ws-fg-70)">→</span>
+        <span className="tabular-nums text-(--ws-fg-70)">{rangeEnd}</span>
+        <span className="mx-1.5 text-(--ws-fg-70)">·</span>
         Staggered breaks may change blocks when you pick a grade.
       </p>
     </div>

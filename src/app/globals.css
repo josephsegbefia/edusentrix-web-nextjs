@@ -377,10 +377,29 @@ html:not(.dark) .students-workspace-main {
 html,
 body {
   height: 100%;
+  background-color: hsl(var(--background));
+}
+
+html.dark {
+  color-scheme: dark;
+  background-color: hsl(var(--background));
+}
+
+html.dark body {
+  background-color: hsl(var(--background));
+}
+
+html:not(.dark) {
+  color-scheme: light;
+  background-color: #f8fafc;
+}
+
+html:not(.dark) body {
+  background-color: #f8fafc;
 }
 
 body {
-  @apply bg-bg text-white font-sans antialiased;
+  @apply text-white font-sans antialiased;
 }
 
 /* Better pointer affordance for clickable things */

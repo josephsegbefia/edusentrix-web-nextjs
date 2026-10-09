@@ -15,6 +15,16 @@ export function parseStoredAssetId(url: string | null | undefined): string | nul
   return match?.[1] ? match[1].toLowerCase() : null;
 }
 
+export function isAcceptedUploadedFileUrl(value: string): boolean {
+  if (parseStoredAssetId(value)) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function normalizePersistedAssetUrl(
   url: string | null | undefined,
   label = "File"

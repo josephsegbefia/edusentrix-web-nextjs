@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import * as React from "react";
 import Link from "next/link";
 import { formatDistanceToNowStrict, parseISO } from "date-fns";
@@ -69,7 +70,7 @@ function statusBadgeClasses(tone: "slate" | "amber" | "blue" | "emerald" | "red"
       return "border-rose-500/30 bg-rose-500/15 text-(--ws-rose)";
     case "slate":
     default:
-      return "border-white/15 bg-white/5 text-white/70";
+      return "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)";
   }
 }
 
@@ -133,7 +134,7 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-cyan-950/30 p-6 text-white shadow-2xl shadow-black/30">
+      <div className="relative overflow-hidden rounded-[28px] border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-6 text-(--ws-fg) shadow-2xl shadow-black/30">
         <div
           className="pointer-events-none absolute -left-14 -top-10 h-44 w-44 rounded-full bg-cyan-500/10 blur-3xl"
           aria-hidden="true"
@@ -157,7 +158,7 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
                   {data.statusLabel}
                 </Badge>
               </div>
-              <p className="max-w-2xl text-sm text-white/65">
+              <p className="max-w-2xl text-sm text-(--ws-fg-70)">
                 Billing-owner authority has been handed off for {data.schoolName}. This page now shows readiness only.
               </p>
             </div>
@@ -165,7 +166,7 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
           <Button
             type="button"
             variant="outline"
-            className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             asChild
           >
             <Link href="/admin/settings">
@@ -196,86 +197,86 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-white/10 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent text-white">
+        <Card className="border-(--ws-line) bg-linear-to-br from-emerald-500/10 via-transparent to-transparent text-(--ws-fg)">
           <CardContent className="p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Status</p>
-            <p className="mt-3 text-2xl font-bold text-white">{data.statusLabel}</p>
-            <p className="mt-2 text-sm text-white/60">{data.statusDescription}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Status</p>
+            <p className="mt-3 text-2xl font-bold text-(--ws-fg)">{data.statusLabel}</p>
+            <p className="mt-2 text-sm text-(--ws-fg-70)">{data.statusDescription}</p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-linear-to-br from-cyan-500/10 via-transparent to-transparent text-white">
+        <Card className="border-(--ws-line) bg-linear-to-br from-cyan-500/10 via-transparent to-transparent text-(--ws-fg)">
           <CardContent className="p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Online Checkout</p>
-            <p className="mt-3 text-lg font-semibold text-white">
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Online Checkout</p>
+            <p className="mt-3 text-lg font-semibold text-(--ws-fg)">
               {data.paymentReady ? "Enabled" : "Not enabled"}
             </p>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               {data.paymentReady
                 ? "Parents can pay online now."
                 : "Parents still need offline payment until setup is complete."}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-linear-to-br from-amber-500/10 via-transparent to-transparent text-white">
+        <Card className="border-(--ws-line) bg-linear-to-br from-amber-500/10 via-transparent to-transparent text-(--ws-fg)">
           <CardContent className="p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Control</p>
-            <p className="mt-3 text-lg font-semibold text-white">Billing owner assigned</p>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Control</p>
+            <p className="mt-3 text-lg font-semibold text-(--ws-fg)">Billing owner assigned</p>
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               Payout details are locked to the school's billing owner or finance delegate.
             </p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-linear-to-br from-white/8 via-transparent to-transparent text-white">
+        <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-fill) via-transparent to-transparent text-(--ws-fg)">
           <CardContent className="p-5">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Last Updated</p>
-            <p className="mt-3 text-lg font-semibold text-white">
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Last Updated</p>
+            <p className="mt-3 text-lg font-semibold text-(--ws-fg)">
               {relativeTime(data.timestamps.lastUpdatedAt)}
             </p>
-            <p className="mt-2 text-sm text-white/60">
+            <p className="mt-2 text-sm text-(--ws-fg-70)">
               {accessModeLabel(data.accessMode)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-              <Building2 className="h-5 w-5 text-white/80" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
+              <Building2 className="h-5 w-5 text-(--ws-fg-70)" />
             </div>
             <div>
-              <CardTitle className="text-xl text-white">Setup progress</CardTitle>
-              <CardDescription className="text-white/60">
+              <CardTitle className="text-xl text-(--ws-fg)">Setup progress</CardTitle>
+              <CardDescription className="text-(--ws-fg-70)">
                 Readiness and activity remain visible even after payout control is handed off.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
-            <p className="text-sm font-medium text-white">Current state</p>
-            <p className="mt-2 text-sm text-white/65">{readOnlyStatusSummary(data)}</p>
+          <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+            <p className="text-sm font-medium text-(--ws-fg)">Current state</p>
+            <p className="mt-2 text-sm text-(--ws-fg-70)">{readOnlyStatusSummary(data)}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
-              <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last submitted</p>
-              <p className="mt-2 text-sm font-medium text-white">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">Last submitted</p>
+              <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                 {relativeTime(data.timestamps.submittedAt)}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
-              <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last approved</p>
-              <p className="mt-2 text-sm font-medium text-white">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">Last approved</p>
+              <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                 {relativeTime(data.timestamps.approvedAt)}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
-              <p className="text-xs uppercase tracking-[0.16em] text-white/40">Provisioning</p>
-              <p className="mt-2 text-sm font-medium text-white capitalize">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">Provisioning</p>
+              <p className="mt-2 text-sm font-medium text-(--ws-fg) capitalize">
                 {data.provisioning?.status.replace("_", " ") || "No active job"}
               </p>
-              <p className="mt-1 text-xs text-white/50">
+              <p className="mt-1 text-xs text-(--ws-fg-70)">
                 {data.provisioning
                   ? `Updated ${relativeTime(data.provisioning.updatedAt)}`
                   : "Provisioning starts once the billing owner submits setup."}
@@ -491,20 +492,20 @@ export default function PaymentSetupPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-36 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
+        <div className="h-36 rounded-3xl border border-(--ws-line) bg-(--ws-fill) animate-pulse" />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-28 rounded-2xl border border-white/10 bg-white/5 animate-pulse"
+              className="h-28 rounded-2xl border border-(--ws-line) bg-(--ws-fill) animate-pulse"
             />
           ))}
         </div>
         <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
-          <div className="h-120 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
+          <div className="h-120 rounded-3xl border border-(--ws-line) bg-(--ws-fill) animate-pulse" />
           <div className="space-y-6">
-            <div className="h-64 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
-            <div className="h-64 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
+            <div className="h-64 rounded-3xl border border-(--ws-line) bg-(--ws-fill) animate-pulse" />
+            <div className="h-64 rounded-3xl border border-(--ws-line) bg-(--ws-fill) animate-pulse" />
           </div>
         </div>
       </div>
@@ -517,17 +518,17 @@ export default function PaymentSetupPage() {
 
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <Card className="overflow-hidden border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-black text-white">
+        <Card className="overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
           <CardHeader className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                <ShieldCheck className="h-6 w-6 text-white/75" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+                <ShieldCheck className="h-6 w-6 text-(--ws-fg-70)" />
               </div>
               <div>
-                <CardTitle className="text-2xl text-white">
+                <CardTitle className="text-2xl text-(--ws-fg)">
                   {forbidden ? "Payment Setup Restricted" : "Payment Setup Unavailable"}
                 </CardTitle>
-                <CardDescription className="text-white/60">
+                <CardDescription className="text-(--ws-fg-70)">
                   {forbidden
                     ? "This area is reserved for the billing owner, finance delegate, or the admin still controlling setup."
                     : "We could not load your school's payment setup details."}
@@ -536,17 +537,17 @@ export default function PaymentSetupPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert className="border-white/10 bg-white/5 text-white">
+            <Alert className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{forbidden ? "Access required" : "Try again"}</AlertTitle>
-              <AlertDescription className="text-white/70">
+              <AlertDescription className="text-(--ws-fg-70)">
                 {forbidden
                   ? "If another person controls school payout details, they should open this section from their own account."
                   : message}
               </AlertDescription>
             </Alert>
             <div className="flex flex-wrap gap-3">
-              <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10">
+              <Button asChild variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
                 <Link href="/admin/settings">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Settings
@@ -556,7 +557,7 @@ export default function PaymentSetupPage() {
                 <Button
                   type="button"
                   onClick={() => refetch()}
-                  className="bg-white text-slate-950 hover:bg-white/90"
+                  className="bg-white text-slate-950 hover:bg-(--ws-fill-strong)"
                 >
                   Retry
                 </Button>
@@ -600,8 +601,8 @@ export default function PaymentSetupPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-black p-6 text-white shadow-2xl shadow-black/30">
+    <WorkspaceScope className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-6 text-(--ws-fg) shadow-2xl shadow-black/30">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
         <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
@@ -610,14 +611,14 @@ export default function PaymentSetupPage() {
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                <h1 className="text-2xl font-semibold tracking-tight text-(--ws-fg) sm:text-3xl">
                   Payment Setup
                 </h1>
                 <Badge variant="outline" className={cn("px-3 py-1 text-xs", statusBadgeClass)}>
                   {data.statusLabel}
                 </Badge>
               </div>
-              <p className="max-w-2xl text-sm leading-6 text-white/65">
+              <p className="max-w-2xl text-sm leading-6 text-(--ws-fg-70)">
                 Set the payout account, connect the Paystack settlement rail, and manage who can approve payout changes for {data.schoolName}.
               </p>
             </div>
@@ -626,7 +627,7 @@ export default function PaymentSetupPage() {
             <Button
               type="button"
               variant="outline"
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               asChild
             >
               <Link href="/admin/settings">
@@ -638,7 +639,7 @@ export default function PaymentSetupPage() {
               type="button"
               onClick={handleSave}
               disabled={!isDirty || !canSave || updateSetup.isPending}
-              className="bg-white text-slate-950 hover:bg-white/90"
+              className="bg-white text-slate-950 hover:bg-(--ws-fill-strong)"
             >
               {updateSetup.isPending ? (
                 <>
@@ -657,42 +658,42 @@ export default function PaymentSetupPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) shadow-lg shadow-black/15">
           <CardContent className="p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Status</p>
-            <p className="mt-2 text-lg font-semibold text-white">{data.statusLabel}</p>
-            <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/60">{data.statusDescription}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Status</p>
+            <p className="mt-2 text-lg font-semibold text-(--ws-fg)">{data.statusLabel}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-(--ws-fg-70)">{data.statusDescription}</p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) shadow-lg shadow-black/15">
           <CardContent className="p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Payout Account</p>
-            <p className="mt-2 truncate text-lg font-semibold text-white">{payoutSummary}</p>
-            <p className="mt-1 truncate text-xs leading-5 text-white/60">
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Payout Account</p>
+            <p className="mt-2 truncate text-lg font-semibold text-(--ws-fg)">{payoutSummary}</p>
+            <p className="mt-1 truncate text-xs leading-5 text-(--ws-fg-70)">
               {data.bank.accountName || "Account holder name not set"}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) shadow-lg shadow-black/15">
           <CardContent className="p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Gateway Rail</p>
-            <p className="mt-2 text-lg font-semibold text-white">
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Gateway Rail</p>
+            <p className="mt-2 text-lg font-semibold text-(--ws-fg)">
               {data.paystack.subaccountCode ? "Paystack linked" : "Awaiting link"}
             </p>
-            <p className="mt-1 truncate text-xs leading-5 text-white/60">
+            <p className="mt-1 truncate text-xs leading-5 text-(--ws-fg-70)">
               {data.paystack.subaccountCode
                 ? data.paystack.subaccountCode
                 : "No school settlement subaccount yet"}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-white/10 bg-white/[0.04] text-white shadow-lg shadow-black/15">
+        <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) shadow-lg shadow-black/15">
           <CardContent className="p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/45">Authority</p>
-            <p className="mt-2 truncate text-lg font-semibold text-white">
+            <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Authority</p>
+            <p className="mt-2 truncate text-lg font-semibold text-(--ws-fg)">
               {accessModeLabel(data.accessMode)}
             </p>
-            <p className="mt-1 truncate text-xs leading-5 text-white/60">
+            <p className="mt-1 truncate text-xs leading-5 text-(--ws-fg-70)">
               {data.billingOwner.email || "Billing owner not yet assigned"}
             </p>
           </CardContent>
@@ -711,15 +712,15 @@ export default function PaymentSetupPage() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
-        <Card className="overflow-hidden border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-          <CardHeader className="border-b border-white/10">
+        <Card className="overflow-hidden border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
+          <CardHeader className="border-b border-(--ws-line)">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
                 <Landmark className="h-5 w-5 text-(--ws-cyan)" />
               </div>
               <div>
-                <CardTitle className="text-xl text-white">Payout account details</CardTitle>
-                <CardDescription className="text-white/60">
+                <CardTitle className="text-xl text-(--ws-fg)">Payout account details</CardTitle>
+                <CardDescription className="text-(--ws-fg-70)">
                   These details are used to create and maintain the school's Paystack settlement subaccount.
                 </CardDescription>
               </div>
@@ -728,44 +729,44 @@ export default function PaymentSetupPage() {
           <CardContent className="space-y-6 p-6">
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-white/75">Bank and branch</Label>
+                <Label className="text-(--ws-fg-70)">Bank and branch</Label>
                 <BankBranchCombo
                   value={bankSelection}
                   onChange={setBankSelection}
                   placeholder="Search and select the school's bank branch"
                 />
                 {bankSelection?.sortCode ? (
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-(--ws-fg-70)">
                     Bank code: {bankSelection.sortCode}
                   </p>
                 ) : (
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-(--ws-fg-70)">
                     Choose the school&apos;s bank so EduSentrix can derive the correct settlement code.
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/75">Account name</Label>
+                <Label className="text-(--ws-fg-70)">Account name</Label>
                 <Input
                   value={accountName}
                   onChange={(event) => setAccountName(event.target.value)}
                   placeholder="School account name"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white/75">Account number</Label>
+                <Label className="text-(--ws-fg-70)">Account number</Label>
                 {data.bank.hasAccountNumberOnFile && !accountNumber.trim() ? (
-                  <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                    <p className="text-sm text-white/80">
+                  <div className="space-y-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3">
+                    <p className="text-sm text-(--ws-fg-70)">
                       On file:{" "}
-                      <span className="font-mono text-white">
+                      <span className="font-mono text-(--ws-fg)">
                         {data.bank.maskedAccountNumber}
                       </span>
                     </p>
-                    <p className="text-xs text-white/45">
+                    <p className="text-xs text-(--ws-fg-70)">
                       Full digits are hidden until you reveal them (audited). You can also enter a
                       new number to replace the stored account without revealing.
                     </p>
@@ -773,7 +774,7 @@ export default function PaymentSetupPage() {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                       onClick={() => setRevealOpen(true)}
                     >
                       Reveal account number
@@ -789,16 +790,16 @@ export default function PaymentSetupPage() {
                       ? "Or type a new settlement account"
                       : "Settlement account number"
                   }
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                 />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-white">Current readiness</p>
-                  <p className="mt-1 text-sm text-white/60">
+                  <p className="text-sm font-medium text-(--ws-fg)">Current readiness</p>
+                  <p className="mt-1 text-sm text-(--ws-fg-70)">
                     {data.paymentReady
                       ? "Parents can pay online because the school's payout rail is active."
                       : "Online payment stays off until payout details are saved and provisioning succeeds."}
@@ -835,27 +836,27 @@ export default function PaymentSetupPage() {
               <AlertDescription className="space-y-3 text-(--ws-cyan)">
                 <p>
                   The platform team suggested new payout details:{" "}
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-(--ws-fg)">
                     {data.pendingPlatformPayout.bankName} —{" "}
                     {data.pendingPlatformPayout.branchName}
                   </span>
                   , holder{" "}
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-(--ws-fg)">
                     {data.pendingPlatformPayout.accountName}
                   </span>
                   , account{" "}
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-(--ws-fg)">
                     {data.pendingPlatformPayout.maskedAccountNumber}
                   </span>
                   .
                 </p>
                 {data.pendingPlatformPayout.note ? (
-                  <p className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+                  <p className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm">
                     {data.pendingPlatformPayout.note}
                   </p>
                 ) : null}
                 {data.pendingPlatformPayout.proposedAt ? (
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-(--ws-fg-70)">
                     Proposed{" "}
                     {formatDistanceToNowStrict(
                       parseISO(data.pendingPlatformPayout.proposedAt),
@@ -894,7 +895,7 @@ export default function PaymentSetupPage() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="border-white/15 text-white hover:bg-white/10"
+                      className="border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                       disabled={platformPayoutDecision.isPending}
                       onClick={() =>
                         void busy.promise(
@@ -945,15 +946,15 @@ export default function PaymentSetupPage() {
             </Alert>
           )}
 
-          <Card className="border-white/10 bg-linear-to-br from-cyan-500/10 via-slate-950 to-slate-950 text-white">
+          <Card className="border-(--ws-line) bg-linear-to-br from-cyan-500/10 via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10">
                   <CreditCard className="h-5 w-5 text-(--ws-cyan)" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg text-white">Checkout fees</CardTitle>
-                  <CardDescription className="text-white/60">
+                  <CardTitle className="text-lg text-(--ws-fg)">Checkout fees</CardTitle>
+                  <CardDescription className="text-(--ws-fg-70)">
                     Choose who pays the EduSentrix service fee on school-fee checkout.
                   </CardDescription>
                 </div>
@@ -992,14 +993,14 @@ export default function PaymentSetupPage() {
                       className={cn(
                         "rounded-2xl border p-3 text-left transition",
                         selected
-                          ? "border-cyan-300/40 bg-cyan-400/15 text-white"
-                          : "border-white/10 bg-white/[0.03] text-white/70 hover:bg-white/[0.06]"
+                          ? "border-cyan-300/40 bg-cyan-400/15 text-(--ws-fg)"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       <span className="block text-sm font-semibold">
                         {option.label}
                       </span>
-                      <span className="mt-1 block text-xs leading-5 text-white/50">
+                      <span className="mt-1 block text-xs leading-5 text-(--ws-fg-70)">
                         {option.description}
                       </span>
                     </button>
@@ -1008,25 +1009,25 @@ export default function PaymentSetupPage() {
               </div>
 
               {checkoutFees.data ? (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">
                     Example on {formatMinor(checkoutFees.data.example.invoiceAmountMinor)}
                   </p>
                   <div className="mt-3 space-y-2 text-sm">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-white/60">Parent pays</span>
-                      <span className="font-semibold text-white">
+                      <span className="text-(--ws-fg-70)">Parent pays</span>
+                      <span className="font-semibold text-(--ws-fg)">
                         {formatMinor(checkoutFees.data.example.parentPayableMinor)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-white/60">Service fee</span>
+                      <span className="text-(--ws-fg-70)">Service fee</span>
                       <span className="font-medium text-(--ws-cyan)">
                         {formatMinor(checkoutFees.data.example.platformFeeMinor)}
                       </span>
                     </div>
                   </div>
-                  <p className="mt-3 text-xs leading-5 text-white/45">
+                  <p className="mt-3 text-xs leading-5 text-(--ws-fg-70)">
                     Effective mode:{" "}
                     {checkoutFees.data.effectivePayerMode === "payer_pays"
                       ? "parent pays service fee"
@@ -1037,7 +1038,7 @@ export default function PaymentSetupPage() {
                   </p>
                 </div>
               ) : checkoutFees.isLoading ? (
-                <div className="h-28 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
+                <div className="h-28 animate-pulse rounded-2xl border border-(--ws-line) bg-(--ws-fill)" />
               ) : (
                 <p className="text-sm text-(--ws-amber)">
                   Could not load checkout fee settings.
@@ -1046,15 +1047,15 @@ export default function PaymentSetupPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-linear-to-br from-emerald-500/10 via-slate-950 to-slate-950 text-white">
+          <Card className="border-(--ws-line) bg-linear-to-br from-emerald-500/10 via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-400/20 bg-emerald-400/10">
                   <CreditCard className="h-5 w-5 text-(--ws-emerald)" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg text-white">Activation checklist</CardTitle>
-                  <CardDescription className="text-white/60">
+                  <CardTitle className="text-lg text-(--ws-fg)">Activation checklist</CardTitle>
+                  <CardDescription className="text-(--ws-fg-70)">
                     Complete the payout account first, then start or retry Paystack setup.
                   </CardDescription>
                 </div>
@@ -1063,28 +1064,28 @@ export default function PaymentSetupPage() {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 {setupSteps.map((item) => (
-                  <div key={item.label} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                  <div key={item.label} className="flex items-start gap-3 rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-3">
                     <div
                       className={cn(
                         "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
                         item.done
                           ? "border-emerald-400/30 bg-emerald-400/15 text-(--ws-emerald)"
-                          : "border-white/10 bg-white/5 text-white/50"
+                          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                       )}
                     >
                       {item.done ? <BadgeCheck className="h-3.5 w-3.5" /> : "•"}
                     </div>
                     <div>
-                      <p className={cn("text-sm font-medium", item.done ? "text-white" : "text-white/65")}>
+                      <p className={cn("text-sm font-medium", item.done ? "text-(--ws-fg)" : "text-(--ws-fg-70)")}>
                         {item.label}
                       </p>
-                      <p className="mt-1 text-xs leading-5 text-white/45">{item.description}</p>
+                      <p className="mt-1 text-xs leading-5 text-(--ws-fg-70)">{item.description}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <Separator className="bg-white/10" />
+              <Separator className="bg-(--ws-fill-strong)" />
 
               <Button
                 type="button"
@@ -1124,7 +1125,7 @@ export default function PaymentSetupPage() {
                   </>
                 )}
               </Button>
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-70)">
                 {data.status === "review_required"
                   ? "This payout setup is paused until the flagged details are reviewed."
                   : data.status === "pending_provisioning"
@@ -1136,69 +1137,69 @@ export default function PaymentSetupPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+          <Card className="border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-                  <Building2 className="h-5 w-5 text-white/80" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-(--ws-line) bg-(--ws-fill)">
+                  <Building2 className="h-5 w-5 text-(--ws-fg-70)" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg text-white">Authority and activity</CardTitle>
-                  <CardDescription className="text-white/60">
+                  <CardTitle className="text-lg text-(--ws-fg)">Authority and activity</CardTitle>
+                  <CardDescription className="text-(--ws-fg-70)">
                     The account currently trusted to manage school payout setup.
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/40">Access mode</p>
-                <p className="mt-2 text-base font-semibold text-white">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-(--ws-fg-70)">Access mode</p>
+                <p className="mt-2 text-base font-semibold text-(--ws-fg)">
                   {accessModeLabel(data.accessMode)}
                 </p>
-                <div className="mt-3 flex items-center gap-2 text-sm text-white/60">
+                <div className="mt-3 flex items-center gap-2 text-sm text-(--ws-fg-70)">
                   <Mail className="h-4 w-4" />
                   <span>{data.billingOwner.email || "No billing owner email recorded yet"}</span>
                 </div>
-                <div className="mt-3 text-sm text-white/60">
+                <div className="mt-3 text-sm text-(--ws-fg-70)">
                   Finance delegate:{" "}
-                  <span className="text-white">
+                  <span className="text-(--ws-fg)">
                     {data.financeDelegate.email || "Not assigned"}
                   </span>
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last updated</p>
-                  <p className="mt-2 text-sm font-medium text-white">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">Last updated</p>
+                  <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                     {relativeTime(data.timestamps.lastUpdatedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last submitted</p>
-                  <p className="mt-2 text-sm font-medium text-white">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">Last submitted</p>
+                  <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                     {relativeTime(data.timestamps.submittedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last approved</p>
-                  <p className="mt-2 text-sm font-medium text-white">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">Last approved</p>
+                  <p className="mt-2 text-sm font-medium text-(--ws-fg)">
                     {relativeTime(data.timestamps.approvedAt)}
                   </p>
-                  <p className="mt-1 text-xs text-white/50">
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     {data.audit.approvedByEmail || "No approver recorded yet"}
                   </p>
                 </div>
               </div>
               {data.provisioning && (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-(--ws-fg-70)">
                     Provisioning activity
                   </p>
-                  <p className="mt-2 text-base font-semibold text-white capitalize">
+                  <p className="mt-2 text-base font-semibold text-(--ws-fg) capitalize">
                     {data.provisioning.status.replace("_", " ")}
                   </p>
-                  <p className="mt-1 text-sm text-white/60">
+                  <p className="mt-1 text-sm text-(--ws-fg-70)">
                     Attempts: {data.provisioning.attempts} • updated{" "}
                     {relativeTime(data.provisioning.updatedAt)}
                   </p>
@@ -1211,7 +1212,7 @@ export default function PaymentSetupPage() {
             data.financeDelegate.email ||
             data.pendingInvitations.financeDelegate) && (
             <details
-              className="group overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-cyan-500/10 via-slate-950 to-slate-950 text-white"
+              className="group overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-cyan-500/10 via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)"
               open={delegatePanelOpen}
               onToggle={(event) => setDelegatePanelOpen(event.currentTarget.open)}
             >
@@ -1221,20 +1222,20 @@ export default function PaymentSetupPage() {
                     <ShieldCheck className="h-5 w-5 text-(--ws-cyan)" />
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-white">Finance delegate</p>
-                    <p className="text-sm text-white/60">
+                    <p className="text-lg font-semibold text-(--ws-fg)">Finance delegate</p>
+                    <p className="text-sm text-(--ws-fg-70)">
                       Optional helper for payment setup.
                     </p>
                   </div>
                 </div>
-                <span className="text-sm text-white/45 group-open:hidden">Open</span>
-                <span className="hidden text-sm text-white/45 group-open:inline">Close</span>
+                <span className="text-sm text-(--ws-fg-70) group-open:hidden">Open</span>
+                <span className="hidden text-sm text-(--ws-fg-70) group-open:inline">Close</span>
               </summary>
-            <Card className="rounded-none border-0 border-t border-white/10 bg-transparent text-white shadow-none">
+            <Card className="rounded-none border-0 border-t border-(--ws-line) bg-transparent text-(--ws-fg) shadow-none">
               <CardContent className="space-y-4">
                 {(data.financeDelegate.email || data.pendingInvitations.financeDelegate) && (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/65">
-                    <p className="font-medium text-white">
+                  <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-70)">
+                    <p className="font-medium text-(--ws-fg)">
                       {data.financeDelegate.email
                         ? "Active finance delegate"
                         : "Pending finance delegate invite"}
@@ -1244,7 +1245,7 @@ export default function PaymentSetupPage() {
                         data.pendingInvitations.financeDelegate?.name ||
                         "Finance delegate"}
                     </p>
-                    <p className="text-white/50">
+                    <p className="text-(--ws-fg-70)">
                       {data.financeDelegate.email ||
                         data.pendingInvitations.financeDelegate?.email}
                     </p>
@@ -1254,22 +1255,22 @@ export default function PaymentSetupPage() {
                 {data.capabilities.canManageDelegate && !data.financeDelegate.email && !data.pendingInvitations.financeDelegate && (
                   <>
                     <div className="space-y-2">
-                      <Label className="text-white/75">Delegate name</Label>
+                      <Label className="text-(--ws-fg-70)">Delegate name</Label>
                       <Input
                         value={delegateName}
                         onChange={(event) => setDelegateName(event.target.value)}
                         placeholder="Bursar or finance lead"
-                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-white/75">Delegate email</Label>
+                      <Label className="text-(--ws-fg-70)">Delegate email</Label>
                       <Input
                         value={delegateEmail}
                         onChange={(event) => setDelegateEmail(event.target.value)}
                         inputMode="email"
                         placeholder="finance@school.edu.gh"
-                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                       />
                     </div>
                     <Button
@@ -1300,7 +1301,7 @@ export default function PaymentSetupPage() {
                       variant="outline"
                       onClick={handleRemoveDelegate}
                       disabled={removeFinanceDelegate.isPending}
-                      className="w-full border-white/15 bg-white/5 text-white hover:bg-white/10"
+                      className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       {removeFinanceDelegate.isPending ? (
                         <>
@@ -1321,48 +1322,48 @@ export default function PaymentSetupPage() {
           )}
 
           {data.capabilities.canInviteOwner && (
-            <details className="group overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-amber-500/10 via-slate-950 to-slate-950 text-white">
+            <details className="group overflow-hidden rounded-2xl border border-(--ws-line) bg-linear-to-br from-amber-500/10 via-(--ws-panel-via) to-(--ws-panel-to) text-(--ws-fg)">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10">
                     <Mail className="h-5 w-5 text-(--ws-amber)" />
                   </div>
                   <div>
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-lg font-semibold text-(--ws-fg)">
                       {data.accessMode === "billing_owner"
                         ? "Replace billing owner"
                         : "Assign billing owner"}
                     </p>
-                    <p className="text-sm text-white/60">
+                    <p className="text-sm text-(--ws-fg-70)">
                       Transfer authority when needed.
                     </p>
                   </div>
                 </div>
-                <span className="text-sm text-white/45 group-open:hidden">Open</span>
-                <span className="hidden text-sm text-white/45 group-open:inline">Close</span>
+                <span className="text-sm text-(--ws-fg-70) group-open:hidden">Open</span>
+                <span className="hidden text-sm text-(--ws-fg-70) group-open:inline">Close</span>
               </summary>
-            <Card className="rounded-none border-0 border-t border-white/10 bg-transparent text-white shadow-none">
+            <Card className="rounded-none border-0 border-t border-(--ws-line) bg-transparent text-(--ws-fg) shadow-none">
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-white/75">Owner name</Label>
+                  <Label className="text-(--ws-fg-70)">Owner name</Label>
                   <Input
                     value={ownerName}
                     onChange={(event) => setOwnerName(event.target.value)}
                     placeholder="School owner or financial authority"
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-white/75">Owner email</Label>
+                  <Label className="text-(--ws-fg-70)">Owner email</Label>
                   <Input
                     value={ownerEmail}
                     onChange={(event) => setOwnerEmail(event.target.value)}
                     inputMode="email"
                     placeholder="owner@school.edu.gh"
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+                    className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                   />
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 text-sm text-(--ws-fg-70)">
                   {data.pendingInvitations.billingOwner
                     ? `A ${data.pendingInvitations.billingOwner.mode === "replacement" ? "replacement" : "handoff"} invite is already pending for ${data.pendingInvitations.billingOwner.email}.`
                     : data.accessMode === "billing_owner"
@@ -1397,10 +1398,10 @@ export default function PaymentSetupPage() {
       </div>
 
       <Dialog open={revealOpen} onOpenChange={setRevealOpen}>
-        <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">
+        <DialogContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg) sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Reveal account number</DialogTitle>
-            <DialogDescription className="text-white/65">
+            <DialogTitle className="text-(--ws-fg)">Reveal account number</DialogTitle>
+            <DialogDescription className="text-(--ws-fg-70)">
               Showing full payout digits is logged as a sensitive disclosure. Enter a short reason
               (for example, verifying details with the bank).
             </DialogDescription>
@@ -1409,13 +1410,13 @@ export default function PaymentSetupPage() {
             value={revealReason}
             onChange={(e) => setRevealReason(e.target.value)}
             placeholder="Reason for viewing full account number"
-            className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
+            className="min-h-[100px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
           />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={() => {
                 setRevealOpen(false);
                 setRevealReason("");
@@ -1441,6 +1442,6 @@ export default function PaymentSetupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </WorkspaceScope>
   );
 }

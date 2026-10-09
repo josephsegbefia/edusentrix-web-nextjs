@@ -33,34 +33,34 @@ const toneConfig: Record<
 > = {
   amber: {
     border: "border-amber-400/15",
-    bg: "from-amber-950/50 via-slate-900/40 to-transparent",
+    bg: "from-amber-500/10 via-(--ws-panel-via) to-transparent",
     iconBg: "from-amber-300/18 to-orange-300/10",
     iconColor: "text-(--ws-amber)",
-    valueColor: "text-amber-50",
+    valueColor: "text-(--ws-fg)",
     glow: "bg-amber-300/18",
   },
   teal: {
     border: "border-teal-400/15",
-    bg: "from-teal-950/50 via-slate-900/40 to-transparent",
+    bg: "from-teal-500/10 via-(--ws-panel-via) to-transparent",
     iconBg: "from-teal-300/18 to-cyan-300/10",
     iconColor: "text-(--ws-teal)",
-    valueColor: "text-teal-50",
+    valueColor: "text-(--ws-fg)",
     glow: "bg-teal-300/18",
   },
   sky: {
     border: "border-sky-400/15",
-    bg: "from-sky-950/50 via-slate-900/40 to-transparent",
+    bg: "from-sky-500/10 via-(--ws-panel-via) to-transparent",
     iconBg: "from-sky-300/18 to-blue-300/10",
     iconColor: "text-(--ws-cyan)",
-    valueColor: "text-sky-50",
+    valueColor: "text-(--ws-fg)",
     glow: "bg-sky-300/18",
   },
   rose: {
     border: "border-rose-400/15",
-    bg: "from-rose-950/50 via-slate-900/40 to-transparent",
+    bg: "from-rose-500/10 via-(--ws-panel-via) to-transparent",
     iconBg: "from-rose-300/18 to-pink-300/10",
     iconColor: "text-(--ws-rose)",
-    valueColor: "text-rose-50",
+    valueColor: "text-(--ws-fg)",
     glow: "bg-rose-300/18",
   },
 };
@@ -103,14 +103,14 @@ function StatCard({
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
+            <p className="text-[11px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-70)">
               {label}
             </p>
             {onInfoClick ? (
               <button
                 type="button"
                 onClick={onInfoClick}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/45 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) transition hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) focus:outline-none focus:ring-2 focus:ring-(--ws-line)"
                 aria-label={`Explain ${label}`}
               >
                 <Info className="h-3.5 w-3.5" />
@@ -125,20 +125,20 @@ function StatCard({
               )}
             >
               {loading ? (
-                <span className="inline-block h-8 w-12 animate-pulse rounded bg-white/10" />
+                <span className="inline-block h-8 w-12 animate-pulse rounded bg-(--ws-fill-strong)" />
               ) : (
                 <CountUp end={value} duration={1.5} separator="," />
               )}
             </p>
           </div>
           {subtitle && (
-            <p className="text-[11px] text-white/40">{subtitle}</p>
+            <p className="text-[11px] text-(--ws-fg-70)">{subtitle}</p>
           )}
         </div>
 
         <div
           className={cn(
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br shadow-inner shadow-white/5 transition-transform duration-300 group-hover:scale-110",
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-gradient-to-br shadow-inner shadow-white/5 transition-transform duration-300 group-hover:scale-110",
             config.iconBg
           )}
         >
@@ -214,16 +214,16 @@ export function SubjectsQuickStatsSection() {
         title="Class Offering Links"
         description="This metric counts subject-offering-to-class-group links, not unique classes."
       >
-        <div className="space-y-4 text-sm leading-relaxed text-white/70">
+        <div className="space-y-4 text-sm leading-relaxed text-(--ws-fg-70)">
           <p>
             A class offering link is created when one subject offering is attached to one class group.
             The total adds up every active non-preschool subject offering across every class group it
             has been assigned to.
           </p>
 
-          <div className="rounded-xl border border-sky-400/20 bg-sky-400/10 p-4 text-sky-50">
+          <div className="rounded-xl border border-sky-400/20 bg-sky-400/10 p-4 text-(--ws-fg)">
             <p className="font-semibold">Example</p>
-            <p className="mt-2 text-sky-50/80">
+            <p className="mt-2 text-(--ws-fg-80)">
               If Mathematics, English, Science, and Social Studies are each assigned to JHS 1A,
               JHS 1B, and JHS 1C, that is 4 offerings x 3 class groups = 12 class offering links.
             </p>

@@ -8,13 +8,19 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { isAcceptedUploadedFileUrl } from "@/lib/storage/urls";
 
 type Params = Promise<{ token: string }>;
 
 const AttachSchema = z.object({
   requirementId: z.string().min(1),
   label: z.string().min(1),
-  fileUrl: z.string().url(),
+  fileUrl: z
+    .string()
+    .refine(
+      isAcceptedUploadedFileUrl,
+      "File must use an internal storage URL or an absolute http(s) URL"
+    ),
   fileName: z.string().optional(),
   sizeBytes: z.number().int().nonnegative().optional(),
   mimeType: z.string().optional(),

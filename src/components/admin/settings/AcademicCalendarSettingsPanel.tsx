@@ -15,12 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 
 type CalendarSummary = {
   id: string;
@@ -144,7 +144,7 @@ export function AcademicCalendarSettingsPanel() {
   }, [month, selectedCalendarId]);
 
   return (
-    <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+    <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
       <CardContent className="space-y-5 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
@@ -153,14 +153,14 @@ export function AcademicCalendarSettingsPanel() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold text-white">Academic Calendar</h3>
+                <h3 className="text-lg font-semibold text-(--ws-fg)">Academic Calendar</h3>
                 {selectedCalendar?.isPublished && (
                   <Badge className="border-emerald-400/25 bg-emerald-500/15 text-(--ws-emerald)">
                     Published
                   </Badge>
                 )}
               </div>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-white/60">
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-(--ws-fg-70)">
                 Review the real school calendar here: term milestones, holidays, exam weeks,
                 non-teaching days, and events. Use the full calendar workspace when you need to add
                 or edit entries.
@@ -177,33 +177,33 @@ export function AcademicCalendarSettingsPanel() {
             <Button
               asChild
               variant="outline"
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <Link href="/admin/periods">Academic periods</Link>
             </Button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Select
+            <PremiumSelect
               value={selectedCalendarId}
               onValueChange={(value) => setSelectedCalendarId(value)}
               disabled={isLoadingCalendars || calendars.length === 0}
             >
-              <SelectTrigger className="w-full min-w-[240px] border-white/10 bg-black/20 text-white sm:w-[300px]">
-                <SelectValue placeholder="Select academic calendar" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-slate-950 text-white">
+              <PremiumSelectTrigger className="w-full min-w-[240px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) sm:w-[300px]">
+                <PremiumSelectValue placeholder="Select academic calendar" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover) text-(--ws-fg)">
                 {calendars.map((calendar) => (
-                  <SelectItem key={calendar.id} value={calendar.id}>
+                  <PremiumSelectItem key={calendar.id} value={calendar.id}>
                     {calendar.name}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
             {isLoadingCalendars && (
-              <span className="flex items-center gap-2 text-sm text-white/50">
+              <span className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading calendars
               </span>
@@ -215,20 +215,20 @@ export function AcademicCalendarSettingsPanel() {
               type="button"
               variant="outline"
               size="icon"
-              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={() => setMonth((current) => subMonths(current, 1))}
               aria-label="Previous month"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-[150px] text-center text-sm font-semibold text-white">
+            <div className="min-w-[150px] text-center text-sm font-semibold text-(--ws-fg)">
               {format(month, "MMMM yyyy")}
             </div>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="border-white/10 bg-black/20 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={() => setMonth((current) => addMonths(current, 1))}
               aria-label="Next month"
             >
@@ -238,9 +238,9 @@ export function AcademicCalendarSettingsPanel() {
         </div>
 
         {calendars.length === 0 && !isLoadingCalendars ? (
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/20 p-6 text-center">
-            <p className="text-sm font-medium text-white">No academic calendar has been created.</p>
-            <p className="mt-1 text-sm text-white/55">
+          <div className="rounded-xl border border-dashed border-(--ws-line) bg-(--ws-fill) p-6 text-center">
+            <p className="text-sm font-medium text-(--ws-fg)">No academic calendar has been created.</p>
+            <p className="mt-1 text-sm text-(--ws-fg-70)">
               Create the first calendar from the full calendar workspace, then it will appear here.
             </p>
             <Button asChild className="mt-4 bg-purple-600 text-white hover:bg-purple-500">
@@ -251,8 +251,8 @@ export function AcademicCalendarSettingsPanel() {
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="relative min-w-0 overflow-x-auto">
               {isLoadingEvents && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-slate-950/55 backdrop-blur-sm">
-                  <Loader2 className="h-5 w-5 animate-spin text-white/70" />
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-(--ws-popover)/55 backdrop-blur-sm">
+                  <Loader2 className="h-5 w-5 animate-spin text-(--ws-fg-70)" />
                 </div>
               )}
               <div className="min-w-[760px]">
@@ -265,9 +265,9 @@ export function AcademicCalendarSettingsPanel() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <h4 className="text-sm font-semibold text-white">Month agenda</h4>
-                <p className="mt-1 text-xs text-white/50">
+              <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                <h4 className="text-sm font-semibold text-(--ws-fg)">Month agenda</h4>
+                <p className="mt-1 text-xs text-(--ws-fg-70)">
                   {occurrences.length} event{occurrences.length === 1 ? "" : "s"} in{" "}
                   {format(month, "MMMM")}
                 </p>
@@ -277,10 +277,10 @@ export function AcademicCalendarSettingsPanel() {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-violet)">
                     Selected event
                   </p>
-                  <h4 className="mt-2 text-sm font-semibold text-white">
+                  <h4 className="mt-2 text-sm font-semibold text-(--ws-fg)">
                     {selectedOccurrence.title}
                   </h4>
-                  <p className="mt-1 text-xs text-white/55">
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     {format(new Date(selectedOccurrence.startDate), "MMM d, yyyy")}
                     {" - "}
                     {format(new Date(selectedOccurrence.endDate), "MMM d, yyyy")}

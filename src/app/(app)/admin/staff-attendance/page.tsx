@@ -1,6 +1,7 @@
 // src/app/(app)/admin/staff-attendance/page.tsx
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 
 // Date utilities
 function startOfDay(d: Date): Date {
@@ -209,7 +210,7 @@ function StatCard({
 
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/50">
+          <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-(--ws-fg-70)">
             {label}
           </p>
           <p
@@ -219,7 +220,7 @@ function StatCard({
             )}
           >
             {loading ? (
-              <span className="inline-block h-7 w-10 animate-pulse rounded bg-white/10" />
+              <span className="inline-block h-7 w-10 animate-pulse rounded bg-(--ws-fill-strong)" />
             ) : (
               value.toLocaleString()
             )}
@@ -227,7 +228,7 @@ function StatCard({
         </div>
         <div
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br shadow-inner shadow-white/5",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-(--ws-line) bg-linear-to-br shadow-inner shadow-white/5",
             config.iconBg
           )}
         >
@@ -325,7 +326,7 @@ function QuickActionButton({
         "flex h-8 w-8 items-center justify-center rounded-lg border transition-all",
         isActive
           ? config.color
-          : "border-white/10 bg-white/5 text-white/40 hover:border-white/20 hover:bg-white/10 hover:text-white/70"
+          : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
       )}
       title={config.label}
     >
@@ -389,10 +390,10 @@ function TeacherAttendanceRow({
   const currentStatus = teacher.attendance?.status ?? "not_recorded";
 
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-3 transition-all hover:border-white/10 hover:bg-white/5">
+    <div className="group flex items-center gap-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 transition-all hover:border-(--ws-line) hover:bg-(--ws-fill-strong)">
       {/* Avatar */}
       <div className="relative shrink-0">
-        <Avatar className="h-10 w-10 border border-white/20 shadow-md shadow-black/30">
+        <Avatar className="h-10 w-10 border border-(--ws-line) shadow-md shadow-black/30">
           {teacher.photoUrl ? (
             <AvatarImage src={teacher.photoUrl} alt={displayName} />
           ) : (
@@ -408,10 +409,10 @@ function TeacherAttendanceRow({
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-white">
+        <p className="truncate text-sm font-medium text-(--ws-fg)">
           {displayName}
         </p>
-        <p className="truncate text-xs text-white/50">
+        <p className="truncate text-xs text-(--ws-fg-70)">
           {teacher.department || teacher.email || "No department"}
         </p>
       </div>
@@ -494,9 +495,9 @@ function LeaveRequestCard({
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/15 hover:bg-white/8">
+    <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line) hover:bg-(--ws-fill-strong)">
       <div className="flex items-start gap-3">
-        <Avatar className="h-9 w-9 border border-white/20 shadow-sm shadow-black/30">
+        <Avatar className="h-9 w-9 border border-(--ws-line) shadow-sm shadow-black/30">
           {request.teacher?.photoUrl ? (
             <AvatarImage
               src={request.teacher.photoUrl}
@@ -511,7 +512,7 @@ function LeaveRequestCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-sm font-medium text-white">
+            <p className="truncate text-sm font-medium text-(--ws-fg)">
               {request.teacher?.fullName || "Unknown Teacher"}
             </p>
             <Badge
@@ -529,7 +530,7 @@ function LeaveRequestCard({
             </Badge>
           </div>
 
-          <p className="mt-0.5 text-xs text-white/50">
+          <p className="mt-0.5 text-xs text-(--ws-fg-70)">
             {leaveTypeLabels[request.leaveType] || request.leaveType} •{" "}
             {new Date(request.date).toLocaleDateString(undefined, {
               month: "short",
@@ -538,7 +539,7 @@ function LeaveRequestCard({
             })}
           </p>
 
-          <p className="mt-2 line-clamp-2 text-xs text-white/70">
+          <p className="mt-2 line-clamp-2 text-xs text-(--ws-fg-70)">
             {request.reason}
           </p>
 
@@ -737,9 +738,9 @@ export default function StaffAttendancePage() {
   const summary = attendanceData?.summary;
 
   return (
-    <div className="min-h-screen bg-background">
+    <WorkspaceScope className="min-h-screen bg-background">
       <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
-        <section className="relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-6 shadow-2xl shadow-black/40">
+        <section className="relative mb-6 overflow-hidden rounded-3xl border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-6 shadow-2xl shadow-black/40">
           <div
             className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
             aria-hidden="true"
@@ -760,10 +761,10 @@ export default function StaffAttendancePage() {
                   <ClipboardCheck className="h-5 w-5 text-(--ws-violet)" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-(--ws-fg) sm:text-4xl">
                     Staff Attendance
                   </h1>
-                  <p className="mt-1 text-sm text-white/70">
+                  <p className="mt-1 text-sm text-(--ws-fg-70)">
                     Record and manage daily teacher attendance
                   </p>
                 </div>
@@ -778,12 +779,13 @@ export default function StaffAttendancePage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setSelectedDate((d) => subDays(d, 1))}
-                className="h-9 w-9 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="h-9 w-9 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
               <CustomDatePicker
+                surface="theme"
                 value={selectedDate}
                 onChange={(nextDate) => {
                   if (!nextDate) return;
@@ -797,7 +799,7 @@ export default function StaffAttendancePage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setSelectedDate((d) => addDays(d, 1))}
-                className="h-9 w-9 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                className="h-9 w-9 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -807,7 +809,7 @@ export default function StaffAttendancePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedDate(startOfDay(new Date()))}
-                  className="gap-1.5 border-white/15 bg-white/5 text-xs text-white hover:bg-white/10"
+                  className="gap-1.5 border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <Sparkles className="h-3 w-3" />
                   Today
@@ -871,10 +873,10 @@ export default function StaffAttendancePage() {
                 <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-(--ws-fg)">
                   Leo Insights & Recommendations
                 </p>
-                <p className="text-xs text-white/60">
+                <p className="text-xs text-(--ws-fg-70)">
                   AI-powered analysis for {formatDisplayDate(selectedDate)} — load saved or generate on demand
                 </p>
               </div>
@@ -885,7 +887,7 @@ export default function StaffAttendancePage() {
             {cachedLeoLoading && !leoInsights ? (
               <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-                <span className="text-sm text-white/60">Loading saved insights...</span>
+                <span className="text-sm text-(--ws-fg-70)">Loading saved insights...</span>
               </div>
             ) : leoAI.isError && !leoInsights ? (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
@@ -913,7 +915,7 @@ export default function StaffAttendancePage() {
                     <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
                   </div>
                 </div>
-                <p className="text-sm text-white/70 mb-4">
+                <p className="text-sm text-(--ws-fg-70) mb-4">
                   Get AI-powered insights and recommendations for today&apos;s attendance.
                 </p>
                 <Button
@@ -933,7 +935,7 @@ export default function StaffAttendancePage() {
               <div className="space-y-4">
                 {(leoGeneratedAt || leoIsStale) && (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-400/20 bg-purple-500/10 px-3 py-2">
-                    <span className="flex items-center gap-1.5 text-xs text-white/60">
+                    <span className="flex items-center gap-1.5 text-xs text-(--ws-fg-70)">
                       <Clock className="h-3.5 w-3.5" />
                       Generated {formatRelativeTime(leoGeneratedAt)}
                     </span>
@@ -958,15 +960,15 @@ export default function StaffAttendancePage() {
                     </Button>
                   </div>
                 )}
-                <p className="text-sm text-white/90 leading-relaxed">{leoInsights.summary}</p>
+                <p className="text-sm text-(--ws-fg-70) leading-relaxed">{leoInsights.summary}</p>
                 {leoInsights.insights.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wide mb-2">
                       Insights
                     </h4>
                     <ul className="space-y-1.5">
                       {leoInsights.insights.map((insight, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                        <li key={i} className="flex items-start gap-2 text-sm text-(--ws-fg-70)">
                           <span className="text-purple-400 mt-0.5">•</span>
                           <span>{insight}</span>
                         </li>
@@ -976,12 +978,12 @@ export default function StaffAttendancePage() {
                 )}
                 {leoInsights.recommendedActions.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wide mb-2">
                       Recommended Actions
                     </h4>
                     <ul className="space-y-1.5">
                       {leoInsights.recommendedActions.map((action, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                        <li key={i} className="flex items-start gap-2 text-sm text-(--ws-fg-70)">
                           <ArrowRight className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
                           <span>{action}</span>
                         </li>
@@ -1003,7 +1005,7 @@ export default function StaffAttendancePage() {
               "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
               activeTab === "attendance"
                 ? "border-indigo-500/40 bg-indigo-500/15 text-(--ws-violet) shadow-lg shadow-indigo-500/10"
-                : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white"
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
           >
             <ClipboardCheck className="h-4 w-4" />
@@ -1016,7 +1018,7 @@ export default function StaffAttendancePage() {
               "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all",
               activeTab === "leave"
                 ? "border-cyan-500/40 bg-cyan-500/15 text-(--ws-cyan) shadow-lg shadow-cyan-500/10"
-                : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8 hover:text-white"
+                : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
           >
             <Palmtree className="h-4 w-4" />
@@ -1034,12 +1036,12 @@ export default function StaffAttendancePage() {
 
         {/* Content */}
         {activeTab === "attendance" ? (
-          <Card className="overflow-hidden border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
+          <Card className="overflow-hidden border border-(--ws-line) bg-(--ws-popover)/60 shadow-2xl shadow-black/30 backdrop-blur">
             <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-indigo-500/50 to-transparent" />
 
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-500/10">
                     <Users className="h-4 w-4 text-(--ws-violet)" />
                   </span>
@@ -1049,18 +1051,18 @@ export default function StaffAttendancePage() {
                 <div className="flex items-center gap-3">
                   {/* Search with clear button */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                     <Input
                       placeholder="Search by name, email..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="h-9 w-[220px] border-white/15 bg-black/40 pl-9 pr-8 text-sm text-white placeholder:text-white/40 focus:border-indigo-500/50"
+                      className="h-9 w-[220px] border-(--ws-line) bg-(--ws-fill) pl-9 pr-8 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-indigo-500/50"
                     />
                     {search && (
                       <button
                         type="button"
                         onClick={() => setSearch("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-(--ws-fg-70) hover:text-(--ws-fg)"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -1068,19 +1070,19 @@ export default function StaffAttendancePage() {
                   </div>
 
                   {/* Status Filter */}
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-9 w-[140px] border-white/15 bg-black/40 text-sm text-white">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent className="border-white/10 bg-neutral-950">
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="present">Present</SelectItem>
-                      <SelectItem value="absent">Absent</SelectItem>
-                      <SelectItem value="late">Late</SelectItem>
-                      <SelectItem value="on_leave">On Leave</SelectItem>
-                      <SelectItem value="not_recorded">Not Recorded</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <PremiumSelect value={statusFilter} onValueChange={setStatusFilter}>
+                    <PremiumSelectTrigger className="h-9 w-[140px] border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg)">
+                      <PremiumSelectValue placeholder="All Status" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover)">
+                      <PremiumSelectItem value="all">All Status</PremiumSelectItem>
+                      <PremiumSelectItem value="present">Present</PremiumSelectItem>
+                      <PremiumSelectItem value="absent">Absent</PremiumSelectItem>
+                      <PremiumSelectItem value="late">Late</PremiumSelectItem>
+                      <PremiumSelectItem value="on_leave">On Leave</PremiumSelectItem>
+                      <PremiumSelectItem value="not_recorded">Not Recorded</PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
 
                   {/* Refresh */}
                   <Button
@@ -1088,7 +1090,7 @@ export default function StaffAttendancePage() {
                     size="icon"
                     onClick={() => refetchAttendance()}
                     disabled={isLoadingAttendance}
-                    className="h-9 w-9 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    className="h-9 w-9 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <RefreshCw
                       className={cn(
@@ -1105,22 +1107,22 @@ export default function StaffAttendancePage() {
               {/* Results count */}
               {!isLoadingAttendance && attendanceData?.data && (
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-(--ws-fg-70)">
                     {debouncedSearch || statusFilter !== "all" ? (
                       <>
                         Showing{" "}
-                        <span className="font-medium text-white/70">
+                        <span className="font-medium text-(--ws-fg-70)">
                           {filteredTeachers.length}
                         </span>{" "}
                         of{" "}
-                        <span className="font-medium text-white/70">
+                        <span className="font-medium text-(--ws-fg-70)">
                           {attendanceData.data.length}
                         </span>{" "}
                         teachers
                       </>
                     ) : (
                       <>
-                        <span className="font-medium text-white/70">
+                        <span className="font-medium text-(--ws-fg-70)">
                           {attendanceData.data.length}
                         </span>{" "}
                         teachers
@@ -1151,38 +1153,38 @@ export default function StaffAttendancePage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <Select
+                      <PremiumSelect
                         value={bulkScope}
                         onValueChange={(value) =>
                           setBulkScope(value as "not_recorded" | "filtered")
                         }
                       >
-                        <SelectTrigger className="h-8 w-[170px] border-white/15 bg-black/30 text-xs text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="border-white/10 bg-neutral-950">
-                          <SelectItem value="not_recorded">Not Recorded Only</SelectItem>
-                          <SelectItem value="filtered">All Filtered Teachers</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <PremiumSelectTrigger className="h-8 w-[170px] border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg)">
+                          <PremiumSelectValue />
+                        </PremiumSelectTrigger>
+                        <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover)">
+                          <PremiumSelectItem value="not_recorded">Not Recorded Only</PremiumSelectItem>
+                          <PremiumSelectItem value="filtered">All Filtered Teachers</PremiumSelectItem>
+                        </PremiumSelectContent>
+                      </PremiumSelect>
 
-                      <Select
+                      <PremiumSelect
                         value={bulkStatus}
                         onValueChange={(value) =>
                           setBulkStatus(value as TeacherAttendanceStatus)
                         }
                       >
-                        <SelectTrigger className="h-8 w-[140px] border-white/15 bg-black/30 text-xs text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="border-white/10 bg-neutral-950">
-                          <SelectItem value="present">Mark Present</SelectItem>
-                          <SelectItem value="absent">Mark Absent</SelectItem>
-                          <SelectItem value="late">Mark Late</SelectItem>
-                          <SelectItem value="on_leave">Mark On Leave</SelectItem>
-                          <SelectItem value="sick">Mark Sick</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <PremiumSelectTrigger className="h-8 w-[140px] border-(--ws-line) bg-(--ws-fill) text-xs text-(--ws-fg)">
+                          <PremiumSelectValue />
+                        </PremiumSelectTrigger>
+                        <PremiumSelectContent className="border-(--ws-line) bg-(--ws-popover)">
+                          <PremiumSelectItem value="present">Mark Present</PremiumSelectItem>
+                          <PremiumSelectItem value="absent">Mark Absent</PremiumSelectItem>
+                          <PremiumSelectItem value="late">Mark Late</PremiumSelectItem>
+                          <PremiumSelectItem value="on_leave">Mark On Leave</PremiumSelectItem>
+                          <PremiumSelectItem value="sick">Mark Sick</PremiumSelectItem>
+                        </PremiumSelectContent>
+                      </PremiumSelect>
 
                       <Button
                         size="sm"
@@ -1204,20 +1206,20 @@ export default function StaffAttendancePage() {
 
               {isLoadingAttendance ? (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-                  <p className="mt-3 text-sm text-white/50">
+                  <Loader2 className="h-8 w-8 animate-spin text-(--ws-violet)" />
+                  <p className="mt-3 text-sm text-(--ws-fg-70)">
                     Loading attendance data...
                   </p>
                 </div>
               ) : filteredTeachers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                    <Users className="h-8 w-8 text-white/30" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+                    <Users className="h-8 w-8 text-(--ws-fg-70)" />
                   </div>
-                  <p className="mt-4 text-sm font-medium text-white/70">
+                  <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">
                     No teachers found
                   </p>
-                  <p className="mt-1 text-xs text-white/50">
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     {search || statusFilter !== "all"
                       ? "Try adjusting your filters"
                       : "No active teachers in the system"}
@@ -1239,12 +1241,12 @@ export default function StaffAttendancePage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="overflow-hidden border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
+          <Card className="overflow-hidden border border-(--ws-line) bg-(--ws-popover)/60 shadow-2xl shadow-black/30 backdrop-blur">
             <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-500/50 to-transparent" />
 
-            <CardHeader className="border-b border-white/10 pb-4">
+            <CardHeader className="border-b border-(--ws-line) pb-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
                     <Palmtree className="h-4 w-4 text-(--ws-cyan)" />
                   </span>
@@ -1266,7 +1268,7 @@ export default function StaffAttendancePage() {
                               : status === "approved"
                                 ? "border-emerald-500/40 bg-emerald-500/15 text-(--ws-emerald)"
                                 : "border-rose-500/40 bg-rose-500/15 text-(--ws-rose)"
-                            : "border-white/10 bg-white/5 text-white/60 hover:border-white/15 hover:bg-white/8"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         {status}
@@ -1284,7 +1286,7 @@ export default function StaffAttendancePage() {
                     size="icon"
                     onClick={() => refetchLeave()}
                     disabled={isLoadingLeave}
-                    className="ml-2 h-8 w-8 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    className="ml-2 h-8 w-8 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <RefreshCw
                       className={cn(
@@ -1301,19 +1303,19 @@ export default function StaffAttendancePage() {
               {isLoadingLeave ? (
                 <div className="flex flex-col items-center justify-center py-16">
                   <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-                  <p className="mt-3 text-sm text-white/50">
+                  <p className="mt-3 text-sm text-(--ws-fg-70)">
                     Loading leave requests...
                   </p>
                 </div>
               ) : !leaveData?.data?.length ? (
                 <div className="flex flex-col items-center justify-center py-16">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                    <Palmtree className="h-8 w-8 text-white/30" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-(--ws-line) bg-(--ws-fill)">
+                    <Palmtree className="h-8 w-8 text-(--ws-fg-70)" />
                   </div>
-                  <p className="mt-4 text-sm font-medium text-white/70">
+                  <p className="mt-4 text-sm font-medium text-(--ws-fg-70)">
                     No {leaveFilter} leave requests
                   </p>
-                  <p className="mt-1 text-xs text-white/50">
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     Leave requests will appear here when submitted
                   </p>
                 </div>
@@ -1336,6 +1338,6 @@ export default function StaffAttendancePage() {
           </Card>
         )}
       </main>
-    </div>
+    </WorkspaceScope>
   );
 }

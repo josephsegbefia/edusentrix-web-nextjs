@@ -107,7 +107,7 @@ export function SubjectCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 space-y-0.5">
-                <h3 className="truncate text-sm font-semibold text-white sm:text-base">
+                <h3 className="truncate text-sm font-semibold text-(--ws-fg) sm:text-base">
                   {subject.name}
                 </h3>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -120,7 +120,7 @@ export function SubjectCard({
                     {subject.code ?? "No code"}
                   </span>
                   {subject.curriculumCode && (
-                    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-white/60">
+                    <span className="inline-flex items-center rounded-full border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-(--ws-fg-70)">
                       {subject.curriculumCode.replace(/_/g, " ")}
                     </span>
                   )}
@@ -132,7 +132,7 @@ export function SubjectCard({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    className="h-7 w-7 shrink-0 rounded-lg bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
@@ -192,7 +192,7 @@ export function SubjectCard({
                   "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium",
                   subject.isActive
                     ? "border-emerald-400/20 bg-emerald-400/10 text-(--ws-emerald)"
-                    : "border-white/10 bg-white/5 text-white/55"
+                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                 )}
               >
                 {subject.isActive ? "Active" : "Inactive"}
@@ -202,22 +202,22 @@ export function SubjectCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
             <School className={cn("h-3.5 w-3.5", visual.statIcon)} />
-            <span className="text-xs font-medium text-white/80">
+            <span className="text-xs font-medium text-(--ws-fg-70)">
               {classCount} class{classCount !== 1 ? "es" : ""}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
             <Users className={cn("h-3.5 w-3.5", visual.statIcon)} />
-            <span className="text-xs font-medium text-white/80">
+            <span className="text-xs font-medium text-(--ws-fg-70)">
               {teacherCount} teacher{teacherCount !== 1 ? "s" : ""}
             </span>
           </div>
           {subject.lessonNoteTemplateVariant && (
-            <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+            <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2.5 py-1.5">
               <BadgeCheck className={cn("h-3.5 w-3.5 shrink-0", visual.statIcon)} />
-              <span className="truncate text-xs font-medium capitalize text-white/70">
+              <span className="truncate text-xs font-medium capitalize text-(--ws-fg-70)">
                 {subject.lessonNoteTemplateVariant.replace(/_/g, " ")}
               </span>
             </div>

@@ -79,7 +79,7 @@ const categoryOptions: Array<{
 ];
 
 const inputClassName =
-  "h-11 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:border-amber-300/40 focus-visible:ring-amber-300/25";
+  "h-11 rounded-xl border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) placeholder:text-(--ws-fg-50) focus-visible:border-amber-300/40 focus-visible:ring-amber-300/25";
 
 function getDefaultFormState() {
   return {
@@ -146,7 +146,7 @@ export function CreateSubjectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl shadow-black/50">
+      <DialogContent className="max-w-xl border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-0 text-(--ws-fg) shadow-2xl shadow-black/50">
         <div className="relative overflow-hidden rounded-lg">
           <div
             className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-linear-to-br from-amber-400/15 via-orange-300/8 to-transparent blur-3xl"
@@ -161,13 +161,13 @@ export function CreateSubjectModal({
             <DialogHeader className="space-y-3 text-left">
               <div className="flex items-start gap-3">
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-amber-300/20 bg-linear-to-br from-amber-300/16 to-orange-300/10">
-                  <BookText className="size-5 text-amber-100" />
+                  <BookText className="size-5 text-(--ws-amber)" />
                 </div>
                 <div className="min-w-0 space-y-1">
-                  <DialogTitle className="text-xl font-semibold text-white">
+                  <DialogTitle className="text-xl font-semibold text-(--ws-fg)">
                     {isEditing ? "Edit subject" : "Create subject"}
                   </DialogTitle>
-                  <DialogDescription className="max-w-md text-sm leading-relaxed text-white/55">
+                  <DialogDescription className="max-w-md text-sm leading-relaxed text-(--ws-fg-70)">
                     {isEditing
                       ? "Update the subject name, code, and status without leaving the directory."
                       : "Add a subject to your school directory so you can assign it to classes and teachers."}
@@ -180,7 +180,7 @@ export function CreateSubjectModal({
               <div className="space-y-2 sm:col-span-2">
                 <Label
                   htmlFor="subject-name"
-                  className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)"
                 >
                   Subject name
                 </Label>
@@ -202,12 +202,12 @@ export function CreateSubjectModal({
               <div className="space-y-2">
                 <Label
                   htmlFor="subject-code"
-                  className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65"
+                  className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)"
                 >
                   Subject code
                 </Label>
                 <div className="relative">
-                  <Tag className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
+                  <Tag className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-(--ws-fg-70)" />
                   <Input
                     id="subject-code"
                     value={form.code}
@@ -225,7 +225,7 @@ export function CreateSubjectModal({
 
               {!isEditing && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/65">
+                  <Label className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Category
                   </Label>
                   <PremiumSelect
@@ -256,13 +256,13 @@ export function CreateSubjectModal({
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-(--ws-fg)">
                     Make this subject active now
                   </p>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-(--ws-fg-70)">
                     Active subjects are immediately available in assignments and
                     setup flows.
                   </p>
@@ -279,12 +279,12 @@ export function CreateSubjectModal({
               </div>
             </div>
 
-            <DialogFooter className="gap-2 border-t border-white/10 pt-4">
+            <DialogFooter className="gap-2 border-t border-(--ws-line) pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               >
                 Cancel
               </Button>

@@ -402,22 +402,22 @@ export function AssignTeacherToSubjectModal({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
-          className="relative z-10 w-full max-w-lg max-h-[90vh] rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl flex flex-col"
+          className="relative z-10 w-full max-w-lg max-h-[90vh] rounded-2xl border border-(--ws-line) bg-(--ws-popover) shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
+          <div className="px-5 py-4 border-b border-(--ws-line) flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10">
                 <UserPlus className="h-5 w-5 text-rose-300" />
               </div>
-              <span className="text-base font-semibold text-white">
+              <span className="text-base font-semibold text-(--ws-fg)">
                 {isEditMode ? "Edit Assignment" : "Assign Teacher to Subject"}
               </span>
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="text-white/60 hover:text-white"
+              className="text-(--ws-fg-70) hover:text-(--ws-fg)"
             >
               <X className="h-5 w-5" />
             </button>
@@ -425,7 +425,7 @@ export function AssignTeacherToSubjectModal({
 
           {/* Step Indicator */}
           <div className="px-5 pt-4 flex items-center justify-between">
-            <div className="text-sm text-white/70">
+            <div className="text-sm text-(--ws-fg-70)">
               {schedulePhase === "idle" ? (
                 <>
                   Step <span className="font-semibold">{step}</span> of {STEPS}
@@ -441,7 +441,7 @@ export function AssignTeacherToSubjectModal({
                     key={s}
                     className={cn(
                       "h-1.5 w-6 rounded-full transition-all",
-                      s <= step ? "bg-rose-500" : "bg-white/20"
+                      s <= step ? "bg-rose-500" : "bg-(--ws-fill-strong)"
                     )}
                   />
                 ))}
@@ -459,10 +459,10 @@ export function AssignTeacherToSubjectModal({
                 className="space-y-5"
               >
                 <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-4">
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-(--ws-fg)">
                     Would you like to set the days and times this teacher will teach?
                   </p>
-                  <p className="mt-1 text-xs text-white/60">
+                  <p className="mt-1 text-xs text-(--ws-fg-70)">
                     This helps build the shared school timetable draft from each class schedule.
                     Schedules are checked for conflicts.
                   </p>
@@ -480,7 +480,7 @@ export function AssignTeacherToSubjectModal({
                     type="button"
                     variant="outline"
                     onClick={handleSkipSchedule}
-                    className="w-full gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="w-full gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     Skip for now
                   </Button>
@@ -498,20 +498,20 @@ export function AssignTeacherToSubjectModal({
                 {conflictError && (
                   <Alert className="border-amber-400/20 bg-amber-500/10">
                     <AlertTriangle className="h-4 w-4 text-amber-400" />
-                    <AlertDescription className="text-amber-100">{conflictError}</AlertDescription>
+                    <AlertDescription className="text-(--ws-amber)">{conflictError}</AlertDescription>
                   </Alert>
                 )}
-                <p className="text-xs text-white/60">
+                <p className="text-xs text-(--ws-fg-70)">
                   Add the days and times for each class. No overlapping slots are allowed for the teacher or the class.
                 </p>
                 <div className="space-y-4 max-h-[50vh] overflow-y-auto">
                   {createdAssignments.map(({ assignmentId, className }) => (
                     <div
                       key={assignmentId}
-                      className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3"
+                      className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <Badge variant="secondary" className="bg-rose-500/20 text-rose-200 border-rose-500/30">
+                        <Badge variant="secondary" className="bg-rose-500/20 text-(--ws-rose) border-rose-500/30">
                           {className}
                         </Badge>
                         <Button
@@ -519,7 +519,7 @@ export function AssignTeacherToSubjectModal({
                           variant="ghost"
                           size="sm"
                           onClick={() => addScheduleSlot(assignmentId)}
-                          className="h-7 gap-1 text-xs text-white/70 hover:text-white"
+                          className="h-7 gap-1 text-xs text-(--ws-fg-70) hover:text-(--ws-fg)"
                         >
                           <Plus className="h-3 w-3" />
                           Add slot
@@ -528,14 +528,14 @@ export function AssignTeacherToSubjectModal({
                       {(assignmentSchedules[assignmentId] ?? []).map((slot, idx) => (
                         <div
                           key={idx}
-                          className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3"
+                          className="flex flex-wrap items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3"
                         >
                           <select
                             value={slot.dayOfWeek}
                             onChange={(e) =>
                               updateScheduleSlot(assignmentId, idx, "dayOfWeek", Number(e.target.value))
                             }
-                            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+                            className="h-9 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg)"
                           >
                             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                               <option key={i} value={i} className="bg-neutral-900">
@@ -549,16 +549,16 @@ export function AssignTeacherToSubjectModal({
                             onChange={(e) =>
                               updateScheduleSlot(assignmentId, idx, "startTime", e.target.value)
                             }
-                            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+                            className="h-9 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg)"
                           />
-                          <span className="text-white/50">–</span>
+                          <span className="text-(--ws-fg-70)">–</span>
                           <input
                             type="time"
                             value={slot.endTime}
                             onChange={(e) =>
                               updateScheduleSlot(assignmentId, idx, "endTime", e.target.value)
                             }
-                            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+                            className="h-9 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg)"
                           />
                           <Button
                             type="button"
@@ -579,7 +579,7 @@ export function AssignTeacherToSubjectModal({
                     type="button"
                     variant="outline"
                     onClick={handleSkipSchedule}
-                    className="flex-1 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="flex-1 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     Skip
                   </Button>
@@ -608,32 +608,32 @@ export function AssignTeacherToSubjectModal({
                 {/* Step 1: Select Subject */}
                 {step === 1 && (
                   <section className="space-y-4">
-                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                       Select Subject
                     </h2>
                     {isSubjectPrefilled && subject ? (
-                      <div className="flex h-14 w-full items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 text-white">
+                      <div className="flex h-14 w-full items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 text-(--ws-fg)">
                         <BookOpen className="h-5 w-5 text-rose-300" />
                         <div>
                           <p className="font-medium">{subject.name}</p>
-                          <p className="text-xs text-white/60">Prefilled from subject detail</p>
+                          <p className="text-xs text-(--ws-fg-70)">Prefilled from subject detail</p>
                         </div>
                       </div>
                     ) : (
                       <>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                           <input
                             type="text"
                             placeholder="Search subjects..."
                             value={subjectQuery}
                             onChange={(e) => setSubjectQuery(e.target.value)}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
                           />
                         </div>
                         {isLoadingSubjects ? (
                           <div className="flex justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                            <Loader2 className="h-6 w-6 animate-spin text-(--ws-rose)" />
                           </div>
                         ) : (
                           <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -645,7 +645,7 @@ export function AssignTeacherToSubjectModal({
                                   "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                   selectedSubjectId === s.id
                                     ? "border-rose-500/40 bg-rose-500/15"
-                                    : "border-white/10 bg-white/5 hover:border-white/20"
+                                    : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                                 )}
                                 whileHover={{ scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
@@ -660,9 +660,9 @@ export function AssignTeacherToSubjectModal({
                                   className="sr-only"
                                 />
                                 <BookOpen className="h-5 w-5 text-rose-300" />
-                                <span className="text-sm font-medium text-white truncate">{s.name}</span>
+                                <span className="text-sm font-medium text-(--ws-fg) truncate">{s.name}</span>
                                 {selectedSubjectId === s.id && (
-                                  <Check className="ml-auto h-5 w-5 text-rose-400" />
+                                  <Check className="ml-auto h-5 w-5 text-(--ws-rose)" />
                                 )}
                               </motion.label>
                             ))}
@@ -676,31 +676,31 @@ export function AssignTeacherToSubjectModal({
                 {/* Step 2: Select Class Group(s) */}
                 {step === 2 && (
                   <section className="space-y-4">
-                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                       Select Class Group(s)
                     </h2>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-(--ws-fg-70)">
                       Select one or more classes. The teacher will be assigned to teach this subject in all selected classes.
                     </p>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                       <input
                         type="text"
                         placeholder="Search classes..."
                         value={classQuery}
                         onChange={(e) => setClassQuery(e.target.value)}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+                        className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
                       />
                     </div>
                     {isLoadingClasses ? (
                       <div className="flex justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                        <Loader2 className="h-6 w-6 animate-spin text-(--ws-rose)" />
                       </div>
                     ) : classes.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8">
-                        <AlertCircle className="h-6 w-6 text-white/30" />
-                        <p className="mt-2 text-sm text-white/50">No classes found for this subject</p>
-                        <p className="mt-1 text-xs text-white/40">Classes are filtered by grade stage</p>
+                        <AlertCircle className="h-6 w-6 text-(--ws-fg-70)" />
+                        <p className="mt-2 text-sm text-(--ws-fg-70)">No classes found for this subject</p>
+                        <p className="mt-1 text-xs text-(--ws-fg-70)">Classes are filtered by grade stage</p>
                       </div>
                     ) : (
                       <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -714,7 +714,7 @@ export function AssignTeacherToSubjectModal({
                                 "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                 isSelected
                                   ? "border-rose-500/40 bg-rose-500/15"
-                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                                  : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                               )}
                               whileHover={{ scale: 1.01 }}
                               whileTap={{ scale: 0.99 }}
@@ -739,19 +739,19 @@ export function AssignTeacherToSubjectModal({
                                 }}
                                 className="sr-only"
                               />
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill)">
                                 <School className="h-5 w-5 text-rose-300" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="truncate text-sm font-medium text-white">
+                                <p className="truncate text-sm font-medium text-(--ws-fg)">
                                   {classGroup.label || classGroup.name}
                                 </p>
                                 {classGroup.gradeName && (
-                                  <p className="truncate text-xs text-white/50">{classGroup.gradeName}</p>
+                                  <p className="truncate text-xs text-(--ws-fg-70)">{classGroup.gradeName}</p>
                                 )}
                               </div>
                               {isSelected && (
-                                <Check className="h-5 w-5 text-rose-400" />
+                                <Check className="h-5 w-5 text-(--ws-rose)" />
                               )}
                             </motion.label>
                           );
@@ -764,27 +764,27 @@ export function AssignTeacherToSubjectModal({
                 {/* Step 3: Select Teacher */}
                 {step === 3 && (
                   <section className="space-y-4">
-                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                       Select Teacher
                     </h2>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
                       <input
                         type="text"
                         placeholder="Search teachers..."
                         value={teacherQuery}
                         onChange={(e) => setTeacherQuery(e.target.value)}
-                        className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+                        className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
                       />
                     </div>
                     {isLoadingTeachers ? (
                       <div className="flex justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                        <Loader2 className="h-6 w-6 animate-spin text-(--ws-rose)" />
                       </div>
                     ) : teachers.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-8">
-                        <AlertCircle className="h-6 w-6 text-white/30" />
-                        <p className="mt-2 text-sm text-white/50">No teachers found</p>
+                        <AlertCircle className="h-6 w-6 text-(--ws-fg-70)" />
+                        <p className="mt-2 text-sm text-(--ws-fg-70)">No teachers found</p>
                       </div>
                     ) : (
                       <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -796,7 +796,7 @@ export function AssignTeacherToSubjectModal({
                               "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                               selectedTeacherId === teacher.id
                                 ? "border-rose-500/40 bg-rose-500/15"
-                                : "border-white/10 bg-white/5 hover:border-white/20"
+                                : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                             )}
                             whileHover={{ scale: 1.01 }}
                             whileTap={{ scale: 0.99 }}
@@ -810,7 +810,7 @@ export function AssignTeacherToSubjectModal({
                               onChange={() => setSelectedTeacherId(teacher.id)}
                               className="sr-only"
                             />
-                            <Avatar className="h-10 w-10 border-2 border-white/20">
+                            <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
                               <AvatarImage src={teacher.photoUrl || ""} alt={teacher.fullName} />
                               <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-600 text-sm font-semibold text-white">
                                 {teacher.firstName?.charAt(0) || ""}
@@ -818,15 +818,15 @@ export function AssignTeacherToSubjectModal({
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <p className="truncate text-sm font-medium text-white">
+                              <p className="truncate text-sm font-medium text-(--ws-fg)">
                                 {teacher.fullName}
                               </p>
-                              <p className="truncate text-xs text-white/50">
+                              <p className="truncate text-xs text-(--ws-fg-70)">
                                 {teacher.email || "Teacher"}
                               </p>
                             </div>
                             {selectedTeacherId === teacher.id && (
-                              <Check className="h-5 w-5 text-rose-400" />
+                              <Check className="h-5 w-5 text-(--ws-rose)" />
                             )}
                           </motion.label>
                         ))}
@@ -838,14 +838,14 @@ export function AssignTeacherToSubjectModal({
                 {/* Step 4: Review & Confirm */}
                 {step === 4 && (
                   <section className="space-y-4">
-                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                       Review Assignment
                     </h2>
 
                     {conflictError && (
                       <Alert className="border-amber-400/20 bg-amber-500/10">
                         <AlertTriangle className="h-4 w-4 text-amber-400" />
-                        <AlertDescription className="text-amber-100">
+                        <AlertDescription className="text-(--ws-amber)">
                           {conflictError}
                         </AlertDescription>
                       </Alert>
@@ -856,20 +856,20 @@ export function AssignTeacherToSubjectModal({
                         <div className="flex gap-2">
                           <Info className="h-4 w-4 shrink-0 text-violet-300 mt-0.5" />
                           <div className="space-y-2 min-w-0">
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium text-(--ws-fg)">
                               Someone already teaches this here
                             </p>
-                            <p className="text-sm text-white/75 leading-relaxed">
+                            <p className="text-sm text-(--ws-fg-70) leading-relaxed">
                               {slotConflict.message}
                             </p>
                             {slotConflict.teachers.length > 0 ? (
-                              <ul className="text-xs text-white/60 list-disc pl-4 space-y-0.5">
+                              <ul className="text-xs text-(--ws-fg-70) list-disc pl-4 space-y-0.5">
                                 {slotConflict.teachers.map((t) => (
                                   <li key={t.assignmentId}>{t.name}</li>
                                 ))}
                               </ul>
                             ) : null}
-                            <p className="text-xs text-white/55 pt-1">
+                            <p className="text-xs text-(--ws-fg-70) pt-1">
                               Add {displayTeacher?.fullName ?? "this teacher"} alongside the current teacher, or make them the only teacher for this slot (the previous assignment will be ended for this term).
                             </p>
                           </div>
@@ -887,7 +887,7 @@ export function AssignTeacherToSubjectModal({
                           <Button
                             type="button"
                             variant="outline"
-                            className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                            className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                             onClick={() => void runAssignWithResolution({ replaceExisting: true })}
                             disabled={assignTeacher.isPending}
                           >
@@ -906,7 +906,7 @@ export function AssignTeacherToSubjectModal({
 
                     <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 space-y-4">
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-14 w-14 border-2 border-white/20">
+                        <Avatar className="h-14 w-14 border-2 border-(--ws-line)">
                           <AvatarImage src={displayTeacher?.photoUrl || ""} alt={displayTeacher?.fullName || ""} />
                           <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-600 text-lg font-semibold text-white">
                             {displayTeacher?.firstName?.charAt(0) || ""}
@@ -914,10 +914,10 @@ export function AssignTeacherToSubjectModal({
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-lg font-semibold text-white">
+                          <p className="text-lg font-semibold text-(--ws-fg)">
                             {displayTeacher?.fullName}
                           </p>
-                          <p className="text-sm text-white/60">
+                          <p className="text-sm text-(--ws-fg-70)">
                             {displayTeacher?.email || "Teacher"}
                           </p>
                         </div>
@@ -925,17 +925,17 @@ export function AssignTeacherToSubjectModal({
 
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-white/50 shrink-0" />
-                          <span className="text-sm text-white">{selectedSubject?.name}</span>
+                          <BookOpen className="h-4 w-4 text-(--ws-fg-70) shrink-0" />
+                          <span className="text-sm text-(--ws-fg)">{selectedSubject?.name}</span>
                         </div>
                         <div className="flex items-start gap-2">
-                          <School className="h-4 w-4 text-white/50 shrink-0 mt-0.5" />
+                          <School className="h-4 w-4 text-(--ws-fg-70) shrink-0 mt-0.5" />
                           <div className="flex flex-wrap gap-1.5">
                             {selectedClassIds.map((id) => (
                               <Badge
                                 key={id}
                                 variant="secondary"
-                                className="bg-white/10 text-white border-white/20"
+                                className="bg-(--ws-fill-strong) text-(--ws-fg) border-(--ws-line)"
                               >
                                 {selectedClassLabels[id] ?? selectedClasses.find((c) => c.id === id)?.label ?? selectedClasses.find((c) => c.id === id)?.name ?? id}
                               </Badge>
@@ -945,7 +945,7 @@ export function AssignTeacherToSubjectModal({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3">
                       <Checkbox
                         id="allowMultiple"
                         checked={allowMultiple}
@@ -953,7 +953,7 @@ export function AssignTeacherToSubjectModal({
                       />
                       <Label
                         htmlFor="allowMultiple"
-                        className="cursor-pointer text-sm text-white/90"
+                        className="cursor-pointer text-sm text-(--ws-fg-70)"
                       >
                         Allow multiple teachers (co-teaching)
                       </Label>
@@ -967,12 +967,12 @@ export function AssignTeacherToSubjectModal({
 
           {/* Footer - only when in assign steps */}
           {schedulePhase === "idle" && (
-          <div className="flex items-center justify-between border-t border-white/10 p-5 shrink-0">
+          <div className="flex items-center justify-between border-t border-(--ws-line) p-5 shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={handleBack}
-              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               <ChevronLeft className="h-4 w-4" />
               {step === 1 ? "Cancel" : "Back"}

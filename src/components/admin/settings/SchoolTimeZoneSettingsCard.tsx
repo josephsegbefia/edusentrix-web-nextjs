@@ -71,10 +71,10 @@ export function SchoolTimeZoneSettingsCard() {
 
   if (isLoading) {
     return (
-      <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+      <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
         <CardContent className="p-6">
-          <div className="h-6 w-48 animate-pulse rounded bg-white/10" />
-          <div className="mt-4 h-11 w-full max-w-md animate-pulse rounded-xl bg-white/5" />
+          <div className="h-6 w-48 animate-pulse rounded bg-(--ws-fill-strong)" />
+          <div className="mt-4 h-11 w-full max-w-md animate-pulse rounded-xl bg-(--ws-fill)" />
         </CardContent>
       </Card>
     );
@@ -89,15 +89,15 @@ export function SchoolTimeZoneSettingsCard() {
   }
 
   return (
-    <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+    <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1.5">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <CardTitle className="flex items-center gap-2 text-lg text-(--ws-fg)">
               <Globe className="h-5 w-5 text-(--ws-cyan)" />
               Regional and time zone
             </CardTitle>
-            <CardDescription className="text-white/55">
+            <CardDescription className="text-(--ws-fg-70)">
               Used for local times in the admin, reports, and future reminder scheduling.
             </CardDescription>
           </div>
@@ -113,7 +113,7 @@ export function SchoolTimeZoneSettingsCard() {
               type="button"
               size="sm"
               variant="secondary"
-              className="border border-white/10 bg-white/5 text-white hover:bg-white/10"
+              className="border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
               onClick={applySuggestion}
             >
               Use suggested
@@ -123,13 +123,13 @@ export function SchoolTimeZoneSettingsCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-white/80">IANA time zone</Label>
+          <Label className="text-(--ws-fg-70)">IANA time zone</Label>
           <div className="flex max-w-lg flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="e.g. Africa/Accra"
-              className="border-white/10 bg-white/5 font-mono text-sm text-white"
+              className="border-(--ws-line) bg-(--ws-fill) font-mono text-sm text-(--ws-fg)"
               list="curated-iana-timezones"
               autoComplete="off"
               spellCheck={false}
@@ -143,7 +143,7 @@ export function SchoolTimeZoneSettingsCard() {
           {draft.trim() && !isValidIanaTimeZone(draft.trim()) ? (
             <p className="text-sm text-(--ws-amber)">Enter a valid IANA zone (e.g. Africa/Accra).</p>
           ) : (
-            <p className="text-xs text-white/45">
+            <p className="text-xs text-(--ws-fg-70)">
               Pick from the list or type any valid IANA identifier your browser accepts.
             </p>
           )}
@@ -165,7 +165,7 @@ export function SchoolTimeZoneSettingsCard() {
             )}
           </Button>
           {isDirty && isValidIanaTimeZone(draft.trim()) ? (
-            <span className="text-xs text-white/45">Unsaved changes</span>
+            <span className="text-xs text-(--ws-fg-70)">Unsaved changes</span>
           ) : null}
         </div>
       </CardContent>

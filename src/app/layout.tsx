@@ -12,7 +12,7 @@ import { EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const viewport = {
-  themeColor: "#0B1020",
+  themeColor: "#f8fafc",
 };
 
 export const metadata = {

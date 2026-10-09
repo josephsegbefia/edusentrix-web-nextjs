@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/providers/auth-provider";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -84,18 +84,18 @@ export function SchoolLeoSettingsCard() {
     : false;
 
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-amber-900/20 to-slate-950/90 backdrop-blur-xl">
+    <Card className="border border-(--ws-line) bg-linear-to-br from-amber-500/10 to-(--ws-panel-to) backdrop-blur-xl">
       <CardContent className="p-6">
-        <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-white">
+        <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
           <LeoIcon className="h-5 w-5 text-(--ws-amber)" />
           Leo Copilot
         </h3>
-        <p className="mb-4 text-sm text-white/50">
+        <p className="mb-4 text-sm text-(--ws-fg-70)">
           Control whether this school can use the assistant when your plan and platform allow it.
         </p>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-white/50">
+          <div className="flex items-center gap-2 text-sm text-(--ws-fg-70)">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading Leo settings…
           </div>
@@ -107,13 +107,13 @@ export function SchoolLeoSettingsCard() {
         ) : !data ? null : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-white/55">Status:</span>
+              <span className="text-(--ws-fg-70)">Status:</span>
               <Badge
                 className={cn(
                   "border-0",
                   data.access?.effectiveEnabled
                     ? "bg-emerald-500/25 text-(--ws-emerald)"
-                    : "bg-white/10 text-white/70"
+                    : "bg-(--ws-fill-strong) text-(--ws-fg-70)"
                 )}
               >
                 {data.access?.effectiveEnabled ? "Active for you" : "Not available"}{" "}
@@ -123,46 +123,46 @@ export function SchoolLeoSettingsCard() {
               </Badge>
             </div>
             {data.access?.reasonDetail && !data.access?.effectiveEnabled ? (
-              <p className="text-xs text-white/45">{data.access.reasonDetail}</p>
+              <p className="text-xs text-(--ws-fg-70)">{data.access.reasonDetail}</p>
             ) : null}
 
             {!data.platform.allowSchoolSelfService && (
-              <div className="flex gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/65">
+              <div className="flex gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)">
                 <Info className="h-4 w-4 shrink-0 text-(--ws-amber)" />
                 School-level toggles are managed by the platform team for now.
               </div>
             )}
 
             {data.platform.allowSchoolSelfService && !isSchoolAdmin && (
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-(--ws-fg-70)">
                 Only school administrators can change these options.
               </p>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-white/70">School access</Label>
-                <Select
+                <Label className="text-(--ws-fg-70)">School access</Label>
+                <PremiumSelect
                   value={accessOverride || (data.leo as SchoolLeoSettingsDTO).accessOverride}
                   onValueChange={(v) =>
                     setAccessOverride(v as SchoolLeoSettingsDTO["accessOverride"])
                   }
                   disabled={!canEdit}
                 >
-                  <SelectTrigger className="border-white/10 bg-white/5 text-white">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inherit">Inherit from platform + plan</SelectItem>
-                    <SelectItem value="enabled">Enabled (when plan allows)</SelectItem>
-                    <SelectItem value="disabled">Disabled for this school</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <PremiumSelectTrigger className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
+                    <PremiumSelectValue placeholder="Select" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="inherit">Inherit from platform + plan</PremiumSelectItem>
+                    <PremiumSelectItem value="enabled">Enabled (when plan allows)</PremiumSelectItem>
+                    <PremiumSelectItem value="disabled">Disabled for this school</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
-              <div className="flex flex-col justify-between gap-2 rounded-xl border border-white/10 bg-white/5 p-3 sm:col-span-1">
+              <div className="flex flex-col justify-between gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 sm:col-span-1">
                 <div>
-                  <Label className="text-white/80">Pilot bypass (entitlement)</Label>
-                  <p className="text-xs text-white/45">
+                  <Label className="text-(--ws-fg-70)">Pilot bypass (entitlement)</Label>
+                  <p className="text-xs text-(--ws-fg-70)">
                     Allow this school to use Leo before the subscription feature is on the plan.
                     Platform approval only.
                   </p>

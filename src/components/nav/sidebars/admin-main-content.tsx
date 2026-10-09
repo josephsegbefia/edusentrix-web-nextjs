@@ -62,6 +62,7 @@ export function AdminMainContent({
     pathname === "/admin/fees/invoices" ||
     pathname.startsWith("/admin/fees/invoices/") ||
     pathname === "/admin/fees/structures" ||
+    pathname === "/admin/fees/payments" ||
     pathname === "/admin/fees/payments/record" ||
     pathname === "/admin/reconciliation" ||
     pathname === "/admin/documents" ||
@@ -73,6 +74,11 @@ export function AdminMainContent({
     pathname.startsWith("/admin/classes/") ||
     pathname.startsWith("/admin/teachers/") ||
     pathname.startsWith("/admin/subjects/") ||
+    pathname === "/admin/subjects" ||
+    pathname === "/admin/roles-duties" ||
+    pathname === "/admin/settings" ||
+    pathname.startsWith("/admin/settings/") ||
+    pathname === "/admin/staff-attendance" ||
     pathname.startsWith("/admin/finance") ||
     pathname.startsWith("/admin/grades/") ||
     pathname === "/admin/meetings" ||

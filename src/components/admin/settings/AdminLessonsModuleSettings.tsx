@@ -24,13 +24,13 @@ function ToggleRow({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
-        <Label className="flex items-center gap-2 text-white/80">
+        <Label className="flex items-center gap-2 text-(--ws-fg-70)">
           {icon}
           {label}
         </Label>
-        <p className="text-xs text-white/50">{description}</p>
+        <p className="text-xs text-(--ws-fg-70)">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>
@@ -42,7 +42,7 @@ export function AdminLessonsModuleSettings({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
-      <p className="text-sm font-semibold text-white">Lessons module</p>
+      <p className="text-sm font-semibold text-(--ws-fg)">Lessons module</p>
       <ToggleRow
         label="Lessons enabled"
         description="Master switch for teacher lessons, week plans, and related APIs."

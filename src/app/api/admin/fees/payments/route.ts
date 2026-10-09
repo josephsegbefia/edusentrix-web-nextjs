@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireFinanceStaffOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
+import {
+  requireFinanceStaffOrDelegatedAnyPermission,
+  requireFinanceStaffOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
@@ -87,6 +90,149 @@ function normalizeRef(value?: string | null) {
   if (!value) return null;
   const normalized = String(value).trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+const PAYMENT_METHODS = [
+  "cash",
+  "bank_transfer",
+  "mobile_money",
+  "paystack",
+  "cheque",
+  "other",
+] as const;
+
+function actorName(actor: {
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+} | null) {
+  if (!actor) return "";
+  const fullName = String(
+    actor.name || `${actor.firstName || ""} ${actor.lastName || ""}`.trim()
+  ).trim();
+  return fullName || actor.email || "";
+}
+
+export async function GET(req: NextRequest) {
+  const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
+  await connectToDatabase();
+
+  if (!schoolId) {
+    return NextResponse.json({ error: "School ID not found" }, { status: 400 });
+  }
+
+  const schoolIdObj =
+    schoolId instanceof mongoose.Types.ObjectId
+      ? schoolId
+      : new mongoose.Types.ObjectId(String(schoolId));
+
+  const sp = req.nextUrl.searchParams;
+  const page = Math.max(1, Number.parseInt(sp.get("page") || "1", 10) || 1);
+  const limit = Math.min(
+    100,
+    Math.max(1, Number.parseInt(sp.get("limit") || "20", 10) || 20)
+  );
+
+  const filter: Record<string, unknown> = { schoolId: schoolIdObj };
+
+  const studentId = sp.get("studentId");
+  if (studentId) {
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return NextResponse.json({ error: "Invalid student ID" }, { status: 400 });
+    }
+    filter.studentId = new mongoose.Types.ObjectId(studentId);
+  }
+
+  const invoiceId = sp.get("invoiceId");
+  if (invoiceId) {
+    if (!mongoose.Types.ObjectId.isValid(invoiceId)) {
+      return NextResponse.json({ error: "Invalid invoice ID" }, { status: 400 });
+    }
+    filter.invoiceId = new mongoose.Types.ObjectId(invoiceId);
+  }
+
+  const paymentMethod = sp.get("paymentMethod");
+  if (paymentMethod) {
+    if (!PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])) {
+      return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
+    }
+    filter.paymentMethod = paymentMethod;
+  }
+
+  const dateFrom = sp.get("dateFrom");
+  const dateTo = sp.get("dateTo");
+  if (dateFrom || dateTo) {
+    const range: { $gte?: Date; $lte?: Date } = {};
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      if (Number.isNaN(from.getTime())) {
+        return NextResponse.json({ error: "Invalid dateFrom" }, { status: 400 });
+      }
+      range.$gte = from;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      if (Number.isNaN(to.getTime())) {
+        return NextResponse.json({ error: "Invalid dateTo" }, { status: 400 });
+      }
+      range.$lte = to;
+    }
+    filter.paymentDate = range;
+  }
+
+  const [total, rows] = await Promise.all([
+    Payment.countDocuments(filter),
+    Payment.find(filter)
+      .sort({ paymentDate: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate("studentId", "firstName lastName admissionNo")
+      .populate("invoiceId", "invoiceNumber")
+      .populate("receivedBy", "name firstName lastName email")
+      .lean(),
+  ]);
+
+  const paymentIds = rows.map((payment) => payment._id);
+  const allocations = paymentIds.length
+    ? await PaymentAllocation.find({ paymentId: { $in: paymentIds } })
+        .populate("invoiceLineItemId", "name amountMinor")
+        .lean()
+    : [];
+
+  const allocationsByPayment = new Map<string, typeof allocations>();
+  for (const allocation of allocations) {
+    const key = String(allocation.paymentId);
+    const list = allocationsByPayment.get(key) ?? [];
+    list.push(allocation);
+    allocationsByPayment.set(key, list);
+  }
+
+  const payments = rows.map((payment) => {
+    const received = payment.receivedBy as {
+      name?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string | null;
+    } | null;
+    return {
+      ...payment,
+      receivedBy: received
+        ? { name: actorName(received), email: received.email || "" }
+        : undefined,
+      allocations: allocationsByPayment.get(String(payment._id)) ?? [],
+    };
+  });
+
+  return NextResponse.json({
+    payments,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: total === 0 ? 0 : Math.ceil(total / limit),
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {

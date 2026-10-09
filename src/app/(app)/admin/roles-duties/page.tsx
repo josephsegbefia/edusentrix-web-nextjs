@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import React, { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -153,19 +154,19 @@ function RolesDutiesContent() {
 
   const roleCategories = [
     { key: "prefect", label: "Prefects", icon: Crown, color: "text-amber-400" },
-    { key: "council", label: "Student Council", icon: Users, color: "text-blue-400" },
-    { key: "club", label: "Club Leaders", icon: Award, color: "text-emerald-400" },
-    { key: "sports", label: "Sports", icon: Shield, color: "text-rose-400" },
+    { key: "council", label: "Student Council", icon: Users, color: "text-(--ws-cyan)" },
+    { key: "club", label: "Club Leaders", icon: Award, color: "text-(--ws-emerald)" },
+    { key: "sports", label: "Sports", icon: Shield, color: "text-(--ws-rose)" },
     { key: "cultural", label: "Cultural", icon: GraduationCap, color: "text-purple-400" },
     { key: "service", label: "Service", icon: UserCheck, color: "text-cyan-400" },
-    { key: "custom", label: "Custom", icon: Settings, color: "text-indigo-400" },
+    { key: "custom", label: "Custom", icon: Settings, color: "text-(--ws-violet)" },
   ];
 
   const dutyCategories = [
-    { key: "gate", label: "Gate Duty", icon: Shield, color: "text-rose-400" },
-    { key: "assembly", label: "Assembly", icon: Users, color: "text-blue-400" },
+    { key: "gate", label: "Gate Duty", icon: Shield, color: "text-(--ws-rose)" },
+    { key: "assembly", label: "Assembly", icon: Users, color: "text-(--ws-cyan)" },
     { key: "break", label: "Break Time", icon: Clock, color: "text-amber-400" },
-    { key: "dining", label: "Dining", icon: UserCheck, color: "text-emerald-400" },
+    { key: "dining", label: "Dining", icon: UserCheck, color: "text-(--ws-emerald)" },
     { key: "sports", label: "Sports", icon: Award, color: "text-purple-400" },
     { key: "exam", label: "Examination", icon: GraduationCap, color: "text-cyan-400" },
   ];
@@ -658,27 +659,27 @@ function RolesDutiesContent() {
   ]);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
       <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+          <h1 className="text-2xl font-bold text-(--ws-fg) sm:text-3xl">
             Roles & Duties Management
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-(--ws-fg-70)">
             Manage school-wide student roles and teacher duty assignments
           </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="mb-6 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-1.5 overflow-x-auto">
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-1.5 overflow-x-auto">
           <button
             onClick={() => setActiveTab("student-roles")}
             className={cn(
               "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap",
               activeTab === "student-roles"
                 ? "bg-brand text-black shadow-lg shadow-brand/20"
-                : "text-white/60 hover:bg-white/5 hover:text-white"
+                : "text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
           >
             <Crown className="h-4 w-4" />
@@ -690,7 +691,7 @@ function RolesDutiesContent() {
               "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap",
               activeTab === "class-roles"
                 ? "bg-brand text-black shadow-lg shadow-brand/20"
-                : "text-white/60 hover:bg-white/5 hover:text-white"
+                : "text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
           >
             <BookOpen className="h-4 w-4" />
@@ -702,7 +703,7 @@ function RolesDutiesContent() {
               "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap",
               activeTab === "teacher-duties"
                 ? "bg-brand text-black shadow-lg shadow-brand/20"
-                : "text-white/60 hover:bg-white/5 hover:text-white"
+                : "text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             )}
           >
             <Clock className="h-4 w-4" />
@@ -713,13 +714,13 @@ function RolesDutiesContent() {
         {/* Search & Actions Bar */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ws-fg-70)" />
             <input
               type="text"
               placeholder={getSearchPlaceholder()}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -729,7 +730,7 @@ function RolesDutiesContent() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <Settings className="h-4 w-4" />
                       Manage
@@ -737,7 +738,7 @@ function RolesDutiesContent() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="border border-white/10 bg-slate-900/95 text-slate-50 backdrop-blur-xl"
+                    className="border border-(--ws-line) bg-(--ws-popover)/95 text-slate-50 backdrop-blur-xl"
                   >
                     <DropdownMenuItem
                       onClick={() => setCreateRoleModalOpen(true)}
@@ -763,7 +764,7 @@ function RolesDutiesContent() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <Settings className="h-4 w-4" />
                       Manage
@@ -771,7 +772,7 @@ function RolesDutiesContent() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="border border-white/10 bg-slate-900/95 text-slate-50 backdrop-blur-xl"
+                    className="border border-(--ws-line) bg-(--ws-popover)/95 text-slate-50 backdrop-blur-xl"
                   >
                     <DropdownMenuItem
                       onClick={() => setCreateClassRoleModalOpen(true)}
@@ -782,7 +783,7 @@ function RolesDutiesContent() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <p className="text-sm text-white/50">
+                <p className="text-sm text-(--ws-fg-70)">
                   Assignments are handled inside each class page.
                 </p>
               </>
@@ -793,7 +794,7 @@ function RolesDutiesContent() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <Settings className="h-4 w-4" />
                       Manage
@@ -801,7 +802,7 @@ function RolesDutiesContent() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="border border-white/10 bg-slate-900/95 text-slate-50 backdrop-blur-xl"
+                    className="border border-(--ws-line) bg-(--ws-popover)/95 text-slate-50 backdrop-blur-xl"
                   >
                     <DropdownMenuItem
                       onClick={() => setCreateDutyModalOpen(true)}
@@ -825,15 +826,15 @@ function RolesDutiesContent() {
         </div>
 
         {/* Health Check (rule-based, no AI cost) */}
-        <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5">
+        <div className="mb-6 overflow-hidden rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="rounded-lg border border-white/15 bg-white/10 p-1.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <span className="rounded-lg border border-(--ws-line) bg-(--ws-fill-strong) p-1.5">
+                <CheckCircle2 className="h-4 w-4 text-(--ws-emerald)" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-white">Health Check</p>
-                <p className="text-xs text-white/60">
+                <p className="text-sm font-semibold text-(--ws-fg)">Health Check</p>
+                <p className="text-xs text-(--ws-fg-70)">
                   Quick status based on current {activeTab.replace("-", " ")} data
                 </p>
               </div>
@@ -842,7 +843,7 @@ function RolesDutiesContent() {
               variant="outline"
               size="sm"
               onClick={() => setShowAIInsights((prev) => !prev)}
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
             >
               {showAIInsights ? "Hide" : "Show"}
             </Button>
@@ -869,7 +870,7 @@ function RolesDutiesContent() {
                           <p className={cn("text-sm font-semibold", tone.text)}>
                             {insight.title}
                           </p>
-                          <p className="mt-1 text-xs leading-relaxed text-white/75">
+                          <p className="mt-1 text-xs leading-relaxed text-(--ws-fg-70)">
                             {insight.detail}
                           </p>
                         </div>
@@ -887,7 +888,7 @@ function RolesDutiesContent() {
                         className={cn(
                           "mt-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all",
                           tone.text,
-                          "border border-white/15 bg-white/10 hover:bg-white/15"
+                          "border border-(--ws-line) bg-(--ws-fill-strong) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         {insight.actionLabel}
@@ -909,8 +910,8 @@ function RolesDutiesContent() {
                 <LeoIcon className="h-4 w-4 text-(--ws-violet)" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-white">Leo Insights & Recommendations</p>
-                <p className="text-xs text-white/60">
+                <p className="text-sm font-semibold text-(--ws-fg)">Leo Insights & Recommendations</p>
+                <p className="text-xs text-(--ws-fg-70)">
                   AI-powered analysis for {activeTab.replace("-", " ")} — generate on demand
                 </p>
               </div>
@@ -921,7 +922,7 @@ function RolesDutiesContent() {
             {cachedLeoLoading && !leoInsights ? (
               <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
-                <span className="text-sm text-white/60">Loading saved insights...</span>
+                <span className="text-sm text-(--ws-fg-70)">Loading saved insights...</span>
               </div>
             ) : leoAI.isError && !leoInsights ? (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
@@ -949,7 +950,7 @@ function RolesDutiesContent() {
                     <LeoIcon className="h-6 w-6 text-(--ws-violet)" />
                   </div>
                 </div>
-                <p className="text-sm text-white/70 mb-4">
+                <p className="text-sm text-(--ws-fg-70) mb-4">
                   Get AI-powered insights and recommendations for your {activeTab.replace("-", " ")} setup.
                 </p>
                 <Button
@@ -969,7 +970,7 @@ function RolesDutiesContent() {
               <div className="space-y-4">
                 {(leoGeneratedAt || leoIsStale) && (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-400/20 bg-purple-500/10 px-3 py-2">
-                    <span className="flex items-center gap-1.5 text-xs text-white/60">
+                    <span className="flex items-center gap-1.5 text-xs text-(--ws-fg-70)">
                       <Clock className="h-3.5 w-3.5" />
                       Generated {formatRelativeTime(leoGeneratedAt)}
                     </span>
@@ -994,15 +995,15 @@ function RolesDutiesContent() {
                     </Button>
                   </div>
                 )}
-                <p className="text-sm text-white/90 leading-relaxed">{leoInsights.summary}</p>
+                <p className="text-sm text-(--ws-fg-70) leading-relaxed">{leoInsights.summary}</p>
                 {leoInsights.insights.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wide mb-2">
                       Insights
                     </h4>
                     <ul className="space-y-1.5">
                       {leoInsights.insights.map((insight, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                        <li key={i} className="flex items-start gap-2 text-sm text-(--ws-fg-70)">
                           <span className="text-purple-400 mt-0.5">•</span>
                           <span>{insight}</span>
                         </li>
@@ -1012,12 +1013,12 @@ function RolesDutiesContent() {
                 )}
                 {leoInsights.recommendedActions.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                    <h4 className="text-xs font-semibold text-(--ws-fg-70) uppercase tracking-wide mb-2">
                       Recommended Actions
                     </h4>
                     <ul className="space-y-1.5">
                       {leoInsights.recommendedActions.map((action, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                        <li key={i} className="flex items-start gap-2 text-sm text-(--ws-fg-70)">
                           <ArrowRight className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
                           <span>{action}</span>
                         </li>
@@ -1063,15 +1064,15 @@ function RolesDutiesContent() {
                           "group flex min-w-[140px] shrink-0 flex-1 flex-col items-center gap-2 rounded-xl border p-4 transition-all",
                           selectedCategory === cat.key
                             ? "border-brand/50 bg-brand/10"
-                            : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                            : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         <Icon className={cn("h-6 w-6", cat.color)} />
-                        <span className="text-xs font-medium text-white">{cat.label}</span>
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs font-medium text-(--ws-fg)">{cat.label}</span>
+                        <span className="text-xs text-(--ws-fg-70)">
                           {assignmentCount} assigned
                         </span>
-                        <span className="text-[10px] text-white/40">
+                        <span className="text-[10px] text-(--ws-fg-70)">
                           {count} role{count === 1 ? "" : "s"}
                         </span>
                       </button>
@@ -1080,26 +1081,26 @@ function RolesDutiesContent() {
                 </div>
 
                 {showRoleCategoryLeftHint && (
-                  <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-(--ws-panel-from) via-(--ws-panel-from) to-transparent" />
                 )}
                 {showRoleCategoryRightHint && (
-                  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-slate-950/95 via-slate-950/80 to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-(--ws-panel-from) via-(--ws-panel-from) to-transparent" />
                 )}
                 {showRoleCategoryRightHint && (
-                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur">
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] font-medium text-(--ws-fg-70) backdrop-blur">
                     More
                   </div>
                 )}
               </div>
 
               {/* Current Assignments */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">
+                  <h2 className="text-lg font-semibold text-(--ws-fg)">
                     Current Role Assignments
                   </h2>
                   {rolesData?.currentPeriod && (
-                    <span className="rounded-full bg-brand/20 px-3 py-1 text-xs font-medium text-brand">
+                    <span className="rounded-full bg-brand/20 px-3 py-1 text-xs font-medium text-(--ws-cyan)">
                       {rolesData.currentPeriod.yearLabel} - {rolesData.currentPeriod.term}
                     </span>
                   )}
@@ -1107,21 +1108,21 @@ function RolesDutiesContent() {
 
                 {rolesLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-brand" />
+                    <Loader2 className="h-8 w-8 animate-spin text-(--ws-cyan)" />
                   </div>
                 ) : rolesError ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <WifiOff className="h-10 w-10 text-rose-400/70" />
+                    <WifiOff className="h-10 w-10 text-(--ws-rose)" />
                     <p className="mt-3 text-sm font-medium text-(--ws-rose)">
                       Connection Error
                     </p>
-                    <p className="mt-1 max-w-sm text-xs text-white/50">
+                    <p className="mt-1 max-w-sm text-xs text-(--ws-fg-70)">
                       {getErrorMessage(rolesErrorData)}
                     </p>
                     <Button
                       onClick={() => globalThis.location.reload()}
                       variant="outline"
-                      className="mt-4 gap-2 border-white/10 text-white hover:bg-white/10"
+                      className="mt-4 gap-2 border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <RefreshCw className="h-4 w-4" />
                       Retry
@@ -1129,14 +1130,14 @@ function RolesDutiesContent() {
                   </div>
                 ) : filteredRoleAssignments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <AlertCircle className="h-10 w-10 text-white/30" />
-                    <p className="mt-3 text-sm text-white/50">
+                    <AlertCircle className="h-10 w-10 text-(--ws-fg-70)" />
+                    <p className="mt-3 text-sm text-(--ws-fg-70)">
                       No role assignments found
                     </p>
                     <Button
                       onClick={() => setAssignRoleModalOpen(true)}
                       variant="outline"
-                      className="mt-4 gap-2 border-white/10 text-white hover:bg-white/10"
+                      className="mt-4 gap-2 border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <Plus className="h-4 w-4" />
                       Assign First Role
@@ -1162,13 +1163,13 @@ function RolesDutiesContent() {
               </div>
 
               {/* Available Roles */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-                <h2 className="mb-4 text-lg font-semibold text-white">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
+                <h2 className="mb-4 text-lg font-semibold text-(--ws-fg)">
                   Available Roles
                 </h2>
                 {rolesError ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <WifiOff className="h-8 w-8 text-rose-400/70" />
+                    <WifiOff className="h-8 w-8 text-(--ws-rose)" />
                     <p className="mt-2 text-sm text-(--ws-rose)">Unable to load roles</p>
                   </div>
                 ) : (
@@ -1219,12 +1220,12 @@ function RolesDutiesContent() {
                         "group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all",
                         selectedCategory === cat.key
                           ? "border-brand/50 bg-brand/10"
-                          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                       )}
                     >
                       <Icon className={cn("h-6 w-6", cat.color)} />
-                      <span className="text-xs font-medium text-white">{cat.label}</span>
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs font-medium text-(--ws-fg)">{cat.label}</span>
+                      <span className="text-xs text-(--ws-fg-70)">
                         {assignmentCount} assigned
                       </span>
                     </button>
@@ -1233,13 +1234,13 @@ function RolesDutiesContent() {
               </div>
 
               {/* Current Duty Assignments */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">
+                  <h2 className="text-lg font-semibold text-(--ws-fg)">
                     Current Duty Roster
                   </h2>
                   {dutiesData?.currentPeriod && (
-                    <span className="rounded-full bg-brand/20 px-3 py-1 text-xs font-medium text-brand">
+                    <span className="rounded-full bg-brand/20 px-3 py-1 text-xs font-medium text-(--ws-cyan)">
                       {dutiesData.currentPeriod.yearLabel} - {dutiesData.currentPeriod.term}
                     </span>
                   )}
@@ -1247,21 +1248,21 @@ function RolesDutiesContent() {
 
                 {dutiesLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-brand" />
+                    <Loader2 className="h-8 w-8 animate-spin text-(--ws-cyan)" />
                   </div>
                 ) : dutiesError ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <WifiOff className="h-10 w-10 text-rose-400/70" />
+                    <WifiOff className="h-10 w-10 text-(--ws-rose)" />
                     <p className="mt-3 text-sm font-medium text-(--ws-rose)">
                       Connection Error
                     </p>
-                    <p className="mt-1 max-w-sm text-xs text-white/50">
+                    <p className="mt-1 max-w-sm text-xs text-(--ws-fg-70)">
                       {getErrorMessage(dutiesErrorData)}
                     </p>
                     <Button
                       onClick={() => globalThis.location.reload()}
                       variant="outline"
-                      className="mt-4 gap-2 border-white/10 text-white hover:bg-white/10"
+                      className="mt-4 gap-2 border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <RefreshCw className="h-4 w-4" />
                       Retry
@@ -1269,14 +1270,14 @@ function RolesDutiesContent() {
                   </div>
                 ) : filteredDutyAssignments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <AlertCircle className="h-10 w-10 text-white/30" />
-                    <p className="mt-3 text-sm text-white/50">
+                    <AlertCircle className="h-10 w-10 text-(--ws-fg-70)" />
+                    <p className="mt-3 text-sm text-(--ws-fg-70)">
                       No duty assignments found
                     </p>
                     <Button
                       onClick={() => setAssignDutyModalOpen(true)}
                       variant="outline"
-                      className="mt-4 gap-2 border-white/10 text-white hover:bg-white/10"
+                      className="mt-4 gap-2 border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <Plus className="h-4 w-4" />
                       Assign First Duty
@@ -1302,13 +1303,13 @@ function RolesDutiesContent() {
               </div>
 
               {/* Available Duties */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-                <h2 className="mb-4 text-lg font-semibold text-white">
+              <div className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
+                <h2 className="mb-4 text-lg font-semibold text-(--ws-fg)">
                   Available Duties
                 </h2>
                 {dutiesError ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <WifiOff className="h-8 w-8 text-rose-400/70" />
+                    <WifiOff className="h-8 w-8 text-(--ws-rose)" />
                     <p className="mt-2 text-sm text-(--ws-rose)">Unable to load duties</p>
                   </div>
                 ) : (
@@ -1365,13 +1366,13 @@ function RolesDutiesContent() {
                           "group flex min-w-[140px] shrink-0 flex-1 flex-col items-center gap-2 rounded-xl border p-4 transition-all",
                           selectedCategory === cat
                             ? "border-brand/50 bg-brand/10"
-                            : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                            : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         <span className={cn("text-sm font-medium", info.color)}>
                           {info.label}
                         </span>
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs text-(--ws-fg-70)">
                           {count} role{count !== 1 ? "s" : ""}
                         </span>
                       </button>
@@ -1379,26 +1380,26 @@ function RolesDutiesContent() {
                   })}
                 </div>
                 {showClassRoleCategoryLeftHint && (
-                  <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-(--ws-panel-from) via-(--ws-panel-from) to-transparent" />
                 )}
                 {showClassRoleCategoryRightHint && (
-                  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-slate-950/95 via-slate-950/80 to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-(--ws-panel-from) via-(--ws-panel-from) to-transparent" />
                 )}
                 {showClassRoleCategoryRightHint && (
-                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur">
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-(--ws-line) bg-(--ws-fill) px-2 py-0.5 text-[10px] font-medium text-(--ws-fg-70) backdrop-blur">
                     More
                   </div>
                 )}
               </div>
 
               {/* Class Role Definitions */}
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-5">
+              <div className="mt-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">
+                    <h2 className="text-lg font-semibold text-(--ws-fg)">
                       Class Role Definitions
                     </h2>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-(--ws-fg-70)">
                       These roles can be assigned to students within each class
                     </p>
                   </div>
@@ -1406,7 +1407,7 @@ function RolesDutiesContent() {
                     onClick={() => setCreateClassRoleModalOpen(true)}
                     variant="outline"
                     size="sm"
-                    className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <Plus className="h-4 w-4" />
                     Create Custom Role
@@ -1415,21 +1416,21 @@ function RolesDutiesContent() {
 
                 {classRolesLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-brand" />
+                    <Loader2 className="h-8 w-8 animate-spin text-(--ws-cyan)" />
                   </div>
                 ) : classRolesError ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <WifiOff className="h-10 w-10 text-rose-400/70" />
+                    <WifiOff className="h-10 w-10 text-(--ws-rose)" />
                     <p className="mt-3 text-sm font-medium text-(--ws-rose)">
                       Connection Error
                     </p>
-                    <p className="mt-1 max-w-sm text-xs text-white/50">
+                    <p className="mt-1 max-w-sm text-xs text-(--ws-fg-70)">
                       {getErrorMessage(classRolesErrorData)}
                     </p>
                     <Button
                       onClick={() => globalThis.location.reload()}
                       variant="outline"
-                      className="mt-4 gap-2 border-white/10 text-white hover:bg-white/10"
+                      className="mt-4 gap-2 border-(--ws-line) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                     >
                       <RefreshCw className="h-4 w-4" />
                       Retry
@@ -1437,8 +1438,8 @@ function RolesDutiesContent() {
                   </div>
                 ) : (classRolesData?.data || []).length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <AlertCircle className="h-10 w-10 text-white/30" />
-                    <p className="mt-3 text-sm text-white/50">
+                    <AlertCircle className="h-10 w-10 text-(--ws-fg-70)" />
+                    <p className="mt-3 text-sm text-(--ws-fg-70)">
                       No class roles defined yet
                     </p>
                   </div>
@@ -1466,22 +1467,22 @@ function RolesDutiesContent() {
                                 <p className={cn("text-sm font-medium", info.color)}>
                                   {role.name}
                                 </p>
-                                <p className="mt-0.5 text-xs capitalize text-white/50">
+                                <p className="mt-0.5 text-xs capitalize text-(--ws-fg-70)">
                                   {info.label}
                                 </p>
                               </div>
                               {role.isDefault && (
-                                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/60">
+                                <span className="rounded-full bg-(--ws-fill-strong) px-2 py-0.5 text-[10px] font-medium text-(--ws-fg-70)">
                                   Default
                                 </span>
                               )}
                             </div>
                             {role.description && (
-                              <p className="mt-2 line-clamp-2 text-xs text-white/40">
+                              <p className="mt-2 line-clamp-2 text-xs text-(--ws-fg-70)">
                                 {role.description}
                               </p>
                             )}
-                            <div className="mt-3 text-xs text-white/50">
+                            <div className="mt-3 text-xs text-(--ws-fg-70)">
                               {role.maxPerClass
                                 ? `Max ${role.maxPerClass} per class`
                                 : "Unlimited per class"}
@@ -1496,7 +1497,7 @@ function RolesDutiesContent() {
               {/* Info Box */}
               <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
                 <div className="flex gap-3">
-                  <BookOpen className="h-5 w-5 shrink-0 text-blue-400" />
+                  <BookOpen className="h-5 w-5 shrink-0 text-(--ws-cyan)" />
                   <div>
                     <p className="text-sm font-medium text-(--ws-cyan)">
                       Managing Class Roles
@@ -1564,7 +1565,7 @@ function RoleAssignmentCard({
 }) {
   return (
     <div
-      className="group relative rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20"
+      className="group relative rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line)"
       style={{
         borderLeftColor: assignment.role?.badgeColor || undefined,
         borderLeftWidth: assignment.role?.badgeColor ? "3px" : undefined,
@@ -1573,13 +1574,13 @@ function RoleAssignmentCard({
       <button
         onClick={onRemove}
         disabled={isRemoving}
-        className="absolute right-2 top-2 rounded-lg p-1.5 text-white/30 opacity-0 transition-all hover:bg-white/10 hover:text-rose-400 group-hover:opacity-100"
+        className="absolute right-2 top-2 rounded-lg p-1.5 text-(--ws-fg-70) opacity-0 transition-all hover:bg-(--ws-fill-strong) hover:text-(--ws-rose) group-hover:opacity-100"
       >
         <X className="h-4 w-4" />
       </button>
 
       <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10 border-2 border-white/20">
+        <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
           <AvatarImage
             src={assignment.student?.photoUrl || ""}
             alt={assignment.student?.fullName || ""}
@@ -1592,10 +1593,10 @@ function RoleAssignmentCard({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-white">
+          <p className="truncate text-sm font-medium text-(--ws-fg)">
             {assignment.student?.fullName}
           </p>
-          <p className="truncate text-xs text-white/50">
+          <p className="truncate text-xs text-(--ws-fg-70)">
             {assignment.student?.className}
           </p>
         </div>
@@ -1631,7 +1632,7 @@ function RoleDefinitionCard({
 
   return (
     <div
-      className="group rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20"
+      className="group rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line)"
       style={{
         borderLeftColor: role.badgeColor || undefined,
         borderLeftWidth: role.badgeColor ? "3px" : undefined,
@@ -1639,8 +1640,8 @@ function RoleDefinitionCard({
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-white">{role.name}</p>
-          <p className="mt-0.5 text-xs capitalize text-white/50">{role.category}</p>
+          <p className="text-sm font-medium text-(--ws-fg)">{role.name}</p>
+          <p className="mt-0.5 text-xs capitalize text-(--ws-fg-70)">{role.category}</p>
         </div>
         {role.badgeColor && (
           <div
@@ -1651,11 +1652,11 @@ function RoleDefinitionCard({
       </div>
 
       {role.description && (
-        <p className="mt-2 line-clamp-2 text-xs text-white/40">{role.description}</p>
+        <p className="mt-2 line-clamp-2 text-xs text-(--ws-fg-70)">{role.description}</p>
       )}
 
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-xs text-white/50">
+        <span className="text-xs text-(--ws-fg-70)">
           {assignmentCount}
           {role.maxPerSchool ? ` / ${role.maxPerSchool}` : ""} assigned
         </span>
@@ -1664,7 +1665,7 @@ function RoleDefinitionCard({
           variant="ghost"
           onClick={onAssign}
           disabled={!!isFull}
-          className="h-7 gap-1 text-xs text-brand hover:bg-brand/10 hover:text-brand disabled:opacity-50"
+          className="h-7 gap-1 text-xs text-(--ws-cyan) hover:bg-brand/10 hover:text-(--ws-cyan) disabled:opacity-50"
         >
           <Plus className="h-3 w-3" />
           Assign
@@ -1688,7 +1689,7 @@ function DutyAssignmentCard({
 }) {
   return (
     <div
-      className="group relative rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20"
+      className="group relative rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line)"
       style={{
         borderLeftColor: assignment.duty?.color || undefined,
         borderLeftWidth: assignment.duty?.color ? "3px" : undefined,
@@ -1697,13 +1698,13 @@ function DutyAssignmentCard({
       <button
         onClick={onRemove}
         disabled={isRemoving}
-        className="absolute right-2 top-2 rounded-lg p-1.5 text-white/30 opacity-0 transition-all hover:bg-white/10 hover:text-rose-400 group-hover:opacity-100"
+        className="absolute right-2 top-2 rounded-lg p-1.5 text-(--ws-fg-70) opacity-0 transition-all hover:bg-(--ws-fill-strong) hover:text-(--ws-rose) group-hover:opacity-100"
       >
         <X className="h-4 w-4" />
       </button>
 
       <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10 border-2 border-white/20">
+        <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
           <AvatarImage
             src={assignment.teacher?.photoUrl || ""}
             alt={assignment.teacher?.fullName || ""}
@@ -1716,26 +1717,26 @@ function DutyAssignmentCard({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-white">
+          <p className="truncate text-sm font-medium text-(--ws-fg)">
             {assignment.teacher?.fullName}
           </p>
-          <p className="truncate text-xs text-white/50">
+          <p className="truncate text-xs text-(--ws-fg-70)">
             {assignment.duty?.name}
           </p>
         </div>
       </div>
 
       <div className="mt-3 space-y-1.5">
-        <div className="flex items-center gap-2 text-xs text-white/60">
+        <div className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
           <Calendar className="h-3.5 w-3.5" />
           {formatDays(assignment.days)}
         </div>
-        <div className="flex items-center gap-2 text-xs text-white/60">
+        <div className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
           <Clock className="h-3.5 w-3.5" />
           {assignment.startTime} - {assignment.endTime}
         </div>
         {assignment.duty?.location && (
-          <div className="flex items-center gap-2 text-xs text-white/60">
+          <div className="flex items-center gap-2 text-xs text-(--ws-fg-70)">
             <MapPin className="h-3.5 w-3.5" />
             {assignment.duty.location}
           </div>
@@ -1757,7 +1758,7 @@ function DutyDefinitionCard({
 }) {
   return (
     <div
-      className="group rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20"
+      className="group rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 transition-all hover:border-(--ws-line)"
       style={{
         borderLeftColor: duty.color || undefined,
         borderLeftWidth: duty.color ? "3px" : undefined,
@@ -1765,8 +1766,8 @@ function DutyDefinitionCard({
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-white">{duty.name}</p>
-          <p className="mt-0.5 text-xs capitalize text-white/50">{duty.category}</p>
+          <p className="text-sm font-medium text-(--ws-fg)">{duty.name}</p>
+          <p className="mt-0.5 text-xs capitalize text-(--ws-fg-70)">{duty.category}</p>
         </div>
         {duty.color && (
           <div
@@ -1777,31 +1778,31 @@ function DutyDefinitionCard({
       </div>
 
       {duty.description && (
-        <p className="mt-2 line-clamp-2 text-xs text-white/40">{duty.description}</p>
+        <p className="mt-2 line-clamp-2 text-xs text-(--ws-fg-70)">{duty.description}</p>
       )}
 
       <div className="mt-3 space-y-1">
         {duty.defaultDays && duty.defaultDays.length > 0 && (
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-70)">
             {formatDays(duty.defaultDays)}
           </p>
         )}
         {duty.defaultStartTime && duty.defaultEndTime && (
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-(--ws-fg-70)">
             {duty.defaultStartTime} - {duty.defaultEndTime}
           </p>
         )}
       </div>
 
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-xs text-white/50">
+        <span className="text-xs text-(--ws-fg-70)">
           {assignmentCount} / {duty.minTeachersRequired}+ assigned
         </span>
         <Button
           size="sm"
           variant="ghost"
           onClick={onAssign}
-          className="h-7 gap-1 text-xs text-brand hover:bg-brand/10 hover:text-brand"
+          className="h-7 gap-1 text-xs text-(--ws-cyan) hover:bg-brand/10 hover:text-(--ws-cyan)"
         >
           <Plus className="h-3 w-3" />
           Assign
@@ -1813,14 +1814,16 @@ function DutyDefinitionCard({
 
 export default function RolesDutiesPage() {
   return (
+    <WorkspaceScope>
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
-          <Loader2 className="h-10 w-10 animate-spin text-brand" />
+        <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to)">
+          <Loader2 className="h-10 w-10 animate-spin text-(--ws-cyan)" />
         </div>
       }
     >
       <RolesDutiesContent />
     </Suspense>
+    </WorkspaceScope>
   );
 }

@@ -184,17 +184,17 @@ export function AssignSchoolRoleModal({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              className="w-full max-w-lg max-h-[90vh] rounded-2xl border border-white/10 bg-card/95 shadow-2xl flex flex-col"
+              className="w-full max-w-lg max-h-[90vh] rounded-2xl border border-(--ws-line) bg-card/95 shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="px-5 py-4 border-b border-(--ws-line) flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-brand" />
+                  <Crown className="h-5 w-5 text-(--ws-cyan)" />
                   <span className="text-base font-semibold">Assign School Role</span>
                 </div>
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="text-white/60 hover:text-white"
+                  className="text-(--ws-fg-70) hover:text-(--ws-fg)"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -202,7 +202,7 @@ export function AssignSchoolRoleModal({
 
               {/* Step Indicator */}
               <div className="px-5 pt-4 flex items-center justify-between">
-                <div className="text-sm text-white/70">
+                <div className="text-sm text-(--ws-fg-70)">
                   Step <span className="font-semibold">{step}</span> of 3
                 </div>
                 <div className="flex gap-1">
@@ -211,7 +211,7 @@ export function AssignSchoolRoleModal({
                       key={s}
                       className={cn(
                         "h-1.5 w-8 rounded-full transition-all",
-                        s <= step ? "bg-brand" : "bg-white/20"
+                        s <= step ? "bg-brand" : "bg-(--ws-fill-strong)"
                       )}
                     />
                   ))}
@@ -232,7 +232,7 @@ export function AssignSchoolRoleModal({
                     {/* Step 1: Select Role */}
                     {step === 1 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Role
                         </h2>
                         <div className="grid gap-2 max-h-[50vh] overflow-y-auto pr-1">
@@ -244,7 +244,7 @@ export function AssignSchoolRoleModal({
                                 "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                 selectedRoleId === role.id
                                   ? "border-brand bg-brand/10"
-                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                                  : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                               )}
                               whileHover={{ scale: 1.01 }}
                               whileTap={{ scale: 0.99 }}
@@ -268,8 +268,8 @@ export function AssignSchoolRoleModal({
                                 />
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-white">{role.name}</p>
-                                <p className="text-xs text-white/50 capitalize">{role.category}</p>
+                                <p className="text-sm font-medium text-(--ws-fg)">{role.name}</p>
+                                <p className="text-xs text-(--ws-fg-70) capitalize">{role.category}</p>
                               </div>
                               {selectedRoleId === role.id && (
                                 <motion.div
@@ -289,29 +289,29 @@ export function AssignSchoolRoleModal({
                     {/* Step 2: Select Student */}
                     {step === 2 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Student for {selectedRole?.name}
                         </h2>
 
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--ws-fg-70)" />
                           <input
                             type="text"
                             placeholder="Search students..."
                             value={studentQuery}
                             onChange={(e) => setStudentQuery(e.target.value)}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                           />
                         </div>
 
                         {isLoadingStudents ? (
                           <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                            <Loader2 className="h-6 w-6 animate-spin text-(--ws-cyan)" />
                           </div>
                         ) : students.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-8">
-                            <AlertCircle className="h-6 w-6 text-white/30" />
-                            <p className="mt-2 text-sm text-white/50">No students found</p>
+                            <AlertCircle className="h-6 w-6 text-(--ws-fg-70)" />
+                            <p className="mt-2 text-sm text-(--ws-fg-70)">No students found</p>
                           </div>
                         ) : (
                           <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
@@ -323,7 +323,7 @@ export function AssignSchoolRoleModal({
                                   "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                   selectedStudentId === student.id
                                     ? "border-brand bg-brand/10"
-                                    : "border-white/10 bg-white/5 hover:border-white/20"
+                                    : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                                 )}
                                 whileHover={{ scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
@@ -337,17 +337,17 @@ export function AssignSchoolRoleModal({
                                   onChange={() => setSelectedStudentId(student.id)}
                                   className="sr-only"
                                 />
-                                <Avatar className="h-10 w-10 border-2 border-white/20">
+                                <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
                                   <AvatarImage src={student.photoUrl || ""} alt={student.fullName} />
                                   <AvatarFallback className="bg-gradient-to-br from-brand to-brand/60 text-sm font-semibold text-black">
                                     {getInitials(student.firstName, student.lastName)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="truncate text-sm font-medium text-white">
+                                  <p className="truncate text-sm font-medium text-(--ws-fg)">
                                     {student.fullName}
                                   </p>
-                                  <p className="truncate text-xs text-white/50">
+                                  <p className="truncate text-xs text-(--ws-fg-70)">
                                     {student.className || "No class"} • {student.admissionNo || "No ID"}
                                   </p>
                                 </div>
@@ -370,13 +370,13 @@ export function AssignSchoolRoleModal({
                     {/* Step 3: Review & Confirm */}
                     {step === 3 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Review Assignment
                         </h2>
 
                         <div className="rounded-xl border border-brand/20 bg-brand/10 p-4">
                           <div className="flex items-center gap-4">
-                            <Avatar className="h-14 w-14 border-2 border-white/20">
+                            <Avatar className="h-14 w-14 border-2 border-(--ws-line)">
                               <AvatarImage
                                 src={selectedStudent?.photoUrl || ""}
                                 alt={selectedStudent?.fullName || ""}
@@ -389,17 +389,17 @@ export function AssignSchoolRoleModal({
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-lg font-semibold text-white">
+                              <p className="text-lg font-semibold text-(--ws-fg)">
                                 {selectedStudent?.fullName}
                               </p>
-                              <p className="text-sm text-white/60">
+                              <p className="text-sm text-(--ws-fg-70)">
                                 {selectedStudent?.className}
                               </p>
                             </div>
                           </div>
 
                           <div className="mt-4 flex items-center gap-2">
-                            <span className="text-sm text-white/60">Will be assigned as:</span>
+                            <span className="text-sm text-(--ws-fg-70)">Will be assigned as:</span>
                             <span
                               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
                               style={{
@@ -414,7 +414,7 @@ export function AssignSchoolRoleModal({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-muted mb-2">
+                          <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70) mb-2">
                             Notes (Optional)
                           </label>
                           <textarea
@@ -422,7 +422,7 @@ export function AssignSchoolRoleModal({
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="Add any notes about this assignment..."
                             rows={3}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                           />
                         </div>
                       </section>
@@ -432,12 +432,12 @@ export function AssignSchoolRoleModal({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between border-t border-white/10 p-5 shrink-0">
+              <div className="flex items-center justify-between border-t border-(--ws-line) p-5 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={step === 1 || (step === 2 && preselectedRole) ? () => onOpenChange(false) : handleBack}
-                  className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   {step === 1 || (step === 2 && preselectedRole) ? "Cancel" : "Back"}
@@ -487,20 +487,20 @@ export function AssignSchoolRoleModal({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 250, damping: 28 }}
-              className="rounded-t-2xl border border-white/10 bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
+              className="rounded-t-2xl border border-(--ws-line) bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
             >
               <div className="py-2 shrink-0">
-                <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+                <div className="mx-auto h-1.5 w-12 rounded-full bg-(--ws-fill-strong)" />
               </div>
               <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
                 <div className="flex items-center gap-2 mb-4">
-                  <Crown className="h-5 w-5 text-brand" />
+                  <Crown className="h-5 w-5 text-(--ws-cyan)" />
                   <span className="text-base font-semibold">Assign School Role</span>
                 </div>
 
                 {/* Step Indicator */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-sm text-white/70">
+                  <div className="text-sm text-(--ws-fg-70)">
                     Step <span className="font-semibold">{step}</span> of 3
                   </div>
                   <div className="flex gap-1">
@@ -509,7 +509,7 @@ export function AssignSchoolRoleModal({
                         key={s}
                         className={cn(
                           "h-1.5 w-8 rounded-full transition-all",
-                          s <= step ? "bg-brand" : "bg-white/20"
+                          s <= step ? "bg-brand" : "bg-(--ws-fill-strong)"
                         )}
                       />
                     ))}
@@ -528,7 +528,7 @@ export function AssignSchoolRoleModal({
                   >
                     {step === 1 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Role
                         </h2>
                         <div className="grid gap-2 max-h-[40vh] overflow-y-auto">
@@ -539,7 +539,7 @@ export function AssignSchoolRoleModal({
                                 "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                 selectedRoleId === role.id
                                   ? "border-brand bg-brand/10"
-                                  : "border-white/10 bg-white/5"
+                                  : "border-(--ws-line) bg-(--ws-fill)"
                               )}
                             >
                               <input
@@ -560,8 +560,8 @@ export function AssignSchoolRoleModal({
                                 />
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-white">{role.name}</p>
-                                <p className="text-xs text-white/50 capitalize">{role.category}</p>
+                                <p className="text-sm font-medium text-(--ws-fg)">{role.name}</p>
+                                <p className="text-xs text-(--ws-fg-70) capitalize">{role.category}</p>
                               </div>
                               {selectedRoleId === role.id && (
                                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-black">
@@ -576,22 +576,22 @@ export function AssignSchoolRoleModal({
 
                     {step === 2 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Select Student
                         </h2>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--ws-fg-70)" />
                           <input
                             type="text"
                             placeholder="Search students..."
                             value={studentQuery}
                             onChange={(e) => setStudentQuery(e.target.value)}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none"
+                            className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) py-2.5 pl-10 pr-4 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none"
                           />
                         </div>
                         {isLoadingStudents ? (
                           <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-brand" />
+                            <Loader2 className="h-6 w-6 animate-spin text-(--ws-cyan)" />
                           </div>
                         ) : (
                           <div className="grid gap-2 max-h-[35vh] overflow-y-auto">
@@ -602,7 +602,7 @@ export function AssignSchoolRoleModal({
                                   "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
                                   selectedStudentId === student.id
                                     ? "border-brand bg-brand/10"
-                                    : "border-white/10 bg-white/5"
+                                    : "border-(--ws-line) bg-(--ws-fill)"
                                 )}
                               >
                                 <input
@@ -613,17 +613,17 @@ export function AssignSchoolRoleModal({
                                   onChange={() => setSelectedStudentId(student.id)}
                                   className="sr-only"
                                 />
-                                <Avatar className="h-10 w-10 border-2 border-white/20">
+                                <Avatar className="h-10 w-10 border-2 border-(--ws-line)">
                                   <AvatarImage src={student.photoUrl || ""} alt={student.fullName} />
                                   <AvatarFallback className="bg-gradient-to-br from-brand to-brand/60 text-sm font-semibold text-black">
                                     {getInitials(student.firstName, student.lastName)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="truncate text-sm font-medium text-white">
+                                  <p className="truncate text-sm font-medium text-(--ws-fg)">
                                     {student.fullName}
                                   </p>
-                                  <p className="truncate text-xs text-white/50">
+                                  <p className="truncate text-xs text-(--ws-fg-70)">
                                     {student.className || "No class"}
                                   </p>
                                 </div>
@@ -641,12 +641,12 @@ export function AssignSchoolRoleModal({
 
                     {step === 3 && (
                       <section className="space-y-4">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-(--ws-fg-70)">
                           Review
                         </h2>
                         <div className="rounded-xl border border-brand/20 bg-brand/10 p-4">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 border-2 border-white/20">
+                            <Avatar className="h-12 w-12 border-2 border-(--ws-line)">
                               <AvatarImage
                                 src={selectedStudent?.photoUrl || ""}
                                 alt={selectedStudent?.fullName || ""}
@@ -659,16 +659,16 @@ export function AssignSchoolRoleModal({
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-semibold text-white">
+                              <p className="font-semibold text-(--ws-fg)">
                                 {selectedStudent?.fullName}
                               </p>
-                              <p className="text-xs text-white/60">
+                              <p className="text-xs text-(--ws-fg-70)">
                                 {selectedStudent?.className}
                               </p>
                             </div>
                           </div>
                           <div className="mt-3 flex items-center gap-2">
-                            <span className="text-xs text-white/60">Role:</span>
+                            <span className="text-xs text-(--ws-fg-70)">Role:</span>
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
                               style={{
@@ -686,7 +686,7 @@ export function AssignSchoolRoleModal({
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder="Notes (optional)..."
                           rows={2}
-                          className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/40 focus:border-brand focus:outline-none resize-none"
+                          className="w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:border-brand focus:outline-none resize-none"
                         />
                       </section>
                     )}
@@ -694,12 +694,12 @@ export function AssignSchoolRoleModal({
                 </AnimatePresence>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-4 mt-4 border-t border-white/10">
+                <div className="flex items-center justify-between pt-4 mt-4 border-t border-(--ws-line)">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={step === 1 || (step === 2 && preselectedRole) ? () => onOpenChange(false) : handleBack}
-                    className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     {step === 1 || (step === 2 && preselectedRole) ? "Cancel" : "Back"}

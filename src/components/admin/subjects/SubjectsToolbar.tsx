@@ -43,14 +43,14 @@ export function SubjectsToolbar({
             "group relative flex items-center overflow-hidden rounded-xl border transition-all duration-200",
             isFocused
               ? "border-amber-400/40 bg-amber-300/5 shadow-lg shadow-amber-500/10"
-              : "border-white/10 bg-white/5 hover:border-white/15 hover:bg-white/8"
+              : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line) hover:bg-(--ws-fill-strong)"
           )}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10">
             <Search
               className={cn(
                 "h-3.5 w-3.5 transition-colors sm:h-4 sm:w-4",
-                isFocused ? "text-(--ws-amber)" : "text-white/40"
+                isFocused ? "text-(--ws-amber)" : "text-(--ws-fg-70)"
               )}
             />
           </div>
@@ -62,19 +62,19 @@ export function SubjectsToolbar({
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder="Search subjects by name, code..."
-            className="h-9 flex-1 bg-transparent pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none sm:h-10"
+            className="h-9 flex-1 bg-transparent pr-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) focus:outline-none sm:h-10"
           />
           {search && (
             <button
               type="button"
               onClick={() => onSearchChange("")}
-              className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+              className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-(--ws-fill-strong) text-(--ws-fg-70) transition-colors hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
             >
               <X className="h-3 w-3" />
             </button>
           )}
-          <div className="mr-3 hidden items-center gap-1 text-[10px] text-white/30 md:flex">
-            <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono">
+          <div className="mr-3 hidden items-center gap-1 text-[10px] text-(--ws-fg-70) md:flex">
+            <kbd className="rounded border border-(--ws-line) bg-(--ws-fill) px-1.5 py-0.5 font-mono">
               /
             </kbd>
           </div>
@@ -88,22 +88,22 @@ export function SubjectsToolbar({
           variant="outline"
           size="sm"
           onClick={onOpenFilters}
-          className="group gap-1.5 rounded-xl border-white/10 bg-white/5 px-3 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white sm:gap-2 sm:px-4"
+          className="group gap-1.5 rounded-xl border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) sm:gap-2 sm:px-4"
         >
           <SlidersHorizontal className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
           <span>Filters</span>
         </Button>
 
         {/* View mode toggle */}
-        <div className="flex items-center rounded-xl border border-white/10 bg-white/5 p-0.5 sm:p-1">
+        <div className="flex items-center rounded-xl border border-(--ws-line) bg-(--ws-fill) p-0.5 sm:p-1">
           <button
             type="button"
             onClick={() => onViewModeChange("cards")}
             className={cn(
               "relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200 sm:gap-2 sm:px-3",
               viewMode === "cards"
-                ? "bg-white/10 text-white shadow-sm"
-                : "text-white/50 hover:text-white/80"
+                ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-sm"
+                : "text-(--ws-fg-70) hover:text-(--ws-fg)"
             )}
             aria-pressed={viewMode === "cards"}
           >
@@ -116,8 +116,8 @@ export function SubjectsToolbar({
             className={cn(
               "relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200 sm:gap-2 sm:px-3",
               viewMode === "table"
-                ? "bg-white/10 text-white shadow-sm"
-                : "text-white/50 hover:text-white/80"
+                ? "bg-(--ws-fill-strong) text-(--ws-fg) shadow-sm"
+                : "text-(--ws-fg-70) hover:text-(--ws-fg)"
             )}
             aria-pressed={viewMode === "table"}
           >
@@ -131,7 +131,7 @@ export function SubjectsToolbar({
           variant="outline"
           size="sm"
           onClick={onExportAll}
-          className="group gap-1.5 rounded-xl border-white/10 bg-white/5 px-3 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white sm:gap-2 sm:px-4"
+          className="group gap-1.5 rounded-xl border-(--ws-line) bg-(--ws-fill) px-3 text-xs text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg) sm:gap-2 sm:px-4"
         >
           <Download className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
           <span>Export</span>

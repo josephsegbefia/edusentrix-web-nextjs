@@ -64,7 +64,7 @@ function LeoTip({ title, children }: { title: string; children: React.ReactNode 
         </div>
         <div className="min-w-0 space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-violet)">{title}</p>
-          <div className="text-sm leading-relaxed text-white/70">{children}</div>
+          <div className="text-sm leading-relaxed text-(--ws-fg-70)">{children}</div>
         </div>
       </div>
     </div>
@@ -309,19 +309,19 @@ export function SchoolDailyScheduleMasterWizard({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-center justify-center gap-2 text-xs text-white/50">
-        <span className="rounded-full bg-white/10 px-3 py-1 font-medium text-white/70">
+      <div className="flex flex-col items-center justify-center gap-2 text-xs text-(--ws-fg-70)">
+        <span className="rounded-full bg-(--ws-fill-strong) px-3 py-1 font-medium text-(--ws-fg-70)">
           Step {stepNumber} of {totalSteps}
         </span>
         {partialGroupedEdit ? (
-          <p className="max-w-md text-center text-[11px] leading-relaxed text-white/45">
+          <p className="max-w-md text-center text-[11px] leading-relaxed text-(--ws-fg-70)">
             You&apos;re editing one grade group&apos;s day. Other bands stay as they are until you confirm on the
             final step.
           </p>
         ) : null}
       </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="border border-(--ws-line) bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardContent className="p-6">
           <AnimatePresence mode="wait">
             <motion.div
@@ -334,8 +334,8 @@ export function SchoolDailyScheduleMasterWizard({
               {step === "scope" && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Who shares this daily schedule?</h2>
-                    <p className="mt-1 text-sm text-white/55">
+                    <h2 className="text-lg font-semibold text-(--ws-fg)">Who shares this daily schedule?</h2>
+                    <p className="mt-1 text-sm text-(--ws-fg-70)">
                       Timetables for each class use the schedule for that class&apos;s grade.
                     </p>
                   </div>
@@ -352,12 +352,12 @@ export function SchoolDailyScheduleMasterWizard({
                         "rounded-2xl border-2 p-5 text-left transition-all",
                         scope === "unified"
                           ? "border-indigo-400/70 bg-indigo-500/15 shadow-lg shadow-indigo-500/10"
-                          : "border-white/10 bg-white/5 hover:border-white/20"
+                          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                       )}
                     >
                       <Users className="mb-3 h-8 w-8 text-(--ws-violet)" />
-                      <p className="font-semibold text-white">Same schedule for all grades</p>
-                      <p className="mt-2 text-sm text-white/55">
+                      <p className="font-semibold text-(--ws-fg)">Same schedule for all grades</p>
+                      <p className="mt-2 text-sm text-(--ws-fg-70)">
                         One school day pattern for every grade. Use different grade bands above if parts of the
                         school run on a different bell schedule.
                       </p>
@@ -369,12 +369,12 @@ export function SchoolDailyScheduleMasterWizard({
                         "rounded-2xl border-2 p-5 text-left transition-all",
                         scope === "grouped"
                           ? "border-amber-400/70 bg-amber-500/15 shadow-lg shadow-amber-500/10"
-                          : "border-white/10 bg-white/5 hover:border-white/20"
+                          : "border-(--ws-line) bg-(--ws-fill) hover:border-(--ws-line)"
                       )}
                     >
                       <Layers className="mb-3 h-8 w-8 text-(--ws-amber)" />
-                      <p className="font-semibold text-white">Different groups of grades</p>
-                      <p className="mt-2 text-sm text-white/55">
+                      <p className="font-semibold text-(--ws-fg)">Different groups of grades</p>
+                      <p className="mt-2 text-sm text-(--ws-fg-70)">
                         Example: JHS 1–3 together, upper primary together. Each group gets its own day template.
                       </p>
                     </button>
@@ -395,7 +395,7 @@ export function SchoolDailyScheduleMasterWizard({
                       )}
                       Ask Leo
                     </Button>
-                    {leoCoach && <p className="text-sm text-white/60">{leoCoach}</p>}
+                    {leoCoach && <p className="text-sm text-(--ws-fg-70)">{leoCoach}</p>}
                   </div>
                 </div>
               )}
@@ -403,8 +403,8 @@ export function SchoolDailyScheduleMasterWizard({
               {step === "groups" && scope === "grouped" && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-lg font-semibold text-white">Group grades that share a day</h2>
-                    <p className="mt-1 text-sm text-white/55">
+                    <h2 className="text-lg font-semibold text-(--ws-fg)">Group grades that share a day</h2>
+                    <p className="mt-1 text-sm text-(--ws-fg-70)">
                       Every active grade must belong to exactly one group. One grade alone is a valid group.
                     </p>
                   </div>
@@ -441,9 +441,9 @@ export function SchoolDailyScheduleMasterWizard({
                   )}
                   <div className="space-y-4">
                     {groups.map((g, gi) => (
-                      <div key={g.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <div key={g.id} className="rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4">
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <Label className="text-white/70">Group label (optional)</Label>
+                          <Label className="text-(--ws-fg-70)">Group label (optional)</Label>
                           {groups.length > 1 && (
                             <Button type="button" variant="ghost" size="sm" onClick={() => removeGroup(gi)}>
                               Remove group
@@ -457,9 +457,9 @@ export function SchoolDailyScheduleMasterWizard({
                             setGroups((prev) => prev.map((row, j) => (j === gi ? { ...row, label: v } : row)));
                           }}
                           placeholder="e.g. JHS, Upper primary"
-                          className="mb-4 border-white/10 bg-slate-950/50 text-white"
+                          className="mb-4 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                         />
-                        <p className="mb-2 text-xs font-medium text-white/50">Grades in this group</p>
+                        <p className="mb-2 text-xs font-medium text-(--ws-fg-70)">Grades in this group</p>
                         <div className="flex flex-wrap gap-2">
                           {gradeOptions.map((gr) => {
                             const checked = g.gradeIds.includes(gr._id);
@@ -469,13 +469,13 @@ export function SchoolDailyScheduleMasterWizard({
                                 className={cn(
                                   "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm",
                                   checked
-                                    ? "border-indigo-400/50 bg-indigo-500/15 text-white"
-                                    : "border-white/10 bg-black/20 text-white/70"
+                                    ? "border-indigo-400/50 bg-indigo-500/15 text-(--ws-fg)"
+                                    : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)"
                                 )}
                               >
                                 <input
                                   type="checkbox"
-                                  className="rounded border-white/30"
+                                  className="rounded border-(--ws-line)"
                                   checked={checked}
                                   onChange={(e) => toggleGradeInGroup(gi, gr._id, e.target.checked)}
                                 />
@@ -516,8 +516,8 @@ export function SchoolDailyScheduleMasterWizard({
                           key={g.id}
                           variant="outline"
                           className={cn(
-                            "cursor-pointer border-white/15 px-3 py-1",
-                            i === groupIdx ? "border-indigo-400/60 bg-indigo-500/20 text-(--ws-violet)" : "text-white/50"
+                            "cursor-pointer border-(--ws-line) px-3 py-1",
+                            i === groupIdx ? "border-indigo-400/60 bg-indigo-500/20 text-(--ws-violet)" : "text-(--ws-fg-70)"
                           )}
                           onClick={() => setGroupIdx(i)}
                         >
@@ -530,18 +530,18 @@ export function SchoolDailyScheduleMasterWizard({
                       <p className="text-xs font-semibold uppercase tracking-wider text-(--ws-violet)">
                         Editing: {groups[groupIdx].label?.trim() || `Group ${groupIdx + 1}`}
                       </p>
-                      <p className="mt-1 text-sm text-white/60">
+                      <p className="mt-1 text-sm text-(--ws-fg-70)">
                         Grades:{" "}
-                        <span className="font-medium text-white">
+                        <span className="font-medium text-(--ws-fg)">
                           {groups[groupIdx].gradeIds.map(gradeName).filter(Boolean).join(", ") || "—"}
                         </span>
                       </p>
                     </div>
                   )}
                   {!partialGroupedEdit ? (
-                    <p className="text-sm text-white/55">
+                    <p className="text-sm text-(--ws-fg-70)">
                       Configure the school day for:{" "}
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-(--ws-fg)">
                         {groups[groupIdx].gradeIds.map(gradeName).filter(Boolean).join(", ") || "—"}
                       </span>
                     </p>
@@ -582,9 +582,9 @@ export function SchoolDailyScheduleMasterWizard({
 
               {step === "review" && (
                 <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-white">Review & save</h2>
+                  <h2 className="text-lg font-semibold text-(--ws-fg)">Review & save</h2>
                   {partialGroupedEdit ? (
-                    <p className="text-sm text-white/55">
+                    <p className="text-sm text-(--ws-fg-70)">
                       Check the updated band below. Your other schedule groups are unchanged and will be saved as they
                       are now.
                     </p>
@@ -597,10 +597,10 @@ export function SchoolDailyScheduleMasterWizard({
                       <div
                         key={g.id}
                         className={cn(
-                          "space-y-3 rounded-xl border bg-white/5 p-4",
+                          "space-y-3 rounded-xl border bg-(--ws-fill) p-4",
                           partialGroupedEdit && g.id === groups[groupIdx]?.id
                             ? "border-indigo-400/40 ring-1 ring-indigo-400/20"
-                            : "border-white/10 opacity-80"
+                            : "border-(--ws-line) opacity-80"
                         )}
                       >
                         <p className="font-medium text-(--ws-violet)">
@@ -610,12 +610,12 @@ export function SchoolDailyScheduleMasterWizard({
                               Updated
                             </Badge>
                           ) : partialGroupedEdit ? (
-                            <Badge variant="outline" className="ml-2 border-white/15 text-[10px] text-white/45">
+                            <Badge variant="outline" className="ml-2 border-(--ws-line) text-[10px] text-(--ws-fg-70)">
                               Unchanged
                             </Badge>
                           ) : null}
                         </p>
-                        <p className="text-xs text-white/45">
+                        <p className="text-xs text-(--ws-fg-70)">
                           Grades: {g.gradeIds.map(gradeName).filter(Boolean).join(", ")}
                         </p>
                         {g.config ? (
@@ -626,20 +626,20 @@ export function SchoolDailyScheduleMasterWizard({
                       </div>
                     ))}
                   <div className="space-y-2">
-                    <Label className="text-white/60">Version note (optional)</Label>
+                    <Label className="text-(--ws-fg-70)">Version note (optional)</Label>
                     <Input
                       value={changeLabel}
                       onChange={(e) => setChangeLabel(e.target.value)}
-                      className="border-white/10 bg-slate-950/50 text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       placeholder="e.g. Term 2 — split JHS schedule"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-white/60">Academic period ID (optional)</Label>
+                    <Label className="text-(--ws-fg-70)">Academic period ID (optional)</Label>
                     <Input
                       value={academicPeriodId}
                       onChange={(e) => setAcademicPeriodId(e.target.value)}
-                      className="border-white/10 bg-slate-950/50 text-white"
+                      className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     />
                   </div>
                 </div>
@@ -655,7 +655,7 @@ export function SchoolDailyScheduleMasterWizard({
             type="button"
             variant="outline"
             onClick={step === "scope" ? onCancel : goBack}
-            className="border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           >
             <ChevronLeft className="mr-1 h-4 w-4" />
             {step === "scope" ? "Cancel" : "Back"}

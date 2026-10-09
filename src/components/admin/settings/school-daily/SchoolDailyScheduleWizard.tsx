@@ -430,14 +430,14 @@ export function SchoolDailyScheduleWizard({
   };
 
   return (
-    <Card className="border border-violet-500/20 bg-slate-950/80 backdrop-blur">
+    <Card className="border border-violet-500/20 bg-(--ws-popover)/80 backdrop-blur">
       <CardContent className="space-y-6 p-6">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-(--ws-violet)">
               Step {step} of 4
             </p>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-(--ws-fg)">
               {step === 1 && "Basic school day"}
               {step === 2 && "Breaks"}
               {step === 3 && "Weekday exceptions"}
@@ -450,7 +450,7 @@ export function SchoolDailyScheduleWizard({
                 key={i}
                 className={cn(
                   "h-1.5 w-6 rounded-full",
-                  i < step ? "bg-violet-500" : "bg-white/10"
+                  i < step ? "bg-violet-500" : "bg-(--ws-fill-strong)"
                 )}
               />
             ))}
@@ -460,35 +460,35 @@ export function SchoolDailyScheduleWizard({
         {step === 1 && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-1">
-              <Label className="text-white/80">First bell / day gate (before teaching)</Label>
+              <Label className="text-(--ws-fg-70)">First bell / day gate (before teaching)</Label>
               <Input
                 type="time"
                 value={draft.dayGateStart}
                 onChange={(e) => setBase({ dayGateStart: e.target.value })}
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
-              <p className="text-[11px] text-white/40">Assembly, registration, or other non-lesson time can sit after this and before the first period.</p>
+              <p className="text-[11px] text-(--ws-fg-70)">Assembly, registration, or other non-lesson time can sit after this and before the first period.</p>
             </div>
             <div className="space-y-2 sm:col-span-1">
-              <Label className="text-white/80">What time does period 1 (teaching) start?</Label>
+              <Label className="text-(--ws-fg-70)">What time does period 1 (teaching) start?</Label>
               <Input
                 type="time"
                 value={draft.lessonStart}
                 onChange={(e) => setBase({ lessonStart: e.target.value })}
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2 sm:col-span-1">
-              <Label className="text-white/80">What time does the school day usually end?</Label>
+              <Label className="text-(--ws-fg-70)">What time does the school day usually end?</Label>
               <Input
                 type="time"
                 value={draft.dayEnd}
                 onChange={(e) => setBase({ dayEnd: e.target.value })}
-                className="border-white/10 bg-white/5 text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
               />
             </div>
             <div className="space-y-2 sm:col-span-2 sm:max-w-2xl">
-              <Label className="text-white/80">How long is one period (minutes)?</Label>
+              <Label className="text-(--ws-fg-70)">How long is one period (minutes)?</Label>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <PremiumSelect
                   value={
@@ -501,7 +501,7 @@ export function SchoolDailyScheduleWizard({
                     setBase({ periodLengthMinutes: Number(v) });
                   }}
                 >
-                  <PremiumSelectTrigger className="h-10 w-full min-w-[220px] border-white/10 bg-white/5 text-white">
+                  <PremiumSelectTrigger className="h-10 w-full min-w-[220px] border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                     <PremiumSelectValue placeholder="Period length" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -514,7 +514,7 @@ export function SchoolDailyScheduleWizard({
                   </PremiumSelectContent>
                 </PremiumSelect>
                 <div className="space-y-1">
-                  <Label className="text-[11px] text-white/40">Exact minutes</Label>
+                  <Label className="text-[11px] text-(--ws-fg-70)">Exact minutes</Label>
                   <Input
                     type="number"
                     min={5}
@@ -523,24 +523,24 @@ export function SchoolDailyScheduleWizard({
                     onChange={(e) =>
                       setBase({ periodLengthMinutes: Number(e.target.value) || 0 })
                     }
-                    className="h-10 max-w-32 border-white/10 bg-white/5 text-white"
+                    className="h-10 max-w-32 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                     aria-label="Period length in minutes"
                   />
                 </div>
               </div>
             </div>
-            <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
-              <p className="text-sm font-medium text-white/90">Non-teaching time before first period</p>
-              <p className="text-xs text-white/45">Optional blocks such as assembly or registration. They are not &quot;breaks&quot; and sit between first bell and the start of period 1.</p>
+            <div className="space-y-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:col-span-2">
+              <p className="text-sm font-medium text-(--ws-fg-70)">Non-teaching time before first period</p>
+              <p className="text-xs text-(--ws-fg-70)">Optional blocks such as assembly or registration. They are not &quot;breaks&quot; and sit between first bell and the start of period 1.</p>
               <ul className="space-y-1.5">
                 {(draft.openingBlocks ?? []).map((o) => (
                   <li
                     key={o.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-white/80"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-2 py-1.5 text-xs text-(--ws-fg-70)"
                   >
                     <span>
                       <span className="font-medium">{o.name}</span>{" "}
-                      <span className="text-white/50">
+                      <span className="text-(--ws-fg-70)">
                         ({o.kind}) {o.startTime}–{o.endTime}
                       </span>
                     </span>
@@ -561,26 +561,26 @@ export function SchoolDailyScheduleWizard({
                   </li>
                 ))}
                 {(draft.openingBlocks?.length ?? 0) === 0 && (
-                  <li className="text-xs text-white/40">No opening blocks. First bell and lessons start are the only anchors.</li>
+                  <li className="text-xs text-(--ws-fg-70)">No opening blocks. First bell and lessons start are the only anchors.</li>
                 )}
               </ul>
-              <div className="mt-2 grid gap-2 rounded border border-dashed border-white/15 p-3 sm:grid-cols-2">
+              <div className="mt-2 grid gap-2 rounded border border-dashed border-(--ws-line) p-3 sm:grid-cols-2">
                 <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-[11px] text-white/50">Name</Label>
+                  <Label className="text-[11px] text-(--ws-fg-70)">Name</Label>
                   <Input
                     value={obName}
                     onChange={(e) => setObName(e.target.value)}
                     placeholder="e.g. Assembly"
-                    className="border-white/10 bg-slate-950/60 text-sm text-white"
+                    className="border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px] text-white/50">Kind</Label>
+                  <Label className="text-[11px] text-(--ws-fg-70)">Kind</Label>
                   <PremiumSelect
                     value={obKind}
                     onValueChange={(v) => setObKind(v as OpeningBlock["kind"])}
                   >
-                    <PremiumSelectTrigger className="h-9 border-white/10 bg-slate-950/60 text-xs text-white">
+                    <PremiumSelectTrigger className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-xs text-(--ws-fg)">
                       <PremiumSelectValue />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
@@ -592,21 +592,21 @@ export function SchoolDailyScheduleWizard({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <div className="min-w-0 flex-1 space-y-1">
-                    <Label className="text-[11px] text-white/50">Start</Label>
+                    <Label className="text-[11px] text-(--ws-fg-70)">Start</Label>
                     <Input
                       type="time"
                       value={obStart}
                       onChange={(e) => setObStart(e.target.value)}
-                      className="h-9 border-white/10 bg-slate-950/60 text-white"
+                      className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                     />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
-                    <Label className="text-[11px] text-white/50">End</Label>
+                    <Label className="text-[11px] text-(--ws-fg-70)">End</Label>
                     <Input
                       type="time"
                       value={obEnd}
                       onChange={(e) => setObEnd(e.target.value)}
-                      className="h-9 border-white/10 bg-slate-950/60 text-white"
+                      className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                     />
                   </div>
                 </div>
@@ -635,12 +635,12 @@ export function SchoolDailyScheduleWizard({
               </div>
             </div>
 
-            <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
-              <p className="text-sm font-medium text-white/90">Period length overrides</p>
-              <p className="text-xs text-white/45">Make only certain periods shorter or longer (e.g. first period) without duplicating a whole weekday.</p>
-              <ul className="space-y-1.5 text-xs text-white/70">
+            <div className="space-y-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:col-span-2">
+              <p className="text-sm font-medium text-(--ws-fg-70)">Period length overrides</p>
+              <p className="text-xs text-(--ws-fg-70)">Make only certain periods shorter or longer (e.g. first period) without duplicating a whole weekday.</p>
+              <ul className="space-y-1.5 text-xs text-(--ws-fg-70)">
                 {(draft.periodLengthOverrides ?? []).map((o) => (
-                  <li key={o.periodIndex} className="flex items-center justify-between gap-2 rounded border border-white/5 bg-slate-950/50 px-2 py-1">
+                  <li key={o.periodIndex} className="flex items-center justify-between gap-2 rounded border border-(--ws-line) bg-(--ws-fill) px-2 py-1">
                     <span>
                       Period {o.periodIndex}: {o.minutes} min
                     </span>
@@ -663,30 +663,30 @@ export function SchoolDailyScheduleWizard({
                   </li>
                 ))}
                 {(draft.periodLengthOverrides?.length ?? 0) === 0 && (
-                  <li className="text-white/40">All periods use the default length above.</li>
+                  <li className="text-(--ws-fg-70)">All periods use the default length above.</li>
                 )}
               </ul>
               <div className="mt-1 flex flex-wrap items-end gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[11px] text-white/50">Period #</Label>
+                  <Label className="text-[11px] text-(--ws-fg-70)">Period #</Label>
                   <Input
                     type="number"
                     min={1}
                     max={20}
                     value={ovIndex}
                     onChange={(e) => setOvIndex(Number(e.target.value) || 1)}
-                    className="h-9 w-20 border-white/10 bg-slate-950/60 text-white"
+                    className="h-9 w-20 border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px] text-white/50">Minutes</Label>
+                  <Label className="text-[11px] text-(--ws-fg-70)">Minutes</Label>
                   <Input
                     type="number"
                     min={5}
                     max={120}
                     value={ovMinutes}
                     onChange={(e) => setOvMinutes(Number(e.target.value) || 0)}
-                    className="h-9 w-24 border-white/10 bg-slate-950/60 text-white"
+                    className="h-9 w-24 border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                   />
                 </div>
                 <Button
@@ -729,13 +729,13 @@ export function SchoolDailyScheduleWizard({
 
         {step === 2 && (
           <div className="space-y-4">
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-(--ws-fg-70)">
               Add breaks one at a time (e.g. morning break, lunch). They block teaching time and reduce how many
               periods fit in the day. Each schedule group uses this pattern for every grade in that group — use
               separate groups in the previous flow if bell times differ by band.
             </p>
             <div className="space-y-2 max-w-md">
-              <Label className="text-white/50 text-xs">Prefill from an example (optional)</Label>
+              <Label className="text-(--ws-fg-70) text-xs">Prefill from an example (optional)</Label>
               <PremiumSelect
                 key={breakExampleKey}
                 onValueChange={(v) => {
@@ -755,7 +755,7 @@ export function SchoolDailyScheduleWizard({
                   setBreakExampleKey((k) => k + 1);
                 }}
               >
-                <PremiumSelectTrigger className="h-10 w-full border-white/10 bg-white/5 text-white">
+                <PremiumSelectTrigger className="h-10 w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                   <PremiumSelectValue placeholder="Choose a template…" />
                 </PremiumSelectTrigger>
                 <PremiumSelectContent>
@@ -767,16 +767,16 @@ export function SchoolDailyScheduleWizard({
             </div>
             <ul className="space-y-2">
               {draft.breaks.length === 0 && (
-                <li className="text-sm text-white/40">No breaks added yet.</li>
+                <li className="text-sm text-(--ws-fg-70)">No breaks added yet.</li>
               )}
               {draft.breaks.map((b) => (
                 <li
                   key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2"
                 >
-                  <span className="text-sm text-white">
+                  <span className="text-sm text-(--ws-fg)">
                     <span className="font-medium">{b.name}</span>{" "}
-                    <span className="text-white/60">
+                    <span className="text-(--ws-fg-70)">
                       {b.startTime} – {b.endTime}
                     </span>
                   </span>
@@ -792,32 +792,32 @@ export function SchoolDailyScheduleWizard({
                 </li>
               ))}
             </ul>
-            <div className="grid gap-3 rounded-xl border border-dashed border-white/15 p-4 sm:grid-cols-2">
+            <div className="grid gap-3 rounded-xl border border-dashed border-(--ws-line) p-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label className="text-white/80">Break name</Label>
+                <Label className="text-(--ws-fg-70)">Break name</Label>
                 <Input
                   value={breakName}
                   onChange={(e) => setBreakName(e.target.value)}
                   placeholder="e.g. Morning break"
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">Start</Label>
+                <Label className="text-(--ws-fg-70)">Start</Label>
                 <Input
                   type="time"
                   value={breakStart}
                   onChange={(e) => setBreakStart(e.target.value)}
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-white/80">End</Label>
+                <Label className="text-(--ws-fg-70)">End</Label>
                 <Input
                   type="time"
                   value={breakEnd}
                   onChange={(e) => setBreakEnd(e.target.value)}
-                  className="border-white/10 bg-white/5 text-white"
+                  className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -838,9 +838,9 @@ export function SchoolDailyScheduleWizard({
         {step === 3 && (
           <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-white/70">Do all weekdays follow the same schedule?</p>
+              <p className="text-sm text-(--ws-fg-70)">Do all weekdays follow the same schedule?</p>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-white/50">Different by day</span>
+                <span className="text-xs text-(--ws-fg-70)">Different by day</span>
                 <Switch
                   checked={!draft.allWeekdaysSame}
                   onCheckedChange={(v) => {
@@ -855,7 +855,7 @@ export function SchoolDailyScheduleWizard({
             </div>
             {!draft.allWeekdaysSame && (
               <div className="space-y-3">
-                <p className="text-sm text-white/60">
+                <p className="text-sm text-(--ws-fg-70)">
                   Choose any weekday that should differ from the default. Each selected day gets its own full
                   structure from first bell through dismissal; unselected days keep the default from steps 1–2.
                 </p>
@@ -871,7 +871,7 @@ export function SchoolDailyScheduleWizard({
                           "rounded-lg border px-3 py-1.5 text-sm font-medium transition",
                           on
                             ? "border-violet-500/50 bg-violet-500/20 text-(--ws-violet)"
-                            : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                         )}
                       >
                         {short}
@@ -882,52 +882,52 @@ export function SchoolDailyScheduleWizard({
                 {draft.weekdayExceptions.map((ex) => (
                   <div
                     key={ex.weekday}
-                    className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4"
+                    className="space-y-4 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="space-y-1">
                         <Badge variant="secondary" className="capitalize">
                           {ex.weekday}
                         </Badge>
-                        <p className="text-xs text-white/45">
+                        <p className="text-xs text-(--ws-fg-70)">
                           Configure this day independently from first bell to dismissal.
                         </p>
                       </div>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-4">
                       <div className="space-y-1">
-                        <Label className="text-xs text-white/60">First bell</Label>
+                        <Label className="text-xs text-(--ws-fg-70)">First bell</Label>
                         <Input
                           type="time"
                           value={ex.dayGateStart ?? ex.lessonStart}
                           onChange={(e) =>
                             patchException(ex.weekday, { dayGateStart: e.target.value })
                           }
-                          className="border-white/10 bg-slate-950/60 text-white"
+                          className="border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs text-white/60">Lessons start</Label>
+                        <Label className="text-xs text-(--ws-fg-70)">Lessons start</Label>
                         <Input
                           type="time"
                           value={ex.lessonStart}
                           onChange={(e) =>
                             patchException(ex.weekday, { lessonStart: e.target.value })
                           }
-                          className="border-white/10 bg-slate-950/60 text-white"
+                          className="border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs text-white/60">Day ends</Label>
+                        <Label className="text-xs text-(--ws-fg-70)">Day ends</Label>
                         <Input
                           type="time"
                           value={ex.dayEnd}
                           onChange={(e) => patchException(ex.weekday, { dayEnd: e.target.value })}
-                          className="border-white/10 bg-slate-950/60 text-white"
+                          className="border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs text-white/60">Period (min)</Label>
+                        <Label className="text-xs text-(--ws-fg-70)">Period (min)</Label>
                         <Input
                           type="number"
                           min={5}
@@ -938,16 +938,16 @@ export function SchoolDailyScheduleWizard({
                               periodLengthMinutes: Number(e.target.value) || 0,
                             })
                           }
-                          className="border-white/10 bg-slate-950/60 text-white"
+                          className="border-(--ws-line) bg-(--ws-popover)/60 text-(--ws-fg)"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                    <div className="space-y-2 rounded-lg border border-(--ws-line) bg-(--ws-popover)/40 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <Label className="text-xs text-white/60">Opening / non-teaching blocks</Label>
-                          <p className="mt-1 text-[11px] text-white/40">
+                          <Label className="text-xs text-(--ws-fg-70)">Opening / non-teaching blocks</Label>
+                          <p className="mt-1 text-[11px] text-(--ws-fg-70)">
                             Assembly, registration, or other blocks must sit between first bell and lesson start.
                           </p>
                         </div>
@@ -956,14 +956,14 @@ export function SchoolDailyScheduleWizard({
                           size="sm"
                           variant="outline"
                           onClick={() => addExceptionOpeningBlock(ex.weekday)}
-                          className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                         >
                           <Plus className="mr-1 h-3 w-3" />
                           Add block
                         </Button>
                       </div>
                       {(ex.openingBlocks ?? []).length === 0 ? (
-                        <p className="text-xs text-white/40">
+                        <p className="text-xs text-(--ws-fg-70)">
                           No opening blocks for this day.
                         </p>
                       ) : (
@@ -971,7 +971,7 @@ export function SchoolDailyScheduleWizard({
                           {(ex.openingBlocks ?? []).map((block) => (
                             <div
                               key={block.id}
-                              className="grid gap-2 rounded-lg border border-white/5 bg-black/20 p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(120px,0.8fr)_110px_110px_36px]"
+                              className="grid gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(120px,0.8fr)_110px_110px_36px]"
                             >
                               <Input
                                 value={block.name}
@@ -980,7 +980,7 @@ export function SchoolDailyScheduleWizard({
                                     name: e.target.value,
                                   })
                                 }
-                                className="h-9 border-white/10 bg-slate-950/60 text-sm text-white"
+                                className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                                 placeholder="e.g. Assembly"
                               />
                               <PremiumSelect
@@ -991,7 +991,7 @@ export function SchoolDailyScheduleWizard({
                                   })
                                 }
                               >
-                                <PremiumSelectTrigger className="h-9 border-white/10 bg-slate-950/60 text-xs text-white">
+                                <PremiumSelectTrigger className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-xs text-(--ws-fg)">
                                   <PremiumSelectValue />
                                 </PremiumSelectTrigger>
                                 <PremiumSelectContent>
@@ -1008,7 +1008,7 @@ export function SchoolDailyScheduleWizard({
                                     startTime: e.target.value,
                                   })
                                 }
-                                className="h-9 border-white/10 bg-slate-950/60 text-sm text-white"
+                                className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                                 aria-label={`${block.name} start time`}
                               />
                               <Input
@@ -1019,7 +1019,7 @@ export function SchoolDailyScheduleWizard({
                                     endTime: e.target.value,
                                   })
                                 }
-                                className="h-9 border-white/10 bg-slate-950/60 text-sm text-white"
+                                className="h-9 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                                 aria-label={`${block.name} end time`}
                               />
                               <Button
@@ -1037,11 +1037,11 @@ export function SchoolDailyScheduleWizard({
                       )}
                     </div>
 
-                    <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                    <div className="space-y-2 rounded-lg border border-(--ws-line) bg-(--ws-popover)/40 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
-                          <Label className="text-xs text-white/60">Period length overrides</Label>
-                          <p className="mt-1 text-[11px] text-white/40">
+                          <Label className="text-xs text-(--ws-fg-70)">Period length overrides</Label>
+                          <p className="mt-1 text-[11px] text-(--ws-fg-70)">
                             Use this when a period on this day is shorter or longer than the day default.
                           </p>
                         </div>
@@ -1050,14 +1050,14 @@ export function SchoolDailyScheduleWizard({
                           size="sm"
                           variant="outline"
                           onClick={() => setExceptionPeriodOverride(ex.weekday, 1, ex.periodLengthMinutes)}
-                          className="border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                          className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)"
                         >
                           <Plus className="mr-1 h-3 w-3" />
                           Add override
                         </Button>
                       </div>
                       {(ex.periodLengthOverrides ?? []).length === 0 ? (
-                        <p className="text-xs text-white/40">
+                        <p className="text-xs text-(--ws-fg-70)">
                           All periods use {ex.periodLengthMinutes} minutes on this day.
                         </p>
                       ) : (
@@ -1065,10 +1065,10 @@ export function SchoolDailyScheduleWizard({
                           {(ex.periodLengthOverrides ?? []).map((override) => (
                             <div
                               key={override.periodIndex}
-                              className="flex flex-wrap items-end gap-2 rounded-lg border border-white/5 bg-black/20 p-2"
+                              className="flex flex-wrap items-end gap-2 rounded-lg border border-(--ws-line) bg-(--ws-fill) p-2"
                             >
                               <div className="space-y-1">
-                                <Label className="text-[11px] text-white/50">Period #</Label>
+                                <Label className="text-[11px] text-(--ws-fg-70)">Period #</Label>
                                 <Input
                                   type="number"
                                   min={1}
@@ -1083,11 +1083,11 @@ export function SchoolDailyScheduleWizard({
                                       override.minutes
                                     );
                                   }}
-                                  className="h-9 w-24 border-white/10 bg-slate-950/60 text-sm text-white"
+                                  className="h-9 w-24 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-[11px] text-white/50">Minutes</Label>
+                                <Label className="text-[11px] text-(--ws-fg-70)">Minutes</Label>
                                 <Input
                                   type="number"
                                   min={5}
@@ -1100,7 +1100,7 @@ export function SchoolDailyScheduleWizard({
                                       Number(e.target.value) || 0
                                     )
                                   }
-                                  className="h-9 w-28 border-white/10 bg-slate-950/60 text-sm text-white"
+                                  className="h-9 w-28 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                                 />
                               </div>
                               <Button
@@ -1121,11 +1121,11 @@ export function SchoolDailyScheduleWizard({
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs text-white/60">Breaks for this day</Label>
+                      <Label className="text-xs text-(--ws-fg-70)">Breaks for this day</Label>
                       {ex.breaks.map((b) => (
                         <div
                           key={b.id}
-                          className="flex flex-wrap items-end gap-2 rounded-lg border border-white/5 bg-slate-950/40 p-2"
+                          className="flex flex-wrap items-end gap-2 rounded-lg border border-(--ws-line) bg-(--ws-popover)/40 p-2"
                         >
                           <Input
                             value={b.name}
@@ -1146,7 +1146,7 @@ export function SchoolDailyScheduleWizard({
                                 ),
                               }))
                             }
-                            className="h-9 max-w-xs border-white/10 bg-slate-950/60 text-sm text-white"
+                            className="h-9 max-w-xs border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                             placeholder="Name"
                           />
                           <Input
@@ -1169,7 +1169,7 @@ export function SchoolDailyScheduleWizard({
                                 ),
                               }))
                             }
-                            className="h-9 w-28 border-white/10 bg-slate-950/60 text-sm text-white"
+                            className="h-9 w-28 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                           />
                           <Input
                             type="time"
@@ -1191,7 +1191,7 @@ export function SchoolDailyScheduleWizard({
                                 ),
                               }))
                             }
-                            className="h-9 w-28 border-white/10 bg-slate-950/60 text-sm text-white"
+                            className="h-9 w-28 border-(--ws-line) bg-(--ws-popover)/60 text-sm text-(--ws-fg)"
                           />
                           <Button
                             type="button"
@@ -1214,7 +1214,7 @@ export function SchoolDailyScheduleWizard({
                         Add break
                       </Button>
                     </div>
-                    <p className="text-xs text-white/40">
+                    <p className="text-xs text-(--ws-fg-70)">
                       Periods:{" "}
                       {effectivePeriodsFor(ensureConfigV2(draft), ex.weekday, null).fullPeriods}
                     </p>
@@ -1230,36 +1230,36 @@ export function SchoolDailyScheduleWizard({
 
 
         {step === 4 && (
-          <div className="space-y-4 text-sm text-white/80">
+          <div className="space-y-4 text-sm text-(--ws-fg-70)">
             <DayTimelineStrip config={ensureConfigV2(draft)} gradeOptions={gradeOptions} />
             {!embedMode && (
             <div className="space-y-2">
-              <Label className="text-white/60">Version note (optional)</Label>
+              <Label className="text-(--ws-fg-70)">Version note (optional)</Label>
               <Input
                 value={changeLabel}
                 onChange={(e) => setChangeLabel(e.target.value)}
                 placeholder="e.g. Term 1 2026, post-assembly change"
-                className="border-white/10 bg-slate-950/50 text-sm text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg)"
               />
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-(--ws-fg-70)">
                 Saved with the previous snapshot in history so you can tell which rule set was active.
               </p>
             </div>
             )}
             {!embedMode && (
             <div className="space-y-2">
-              <Label className="text-white/60">Academic period ID (optional)</Label>
+              <Label className="text-(--ws-fg-70)">Academic period ID (optional)</Label>
               <Input
                 value={academicPeriodId}
                 onChange={(e) => setAcademicPeriodId(e.target.value)}
                 placeholder="Link to a term/semester if your school uses that record"
-                className="border-white/10 bg-slate-950/50 text-sm text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-sm text-(--ws-fg)"
               />
             </div>
             )}
             <div>
-              <h3 className="mb-2 font-semibold text-white">Default school day</h3>
-              <ul className="list-inside list-disc space-y-1 text-white/70">
+              <h3 className="mb-2 font-semibold text-(--ws-fg)">Default school day</h3>
+              <ul className="list-inside list-disc space-y-1 text-(--ws-fg-70)">
                 <li>First bell: {formatHhmm12(draft.dayGateStart)}</li>
                 <li>Period 1 starts: {formatHhmm12(draft.lessonStart)}</li>
                 <li>End: {formatHhmm12(draft.dayEnd)}</li>
@@ -1270,10 +1270,10 @@ export function SchoolDailyScheduleWizard({
             </div>
             {!draft.allWeekdaysSame && (
               <div>
-                <h3 className="mb-2 font-semibold text-white">Exceptions</h3>
+                <h3 className="mb-2 font-semibold text-(--ws-fg)">Exceptions</h3>
                 <ul className="space-y-2">
                   {draft.weekdayExceptions.map((ex) => (
-                    <li key={ex.weekday} className="text-white/70">
+                    <li key={ex.weekday} className="text-(--ws-fg-70)">
                       <span className="font-medium capitalize text-(--ws-violet)">
                         {ex.weekday}:
                       </span>{" "}
@@ -1286,7 +1286,7 @@ export function SchoolDailyScheduleWizard({
                 </ul>
               </div>
             )}
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-(--ws-fg-70)">
               {embedMode
                 ? "This pattern applies only to the schedule group you are editing."
                 : "Saving applies this as the school-wide day pattern (with exceptions) for future timetables and scheduling features."}
@@ -1299,7 +1299,7 @@ export function SchoolDailyScheduleWizard({
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+            className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
           >
             Cancel
           </Button>
@@ -1309,7 +1309,7 @@ export function SchoolDailyScheduleWizard({
                 type="button"
                 variant="outline"
                 onClick={back}
-                className="border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+                className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:border-(--ws-line) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
                 Back

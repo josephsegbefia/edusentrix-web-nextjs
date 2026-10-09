@@ -1,6 +1,7 @@
 // src/app/(app)/admin/settings/page.tsx
 "use client";
 
+import { WorkspaceScope } from "@/components/theme/workspace-scope";
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -175,7 +176,7 @@ function PaymentSetupEntryCard() {
 
   if (isLoading) {
     return (
-      <div className="h-32 rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
+      <div className="h-32 rounded-2xl border border-(--ws-line) bg-(--ws-fill) animate-pulse" />
     );
   }
 
@@ -196,12 +197,12 @@ function PaymentSetupEntryCard() {
           ? "border-cyan-500/30 bg-cyan-500/15 text-(--ws-cyan)"
           : data.statusTone === "red"
             ? "border-rose-500/30 bg-rose-500/15 text-(--ws-rose)"
-            : "border-white/15 bg-white/5 text-white/70";
+            : "border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70)";
 
   return (
     <Link
       href="/admin/settings/payment-setup"
-      className="group block rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/10 via-transparent to-cyan-500/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-xl hover:shadow-emerald-900/10"
+      className="group block rounded-2xl border border-(--ws-line) bg-linear-to-br from-emerald-500/10 via-transparent to-cyan-500/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-(--ws-line) hover:shadow-xl hover:shadow-emerald-900/10"
     >
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
@@ -211,19 +212,19 @@ function PaymentSetupEntryCard() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-lg font-semibold text-white">Payment Setup</h3>
+                <h3 className="text-lg font-semibold text-(--ws-fg)">Payment Setup</h3>
                 <Badge variant="outline" className={cn("text-[11px]", toneClass)}>
                   {data.statusLabel}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-white/60">
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Manage the school's payout account and online payments readiness.
               </p>
             </div>
           </div>
-          <ArrowRight className="h-5 w-5 text-white/35 transition-transform group-hover:translate-x-0.5" />
+          <ArrowRight className="h-5 w-5 text-(--ws-fg-70) transition-transform group-hover:translate-x-0.5" />
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-white/50">
+        <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-(--ws-fg-70)">
           <span>
             {data.bank.maskedAccountNumber
               ? `${data.bank.bankName} • ${data.bank.maskedAccountNumber}`
@@ -324,13 +325,13 @@ function SettingsPageContent() {
             aria-hidden="true"
           />
           <div className="relative z-10">
-            <div className="h-10 w-64 animate-pulse rounded-lg bg-white/10" />
-            <div className="mt-2 h-5 w-96 animate-pulse rounded bg-white/5" />
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-(--ws-fill-strong)" />
+            <div className="mt-2 h-5 w-96 animate-pulse rounded bg-(--ws-fill)" />
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-white/5" />
+            <div key={i} className="h-32 animate-pulse rounded-xl bg-(--ws-fill)" />
           ))}
         </div>
       </div>
@@ -340,9 +341,9 @@ function SettingsPageContent() {
   if (isError) {
     return (
       <div className="space-y-6">
-        <Card className="border border-red-500/30 bg-red-950/20">
+        <Card className="border border-red-500/30 bg-rose-500/10">
           <CardContent className="flex items-center gap-4 p-6">
-            <AlertCircle className="h-8 w-8 text-red-400" />
+            <AlertCircle className="h-8 w-8 text-(--ws-rose)" />
             <div>
               <p className="font-medium text-(--ws-rose)">Failed to load settings</p>
               <p className="text-sm text-(--ws-rose)">Please refresh the page to try again</p>
@@ -384,7 +385,7 @@ function SettingsPageContent() {
                   Configuration
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-white/60">
+              <p className="mt-1 text-sm text-(--ws-fg-70)">
                 Configure school-wide operational rules and feature preferences
               </p>
             </div>
@@ -425,7 +426,7 @@ function SettingsPageContent() {
                 "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                 isActive
                   ? "border border-violet-500/30 bg-violet-500/20 text-(--ws-violet) shadow-lg shadow-violet-500/10"
-                  : "border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  : "border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong) hover:text-(--ws-fg)"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -449,16 +450,16 @@ function SettingsPageContent() {
 
           {activeTab === "attendance" && (
             <div className="space-y-4">
-              <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+              <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
                 <CardContent className="p-6">
-                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
+                    <CheckCircle2 className="h-5 w-5 text-(--ws-emerald)" />
                     Attendance Rules
                   </h3>
 
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-white/70">Late Arrival Cutoff</Label>
+                      <Label className="text-(--ws-fg-70)">Late Arrival Cutoff</Label>
                       <Input
                         type="time"
                         value={formData.lateArrivalCutoff}
@@ -468,15 +469,15 @@ function SettingsPageContent() {
                             lateArrivalCutoff: e.target.value,
                           }))
                         }
-                        className="border-white/10 bg-white/5 text-white"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-(--ws-fg-70)">
                         Students arriving after this time are marked late
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-white/70">Minimum Attendance (%)</Label>
+                      <Label className="text-(--ws-fg-70)">Minimum Attendance (%)</Label>
                       <Input
                         type="number"
                         min={0}
@@ -488,15 +489,15 @@ function SettingsPageContent() {
                             minimumAttendancePercent: Number(e.target.value),
                           }))
                         }
-                        className="border-white/10 bg-white/5 text-white"
+                        className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                       />
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-(--ws-fg-70)">
                         Required for promotion to next grade
                       </p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
-                    <p className="text-sm text-white/80">
+                    <p className="text-sm text-(--ws-fg-70)">
                       Configure promotion criteria and run previews
                     </p>
                     <Link
@@ -509,18 +510,18 @@ function SettingsPageContent() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+              <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
                 <CardContent className="p-6">
-                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
                     <Megaphone className="h-5 w-5 text-(--ws-violet)" />
                     Attendance Notifications
                   </h3>
 
                   <div className="space-y-4">
-                    <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
-                        <Label className="text-white/80">Notify guardians</Label>
-                        <p className="text-xs text-white/50">
+                        <Label className="text-(--ws-fg-70)">Notify guardians</Label>
+                        <p className="text-xs text-(--ws-fg-70)">
                           Send absences and late alerts to primary guardians.
                         </p>
                       </div>
@@ -546,9 +547,9 @@ function SettingsPageContent() {
                       ].map((channel) => (
                         <div
                           key={channel.key}
-                          className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
+                          className="flex items-center justify-between rounded-xl border border-(--ws-line) bg-(--ws-fill) px-4 py-3"
                         >
-                          <Label className="text-sm text-white/70">{channel.label}</Label>
+                          <Label className="text-sm text-(--ws-fg-70)">{channel.label}</Label>
                           <Switch
                             checked={
                               formData.attendanceNotifications.channels[channel.key as keyof typeof formData.attendanceNotifications.channels]
@@ -582,13 +583,13 @@ function SettingsPageContent() {
 
           {activeTab === "features" && (
             <>
-            <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+            <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
               <CardContent className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
                   <ClipboardList className="h-5 w-5 text-violet-400" />
                   Schemes of work &amp; planning
                 </h3>
-                <p className="mb-4 text-sm text-white/55">
+                <p className="mb-4 text-sm text-(--ws-fg-70)">
                   Turn on the scheme-of-work module for teachers, then optionally allow AI-assisted Leo
                   drafts and imports. This is separate from{" "}
                   <Link
@@ -600,10 +601,10 @@ function SettingsPageContent() {
                   (NaCCA, Cambridge, etc.).
                 </p>
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
-                      <Label className="text-white/80">Enable scheme of work</Label>
-                      <p className="text-xs text-white/50">
+                      <Label className="text-(--ws-fg-70)">Enable scheme of work</Label>
+                      <p className="text-xs text-(--ws-fg-70)">
                         Teachers can create schemes, coverage, imports, and Leo planner when the options
                         below are also enabled.
                       </p>
@@ -621,10 +622,10 @@ function SettingsPageContent() {
                       }
                     />
                   </div>
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
-                      <Label className="text-white/80">Allow scheme file import (CSV / Excel)</Label>
-                      <p className="text-xs text-white/50">
+                      <Label className="text-(--ws-fg-70)">Allow scheme file import (CSV / Excel)</Label>
+                      <p className="text-xs text-(--ws-fg-70)">
                         Lets admins upload spreadsheets on the Schemes import page.
                       </p>
                     </div>
@@ -645,10 +646,10 @@ function SettingsPageContent() {
                       }
                     />
                   </div>
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
-                      <Label className="text-white/80">Allow PDF scheme import (Leo extraction)</Label>
-                      <p className="text-xs text-white/50">
+                      <Label className="text-(--ws-fg-70)">Allow PDF scheme import (Leo extraction)</Label>
+                      <p className="text-xs text-(--ws-fg-70)">
                         NaCCA/GES PDFs are parsed with AI after upload (OpenAI first, Gemini fallback).
                         Requires API keys and curriculum
                         AI entitlement.
@@ -671,10 +672,10 @@ function SettingsPageContent() {
                       }
                     />
                   </div>
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
-                      <Label className="text-white/80">AI-assisted scheme drafting (Leo)</Label>
-                      <p className="text-xs text-white/50">
+                      <Label className="text-(--ws-fg-70)">AI-assisted scheme drafting (Leo)</Label>
+                      <p className="text-xs text-(--ws-fg-70)">
                         Requires scheme of work enabled and server AI configuration. Teachers use Leo on
                         scheme detail.
                       </p>
@@ -697,10 +698,10 @@ function SettingsPageContent() {
               </CardContent>
             </Card>
             <SchoolLeoSettingsCard />
-            <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+            <Card className="border border-(--ws-line) bg-gradient-to-br from-(--ws-panel-from) to-(--ws-panel-to) backdrop-blur-xl">
               <CardContent className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                  <Sparkles className="h-5 w-5 text-indigo-400" />
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-(--ws-fg)">
+                  <Sparkles className="h-5 w-5 text-(--ws-violet)" />
                   Feature Toggles
                 </h3>
 
@@ -712,13 +713,13 @@ function SettingsPageContent() {
                     }
                   />
 
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
-                      <Label className="flex items-center gap-2 text-white/80">
+                      <Label className="flex items-center gap-2 text-(--ws-fg-70)">
                         <ClipboardCheck className="h-4 w-4 text-(--ws-violet)" />
                         Teacher Studio
                       </Label>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-(--ws-fg-70)">
                         Enable assignments, submissions, and rubrics for teachers.
                       </p>
                     </div>
@@ -733,13 +734,13 @@ function SettingsPageContent() {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
-                      <Label className="flex items-center gap-2 text-white/80">
+                      <Label className="flex items-center gap-2 text-(--ws-fg-70)">
                         <Wifi className="h-4 w-4 text-(--ws-emerald)" />
                         Offline Mode (PWA)
                       </Label>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-(--ws-fg-70)">
                         Allow offline caching and background sync for teacher workflows.
                       </p>
                     </div>
@@ -766,12 +767,14 @@ function SettingsPageContent() {
 
 export default function SettingsPage() {
   return (
+    <WorkspaceScope>
     <React.Suspense
       fallback={
-        <div className="p-6 text-sm text-white/60">Loading settings…</div>
+        <div className="p-6 text-sm text-(--ws-fg-70)">Loading settings…</div>
       }
     >
       <SettingsPageContent />
     </React.Suspense>
+    </WorkspaceScope>
   );
 }

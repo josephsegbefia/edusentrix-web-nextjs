@@ -289,9 +289,20 @@ export async function grantAssetDownload(input: {
   accessToken?: string | null;
   r2?: R2Port;
 }): Promise<{ redirectUrl: string; expiresInSeconds: number }> {
-  const assetId = assertObjectIdHex(input.assetId, "asset id");
+  // Anonymous callers (with or without a link token) get one response for a
+  // missing, unfinished, or forbidden file, so they cannot probe asset ids.
+  const anonymousDenial = () =>
+    new StorageAuthorizationError("Not allowed to download this file", 401);
+  let assetId: string;
+  try {
+    assetId = assertObjectIdHex(input.assetId, "asset id");
+  } catch (error) {
+    if (!input.actor) throw anonymousDenial();
+    throw error;
+  }
   const asset = await StoredAsset.findById(assetId);
   if (!asset) {
+    if (!input.actor) throw anonymousDenial();
     throw new StorageNotFoundError();
   }
 
@@ -301,13 +312,11 @@ export async function grantAssetDownload(input: {
     accessToken: input.accessToken,
   });
   if (!decision.allowed) {
+    if (!input.actor) throw anonymousDenial();
     if (decision.reason === "not_ready") {
       throw new StorageNotFoundError();
     }
-    throw new StorageAuthorizationError(
-      "Not allowed to download this file",
-      input.actor ? 403 : 401
-    );
+    throw new StorageAuthorizationError("Not allowed to download this file", 403);
   }
 
   const requested = input.disposition === "inline" ? "inline" : "attachment";

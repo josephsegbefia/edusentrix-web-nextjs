@@ -187,6 +187,21 @@ export async function seedApplicationWithTracker(input: { schoolId?: Types.Objec
   return { applicationId: _id, token };
 }
 
+/** A supplemental document request on an application; its token is a valid special link token. */
+export async function seedSupplementalRequest(input: { applicationId: Types.ObjectId }) {
+  const requestId = new Types.ObjectId();
+  const token = `supplemental-${randomUUID()}`;
+  await collection("AdmissionApplication").updateOne(
+    { _id: input.applicationId },
+    {
+      $push: {
+        supplementalDocumentRequests: { _id: requestId, token, label: "Report card", fulfilledAt: null },
+      },
+    } as never
+  );
+  return { requestId, token };
+}
+
 /** A parent document request on a student; its token is a valid special link token. */
 export async function seedParentDocumentRequest(input: {
   studentId: Types.ObjectId;

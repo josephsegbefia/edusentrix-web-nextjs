@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
 import { getParentWardIds } from "@/lib/auth/requireParent";
 import { Teacher } from "@/models/Teacher";
 import { Homework } from "@/models/Homework";
@@ -38,19 +38,24 @@ export function canMutateStoredAsset(input: {
     uploadedByUserId?: Types.ObjectId | string | null;
     kind?: string;
     status?: string;
+    association?: { type: string; id: Types.ObjectId | string } | null;
   };
   actor: StorageActor;
 }): boolean {
   if (String(input.actor.schoolId) !== String(input.asset.schoolId)) {
     return false;
   }
-  if (isSchoolAdminOrPlatform(input.actor)) return true;
   if (input.actor.isPublicToken) {
+    // Only anonymous, unlinked uploads of the token's own kind: never a signed-in
+    // upload or a document already linked to a record.
     return (
-      input.asset.kind === "admission_document" ||
-      input.asset.kind === "parent_document"
+      PUBLIC_TOKEN_READABLE_KINDS.has(String(input.asset.kind ?? "")) &&
+      input.asset.kind === input.actor.publicTokenKind &&
+      !input.asset.uploadedByUserId &&
+      !input.asset.association
     );
   }
+  if (isSchoolAdminOrPlatform(input.actor)) return true;
   if (!input.actor.userId) return false;
   if (!input.asset.uploadedByUserId) return false;
   return String(input.actor.userId) === String(input.asset.uploadedByUserId);
@@ -147,38 +152,48 @@ async function authorizeAlwaysPrivateRead(
   return { allowed: false, reason: "unauthorized" };
 }
 
+const MIN_TOKEN_LENGTH = 16;
+const MAX_TOKEN_LENGTH = 128;
+
+/**
+ * A special link token only opens documents of the exact record that issued
+ * it, inside the asset's school. Each kind and association pair is checked
+ * against exactly one token store, so token types never stand in for each
+ * other:
+ * - tracker token: `admission_document` linked to that application
+ * - supplemental request token: `admission_document` linked to that request
+ * - parent request token: `parent_document` linked to that request
+ */
 async function authorizeByPublicToken(
   asset: ReadableStoredAsset,
-  token: string
+  rawToken: string
 ): Promise<boolean> {
-  if (!asset.association || token.trim().length < 16) return false;
-  const id = String(asset.association.id);
-  if (asset.association.type === "application") {
-    if (asset.kind !== "admission_document") return false;
-    const app = await AdmissionApplication.findOne({
-      _id: id,
-      schoolId: asset.schoolId,
-      "tracker.token": token,
-    })
-      .select({ _id: 1 })
-      .lean();
-    return Boolean(app);
+  const token = rawToken.trim();
+  if (token.length < MIN_TOKEN_LENGTH || token.length > MAX_TOKEN_LENGTH) return false;
+  if (!asset.association || !Types.ObjectId.isValid(String(asset.association.id))) return false;
+  const id = new Types.ObjectId(String(asset.association.id));
+  const schoolId = asset.schoolId;
+
+  if (asset.association.type === "application" && asset.kind === "admission_document") {
+    return Boolean(
+      await AdmissionApplication.exists({ _id: id, schoolId, "tracker.token": token })
+    );
   }
-  if (asset.association.type === "request") {
-    const parent = await Student.findOne({
-      schoolId: asset.schoolId,
-      parentDocumentRequests: { $elemMatch: { token } },
-    })
-      .select({ _id: 1 })
-      .lean();
-    if (parent) return true;
-    const supplemental = await AdmissionApplication.findOne({
-      schoolId: asset.schoolId,
-      supplementalDocumentRequests: { $elemMatch: { token } },
-    })
-      .select({ _id: 1 })
-      .lean();
-    return Boolean(supplemental);
+  if (asset.association.type === "request" && asset.kind === "admission_document") {
+    return Boolean(
+      await AdmissionApplication.exists({
+        schoolId,
+        supplementalDocumentRequests: { $elemMatch: { _id: id, token } },
+      })
+    );
+  }
+  if (asset.association.type === "request" && asset.kind === "parent_document") {
+    return Boolean(
+      await Student.exists({
+        schoolId,
+        parentDocumentRequests: { $elemMatch: { _id: id, token } },
+      })
+    );
   }
   return false;
 }

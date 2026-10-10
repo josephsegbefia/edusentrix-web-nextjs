@@ -24,7 +24,11 @@ import { TermResult } from "@/models/TermResult";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { StudentAttendance } from "@/models/StudentAttendance";
-import { deleteUploadedFile } from "@/lib/uploads/delete";
+import {
+  assertAssignableStudentPhoto,
+  releasePreviousStudentPhoto,
+} from "@/lib/storage/student-photo";
+import { StorageValidationError } from "@/lib/storage/types";
 import { buildStudentAcademicProfileDTO } from "@/lib/academics/profile/buildStudentAcademicProfileDTO";
 
 function derivePerformanceTier(
@@ -811,6 +815,7 @@ export async function PATCH(
     });
 
     let previousPhotoUrl: string | null = null;
+    let nextPhotoUrl: string | null = null;
     if (data.photoUrl !== undefined) {
       const existingPhoto = await Student.findOne({
         _id: studentObjId,
@@ -818,7 +823,24 @@ export async function PATCH(
       })
         .select("photoUrl")
         .lean<{ photoUrl?: string | null }>();
-      previousPhotoUrl = existingPhoto?.photoUrl ?? null;
+      if (!existingPhoto) {
+        return new Response("Student not found", { status: 404 });
+      }
+      previousPhotoUrl = existingPhoto.photoUrl ?? null;
+      try {
+        const assigned = await assertAssignableStudentPhoto({
+          schoolId: schoolIdObj,
+          studentId: studentObjId,
+          photoUrl: data.photoUrl,
+          currentPhotoUrl: previousPhotoUrl,
+        });
+        nextPhotoUrl = assigned.photoUrl;
+      } catch (error) {
+        if (error instanceof StorageValidationError) {
+          return new Response(error.message, { status: 400 });
+        }
+        throw error;
+      }
     }
 
     const session = await mongoose.startSession();
@@ -861,8 +883,7 @@ export async function PATCH(
             : null;
         }
         if (data.photoUrl !== undefined) {
-          const p = data.photoUrl;
-          student.photoUrl = !p || p === "" ? null : p;
+          student.photoUrl = nextPhotoUrl;
         }
         if (data.status !== undefined) student.status = data.status;
         if (data.enrolledAt !== undefined) {
@@ -927,12 +948,12 @@ export async function PATCH(
       await session.endSession();
     }
 
-    if (data.photoUrl !== undefined && previousPhotoUrl) {
-      const nextPhotoUrl =
-        !data.photoUrl || data.photoUrl === "" ? null : data.photoUrl;
-      if (previousPhotoUrl !== nextPhotoUrl) {
-        await deleteUploadedFile(previousPhotoUrl);
-      }
+    if (data.photoUrl !== undefined && previousPhotoUrl && previousPhotoUrl !== nextPhotoUrl) {
+      await releasePreviousStudentPhoto({
+        schoolId: schoolIdObj,
+        studentId: studentObjId,
+        url: previousPhotoUrl,
+      });
     }
 
     return Response.json({ success: true });

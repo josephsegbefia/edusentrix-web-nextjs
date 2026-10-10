@@ -1,4 +1,4 @@
-import { deleteUploadedFile } from "./delete";
+import { deleteUploadedFile, type StoredAssetDeleteScope } from "./delete";
 
 type PendingUpload = {
   url: string;
@@ -7,6 +7,8 @@ type PendingUpload = {
 export class UploadRollbackManager {
   private uploads: PendingUpload[] = [];
   private committed = false;
+
+  constructor(private readonly scope: StoredAssetDeleteScope) {}
 
   add(upload: PendingUpload) {
     if (this.committed) {
@@ -29,7 +31,7 @@ export class UploadRollbackManager {
     let failed = 0;
 
     for (const upload of this.uploads) {
-      const ok = await deleteUploadedFile(upload.url);
+      const ok = await deleteUploadedFile(upload.url, this.scope);
       if (ok) {
         deleted += 1;
       } else {

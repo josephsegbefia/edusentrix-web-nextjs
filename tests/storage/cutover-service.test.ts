@@ -150,7 +150,10 @@ describe("replacement, Leo put, scheme getObject, soft-delete-only", () => {
     });
     const persisted = next.assetUrl;
     assert.ok(parseStoredAssetId(persisted));
-    const deleted = await deleteUploadedFile(previous.assetUrl);
+    const deleted = await deleteUploadedFile(previous.assetUrl, {
+      schoolId: SCHOOL_ID,
+      kinds: ["student_avatar"],
+    });
     assert.equal(deleted, true);
     assert.equal((await StoredAsset.findById(previous.assetId))?.status, "deleted");
     assert.equal((await StoredAsset.findById(next.assetId))?.status, "ready");
@@ -158,9 +161,13 @@ describe("replacement, Leo put, scheme getObject, soft-delete-only", () => {
   });
 
   test("deleteUploadedFile only accepts internal asset URLs", async () => {
-    assert.equal(await deleteUploadedFile("https://utfs.io/f/abc"), false);
-    assert.equal(await deleteUploadedFile("https://res.cloudinary.com/demo/image/upload/x.jpg"), false);
-    assert.equal(await deleteUploadedFile("schools/abc/teacher_document/file.pdf"), false);
+    const scope = { schoolId: SCHOOL_ID, kinds: "all" as const };
+    assert.equal(await deleteUploadedFile("https://utfs.io/f/abc", scope), false);
+    assert.equal(
+      await deleteUploadedFile("https://res.cloudinary.com/demo/image/upload/x.jpg", scope),
+      false
+    );
+    assert.equal(await deleteUploadedFile("schools/abc/teacher_document/file.pdf", scope), false);
   });
 
   test("Leo server put creates a READY StoredAsset", async () => {

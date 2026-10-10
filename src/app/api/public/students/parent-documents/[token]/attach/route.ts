@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
-import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { rollbackPublicUpload, type PublicRollbackScope } from "@/lib/uploads/public-rollback";
 
 type Params = Promise<{ token: string }>;
 
@@ -24,6 +24,7 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   let uploadedFileUrl: string | null = null;
+  let rollbackScope: PublicRollbackScope | null = null;
   try {
     const token = normalizeUploadToken((await params).token);
     if (!token || token.length < 24) {
@@ -55,19 +56,19 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
     if (!student) {
-      await deleteUploadedFile(parsed.data.fileUrl);
       uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
         { status: 404 }
       );
     }
+    rollbackScope = { schoolId: student.schoolId, kind: "parent_document" };
 
     const sub = (student.parentDocumentRequests ?? []).find(
       (r) => r.token === token && !r.fulfilledAt
     );
     if (!sub) {
-      await deleteUploadedFile(parsed.data.fileUrl);
+      await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
     try {
       await student.save();
     } catch (error) {
-      const deleted = await deleteUploadedFile(parsed.data.fileUrl);
+      const deleted = await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       if (!deleted) {
         console.error("Rollback failed for parent document upload:", parsed.data.fileUrl);
       }
@@ -111,8 +112,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       data: { studentId: String(student._id) },
     });
   } catch (error) {
-    if (uploadedFileUrl) {
-      const deleted = await deleteUploadedFile(uploadedFileUrl);
+    if (uploadedFileUrl && rollbackScope) {
+      const deleted = await rollbackPublicUpload(uploadedFileUrl, rollbackScope);
       if (!deleted) {
         console.error("Rollback failed for parent document upload:", uploadedFileUrl);
       }

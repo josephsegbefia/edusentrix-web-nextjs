@@ -338,6 +338,7 @@ export default function EditStudentProfileForm({
             <ImageUploader
               schoolId={me.schoolId!}
               subjectRole="students"
+              association={{ type: "student", id: studentId }}
               onUploaded={(payload) => field.onChange(payload.url)}
               className="w-full"
               label=""

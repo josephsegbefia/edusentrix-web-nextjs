@@ -7,7 +7,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
-import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { rollbackPublicUpload, type PublicRollbackScope } from "@/lib/uploads/public-rollback";
 import { isAcceptedUploadedFileUrl } from "@/lib/storage/urls";
 
 type Params = Promise<{ token: string }>;
@@ -28,6 +28,7 @@ const AttachSchema = z.object({
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   let uploadedFileUrl: string | null = null;
+  let rollbackScope: PublicRollbackScope | null = null;
   try {
     const { token } = await params;
     if (!token || token.length < 16) {
@@ -56,13 +57,13 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       "tracker.token": token,
     });
     if (!application) {
-      await deleteUploadedFile(parsed.data.fileUrl);
       uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "Application not found" },
         { status: 404 }
       );
     }
+    rollbackScope = { schoolId: application.schoolId, kind: "admission_document" };
 
     if (
       application.status === "accepted" ||
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       application.status === "withdrawn" ||
       application.status === "expired"
     ) {
-      await deleteUploadedFile(parsed.data.fileUrl);
+      await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       uploadedFileUrl = null;
       return NextResponse.json(
         {
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
     try {
       await application.save();
     } catch (error) {
-      const deleted = await deleteUploadedFile(parsed.data.fileUrl);
+      const deleted = await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       if (!deleted) {
         console.error("Rollback failed for admission document upload:", parsed.data.fileUrl);
       }
@@ -140,8 +141,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
   } catch (error) {
-    if (uploadedFileUrl) {
-      const deleted = await deleteUploadedFile(uploadedFileUrl);
+    if (uploadedFileUrl && rollbackScope) {
+      const deleted = await rollbackPublicUpload(uploadedFileUrl, rollbackScope);
       if (!deleted) {
         console.error("Rollback failed for admission document upload:", uploadedFileUrl);
       }

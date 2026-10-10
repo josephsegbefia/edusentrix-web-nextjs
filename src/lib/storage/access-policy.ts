@@ -7,6 +7,7 @@ import { LessonResource } from "@/models/LessonResource";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { Student } from "@/models/Student";
 import type { IStoredAsset } from "@/models/StoredAsset";
+import { authorizeStudentAvatarRead } from "./student-avatar-access";
 import type { StorageActor, StorageKind } from "./types";
 
 export type ReadableStoredAsset = {
@@ -59,6 +60,19 @@ function sameSchool(actor: StorageActor, asset: ReadableStoredAsset): boolean {
   return String(actor.schoolId) === String(asset.schoolId);
 }
 
+/** Kinds that are never served anonymously, whatever visibility is stored on the asset. */
+const ALWAYS_PRIVATE_KINDS: ReadonlySet<string> = new Set<StorageKind>(["student_avatar"]);
+
+/** The only kinds a special link token (tracker or document request) can unlock. */
+const PUBLIC_TOKEN_READABLE_KINDS: ReadonlySet<string> = new Set<StorageKind>([
+  "admission_document",
+  "parent_document",
+]);
+
+export function isEffectivelyPublic(asset: Pick<ReadableStoredAsset, "visibility" | "kind">): boolean {
+  return asset.visibility === "public" && !ALWAYS_PRIVATE_KINDS.has(String(asset.kind ?? ""));
+}
+
 export async function authorizeStoredAssetRead(input: {
   asset: ReadableStoredAsset;
   actor: StorageActor | null;
@@ -67,17 +81,28 @@ export async function authorizeStoredAssetRead(input: {
   if (input.asset.status !== "ready") {
     return { allowed: false, reason: "not_ready" };
   }
-  if (input.asset.visibility === "public") {
+
+  const { actor, accessToken } = input;
+
+  // Always-private kinds are decided here and never reach the token,
+  // uploader, or association exemptions below.
+  if (ALWAYS_PRIVATE_KINDS.has(String(input.asset.kind ?? ""))) {
+    return authorizeAlwaysPrivateRead(input.asset, actor);
+  }
+
+  if (isEffectivelyPublic(input.asset)) {
     return { allowed: true };
   }
 
-  const { actor, accessToken } = input;
-  if (accessToken) {
+  if (accessToken && PUBLIC_TOKEN_READABLE_KINDS.has(String(input.asset.kind ?? ""))) {
     const tokenOk = await authorizeByPublicToken(input.asset, accessToken);
     if (tokenOk) return { allowed: true };
   }
 
   if (!actor) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (actor.learnStudentId) {
     return { allowed: false, reason: "unauthorized" };
   }
   if (!sameSchool(actor, input.asset)) {
@@ -103,6 +128,25 @@ export async function authorizeStoredAssetRead(input: {
   return allowed ? { allowed: true } : { allowed: false, reason: "unauthorized" };
 }
 
+async function authorizeAlwaysPrivateRead(
+  asset: ReadableStoredAsset,
+  actor: StorageActor | null
+): Promise<AssetReadDecision> {
+  if (!actor || actor.isPublicToken) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (!sameSchool(actor, asset)) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (!actor.learnStudentId && isSchoolAdminOrPlatform(actor)) {
+    return { allowed: true };
+  }
+  if (asset.kind === "student_avatar" && (await authorizeStudentAvatarRead(asset, actor))) {
+    return { allowed: true };
+  }
+  return { allowed: false, reason: "unauthorized" };
+}
+
 async function authorizeByPublicToken(
   asset: ReadableStoredAsset,
   token: string
@@ -110,6 +154,7 @@ async function authorizeByPublicToken(
   if (!asset.association || token.trim().length < 16) return false;
   const id = String(asset.association.id);
   if (asset.association.type === "application") {
+    if (asset.kind !== "admission_document") return false;
     const app = await AdmissionApplication.findOne({
       _id: id,
       schoolId: asset.schoolId,
@@ -300,10 +345,14 @@ export function canReadStoredAsset(input: {
   if (input.asset.status !== "ready") {
     return { allowed: false, reason: "not_ready" };
   }
-  if (input.asset.visibility === "public") {
+  const alwaysPrivate = ALWAYS_PRIVATE_KINDS.has(String(input.asset.kind ?? ""));
+  if (!alwaysPrivate && isEffectivelyPublic(input.asset)) {
     return { allowed: true };
   }
-  if (!input.actor) {
+  if (!input.actor || input.actor.isPublicToken) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (input.actor.learnStudentId) {
     return { allowed: false, reason: "unauthorized" };
   }
   if (!sameSchool(input.actor, input.asset)) {
@@ -311,6 +360,9 @@ export function canReadStoredAsset(input: {
   }
   if (isSchoolAdminOrPlatform(input.actor)) {
     return { allowed: true };
+  }
+  if (alwaysPrivate) {
+    return { allowed: false, reason: "unauthorized" };
   }
   if (
     !input.asset.association &&

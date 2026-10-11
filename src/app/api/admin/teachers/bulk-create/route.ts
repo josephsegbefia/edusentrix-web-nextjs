@@ -2,8 +2,12 @@ import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { persistAndEnqueueBulkImport, serializeBulkImportJob } from "@/lib/imports/enqueue-bulk-import";
 import { isAcceptedTeacherImportFilename } from "@/lib/teachers/parse-teacher-import";
+import { TEACHER_IMPORT_MAX_BYTES } from "@/lib/teachers/teacher-import-workflow";
+import {
+  persistAndEnqueueTeacherImportAnalysis,
+  serializeTeacherImportJob,
+} from "@/lib/teachers/teacher-import-workflow";
 
 export async function POST(req: NextRequest) {
   const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
@@ -30,12 +34,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (file.size > TEACHER_IMPORT_MAX_BYTES) {
+      return Response.json({ error: "File is too large. Maximum size is 5MB." }, { status: 413 });
+    }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const queued = await persistAndEnqueueBulkImport({
+    const queued = await persistAndEnqueueTeacherImportAnalysis({
       schoolId: schoolIdObj,
-      createdBy: userIdObj,
-      targetKind: "teachers",
+      createdByUserId: userIdObj,
       fileName: file.name,
       mimeType: file.type,
       fileBytes: fileBuffer,
@@ -45,8 +51,8 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         jobId: queued.jobId,
-        bulkImportJobId: queued.bulkImportJobId,
-        data: serializeBulkImportJob(queued.job),
+        teacherImportJobId: queued.teacherImportJobId,
+        data: { job: serializeTeacherImportJob(queued.job) },
       },
       { status: 202 }
     );

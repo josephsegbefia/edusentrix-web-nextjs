@@ -10,6 +10,14 @@ import {
   resolveFixedClassTarget,
 } from "@/lib/students/student-import-service";
 import { importTeachersFromBuffer } from "@/lib/teachers/execute-teacher-bulk-import";
+import {
+  executeTeacherImportAnalysis,
+  executeTeacherImportCommit,
+} from "@/lib/teachers/teacher-import-workflow";
+import {
+  executeStudentImportAnalysis,
+  executeStudentImportCommit,
+} from "@/lib/students/student-import-workflow";
 import { BulkImportJob, type IBulkImportJob } from "@/models/BulkImportJob";
 import type { HydratedDocument } from "mongoose";
 
@@ -26,6 +34,32 @@ function notificationFor(job: IBulkImportJob) {
 export async function executeBulkImport(
   tracked: TrackedJobContext
 ): Promise<Record<string, unknown>> {
+  const studentImportJobId =
+    typeof tracked.job.input?.studentImportJobId === "string"
+      ? tracked.job.input.studentImportJobId
+      : null;
+  if (studentImportJobId) {
+    const phase = tracked.job.input?.studentImportPhase;
+    if (phase === "analysis") return executeStudentImportAnalysis(tracked);
+    if (phase === "commit") return executeStudentImportCommit(tracked);
+    throw new BackgroundJobError({
+      message: "studentImportPhase must be analysis or commit",
+      category: "PREREQUISITE_FAILED",
+    });
+  }
+  const teacherImportJobId =
+    typeof tracked.job.input?.teacherImportJobId === "string"
+      ? tracked.job.input.teacherImportJobId
+      : null;
+  if (teacherImportJobId) {
+    const phase = tracked.job.input?.teacherImportPhase;
+    if (phase === "analysis") return executeTeacherImportAnalysis(tracked);
+    if (phase === "commit") return executeTeacherImportCommit(tracked);
+    throw new BackgroundJobError({
+      message: "teacherImportPhase must be analysis or commit",
+      category: "PREREQUISITE_FAILED",
+    });
+  }
   const bulkImportJobId =
     typeof tracked.job.input?.bulkImportJobId === "string"
       ? tracked.job.input.bulkImportJobId
@@ -109,7 +143,7 @@ export async function executeBulkImport(
 }
 
 async function runStudentImport(domain: BulkImportDoc, tracked: TrackedJobContext) {
-  const rows = parseStudentImportFile(domain.fileBytes as Buffer, domain.fileName);
+  const rows = parseStudentImportFile(domain.fileBytes as Buffer, domain.fileName).rows;
   let fixedClass = null;
   if (domain.classGroupId) {
     fixedClass = await resolveFixedClassTarget({

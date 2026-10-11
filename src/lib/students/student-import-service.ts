@@ -6,7 +6,7 @@ import { ClassGroup } from "@/models/ClassGroup";
 import {
   parseStudentImportDate,
   STUDENT_IMPORT_MAX_ROWS,
-  type StudentImportRow,
+  type StudentImportParsedRow,
 } from "@/lib/students/student-import-parse";
 import {
   buildStudentImportClassIndex,
@@ -31,7 +31,7 @@ type FixedClassTarget = {
 
 export async function importStudentsFromRows(input: {
   schoolId: mongoose.Types.ObjectId;
-  rows: StudentImportRow[];
+  rows: StudentImportParsedRow[];
   fixedClass?: FixedClassTarget | null;
 }): Promise<StudentImportResult> {
   const { schoolId, rows, fixedClass = null } = input;
@@ -117,8 +117,8 @@ export async function importStudentsFromRows(input: {
       };
     } else {
       const placement = resolveStudentImportPlacement({
-        gradeInput: row.gradeName,
-        classInput: row.className,
+        gradeInput: row.gradeName || "",
+        classInput: row.className || "",
         index: classIndex,
       });
 
@@ -135,12 +135,12 @@ export async function importStudentsFromRows(input: {
       };
     }
 
-    const sex = normalizeImportSex(row.sex);
+    const sex = normalizeImportSex(row.rawSex || undefined);
 
-    let status = normalizeImportStatus(row.status);
+    let status = normalizeImportStatus(row.rawStatus || undefined);
 
-    const dateOfBirth = parseStudentImportDate(row.dateOfBirth);
-    const enrolledAt = parseStudentImportDate(row.enrolledAt);
+    const dateOfBirth = parseStudentImportDate(row.dateOfBirth || undefined);
+    const enrolledAt = parseStudentImportDate(row.enrolledAt || undefined);
 
     studentsToInsert.push({
       schoolId,

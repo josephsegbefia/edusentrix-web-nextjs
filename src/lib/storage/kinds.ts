@@ -105,11 +105,14 @@ const RECEIPT_LIMITS: readonly MimeLimit[] = [
   IMAGE_8MB,
 ];
 
-function avatar(kind: StorageKind): StorageKindDefinition {
+function avatar(
+  kind: StorageKind,
+  defaultVisibility: StorageVisibility = "public"
+): StorageKindDefinition {
   return {
     kind,
     limits: [IMAGE_8MB],
-    defaultVisibility: "public",
+    defaultVisibility,
     keyCategory: "avatar",
     authPolicy: "authenticated_membership",
     requiresDocumentsStorage: false,
@@ -117,7 +120,7 @@ function avatar(kind: StorageKind): StorageKindDefinition {
 }
 
 export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> = {
-  student_avatar: avatar("student_avatar"),
+  student_avatar: avatar("student_avatar", "private"),
   teacher_avatar: avatar("teacher_avatar"),
   parent_avatar: avatar("parent_avatar"),
   school_admin_avatar: avatar("school_admin_avatar"),

@@ -4,6 +4,7 @@ import { canUploadLibraryBookCover } from "@/lib/library/library-upload-gate";
 import { FEATURE_KEYS } from "@/lib/subscriptions/feature-keys";
 import { requireSchoolFeature } from "@/lib/subscriptions/guards";
 import { getStorageKindDefinition } from "./kinds";
+import { assertStudentAvatarUploadAllowed } from "./student-photo";
 import {
   StorageAuthorizationError,
   StorageConfigError,
@@ -12,11 +13,23 @@ import {
   StorageProviderError,
   StorageValidationError,
   type StorageActor,
+  type StorageAssociation,
   type StorageKind,
 } from "./types";
 
 export async function resolveStorageActor(): Promise<StorageActor> {
-  const active = await resolveActiveSchoolContext();
+  let active: Awaited<ReturnType<typeof resolveActiveSchoolContext>>;
+  try {
+    active = await resolveActiveSchoolContext();
+  } catch (error) {
+    if (error instanceof Response) {
+      throw new StorageAuthorizationError(
+        error.status === 403 ? "This school has been suspended" : "No active school",
+        403
+      );
+    }
+    throw error;
+  }
   if (!active.ok) {
     if (active.reason === "unauthorized") {
       throw new StorageAuthorizationError("Unauthorized", 401);
@@ -33,8 +46,12 @@ export async function resolveStorageActor(): Promise<StorageActor> {
 
 export async function enforceKindUploadPolicy(
   actor: StorageActor,
-  kind: StorageKind
+  kind: StorageKind,
+  association?: StorageAssociation
 ): Promise<void> {
+  if (kind === "student_avatar") {
+    await assertStudentAvatarUploadAllowed(actor, association);
+  }
   const definition = getStorageKindDefinition(kind);
   if (kind === "assess_script_page") {
     const feature = await requireSchoolFeature(

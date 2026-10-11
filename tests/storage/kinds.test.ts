@@ -26,7 +26,8 @@ describe("storage kind registry", () => {
   });
 
   test("uses gateway visibility defaults, not a public bucket", () => {
-    assert.equal(STORAGE_KIND_REGISTRY.student_avatar.defaultVisibility, "public");
+    assert.equal(STORAGE_KIND_REGISTRY.student_avatar.defaultVisibility, "private");
+    assert.equal(STORAGE_KIND_REGISTRY.teacher_avatar.defaultVisibility, "public");
     assert.equal(STORAGE_KIND_REGISTRY.school_brand_image.defaultVisibility, "public");
     assert.equal(STORAGE_KIND_REGISTRY.library_book_cover.defaultVisibility, "public");
     assert.equal(STORAGE_KIND_REGISTRY.teacher_document.defaultVisibility, "private");

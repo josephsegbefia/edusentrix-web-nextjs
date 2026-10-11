@@ -114,6 +114,7 @@ export async function resolvePublicUploadActor(
       schoolId: new Types.ObjectId(resolvedSchoolId),
       roles: [],
       isPublicToken: true,
+      publicTokenKind: kind,
     },
   };
 }

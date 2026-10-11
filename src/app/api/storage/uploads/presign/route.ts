@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     await connectToDatabase();
-    await enforceKindUploadPolicy(actor, kind);
+    await enforceKindUploadPolicy(actor, kind, association);
     const data = await presignUpload({
       actor,
       kind,

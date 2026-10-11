@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { FileDropzone } from "./FileDropzone";
 import { useToast } from "@/hooks/useToast";
 import { uploadFileToStorage } from "@/lib/storage/client/upload";
-import type { StorageKind } from "@/lib/storage/types";
+import type { StorageAssociation, StorageKind } from "@/lib/storage/types";
 
 type SubjectRole =
   | "students"
@@ -35,6 +35,8 @@ type ImageUploaderProps = {
   label?: string;
   /** Existing image URL to show in the dropzone before a new upload */
   initialPreviewUrl?: string | null;
+  /** Record the upload belongs to; required for delegated student photo uploads. */
+  association?: StorageAssociation;
 };
 
 function kindForRole(subjectRole: SubjectRole): StorageKind {
@@ -79,6 +81,7 @@ export function ImageUploader({
   className,
   label = "Upload avatar",
   initialPreviewUrl,
+  association,
 }: ImageUploaderProps) {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(
@@ -111,6 +114,7 @@ export function ImageUploader({
       const uploaded = await uploadFileToStorage({
         kind: storageKind,
         file,
+        association,
         onProgress: setUploadProgress,
       });
 

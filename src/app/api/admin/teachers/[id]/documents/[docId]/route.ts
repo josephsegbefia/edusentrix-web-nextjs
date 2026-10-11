@@ -105,7 +105,10 @@ export async function DELETE(
   // Try to delete file from whichever provider hosts it.
   // Continue even if provider deletion fails so the DB record can still be removed.
   if (fileUrl) {
-    const deleted = await deleteUploadedFile(fileUrl);
+    const deleted = await deleteUploadedFile(fileUrl, {
+      schoolId: schoolIdObj,
+      kinds: ["teacher_document"],
+    });
     if (!deleted) {
       console.warn("Failed to delete document file from provider:", fileUrl);
     }

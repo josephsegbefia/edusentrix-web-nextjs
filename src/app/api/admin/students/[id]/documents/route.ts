@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
-import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { deleteUploadedFile, type StoredAssetDeleteScope } from "@/lib/uploads/delete";
 
 const postBodySchema = z.object({
   name: z.string().min(1).max(200).trim(),
@@ -71,6 +71,11 @@ export async function POST(
 
   const { name, type, fileUrl, fileMime, fileSize, notes } = parsed.data;
   const normalizedFileUrl = String(fileUrl).trim();
+  const documentScope: StoredAssetDeleteScope = {
+    schoolId: schoolIdObj,
+    kinds: ["student_record_document"],
+    uploadedByUserId: userId ? String(userId) : undefined,
+  };
 
   let updated: mongoose.FlattenMaps<{
     recordDocuments?: { _id: mongoose.Types.ObjectId }[];
@@ -96,7 +101,7 @@ export async function POST(
     ).lean();
   } catch (err) {
     console.error("Student document save failed:", err);
-    const deleted = await deleteUploadedFile(normalizedFileUrl);
+    const deleted = await deleteUploadedFile(normalizedFileUrl, documentScope);
     if (!deleted) {
       console.error(
         "Rollback failed for student document upload:",
@@ -110,7 +115,7 @@ export async function POST(
   }
 
   if (!updated) {
-    const deleted = await deleteUploadedFile(normalizedFileUrl);
+    const deleted = await deleteUploadedFile(normalizedFileUrl, documentScope);
     if (!deleted) {
       console.error(
         "Rollback failed for student document upload:",

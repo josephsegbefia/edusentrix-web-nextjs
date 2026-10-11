@@ -80,6 +80,10 @@ export type StorageActor = {
   roles: MembershipRole[];
   isPlatformOperator?: boolean;
   isPublicToken?: boolean;
+  /** The one kind a public-token actor may upload and finalize. */
+  publicTokenKind?: StorageKind;
+  /** Set only for an EduSentrix Learn mobile session; limits reads to that student's own photo. */
+  learnStudentId?: Types.ObjectId;
 };
 
 export type R2ObjectHead = {

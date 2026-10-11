@@ -156,7 +156,7 @@ export async function purgeSchoolCompletely(
   }
 
   const urls = await harvestSchoolUploadUrls(schoolId);
-  const uploadStats = await deleteUploadedFiles([...urls]);
+  const uploadStats = await deleteUploadedFiles([...urls], { schoolId, kinds: "all" });
 
   const users = await User.find({ schoolId })
     .select("clerkUserId")

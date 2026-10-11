@@ -5,7 +5,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
-import { deleteUploadedFile } from "@/lib/uploads/delete";
+import { rollbackPublicUpload, type PublicRollbackScope } from "@/lib/uploads/public-rollback";
 import { isAcceptedUploadedFileUrl } from "@/lib/storage/urls";
 
 type Params = Promise<{ token: string }>;
@@ -24,6 +24,7 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   let uploadedFileUrl: string | null = null;
+  let rollbackScope: PublicRollbackScope | null = null;
   try {
     const { token } = await params;
     if (!token || token.length < 24) {
@@ -55,13 +56,13 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
     if (!application) {
-      await deleteUploadedFile(parsed.data.fileUrl);
       uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
         { status: 404 }
       );
     }
+    rollbackScope = { schoolId: application.schoolId, kind: "admission_document" };
 
     if (
       application.status === "accepted" ||
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       application.status === "withdrawn" ||
       application.status === "expired"
     ) {
-      await deleteUploadedFile(parsed.data.fileUrl);
+      await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This application is closed for uploads." },
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       (r) => r.token === token && !r.fulfilledAt
     );
     if (!sub) {
-      await deleteUploadedFile(parsed.data.fileUrl);
+      await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
     try {
       await application.save();
     } catch (error) {
-      const deleted = await deleteUploadedFile(parsed.data.fileUrl);
+      const deleted = await rollbackPublicUpload(parsed.data.fileUrl, rollbackScope);
       if (!deleted) {
         console.error("Rollback failed for supplemental document upload:", parsed.data.fileUrl);
       }
@@ -139,8 +140,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
 
     return NextResponse.json({ success: true, data: { requirementId } });
   } catch (error) {
-    if (uploadedFileUrl) {
-      const deleted = await deleteUploadedFile(uploadedFileUrl);
+    if (uploadedFileUrl && rollbackScope) {
+      const deleted = await rollbackPublicUpload(uploadedFileUrl, rollbackScope);
       if (!deleted) {
         console.error("Rollback failed for supplemental document upload:", uploadedFileUrl);
       }

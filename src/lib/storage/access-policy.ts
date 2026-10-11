@@ -1,4 +1,4 @@
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
 import { getParentWardIds } from "@/lib/auth/requireParent";
 import { Teacher } from "@/models/Teacher";
 import { Homework } from "@/models/Homework";
@@ -7,6 +7,7 @@ import { LessonResource } from "@/models/LessonResource";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { Student } from "@/models/Student";
 import type { IStoredAsset } from "@/models/StoredAsset";
+import { authorizeStudentAvatarRead } from "./student-avatar-access";
 import type { StorageActor, StorageKind } from "./types";
 
 export type ReadableStoredAsset = {
@@ -37,19 +38,24 @@ export function canMutateStoredAsset(input: {
     uploadedByUserId?: Types.ObjectId | string | null;
     kind?: string;
     status?: string;
+    association?: { type: string; id: Types.ObjectId | string } | null;
   };
   actor: StorageActor;
 }): boolean {
   if (String(input.actor.schoolId) !== String(input.asset.schoolId)) {
     return false;
   }
-  if (isSchoolAdminOrPlatform(input.actor)) return true;
   if (input.actor.isPublicToken) {
+    // Only anonymous, unlinked uploads of the token's own kind: never a signed-in
+    // upload or a document already linked to a record.
     return (
-      input.asset.kind === "admission_document" ||
-      input.asset.kind === "parent_document"
+      PUBLIC_TOKEN_READABLE_KINDS.has(String(input.asset.kind ?? "")) &&
+      input.asset.kind === input.actor.publicTokenKind &&
+      !input.asset.uploadedByUserId &&
+      !input.asset.association
     );
   }
+  if (isSchoolAdminOrPlatform(input.actor)) return true;
   if (!input.actor.userId) return false;
   if (!input.asset.uploadedByUserId) return false;
   return String(input.actor.userId) === String(input.asset.uploadedByUserId);
@@ -57,6 +63,19 @@ export function canMutateStoredAsset(input: {
 
 function sameSchool(actor: StorageActor, asset: ReadableStoredAsset): boolean {
   return String(actor.schoolId) === String(asset.schoolId);
+}
+
+/** Kinds that are never served anonymously, whatever visibility is stored on the asset. */
+const ALWAYS_PRIVATE_KINDS: ReadonlySet<string> = new Set<StorageKind>(["student_avatar"]);
+
+/** The only kinds a special link token (tracker or document request) can unlock. */
+const PUBLIC_TOKEN_READABLE_KINDS: ReadonlySet<string> = new Set<StorageKind>([
+  "admission_document",
+  "parent_document",
+]);
+
+export function isEffectivelyPublic(asset: Pick<ReadableStoredAsset, "visibility" | "kind">): boolean {
+  return asset.visibility === "public" && !ALWAYS_PRIVATE_KINDS.has(String(asset.kind ?? ""));
 }
 
 export async function authorizeStoredAssetRead(input: {
@@ -67,17 +86,28 @@ export async function authorizeStoredAssetRead(input: {
   if (input.asset.status !== "ready") {
     return { allowed: false, reason: "not_ready" };
   }
-  if (input.asset.visibility === "public") {
+
+  const { actor, accessToken } = input;
+
+  // Always-private kinds are decided here and never reach the token,
+  // uploader, or association exemptions below.
+  if (ALWAYS_PRIVATE_KINDS.has(String(input.asset.kind ?? ""))) {
+    return authorizeAlwaysPrivateRead(input.asset, actor);
+  }
+
+  if (isEffectivelyPublic(input.asset)) {
     return { allowed: true };
   }
 
-  const { actor, accessToken } = input;
-  if (accessToken) {
+  if (accessToken && PUBLIC_TOKEN_READABLE_KINDS.has(String(input.asset.kind ?? ""))) {
     const tokenOk = await authorizeByPublicToken(input.asset, accessToken);
     if (tokenOk) return { allowed: true };
   }
 
   if (!actor) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (actor.learnStudentId) {
     return { allowed: false, reason: "unauthorized" };
   }
   if (!sameSchool(actor, input.asset)) {
@@ -103,37 +133,67 @@ export async function authorizeStoredAssetRead(input: {
   return allowed ? { allowed: true } : { allowed: false, reason: "unauthorized" };
 }
 
+async function authorizeAlwaysPrivateRead(
+  asset: ReadableStoredAsset,
+  actor: StorageActor | null
+): Promise<AssetReadDecision> {
+  if (!actor || actor.isPublicToken) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (!sameSchool(actor, asset)) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (!actor.learnStudentId && isSchoolAdminOrPlatform(actor)) {
+    return { allowed: true };
+  }
+  if (asset.kind === "student_avatar" && (await authorizeStudentAvatarRead(asset, actor))) {
+    return { allowed: true };
+  }
+  return { allowed: false, reason: "unauthorized" };
+}
+
+const MIN_TOKEN_LENGTH = 16;
+const MAX_TOKEN_LENGTH = 128;
+
+/**
+ * A special link token only opens documents of the exact record that issued
+ * it, inside the asset's school. Each kind and association pair is checked
+ * against exactly one token store, so token types never stand in for each
+ * other:
+ * - tracker token: `admission_document` linked to that application
+ * - supplemental request token: `admission_document` linked to that request
+ * - parent request token: `parent_document` linked to that request
+ */
 async function authorizeByPublicToken(
   asset: ReadableStoredAsset,
-  token: string
+  rawToken: string
 ): Promise<boolean> {
-  if (!asset.association || token.trim().length < 16) return false;
-  const id = String(asset.association.id);
-  if (asset.association.type === "application") {
-    const app = await AdmissionApplication.findOne({
-      _id: id,
-      schoolId: asset.schoolId,
-      "tracker.token": token,
-    })
-      .select({ _id: 1 })
-      .lean();
-    return Boolean(app);
+  const token = rawToken.trim();
+  if (token.length < MIN_TOKEN_LENGTH || token.length > MAX_TOKEN_LENGTH) return false;
+  if (!asset.association || !Types.ObjectId.isValid(String(asset.association.id))) return false;
+  const id = new Types.ObjectId(String(asset.association.id));
+  const schoolId = asset.schoolId;
+
+  if (asset.association.type === "application" && asset.kind === "admission_document") {
+    return Boolean(
+      await AdmissionApplication.exists({ _id: id, schoolId, "tracker.token": token })
+    );
   }
-  if (asset.association.type === "request") {
-    const parent = await Student.findOne({
-      schoolId: asset.schoolId,
-      parentDocumentRequests: { $elemMatch: { token } },
-    })
-      .select({ _id: 1 })
-      .lean();
-    if (parent) return true;
-    const supplemental = await AdmissionApplication.findOne({
-      schoolId: asset.schoolId,
-      supplementalDocumentRequests: { $elemMatch: { token } },
-    })
-      .select({ _id: 1 })
-      .lean();
-    return Boolean(supplemental);
+  if (asset.association.type === "request" && asset.kind === "admission_document") {
+    return Boolean(
+      await AdmissionApplication.exists({
+        schoolId,
+        supplementalDocumentRequests: { $elemMatch: { _id: id, token } },
+      })
+    );
+  }
+  if (asset.association.type === "request" && asset.kind === "parent_document") {
+    return Boolean(
+      await Student.exists({
+        schoolId,
+        parentDocumentRequests: { $elemMatch: { _id: id, token } },
+      })
+    );
   }
   return false;
 }
@@ -300,10 +360,14 @@ export function canReadStoredAsset(input: {
   if (input.asset.status !== "ready") {
     return { allowed: false, reason: "not_ready" };
   }
-  if (input.asset.visibility === "public") {
+  const alwaysPrivate = ALWAYS_PRIVATE_KINDS.has(String(input.asset.kind ?? ""));
+  if (!alwaysPrivate && isEffectivelyPublic(input.asset)) {
     return { allowed: true };
   }
-  if (!input.actor) {
+  if (!input.actor || input.actor.isPublicToken) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (input.actor.learnStudentId) {
     return { allowed: false, reason: "unauthorized" };
   }
   if (!sameSchool(input.actor, input.asset)) {
@@ -311,6 +375,9 @@ export function canReadStoredAsset(input: {
   }
   if (isSchoolAdminOrPlatform(input.actor)) {
     return { allowed: true };
+  }
+  if (alwaysPrivate) {
+    return { allowed: false, reason: "unauthorized" };
   }
   if (
     !input.asset.association &&

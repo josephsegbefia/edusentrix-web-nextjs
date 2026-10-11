@@ -372,7 +372,10 @@ export async function PATCH(
     if (input.photoUrl !== undefined && existingUser?.avatarUrl) {
       const nextAvatarUrl = photoUrl || null;
       if (existingUser.avatarUrl !== nextAvatarUrl) {
-        await deleteUploadedFile(existingUser.avatarUrl);
+        await deleteUploadedFile(existingUser.avatarUrl, {
+          schoolId: schoolIdObj,
+          kinds: ["teacher_avatar"],
+        });
       }
     }
 

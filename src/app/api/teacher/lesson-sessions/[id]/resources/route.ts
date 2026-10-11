@@ -273,7 +273,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         });
         return Response.json({ success: true, data: { id: String(created._id) } });
       } catch (error) {
-        const deleted = await deleteUploadedFile(fileUrl);
+        const deleted = await deleteUploadedFile(fileUrl, {
+          schoolId: context.schoolId,
+          kinds: ["lesson_resource", "teacher_document"],
+          uploadedByUserId: context.userId,
+        });
         if (!deleted) {
           console.error("Rollback failed for lesson session resource upload:", fileUrl);
         }

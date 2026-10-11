@@ -17,6 +17,7 @@ import {
   SchoolWriteAccessError,
 } from "@/lib/billing/require-school-write-access";
 import { resolvePersistedPhotoUrl } from "@/lib/storage/resolve-photo-url";
+import { assertAssignableStudentPhoto, linkStudentPhoto } from "@/lib/storage/student-photo";
 import { StorageValidationError } from "@/lib/storage/types";
 import {
   buildDefaultStudentIdPattern,
@@ -139,6 +140,15 @@ export async function POST(req: NextRequest) {
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
 
+    const photo = await assertAssignableStudentPhoto({
+      schoolId: schoolIdObj,
+      studentId: null,
+      photoUrl: await resolvePersistedPhotoUrl({
+        schoolId: schoolIdObj,
+        photoUrl: body.photoUrl,
+      }),
+    });
+
     const student = new Student({
       schoolId: schoolIdObj,
       firstName: body.firstName.trim(),
@@ -149,11 +159,7 @@ export async function POST(req: NextRequest) {
       admissionNo: body.admissionNo?.trim() || null,
       sex: body.sex || undefined,
       dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
-      photoUrl:
-        (await resolvePersistedPhotoUrl({
-          schoolId: schoolIdObj,
-          photoUrl: body.photoUrl,
-        })) || null,
+      photoUrl: photo.photoUrl,
       status: body.status || "active",
       enrolledAt: body.enrolledAt ? new Date(body.enrolledAt) : null,
       subjectAddIds: subjectAddIds.length > 0 ? subjectAddIds : undefined,
@@ -199,6 +205,14 @@ export async function POST(req: NextRequest) {
     }
 
     await student.save();
+
+    if (photo.pendingLinkAssetId) {
+      await linkStudentPhoto({
+        schoolId: schoolIdObj,
+        studentId: student._id,
+        assetId: photo.pendingLinkAssetId,
+      });
+    }
 
     await trackUsage({
       schoolId,

@@ -305,9 +305,20 @@ export async function grantAssetDownload(input: {
   accessToken?: string | null;
   r2?: R2Port;
 }): Promise<{ redirectUrl: string; expiresInSeconds: number }> {
-  const assetId = assertObjectIdHex(input.assetId, "asset id");
+  // Anonymous callers (with or without a link token) get one response for a
+  // missing, unfinished, or forbidden file, so they cannot probe asset ids.
+  const anonymousDenial = () =>
+    new StorageAuthorizationError("Not allowed to download this file", 401);
+  let assetId: string;
+  try {
+    assetId = assertObjectIdHex(input.assetId, "asset id");
+  } catch (error) {
+    if (!input.actor) throw anonymousDenial();
+    throw error;
+  }
   const asset = await StoredAsset.findById(assetId);
   if (!asset) {
+    if (!input.actor) throw anonymousDenial();
     throw new StorageNotFoundError();
   }
 
@@ -317,13 +328,11 @@ export async function grantAssetDownload(input: {
     accessToken: input.accessToken,
   });
   if (!decision.allowed) {
+    if (!input.actor) throw anonymousDenial();
     if (decision.reason === "not_ready") {
       throw new StorageNotFoundError();
     }
-    throw new StorageAuthorizationError(
-      "Not allowed to download this file",
-      input.actor ? 403 : 401
-    );
+    throw new StorageAuthorizationError("Not allowed to download this file", 403);
   }
 
   const requested = input.disposition === "inline" ? "inline" : "attachment";
@@ -574,16 +583,46 @@ export async function getStoredAssetBytes(input: {
   };
 }
 
+/**
+ * Limits a server-side delete to one school and the kinds the caller handles.
+ * `publicUploadsOnly` further limits it to anonymous, unlinked uploads, which
+ * is all a public token route may roll back. `uploadedByUserId` limits a
+ * rollback to the caller's own upload.
+ */
+export type StoredAssetDeleteScope = {
+  schoolId: Types.ObjectId | string;
+  kinds: readonly StorageKind[] | "all";
+  publicUploadsOnly?: boolean;
+  uploadedByUserId?: Types.ObjectId | string;
+};
+
 export async function softDeleteStoredAssetUrl(
   url: string,
-  actor?: StorageActor | null
+  actor: StorageActor | null,
+  scope?: StoredAssetDeleteScope
 ): Promise<boolean> {
+  if (!actor && !scope) {
+    return false;
+  }
   const assetId = parseStoredAssetId(url);
   if (!assetId) {
     return false;
   }
-  const asset = await StoredAsset.findById(assetId);
-  if (!asset || asset.status !== "ready") {
+  const filter: Record<string, unknown> = { _id: new Types.ObjectId(assetId), status: "ready" };
+  if (scope) {
+    filter.schoolId = new Types.ObjectId(String(scope.schoolId));
+    if (scope.kinds !== "all") {
+      filter.kind = { $in: [...scope.kinds] };
+    }
+    if (scope.publicUploadsOnly) {
+      filter.uploadedByUserId = null;
+      filter.association = null;
+    } else if (scope.uploadedByUserId) {
+      filter.uploadedByUserId = new Types.ObjectId(String(scope.uploadedByUserId));
+    }
+  }
+  const asset = await StoredAsset.findOne(filter);
+  if (!asset) {
     return false;
   }
   if (actor && !canMutateStoredAsset({ asset, actor })) {

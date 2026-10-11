@@ -266,7 +266,11 @@ export async function POST(
     });
   } catch (error) {
     // Roll back uploaded file if DB/create path fails.
-    const deleted = await deleteUploadedFile(normalizedFileUrl);
+    const deleted = await deleteUploadedFile(normalizedFileUrl, {
+      schoolId: schoolIdObj,
+      kinds: ["teacher_document"],
+      uploadedByUserId: adminUserId ? String(adminUserId) : undefined,
+    });
     if (!deleted) {
       console.error("Rollback failed for uploaded document:", normalizedFileUrl);
     }

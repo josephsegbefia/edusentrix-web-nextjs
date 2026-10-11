@@ -27,6 +27,13 @@ import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
+import { User } from "@/models/User";
+import { APPROVAL_CONTRACT_VERSION, decisionError } from "@/lib/approvals/decision-guard";
+import {
+  isOwnLessonNote,
+  loadLessonNoteDecisionHistory,
+  recordLessonNoteDecision,
+} from "@/lib/lesson-notes/approval-history";
 
 // ============================================================================
 // Zod Schemas
@@ -38,12 +45,12 @@ const SubmitForApprovalSchema = z.object({
 
 const ApproveSchema = z.object({
   action: z.literal("approve"),
-  feedback: z.string().max(2000).optional(),
+  feedback: z.string().trim().max(2000).optional(),
 });
 
 const RejectSchema = z.object({
   action: z.literal("reject"),
-  reason: z.string().min(1, "Rejection reason is required").max(1000),
+  reason: z.string().trim().min(1, "Rejection reason is required").max(1000),
 });
 
 const ReturnToDraftSchema = z.object({
@@ -200,6 +207,32 @@ function reviewerActorRole(context: LessonNoteApprovalContext): string {
   return context.isAdmin ? "school_admin" : "journal_reviewer";
 }
 
+const LESSON_NOTE_STALE = "LESSON_NOTE_STALE";
+
+function staleDecision(status: string | null) {
+  return decisionError("stale_decision", "This lesson note is no longer awaiting a decision.", {
+    data: { status },
+  });
+}
+
+/** The conditional write matched nothing: report what the note looks like now. */
+async function staleAfterRace(noteId: mongoose.Types.ObjectId, schoolId: mongoose.Types.ObjectId) {
+  const latest = (await LessonNote.findOne({ _id: noteId, schoolId })
+    .select("status")
+    .lean()) as { status?: string } | null;
+  if (!latest) {
+    return decisionError("not_found", "Lesson note not found");
+  }
+  return staleDecision(latest.status ?? null);
+}
+
+function ownNoteRefusal() {
+  return decisionError(
+    "maker_checker_required",
+    "You cannot approve or reject your own lesson note. Another reviewer must decide it."
+  );
+}
+
 // ============================================================================
 // POST - Handle approval actions
 // ============================================================================
@@ -222,6 +255,16 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => null);
+    if (
+      body &&
+      typeof body === "object" &&
+      (body as { action?: unknown }).action === "reject"
+    ) {
+      const rawReason = (body as { reason?: unknown }).reason;
+      if (typeof rawReason !== "string" || !rawReason.trim()) {
+        return decisionError("reason_required", "Rejection reason is required");
+      }
+    }
     const parsed = ApprovalActionSchema.safeParse(body);
     if (!parsed.success) {
       const errorMessages = parsed.error.issues?.map((issue) => issue.message).join(", ") || "Invalid data";
@@ -410,39 +453,25 @@ export async function POST(
       }
 
       if (note.status !== "submitted") {
-        return Response.json(
-          {
-            success: false,
-            error: `Cannot approve a note with status: ${note.status}`,
-          },
-          { status: 400 }
-        );
+        return staleDecision(note.status);
       }
 
-      const feedback = (parsed.data as { feedback?: string }).feedback;
+      if (await isOwnLessonNote(note.teacherId, context.schoolId, context.userId)) {
+        return ownNoteRefusal();
+      }
+
+      const feedback = (parsed.data as { feedback?: string }).feedback || undefined;
 
       const session = await mongoose.startSession();
       try {
         await session.withTransaction(async () => {
-          const beforeDoc = await LessonNote.findOne({
-            _id: noteId,
-            schoolId: context.schoolId,
-          })
-            .session(session)
-            .select("status")
-            .lean();
-          if (!beforeDoc) {
-            throw new Error("LESSON_NOTE_NOT_FOUND");
-          }
-
-          await LessonNote.updateOne(
-            { _id: noteId },
+          const updated = await LessonNote.updateOne(
+            { _id: noteId, schoolId: context.schoolId, status: "submitted" },
             {
               $set: {
                 status: "approved",
                 approvedAt: new Date(),
                 approvedBy: context.userId,
-                ...(feedback && { approvalFeedback: feedback }),
               },
               $unset: {
                 rejectionReason: "",
@@ -450,6 +479,19 @@ export async function POST(
             },
             { session }
           );
+          if (updated.matchedCount !== 1) {
+            throw new Error(LESSON_NOTE_STALE);
+          }
+
+          await recordLessonNoteDecision(session, {
+            lessonNoteId: noteId,
+            schoolId: context.schoolId,
+            action: "approve",
+            actorId: context.userId,
+            comment: feedback,
+            previousStatus: "submitted",
+            newStatus: "approved",
+          });
 
           await writeTransactionalAuditEvent(session, {
             actionCode: "lesson_note.approved",
@@ -470,21 +512,18 @@ export async function POST(
               ),
             }),
             payload: {
-              before: { status: beforeDoc.status },
+              before: { status: "submitted" },
               after: { status: "approved" },
               metadata: {
-                hasFeedback: Boolean(feedback?.trim()),
+                hasFeedback: Boolean(feedback),
               },
             },
             streamKey: lessonNoteAcademicsStream(context.schoolId),
           });
         });
       } catch (e) {
-        if (e instanceof Error && e.message === "LESSON_NOTE_NOT_FOUND") {
-          return Response.json(
-            { success: false, error: "Lesson note not found" },
-            { status: 404 }
-          );
+        if (e instanceof Error && e.message === LESSON_NOTE_STALE) {
+          return staleAfterRace(noteId, context.schoolId);
         }
         throw e;
       } finally {
@@ -503,8 +542,9 @@ export async function POST(
 
       return Response.json({
         success: true,
+        contractVersion: APPROVAL_CONTRACT_VERSION,
         message: "Lesson note approved",
-        data: { status: "approved" },
+        data: { status: "approved", feedback: feedback ?? null },
       });
     }
 
@@ -517,13 +557,11 @@ export async function POST(
       }
 
       if (note.status !== "submitted") {
-        return Response.json(
-          {
-            success: false,
-            error: `Cannot reject a note with status: ${note.status}`,
-          },
-          { status: 400 }
-        );
+        return staleDecision(note.status);
+      }
+
+      if (await isOwnLessonNote(note.teacherId, context.schoolId, context.userId)) {
+        return ownNoteRefusal();
       }
 
       const reason = (parsed.data as { reason: string }).reason;
@@ -531,19 +569,8 @@ export async function POST(
       const session = await mongoose.startSession();
       try {
         await session.withTransaction(async () => {
-          const beforeDoc = await LessonNote.findOne({
-            _id: noteId,
-            schoolId: context.schoolId,
-          })
-            .session(session)
-            .select("status")
-            .lean();
-          if (!beforeDoc) {
-            throw new Error("LESSON_NOTE_NOT_FOUND");
-          }
-
-          await LessonNote.updateOne(
-            { _id: noteId },
+          const updated = await LessonNote.updateOne(
+            { _id: noteId, schoolId: context.schoolId, status: "submitted" },
             {
               $set: {
                 status: "rejected",
@@ -556,6 +583,19 @@ export async function POST(
             },
             { session }
           );
+          if (updated.matchedCount !== 1) {
+            throw new Error(LESSON_NOTE_STALE);
+          }
+
+          await recordLessonNoteDecision(session, {
+            lessonNoteId: noteId,
+            schoolId: context.schoolId,
+            action: "reject",
+            actorId: context.userId,
+            comment: reason,
+            previousStatus: "submitted",
+            newStatus: "rejected",
+          });
 
           await writeTransactionalAuditEvent(session, {
             actionCode: "lesson_note.rejected",
@@ -577,18 +617,15 @@ export async function POST(
             }),
             reason: { reason },
             payload: {
-              before: { status: beforeDoc.status },
+              before: { status: "submitted" },
               after: { status: "rejected" },
             },
             streamKey: lessonNoteAcademicsStream(context.schoolId),
           });
         });
       } catch (e) {
-        if (e instanceof Error && e.message === "LESSON_NOTE_NOT_FOUND") {
-          return Response.json(
-            { success: false, error: "Lesson note not found" },
-            { status: 404 }
-          );
+        if (e instanceof Error && e.message === LESSON_NOTE_STALE) {
+          return staleAfterRace(noteId, context.schoolId);
         }
         throw e;
       } finally {
@@ -607,6 +644,7 @@ export async function POST(
 
       return Response.json({
         success: true,
+        contractVersion: APPROVAL_CONTRACT_VERSION,
         message: "Lesson note rejected",
         data: { status: "rejected", rejectionReason: reason },
       });
@@ -790,8 +828,18 @@ export async function GET(
       ? `${note.approvedBy.firstName || ""} ${note.approvedBy.lastName || ""}`.trim()
       : null;
 
+    const reviewer =
+      context.isAdmin || can(context.permissions, JOURNAL_APPROVE_PERMISSION);
+    const ownNote =
+      reviewer && note.status === "submitted"
+        ? await isOwnLessonNote(note.teacherId, context.schoolId, context.userId)
+        : false;
+    const mayDecide = reviewer && note.status === "submitted" && !ownNote;
+    const decisionHistory = await loadLessonNoteDecisionHistory(noteId, context.schoolId);
+
     return Response.json({
       success: true,
+      contractVersion: APPROVAL_CONTRACT_VERSION,
       data: {
         status: note.status,
         submittedAt: note.submittedAt
@@ -803,17 +851,13 @@ export async function GET(
         approvedBy: approverName,
         rejectionReason: note.rejectionReason || null,
         canSubmit: isOwner && ["draft", "rejected"].includes(note.status),
-        canApprove:
-          (context.isAdmin ||
-            can(context.permissions, JOURNAL_APPROVE_PERMISSION)) &&
-          note.status === "submitted",
-        canReject:
-          (context.isAdmin ||
-            can(context.permissions, JOURNAL_APPROVE_PERMISSION)) &&
-          note.status === "submitted",
+        canApprove: mayDecide,
+        canReject: mayDecide,
+        decisionBlockedReason: ownNote ? "maker_checker" : null,
         canReturnToDraft:
           (isOwner || context.isAdmin) &&
           ["submitted", "rejected"].includes(note.status),
+        decisionHistory,
       },
     });
   } catch (e: unknown) {

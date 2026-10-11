@@ -6,6 +6,11 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAttendance } from "@/models/TeacherAttendance";
 import { Teacher } from "@/models/Teacher";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import {
+  isForgedDecisionNote,
+  preserveLegacyDecisionPrefix,
+  teachersInSchool,
+} from "@/lib/teachers/leave-requests";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -263,6 +268,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (records.some((r) => isForgedDecisionNote(r.notes))) {
+      return Response.json(
+        { error: "Notes cannot start with APPROVED: or REJECTED:. Use the leave request decision instead." },
+        { status: 400 }
+      );
+    }
+
+    const teachersHere = await teachersInSchool(
+      teacherIds.filter((id): id is mongoose.Types.ObjectId => id !== null),
+      schoolIdObj
+    );
+
     // Process each record - upsert to handle both create and update
     const results: { teacherId: string; action: "created" | "updated" }[] = [];
     const errors: { teacherId: string; error: string }[] = [];
@@ -271,6 +288,10 @@ export async function POST(req: NextRequest) {
       const teacherObjId = toObjectIdOrNull(record.teacherId);
       if (!teacherObjId) {
         errors.push({ teacherId: record.teacherId, error: "Invalid teacher ID" });
+        continue;
+      }
+      if (!teachersHere.has(String(teacherObjId))) {
+        errors.push({ teacherId: record.teacherId, error: "Teacher not found" });
         continue;
       }
 
@@ -297,7 +318,9 @@ export async function POST(req: NextRequest) {
                 minutesLate: record.minutesLate ?? undefined,
                 leaveType: record.leaveType ?? undefined,
                 reason: record.reason ?? undefined,
-                notes: record.notes ?? undefined,
+                notes:
+                  preserveLegacyDecisionPrefix(existing.notes, record.notes ?? undefined) ??
+                  undefined,
                 recordedBy: adminUserId
                   ? new mongoose.Types.ObjectId(String(adminUserId))
                   : undefined,

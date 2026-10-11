@@ -96,4 +96,17 @@ describe("storage key builder", () => {
     assert.match(built.storageKey, /\/store\/products\//);
     assert.ok(!built.storageKey.includes("/branding/"));
   });
+
+  test("keeps Assess script pages tenant-scoped and separate from homework submissions", () => {
+    const submissionId = "64b7f0c2a1d2e3f40506070a";
+    const built = buildStorageKey({
+      schoolId,
+      kind: "assess_script_page",
+      mimeType: "image/jpeg",
+      association: { type: "scriptSubmission", id: submissionId },
+    });
+    assert.match(built.storageKey, new RegExp(`^schools/${schoolId}/assess/submissions/${submissionId}/`));
+    assert.ok(built.storageKey.includes("/assess/submissions/"));
+    assert.ok(built.storageKey.endsWith(`${built.assetUuid}.jpg`));
+  });
 });

@@ -4,6 +4,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAttendance } from "@/models/TeacherAttendance";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import { isForgedDecisionNote, preserveLegacyDecisionPrefix } from "@/lib/teachers/leave-requests";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -76,6 +77,14 @@ export async function PATCH(
 
   const input = parsed.data;
   const changes: string[] = [];
+
+  if (isForgedDecisionNote(input.notes)) {
+    return Response.json(
+      { error: "Notes cannot start with APPROVED: or REJECTED:. Use the leave request decision instead." },
+      { status: 400 }
+    );
+  }
+  input.notes = preserveLegacyDecisionPrefix(attendance.notes, input.notes);
 
   // Build update object
   const updateFields: Record<string, unknown> = {};

@@ -25,6 +25,10 @@ import {
   resolveLessonNoteSchemeFields,
 } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 import { getLessonsModuleSettings } from "@/lib/lessons/settings";
+import {
+  latestApprovalFeedback,
+  loadLessonNoteDecisionHistory,
+} from "@/lib/lesson-notes/approval-history";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 import { parseGhanaDateLabel } from "@/lib/time/ghana";
 
@@ -445,7 +449,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       )
     );
 
-    const [schemeLink, lessonsSettings] = await Promise.all([
+    const [schemeLink, lessonsSettings, decisionHistory] = await Promise.all([
       resolveSchemeLinkForResponse({
         schoolId: context.schoolId,
         schemeId: entry.schemeId,
@@ -453,21 +457,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         repair: { collection: "lessonNote", id: noteId },
       }),
       getLessonsModuleSettings(context.schoolId),
+      loadLessonNoteDecisionHistory(noteId, context.schoolId),
     ]);
 
     return Response.json({
       success: true,
-      data: formatLessonNoteResponse(
-        entry,
-        className,
-        subjectName,
-        formatUserDisplayName(teacherUser, "Teacher"),
-        serializeReviewComments(comments, userMap),
-        schemeLink,
-        {
-          requireApprovedLessonNote: lessonsSettings.requireApprovedLessonNoteToPublish,
-        },
-      ),
+      data: {
+        ...formatLessonNoteResponse(
+          entry,
+          className,
+          subjectName,
+          formatUserDisplayName(teacherUser, "Teacher"),
+          serializeReviewComments(comments, userMap),
+          schemeLink,
+          {
+            requireApprovedLessonNote: lessonsSettings.requireApprovedLessonNoteToPublish,
+          },
+        ),
+        approvalFeedback: entry.status === "approved" ? latestApprovalFeedback(decisionHistory) : null,
+        decisionHistory,
+      },
     });
   } catch (e: unknown) {
     if (e instanceof Response) return e;

@@ -36,6 +36,17 @@ export async function enforceKindUploadPolicy(
   kind: StorageKind
 ): Promise<void> {
   const definition = getStorageKindDefinition(kind);
+  if (kind === "assess_script_page") {
+    const feature = await requireSchoolFeature(
+      actor.schoolId,
+      FEATURE_KEYS.ASSESSMENT_EXAMINATIONS
+    );
+    if (!feature.allowed) {
+      throw new StorageAuthorizationError(
+        feature.reason || "Assess examinations are not available for this school"
+      );
+    }
+  }
   if (definition.requiresDocumentsStorage) {
     const feature = await requireSchoolFeature(
       actor.schoolId,

@@ -1,0 +1,6 @@
+import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase } from '@/db/connectToDatabase';
+import { requireSchoolAdmin } from '@/lib/auth/requireSchoolAdmin';
+import { Notification } from '@/models/Notification';
+export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) { try { const viewer = await requireSchoolAdmin(); await connectToDatabase(); const { id } = await params; if (!mongoose.Types.ObjectId.isValid(id)) return NextResponse.json({ success: false, error: 'Invalid notification id' }, { status: 400 }); const n: any = await Notification.findOneAndUpdate({ _id: id, userId: viewer.userId, schoolId: viewer.schoolId }, { $set: { isRead: true, readAt: new Date() } }, { new: true }).select('_id isRead readAt').lean(); if (!n) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 }); return NextResponse.json({ success: true, id: String(n._id), isRead: n.isRead === true, readAt: n.readAt ?? null }); } catch (error) { if (error instanceof NextResponse) return error; return NextResponse.json({ success: false, error: 'Unable to mark notification read' }, { status: 500 }); } }

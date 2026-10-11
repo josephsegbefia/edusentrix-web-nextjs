@@ -4,6 +4,15 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAttendance } from "@/models/TeacherAttendance";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import {
+  actorTeacherIds,
+  isForgedDecisionNote,
+  leaveDecisionBlock,
+  leaveStatusFilter,
+  readableLeaveNotes,
+  readLeaveApprovalStatus,
+  teachersInSchool,
+} from "@/lib/teachers/leave-requests";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -38,7 +47,7 @@ export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireSchoolAdmin();
   await connectToDatabase();
 
   const { id } = await ctx.params;
@@ -52,6 +61,7 @@ export async function GET(
     schoolId instanceof mongoose.Types.ObjectId
       ? schoolId
       : new mongoose.Types.ObjectId(String(schoolId));
+  const ownTeacherIds = await actorTeacherIds(schoolIdObj, userId);
 
   const { searchParams } = new URL(req.url);
   const statusFilter = searchParams.get("status"); // pending, approved, rejected
@@ -65,16 +75,7 @@ export async function GET(
     status: "on_leave",
   };
 
-  // For now, we'll use a notes field to track approval status
-  // In a more complex system, you might have a separate LeaveRequest model
-  // For simplicity, we'll check if notes contains approval status
-  if (statusFilter === "pending") {
-    query.notes = { $not: { $regex: /^(APPROVED|REJECTED):/ } };
-  } else if (statusFilter === "approved") {
-    query.notes = { $regex: /^APPROVED:/ };
-  } else if (statusFilter === "rejected") {
-    query.notes = { $regex: /^REJECTED:/ };
-  }
+  Object.assign(query, leaveStatusFilter(statusFilter));
 
   // Get total count
   const total = await TeacherAttendance.countDocuments(query);
@@ -82,25 +83,21 @@ export async function GET(
   // Get records
   const records = await TeacherAttendance.find(query)
     .populate("recordedBy", "firstName lastName email")
+    .populate("leaveRequest.submittedBy", "firstName lastName")
     .sort({ date: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
     .lean();
 
   const data = records.map((r: any) => {
-    const notes = r.notes || "";
-    const isApproved = notes.startsWith("APPROVED:");
-    const isRejected = notes.startsWith("REJECTED:");
-    const approvalStatus = isApproved ? "approved" : isRejected ? "rejected" : "pending";
-    const actualNotes = notes.replace(/^(APPROVED|REJECTED):\s*/, "");
-
     return {
       id: String(r._id),
       date: new Date(r.date).toISOString(),
       leaveType: r.leaveType,
       reason: r.reason,
-      notes: actualNotes || null,
-      approvalStatus,
+      notes: readableLeaveNotes(r.notes),
+      approvalStatus: readLeaveApprovalStatus(r),
+      rejectionReason: r.leaveDecision?.reason || null,
       recordedBy: r.recordedBy
         ? {
             id: String(r.recordedBy._id),
@@ -108,6 +105,13 @@ export async function GET(
             email: r.recordedBy.email || null,
           }
         : null,
+      requestedBy: r.leaveRequest?.submittedBy?._id
+        ? {
+            name: `${r.leaveRequest.submittedBy.firstName || ""} ${r.leaveRequest.submittedBy.lastName || ""}`.trim(),
+          }
+        : null,
+      requestedAt: r.leaveRequest?.submittedAt ? new Date(r.leaveRequest.submittedAt).toISOString() : null,
+      decisionBlockedReason: leaveDecisionBlock(r, userId, ownTeacherIds),
       createdAt: new Date(r.createdAt).toISOString(),
       updatedAt: new Date(r.updatedAt).toISOString(),
     };
@@ -134,6 +138,10 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
+  const submitterId = adminUserId ? toObjectIdOrNull(String(adminUserId)) : null;
+  if (!submitterId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   await connectToDatabase();
 
   const { id } = await ctx.params;
@@ -165,6 +173,18 @@ export async function POST(
   }
 
   const input = parsed.data;
+
+  if (isForgedDecisionNote(input.notes)) {
+    return Response.json(
+      { error: "Notes cannot start with APPROVED: or REJECTED:. Leave requests are decided separately." },
+      { status: 400 }
+    );
+  }
+
+  const inSchool = await teachersInSchool([teacherObjId], schoolIdObj);
+  if (!inSchool.has(String(teacherObjId))) {
+    return Response.json({ error: "Teacher not found" }, { status: 404 });
+  }
 
   const startDate = startOfDay(new Date(input.startDate));
   const endDate = startOfDay(new Date(input.endDate));
@@ -205,6 +225,7 @@ export async function POST(
   }
 
   // Create attendance records for each date
+  const submittedAt = new Date();
   const records = await TeacherAttendance.insertMany(
     dates.map((date) => ({
       teacherId: teacherObjId,
@@ -213,8 +234,9 @@ export async function POST(
       status: "on_leave" as const,
       leaveType: input.leaveType,
       reason: input.reason,
-      notes: input.notes || "PENDING", // Mark as pending
-      recordedBy: adminUserId ? new mongoose.Types.ObjectId(String(adminUserId)) : undefined,
+      notes: input.notes?.trim() || undefined,
+      recordedBy: submitterId,
+      leaveRequest: { submittedBy: submitterId, submittedAt, source: "leave_request" as const },
     }))
   );
 

@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { StoredAsset } from "@/models/StoredAsset";
+import { ScriptSubmission } from "@/models/ScriptSubmission";
 import {
   authorizeStoredAssetRead,
   canMutateStoredAsset,
@@ -103,6 +104,21 @@ function signedTtlSeconds(): number {
 export async function presignUpload(input: PresignUploadInput): Promise<PresignUploadResult> {
   const kind = parseStorageKind(input.kind);
   assertKindActor(input.actor, kind, input.allowTokenKind);
+  if (kind === "assess_script_page") {
+    if (!input.association || input.association.type !== "scriptSubmission") {
+      throw new StorageValidationError("Assess script pages require a script submission association");
+    }
+    const submission = await ScriptSubmission.findOne({
+      _id: assertObjectIdHex(input.association.id, "script submission id"),
+      schoolId: input.actor.schoolId,
+      status: { $nin: ["received", "cancelled"] },
+    })
+      .select({ _id: 1 })
+      .lean();
+    if (!submission) {
+      throw new StorageAuthorizationError("Script submission is not available for upload", 403);
+    }
+  }
   const mimeType = normalizeMimeType(input.mimeType);
   assertKindAllowsMime(kind, mimeType);
   const fileName = sanitizeDisplayFileName(input.fileName);

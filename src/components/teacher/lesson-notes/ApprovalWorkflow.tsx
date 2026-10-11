@@ -549,7 +549,13 @@ export function ApprovalTimeline({ noteId, className }: ApprovalTimelineProps) {
     date: string | null;
     icon: React.ElementType;
     color: string;
+    detail?: string | null;
   }> = [];
+
+  const latestApproval =
+    status.status === "approved"
+      ? status.decisionHistory?.find((entry) => entry.action === "approve")
+      : undefined;
 
   if (status.submittedAt) {
     events.push({
@@ -566,6 +572,7 @@ export function ApprovalTimeline({ noteId, className }: ApprovalTimelineProps) {
       date: status.approvedAt,
       icon: CheckCircle,
       color: "text-emerald-400",
+      detail: latestApproval?.comment ? `Feedback: ${latestApproval.comment}` : null,
     });
   }
 
@@ -598,6 +605,11 @@ export function ApprovalTimeline({ noteId, className }: ApprovalTimelineProps) {
               <event.icon className={cn("h-4 w-4 mt-0.5", event.color)} />
               <div className="flex-grow">
                 <p className="text-sm text-(--ws-fg-80)">{event.label}</p>
+                {event.detail && (
+                  <p className="mt-0.5 whitespace-pre-wrap text-xs text-(--ws-fg-70)">
+                    {event.detail}
+                  </p>
+                )}
                 {event.date && (
                   <p className="text-xs text-(--ws-fg-50)">
                     {new Date(event.date).toLocaleDateString("en-US", {

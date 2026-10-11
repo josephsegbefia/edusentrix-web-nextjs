@@ -1,0 +1,6 @@
+import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase } from '@/db/connectToDatabase';
+import { requireSchoolAdmin } from '@/lib/auth/requireSchoolAdmin';
+import { Notification } from '@/models/Notification';
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) { try { const viewer = await requireSchoolAdmin(); await connectToDatabase(); const { id } = await params; if (!mongoose.Types.ObjectId.isValid(id)) return NextResponse.json({ success: false, error: 'Invalid notification id' }, { status: 400 }); const n: any = await Notification.findOne({ _id: id, userId: viewer.userId, schoolId: viewer.schoolId }).lean(); if (!n) return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 }); return NextResponse.json({ success: true, row: { id: String(n._id), type: n.type, title: n.title, body: n.body, isRead: n.isRead === true, createdAt: n.createdAt ?? null, priority: n.priority || 'normal', destination: null } }); } catch (error) { if (error instanceof NextResponse) return error; return NextResponse.json({ success: false, error: 'Unable to load notification' }, { status: 500 }); } }

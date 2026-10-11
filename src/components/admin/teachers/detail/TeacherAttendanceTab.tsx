@@ -22,11 +22,12 @@ import {
   useLeaveRequests,
   useApproveLeave,
   useRejectLeave,
+  leaveDecisionBlockedMessage,
   type TeacherAttendanceStatus,
 } from "@/hooks/admin/useTeacherAttendance";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { RecordAttendanceModal } from "@/components/modals/RecordAttendanceModal";
-import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { usePromptDialog } from "@/hooks/usePromptDialog";
 import { ComingSoonState } from "@/components/ui/coming-soon-state";
 
 type Props = {
@@ -141,14 +142,14 @@ export function TeacherAttendanceTab({ teacher }: Props) {
   const approveLeaveMutation = useApproveLeave();
   const rejectLeaveMutation = useRejectLeave();
   const busy = useBusyToast();
-  const { confirm, confirmationDialog } = useConfirmationDialog();
+  const { prompt, promptDialog } = usePromptDialog();
 
   const handleApproveLeave = async (leaveRequestId: string) => {
     try {
       await busy.promise(approveLeaveMutation.mutateAsync(leaveRequestId), {
         loading: "Approving leave request...",
         success: "Leave request approved successfully",
-        error: "Failed to approve leave request",
+        error: (e) => e.message || "Failed to approve leave request",
       });
     } catch {
       // Error already handled by busy.promise
@@ -156,20 +157,30 @@ export function TeacherAttendanceTab({ teacher }: Props) {
   };
 
   const handleRejectLeave = async (leaveRequestId: string) => {
-    const decision = await confirm({
+    const rejectionReason = await prompt({
       title: "Reject Leave Request?",
-      description: "The leave request will be marked as rejected.",
+      description: "The teacher will see this reason.",
+      inputLabel: "Reason",
+      placeholder: "Why is this leave request rejected?",
       confirmLabel: "Reject",
       cancelLabel: "Cancel",
       intent: "warning",
     });
-    if (decision !== "confirm") return;
+    if (rejectionReason === null) return;
+    if (!rejectionReason) {
+      busy.error("Add a reason to reject this leave request.");
+      return;
+    }
+    if (rejectionReason.length > 500) {
+      busy.error("Keep the reason under 500 characters.");
+      return;
+    }
 
     try {
-      await busy.promise(rejectLeaveMutation.mutateAsync({ leaveRequestId }), {
+      await busy.promise(rejectLeaveMutation.mutateAsync({ leaveRequestId, rejectionReason }), {
         loading: "Rejecting leave request...",
         success: "Leave request rejected successfully",
-        error: "Failed to reject leave request",
+        error: (e) => e.message || "Failed to reject leave request",
       });
     } catch {
       // Error already handled by busy.promise
@@ -444,6 +455,11 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                         </p>
                       )}
                     </div>
+                    {request.decisionBlockedReason ? (
+                      <p className="text-xs text-(--ws-fg-60)">
+                        {leaveDecisionBlockedMessage(request.decisionBlockedReason)}
+                      </p>
+                    ) : (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -472,6 +488,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                         Reject
                       </Button>
                     </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -488,7 +505,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
         teacherName={teacher.fullName}
         defaultDate={selectedDate}
       />
-      {confirmationDialog}
+      {promptDialog}
     </div>
   );
 }

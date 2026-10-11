@@ -1,0 +1,4 @@
+export type TrustedReplyParticipant = { email: string; name?: string | null; userId?: string | null; roleHint?: string | null };
+export function validReplyIdempotencyKey(value: string) { return /^[A-Za-z0-9._:-]{16,128}$/.test(value.trim()); }
+export function escapeReplyHtml(value: string) { return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\n/g, '<br />'); }
+export function selectReplyRecipient(participants: TrustedReplyParticipant[], latestInboundFrom?: string | null): TrustedReplyParticipant | null { const valid = participants.filter((item) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(item.email)); if (valid.length === 1) return valid[0]; if (!latestInboundFrom) return null; const matches = valid.filter((item) => item.email.toLowerCase() === latestInboundFrom.toLowerCase()); return matches.length === 1 ? matches[0] : null; }

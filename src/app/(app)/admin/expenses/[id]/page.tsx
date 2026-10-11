@@ -401,8 +401,9 @@ export default function ExpenseDetailPage() {
   const statusConfig = getStatusConfig(expense.status);
   const canEdit = expense.status === "draft" || expense.status === "rejected";
   const canSubmit = expense.status === "draft" || expense.status === "rejected";
-  const canApprove = expense.status === "submitted";
-  const canReject = expense.status === "submitted";
+  const makerBlocked = expense.decisionBlockedReason === "maker_checker";
+  const canApprove = expense.status === "submitted" && !makerBlocked;
+  const canReject = expense.status === "submitted" && !makerBlocked;
   const canPay = expense.status === "approved";
   const canCancel = ["draft", "submitted", "rejected"].includes(expense.status);
 
@@ -536,6 +537,12 @@ export default function ExpenseDetailPage() {
                   </Button>
                 )}
               </div>
+              {expense.status === "submitted" && makerBlocked && (
+                <p className="mt-3 text-sm text-(--ws-fg-70)">
+                  You created or submitted this expense, so another authorized person must approve or
+                  reject it.
+                </p>
+              )}
             </CardContent>
           </Card>
 

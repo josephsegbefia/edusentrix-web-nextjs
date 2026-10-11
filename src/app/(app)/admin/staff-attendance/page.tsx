@@ -99,8 +99,14 @@ import {
   type TeacherWithAttendance,
   type TeacherAttendanceStatus,
 } from "@/hooks/admin/useTeacherAttendanceManagement";
-import { useApproveLeave, useRejectLeave } from "@/hooks/admin/useTeacherAttendance";
+import {
+  leaveDecisionBlockedMessage,
+  useApproveLeave,
+  useRejectLeave,
+  type LeaveDecisionBlockedReason,
+} from "@/hooks/admin/useTeacherAttendance";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { usePromptDialog } from "@/hooks/usePromptDialog";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   useStaffAttendanceAIInsightsQuery,
@@ -474,6 +480,7 @@ function LeaveRequestCard({
     leaveType: string;
     reason: string;
     approvalStatus: "pending" | "approved" | "rejected";
+    decisionBlockedReason?: LeaveDecisionBlockedReason | null;
     createdAt: string;
   };
   onApprove: (id: string) => void;
@@ -543,7 +550,13 @@ function LeaveRequestCard({
             {request.reason}
           </p>
 
-          {request.approvalStatus === "pending" && (
+          {request.approvalStatus === "pending" && request.decisionBlockedReason ? (
+            <p className="mt-3 text-xs text-(--ws-fg-70)">
+              {leaveDecisionBlockedMessage(request.decisionBlockedReason)}
+            </p>
+          ) : null}
+
+          {request.approvalStatus === "pending" && !request.decisionBlockedReason && (
             <div className="mt-3 flex items-center gap-2">
               <Button
                 size="sm"
@@ -601,6 +614,13 @@ export default function StaffAttendancePage() {
     "attendance"
   );
 
+  // Links may open the Leave Requests tab directly with `?tab=leave`.
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "leave") {
+      setActiveTab("leave");
+    }
+  }, []);
+
   // Leave requests filter
   const [leaveFilter, setLeaveFilter] = React.useState<
     "pending" | "approved" | "rejected" | undefined
@@ -634,6 +654,7 @@ export default function StaffAttendancePage() {
   const bulkRecord = useBulkRecordAttendance();
   const approveLeave = useApproveLeave();
   const rejectLeave = useRejectLeave();
+  const { prompt, promptDialog } = usePromptDialog();
 
   // Handlers
   const handleQuickMark = React.useCallback(
@@ -652,27 +673,45 @@ export default function StaffAttendancePage() {
 
   const handleApproveLeave = React.useCallback(
     (id: string) => {
-      busy.promise(approveLeave.mutateAsync(id), {
-        loading: "Approving leave...",
-        success: "Leave approved",
-        error: "Failed to approve leave",
-      });
+      busy
+        .promise(approveLeave.mutateAsync(id), {
+          loading: "Approving leave...",
+          success: "Leave approved",
+          error: (e) => e.message || "Failed to approve leave",
+        })
+        .catch(() => undefined);
     },
     [busy, approveLeave]
   );
 
   const handleRejectLeave = React.useCallback(
-    (id: string) => {
-      busy.promise(
-        rejectLeave.mutateAsync({ leaveRequestId: id, rejectionReason: "" }),
-        {
+    async (id: string) => {
+      const reason = await prompt({
+        title: "Reject leave request?",
+        description: "The teacher will see this reason.",
+        inputLabel: "Reason",
+        placeholder: "Why is this leave request rejected?",
+        confirmLabel: "Reject",
+        intent: "warning",
+      });
+      if (reason === null) return;
+      if (!reason) {
+        busy.error("Add a reason to reject this leave request.");
+        return;
+      }
+      if (reason.length > 500) {
+        busy.error("Keep the reason under 500 characters.");
+        return;
+      }
+      busy
+        .promise(rejectLeave.mutateAsync({ leaveRequestId: id, rejectionReason: reason }), {
           loading: "Rejecting leave...",
           success: "Leave rejected",
-          error: "Failed to reject leave",
-        }
-      );
+          error: (e) => e.message || "Failed to reject leave",
+        })
+        .catch(() => undefined);
     },
-    [busy, rejectLeave]
+    [busy, prompt, rejectLeave]
   );
 
   // Filter teachers with debounced search
@@ -1338,6 +1377,7 @@ export default function StaffAttendancePage() {
           </Card>
         )}
       </main>
+      {promptDialog}
     </WorkspaceScope>
   );
 }

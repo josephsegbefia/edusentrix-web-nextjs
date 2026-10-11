@@ -132,6 +132,7 @@ function resolveKindPath(
   const expense = associationId(association, "expense");
   const homework = associationId(association, "homework");
   const submission = associationId(association, "submission");
+  const scriptSubmission = associationId(association, "scriptSubmission");
   const lesson = associationId(association, "lesson");
   const notice = associationId(association, "notice");
   const job = associationId(association, "job");
@@ -195,6 +196,10 @@ function resolveKindPath(
     case "submission_attachment":
       return submission
         ? `schools/${schoolId}/submissions/${submission}/${file}`
+        : pendingKey(schoolId, kind, assetUuid, extension);
+    case "assess_script_page":
+      return scriptSubmission
+        ? `schools/${schoolId}/assess/submissions/${scriptSubmission}/${file}`
         : pendingKey(schoolId, kind, assetUuid, extension);
     case "lesson_resource":
       return lesson

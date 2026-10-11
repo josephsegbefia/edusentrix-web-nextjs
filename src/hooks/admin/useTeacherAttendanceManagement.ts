@@ -1,6 +1,6 @@
 // src/hooks/admin/useTeacherAttendanceManagement.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { LeaveType } from "./useTeacherAttendance";
+import type { LeaveDecisionBlockedReason, LeaveType } from "./useTeacherAttendance";
 
 // Re-export the type so consumers can import from this module
 export type TeacherAttendanceStatus =
@@ -106,6 +106,9 @@ export type LeaveRequestWithTeacher = {
     name: string;
     email: string | null;
   } | null;
+  requestedBy?: { name: string } | null;
+  requestedAt?: string | null;
+  decisionBlockedReason?: LeaveDecisionBlockedReason | null;
   createdAt: string;
   updatedAt: string;
 };

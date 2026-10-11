@@ -55,6 +55,10 @@ export interface SendBrevoEmailInput {
   recipientEmailVerified?: boolean;
 
   batchId?: string | null;
+  /** Stable client operation key, scoped by school for mutation idempotency. */
+  idempotencyKey?: string | null;
+  inReplyTo?: string | null;
+  referencesHeader?: string[] | null;
 
   /** If true, persist message as queued and create a dispatch job instead of sending immediately. */
   async?: boolean;
@@ -83,6 +87,10 @@ export async function sendTrackedBrevoEmail(
   const registry = lookupTemplateRegistry(input.templateKey);
   if (!registry) {
     throw new Error(`Unknown template key: ${input.templateKey}`);
+  }
+  if (input.idempotencyKey && input.schoolId) {
+    const existing = await EmailMessage.findOne({ schoolId: input.schoolId, ...(input.threadId ? { threadId: input.threadId } : {}), idempotencyKey: input.idempotencyKey }).lean();
+    if (existing) return { messageId: String(existing._id), threadId: existing.threadId ? String(existing.threadId) : undefined, status: existing.status };
   }
   const branding = await resolveSchoolBranding({
     schoolId: input.schoolId,
@@ -290,6 +298,8 @@ export async function sendTrackedBrevoEmail(
     subject: input.subject,
     htmlBody: htmlContent,
     textBody: textContent || null,
+    inReplyTo: input.inReplyTo || null,
+    referencesHeader: input.referencesHeader || null,
     status: input.async ? "queued" : "queued",
     messageClass: registry.messageClass,
     trafficClass: registry.trafficClass,
@@ -297,6 +307,7 @@ export async function sendTrackedBrevoEmail(
     sensitivity: registry.sensitivity,
     secureContentMode: resolveSecureContentMode(registry.sensitivity),
     templateKey: input.templateKey,
+    idempotencyKey: input.idempotencyKey || null,
     relatedEntityType: input.relatedEntityType || null,
     relatedEntityId: input.relatedEntityId || null,
     actorId: input.actorId || null,
@@ -346,6 +357,10 @@ export async function sendTrackedBrevoEmail(
       fromEmail,
       fromName,
       replyTo,
+      headers: {
+        ...(input.inReplyTo ? { 'In-Reply-To': input.inReplyTo } : {}),
+        ...(input.referencesHeader?.length ? { References: input.referencesHeader.join(' ') } : {}),
+      },
       tags: [
         input.templateKey,
         registry.trafficClass,

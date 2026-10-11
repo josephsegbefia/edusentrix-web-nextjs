@@ -23,6 +23,13 @@ export interface ApprovalStatus {
   canApprove: boolean;
   canReject: boolean;
   canReturnToDraft: boolean;
+  decisionBlockedReason?: "maker_checker" | null;
+  decisionHistory?: Array<{
+    action: "submit" | "approve" | "reject" | "revise";
+    comment: string | null;
+    actorName: string | null;
+    at: string;
+  }>;
 }
 
 export interface ApprovalResponse {

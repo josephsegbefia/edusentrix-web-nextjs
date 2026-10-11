@@ -47,4 +47,13 @@ describe("storage kind registry", () => {
     assert.equal(STORAGE_KIND_REGISTRY.school_brand_image.requiresDocumentsStorage, false);
     assert.equal(STORAGE_KIND_REGISTRY.teacher_document.requiresDocumentsStorage, true);
   });
+
+  test("Assess script pages are private, image-only and administrator-gated", () => {
+    const definition = STORAGE_KIND_REGISTRY.assess_script_page;
+    assert.equal(definition.defaultVisibility, "private");
+    assert.equal(definition.authPolicy, "school_admin_or_platform");
+    assert.equal(definition.requiresDocumentsStorage, true);
+    assert.equal(maxBytesForKindMime("assess_script_page", "image/jpeg"), BYTES_8MB);
+    assert.throws(() => assertKindAllowsMime("assess_script_page", "application/pdf"));
+  });
 });

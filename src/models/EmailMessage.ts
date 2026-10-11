@@ -71,6 +71,8 @@ export interface IEmailMessage {
   schoolId?: Types.ObjectId | null;
   threadId?: Types.ObjectId | null;
   batchId?: Types.ObjectId | null;
+  /** Client operation key for durable, school-scoped mutation idempotency. */
+  idempotencyKey?: string | null;
 
   from: string;
   fromName?: string | null;
@@ -176,6 +178,7 @@ const emailMessageSchema = new Schema<IEmailMessage>(
       default: null,
       index: true,
     },
+    idempotencyKey: { type: String, default: null, trim: true },
 
     from: { type: String, required: true, trim: true },
     fromName: { type: String, default: null, trim: true },
@@ -295,6 +298,7 @@ emailMessageSchema.index({ routingToken: 1 }, { sparse: true });
 emailMessageSchema.index({ mailboxScope: 1, mailboxKey: 1, createdAt: -1 });
 emailMessageSchema.index({ schoolId: 1, messageClass: 1, createdAt: -1 });
 emailMessageSchema.index({ relatedEntityType: 1, relatedEntityId: 1 });
+emailMessageSchema.index({ schoolId: 1, idempotencyKey: 1 }, { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } }, name: "unique_school_email_idempotency" });
 
 const existingEmailMessage = models.EmailMessage as Model<IEmailMessage> | undefined;
 
@@ -307,6 +311,9 @@ if (existingEmailMessage) {
   };
   if (providerPath.enumValues && !providerPath.enumValues.includes("resend")) {
     providerPath.enumValues.push("resend");
+  }
+  if (!existingEmailMessage.schema.path("idempotencyKey")) {
+    existingEmailMessage.schema.add({ idempotencyKey: { type: String, default: null, trim: true } });
   }
 }
 

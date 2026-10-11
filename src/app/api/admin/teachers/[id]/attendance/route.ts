@@ -4,6 +4,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAttendance } from "@/models/TeacherAttendance";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import { isForgedDecisionNote, teachersInSchool } from "@/lib/teachers/leave-requests";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -178,6 +179,18 @@ export async function POST(
   }
 
   const input = parsed.data;
+
+  if (isForgedDecisionNote(input.notes)) {
+    return Response.json(
+      { error: "Notes cannot start with APPROVED: or REJECTED:. Use the leave request decision instead." },
+      { status: 400 }
+    );
+  }
+
+  const inSchool = await teachersInSchool([teacherObjId], schoolIdObj);
+  if (!inSchool.has(String(teacherObjId))) {
+    return Response.json({ error: "Teacher not found" }, { status: 404 });
+  }
 
   // Normalize date to start of day
   const attendanceDate = startOfDay(new Date(input.date));

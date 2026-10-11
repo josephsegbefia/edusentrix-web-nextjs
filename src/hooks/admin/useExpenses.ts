@@ -392,7 +392,11 @@ export function useExpense(id: string | null) {
       const res = await fetch(`/api/admin/expenses/${id}`);
       if (!res.ok) throw new Error("Failed to fetch expense");
       const json = await res.json();
-      return json.data as ExpenseDTO;
+      return {
+        ...(json.data as ExpenseDTO),
+        decisionBlockedReason:
+          json.decisionBlockedReason === "maker_checker" ? "maker_checker" : null,
+      } as ExpenseDTO & { decisionBlockedReason: "maker_checker" | null };
     },
     enabled: !!id,
   });
@@ -514,7 +518,7 @@ export function useApproveExpense() {
       }
       return res.json();
     },
-    onSuccess: (_, { id }) => {
+    onSettled: (_, __, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["expense", id] });
     },
@@ -537,7 +541,7 @@ export function useRejectExpense() {
       }
       return res.json();
     },
-    onSuccess: (_, { id }) => {
+    onSettled: (_, __, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["expense", id] });
     },

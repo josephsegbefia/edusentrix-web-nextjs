@@ -2,99 +2,49 @@
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { TeacherAttendance } from "@/models/TeacherAttendance";
-import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
-import mongoose from "mongoose";
-
-function toObjectIdOrNull(id: string) {
-  try {
-    return new mongoose.Types.ObjectId(String(id));
-  } catch {
-    return null;
-  }
-}
+import {
+  APPROVAL_CONTRACT_VERSION,
+  decisionError,
+  parseObjectId,
+  toObjectId,
+  withDecisionErrors,
+} from "@/lib/approvals/decision-guard";
+import { decideLeaveRequest, leaveDecisionFailure } from "@/lib/teachers/leave-requests";
 
 /**
  * PATCH /api/admin/teachers/leave-requests/:id/approve
- * Approve a leave request (attendance record)
+ * Approve a pending leave request. Any request that is no longer pending returns 409.
  */
-export async function PATCH(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
-) {
-  const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
-  await connectToDatabase();
+export async function PATCH(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  return withDecisionErrors(async () => {
+    const { schoolId, userId } = await requireSchoolAdmin();
+    const { id } = await ctx.params;
+    const leaveId = parseObjectId(id);
+    if (!leaveId) {
+      return decisionError("invalid_id", "Invalid leave request id");
+    }
+    await connectToDatabase();
 
-  const { id } = await ctx.params;
-  const attendanceObjId = toObjectIdOrNull(String(id));
+    const result = await decideLeaveRequest({
+      id: leaveId,
+      schoolId: toObjectId(schoolId),
+      actorUserId: userId,
+      action: "approve",
+    });
 
-  if (!attendanceObjId) {
-    return Response.json({ error: "Invalid leave request id" }, { status: 400 });
-  }
+    if (!result.ok) {
+      return leaveDecisionFailure(result, leaveId);
+    }
 
-  const schoolIdObj =
-    schoolId instanceof mongoose.Types.ObjectId
-      ? schoolId
-      : new mongoose.Types.ObjectId(String(schoolId));
-
-  // Find attendance record
-  const attendance = await TeacherAttendance.findOne({
-    _id: attendanceObjId,
-    schoolId: schoolIdObj,
-    status: "on_leave",
-  });
-
-  if (!attendance) {
-    return Response.json(
-      { error: "Leave request not found or not a leave request" },
-      { status: 404 }
-    );
-  }
-
-  // Check if already approved/rejected
-  const notes = attendance.notes || "";
-  if (notes.startsWith("APPROVED:")) {
     return Response.json({
       success: true,
-      message: "Leave request already approved",
-      data: { id: String(attendance._id) },
+      contractVersion: APPROVAL_CONTRACT_VERSION,
+      message: "Leave request approved successfully",
+      data: {
+        id: result.id,
+        approvalStatus: result.approvalStatus,
+        decidedAt: result.decidedAt.toISOString(),
+      },
     });
-  }
-
-  if (notes.startsWith("REJECTED:")) {
-    return Response.json(
-      { error: "Cannot approve a rejected leave request" },
-      { status: 400 }
-    );
-  }
-
-  // Update notes to mark as approved
-  const actualNotes = notes.replace(/^(PENDING|APPROVED|REJECTED):\s*/, "");
-  const newNotes = `APPROVED: ${actualNotes || "Leave approved"}`;
-
-  await TeacherAttendance.findByIdAndUpdate(attendanceObjId, {
-    $set: { notes: newNotes },
-  });
-
-  // Log activity
-  await logTeacherActivity({
-    teacherId: String(attendance.teacherId),
-    schoolId: schoolIdObj,
-    type: "leave.approved",
-    title: "Leave request approved",
-    description: `Approved leave request for ${new Date(attendance.date).toLocaleDateString()}`,
-    metadata: {
-      attendanceId: String(attendance._id),
-      date: attendance.date.toISOString(),
-      leaveType: attendance.leaveType,
-      approvedBy: adminUserId,
-    },
-    createdBy: adminUserId,
-  });
-
-  return Response.json({
-    success: true,
-    message: "Leave request approved successfully",
-    data: { id: String(attendance._id) },
-  });
+  }, "Failed to approve leave request");
 }

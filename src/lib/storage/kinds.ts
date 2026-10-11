@@ -195,6 +195,14 @@ export const STORAGE_KIND_REGISTRY: Record<StorageKind, StorageKindDefinition> =
     authPolicy: "authenticated_membership",
     requiresDocumentsStorage: true,
   },
+  assess_script_page: {
+    kind: "assess_script_page",
+    limits: [IMAGE_8MB],
+    defaultVisibility: "private",
+    keyCategory: "assess_script_page",
+    authPolicy: "school_admin_or_platform",
+    requiresDocumentsStorage: true,
+  },
   lesson_illustration: {
     kind: "lesson_illustration",
     limits: [IMAGE_8MB],

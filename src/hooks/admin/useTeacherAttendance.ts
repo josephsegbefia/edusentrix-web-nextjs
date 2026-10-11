@@ -80,6 +80,19 @@ export type UpdateAttendanceResponse = {
   };
 };
 
+export type LeaveDecisionBlockedReason = "maker_checker" | "not_a_request";
+
+/** Why the signed-in admin cannot decide a pending leave day, for display next to the hidden buttons. */
+export function leaveDecisionBlockedMessage(reason: LeaveDecisionBlockedReason | null | undefined): string | null {
+  if (reason === "maker_checker") {
+    return "Another school administrator must decide this. You submitted it or it is your own leave.";
+  }
+  if (reason === "not_a_request") {
+    return "Recorded as attendance, not submitted as a leave request. There is nothing to decide.";
+  }
+  return null;
+}
+
 export type TeacherLeaveRequestDTO = {
   id: string;
   date: string;
@@ -92,6 +105,9 @@ export type TeacherLeaveRequestDTO = {
     name: string;
     email: string | null;
   } | null;
+  requestedBy?: { name: string } | null;
+  requestedAt?: string | null;
+  decisionBlockedReason?: LeaveDecisionBlockedReason | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -330,8 +346,10 @@ export function useApproveLeave() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    // Refresh on failure too: a 409 means someone else decided this request.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["teachers", "leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "all-leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["teachers", "attendance"] });
     },
   });
@@ -349,7 +367,7 @@ export function useRejectLeave() {
       rejectionReason,
     }: {
       leaveRequestId: string;
-      rejectionReason?: string;
+      rejectionReason: string;
     }): Promise<{ success: boolean; message: string; data: { id: string } }> => {
       const res = await fetch(
         `/api/admin/teachers/leave-requests/${leaveRequestId}/reject`,
@@ -365,8 +383,9 @@ export function useRejectLeave() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["teachers", "leave-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "all-leave-requests"] });
       queryClient.invalidateQueries({ queryKey: ["teachers", "attendance"] });
     },
   });

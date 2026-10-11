@@ -14,6 +14,7 @@ export type ResendSendInput = {
   fromEmail?: string;
   fromName?: string;
   replyTo?: string | null;
+  headers?: Record<string, string>;
   tags?: string[];
   idempotencyKey?: string;
 };
@@ -125,6 +126,7 @@ export async function resendSend(input: ResendSendInput): Promise<ResendSendResu
     html: input.htmlContent,
     ...(input.textContent ? { text: input.textContent } : {}),
     ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+    ...(input.headers ? { headers: input.headers } : {}),
     ...(tags.length ? { tags } : {}),
     ...(input.attachments?.length
       ? {

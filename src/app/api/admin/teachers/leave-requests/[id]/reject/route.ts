@@ -2,125 +2,73 @@
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { TeacherAttendance } from "@/models/TeacherAttendance";
-import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
-import mongoose from "mongoose";
-import { z } from "zod";
-
-function toObjectIdOrNull(id: string) {
-  try {
-    return new mongoose.Types.ObjectId(String(id));
-  } catch {
-    return null;
-  }
-}
-
-const RejectLeaveRequestSchema = z.object({
-  rejectionReason: z.string().max(500).optional().nullable(),
-});
+import {
+  APPROVAL_CONTRACT_VERSION,
+  decisionError,
+  parseObjectId,
+  readJsonObject,
+  toObjectId,
+  withDecisionErrors,
+} from "@/lib/approvals/decision-guard";
+import {
+  decideLeaveRequest,
+  LEAVE_REJECTION_REASON_MAX,
+  leaveDecisionFailure,
+} from "@/lib/teachers/leave-requests";
 
 /**
  * PATCH /api/admin/teachers/leave-requests/:id/reject
- * Reject a leave request (attendance record)
+ * Body: { rejectionReason: string } — required, 1–500 characters after trimming.
+ * Any request that is no longer pending returns 409.
  */
-export async function PATCH(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
-) {
-  const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
-  await connectToDatabase();
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  return withDecisionErrors(async () => {
+    const { schoolId, userId } = await requireSchoolAdmin();
+    const { id } = await ctx.params;
+    const leaveId = parseObjectId(id);
+    if (!leaveId) {
+      return decisionError("invalid_id", "Invalid leave request id");
+    }
 
-  const { id } = await ctx.params;
-  const attendanceObjId = toObjectIdOrNull(String(id));
+    const body = await readJsonObject(req);
+    if (!body) {
+      return decisionError("invalid_body", "Send a JSON object with a rejection reason.");
+    }
+    const raw = body.rejectionReason;
+    const rejectionReason = typeof raw === "string" ? raw.trim() : "";
+    if (!rejectionReason) {
+      return decisionError("reason_required", "A rejection reason is required.");
+    }
+    if (rejectionReason.length > LEAVE_REJECTION_REASON_MAX) {
+      return decisionError(
+        "invalid_body",
+        `Keep the rejection reason under ${LEAVE_REJECTION_REASON_MAX} characters.`
+      );
+    }
 
-  if (!attendanceObjId) {
-    return Response.json({ error: "Invalid leave request id" }, { status: 400 });
-  }
+    await connectToDatabase();
 
-  const schoolIdObj =
-    schoolId instanceof mongoose.Types.ObjectId
-      ? schoolId
-      : new mongoose.Types.ObjectId(String(schoolId));
+    const result = await decideLeaveRequest({
+      id: leaveId,
+      schoolId: toObjectId(schoolId),
+      actorUserId: userId,
+      action: "reject",
+      rejectionReason,
+    });
 
-  // Parse body for rejection reason
-  let body: { rejectionReason?: string } = {};
-  try {
-    body = await req.json().catch(() => ({}));
-  } catch {
-    // Body is optional
-  }
+    if (!result.ok) {
+      return leaveDecisionFailure(result, leaveId);
+    }
 
-  const parsed = RejectLeaveRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return Response.json(
-      { error: "Validation failed", issues: parsed.error.flatten() },
-      { status: 400 }
-    );
-  }
-
-  const rejectionReason = parsed.data.rejectionReason;
-
-  // Find attendance record
-  const attendance = await TeacherAttendance.findOne({
-    _id: attendanceObjId,
-    schoolId: schoolIdObj,
-    status: "on_leave",
-  });
-
-  if (!attendance) {
-    return Response.json(
-      { error: "Leave request not found or not a leave request" },
-      { status: 404 }
-    );
-  }
-
-  // Check if already approved/rejected
-  const notes = attendance.notes || "";
-  if (notes.startsWith("REJECTED:")) {
     return Response.json({
       success: true,
-      message: "Leave request already rejected",
-      data: { id: String(attendance._id) },
+      contractVersion: APPROVAL_CONTRACT_VERSION,
+      message: "Leave request rejected successfully",
+      data: {
+        id: result.id,
+        approvalStatus: result.approvalStatus,
+        decidedAt: result.decidedAt.toISOString(),
+      },
     });
-  }
-
-  if (notes.startsWith("APPROVED:")) {
-    return Response.json(
-      { error: "Cannot reject an approved leave request" },
-      { status: 400 }
-    );
-  }
-
-  // Update notes to mark as rejected
-  const actualNotes = notes.replace(/^(PENDING|APPROVED|REJECTED):\s*/, "");
-  const rejectionNote = rejectionReason
-    ? `REJECTED: ${rejectionReason}`
-    : `REJECTED: Leave request rejected${actualNotes ? ` (Original: ${actualNotes})` : ""}`;
-
-  await TeacherAttendance.findByIdAndUpdate(attendanceObjId, {
-    $set: { notes: rejectionNote },
-  });
-
-  // Log activity
-  await logTeacherActivity({
-    teacherId: String(attendance.teacherId),
-    schoolId: schoolIdObj,
-    type: "leave.rejected",
-    title: "Leave request rejected",
-    description: `Rejected leave request for ${new Date(attendance.date).toLocaleDateString()}${rejectionReason ? `: ${rejectionReason}` : ""}`,
-    metadata: {
-      attendanceId: String(attendance._id),
-      date: attendance.date.toISOString(),
-      leaveType: attendance.leaveType,
-      rejectionReason,
-      rejectedBy: adminUserId,
-    },
-    createdBy: adminUserId,
-  });
-
-  return Response.json({
-    success: true,
-    message: "Leave request rejected successfully",
-    data: { id: String(attendance._id) },
-  });
+  }, "Failed to reject leave request");
 }

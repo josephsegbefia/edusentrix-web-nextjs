@@ -6,6 +6,8 @@ import { Types } from "mongoose";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolExpense } from "@/models/SchoolExpense";
+import { APPROVAL_CONTRACT_VERSION, parseObjectId } from "@/lib/approvals/decision-guard";
+import { isExpenseMaker } from "@/lib/finance/expense-decisions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,8 +16,11 @@ interface RouteParams {
 // GET /api/admin/expenses/:id
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId, userId } = await requireFinanceStaff();
     const { id } = await params;
+    if (!parseObjectId(id)) {
+      return NextResponse.json({ error: "Invalid expense id", code: "invalid_id" }, { status: 400 });
+    }
     await connectToDatabase();
 
     const expense = await SchoolExpense.findOne({
@@ -37,7 +42,19 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ data: expense });
+    // Raw ids, because a populated actor whose user record is missing reads as null.
+    const actors = await SchoolExpense.findOne({ _id: id, schoolId })
+      .select("status createdBy submittedBy")
+      .lean<{ status?: string; createdBy?: unknown; submittedBy?: unknown } | null>();
+    const makerBlocked = Boolean(
+      actors && actors.status === "submitted" && isExpenseMaker(actors, userId)
+    );
+
+    return NextResponse.json({
+      data: expense,
+      contractVersion: APPROVAL_CONTRACT_VERSION,
+      decisionBlockedReason: makerBlocked ? "maker_checker" : null,
+    });
   } catch (error) {
     if (error instanceof NextResponse) return error;
     console.error("Error fetching expense:", error);

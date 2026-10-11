@@ -5,81 +5,77 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolExpense } from "@/models/SchoolExpense";
-import { recordActivity } from "@/lib/audit/recordActivity";
+import {
+  APPROVAL_CONTRACT_VERSION,
+  decisionError,
+  parseObjectId,
+  readJsonObject,
+  toObjectId,
+  withDecisionErrors,
+} from "@/lib/approvals/decision-guard";
+import { decideExpense, EXPENSE_NOTE_MAX } from "@/lib/finance/expense-decisions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
 // POST /api/admin/expenses/:id/approve
+// Body: { note?: string ≤ 500 }. The expense's creator or submitter cannot approve it.
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  try {
+  return withDecisionErrors(async () => {
     const { userId, schoolId } = await requireFinanceStaff();
     const { id } = await params;
+    const expenseId = parseObjectId(id);
+    if (!expenseId) {
+      return decisionError("invalid_id", "Invalid expense id");
+    }
+
+    const body = await readJsonObject(req);
+    if (!body) {
+      return decisionError("invalid_body", "Send a JSON object.");
+    }
+    const note = typeof body.note === "string" ? body.note.trim() : "";
+    if (note.length > EXPENSE_NOTE_MAX) {
+      return decisionError("invalid_body", `Keep the note under ${EXPENSE_NOTE_MAX} characters.`);
+    }
+
     await connectToDatabase();
-
-    const expense = await SchoolExpense.findOne({
-      _id: id,
-      schoolId,
+    const result = await decideExpense({
+      expenseId,
+      schoolId: toObjectId(schoolId),
+      actorUserId: userId,
+      action: "approve",
+      text: note || null,
     });
 
-    if (!expense) {
-      return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+    if (!result.ok) {
+      if (result.reason === "not_found") {
+        return decisionError("not_found", "Expense not found");
+      }
+      if (result.reason === "maker_checker") {
+        return decisionError(
+          "maker_checker_required",
+          "You created or submitted this expense, so another authorized person must decide it."
+        );
+      }
+      return decisionError("stale_decision", "Only submitted expenses can be approved.", {
+        data: { status: result.status },
+      });
     }
 
-    // Check if expense can be approved
-    if (expense.status !== "submitted") {
-      return NextResponse.json(
-        { error: "Only submitted expenses can be approved" },
-        { status: 400 }
-      );
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const { note } = body;
-
-    // Update status
-    expense.status = "approved";
-    expense.approvedAt = new Date();
-    expense.approvedBy = userId;
-    expense.approvalNote = note?.trim() || null;
-    expense.lockedAt = new Date();
-    expense.lockReason = "approved";
-
-    await expense.save();
-
-    // Record activity
-    await recordActivity({
-      schoolId: String(schoolId),
-      userId: String(userId),
-      type: "expense.approved",
-      description: `Approved expense ${expense.expenseNumber}`,
-      metadata: {
-        expenseId: expense._id,
-        expenseNumber: expense.expenseNumber,
-        amountMinor: expense.amountMinor,
-        currency: expense.currency,
-      },
-    });
-
-    // Populate for response
-    await expense.populate([
-      { path: "categoryId", select: "name code" },
-      { path: "vendorId", select: "name" },
-      { path: "createdBy", select: "name email" },
-      { path: "approvedBy", select: "name email" },
-    ]);
+    const expense = await SchoolExpense.findById(result.expenseId)
+      .populate([
+        { path: "categoryId", select: "name code" },
+        { path: "vendorId", select: "name" },
+        { path: "createdBy", select: "name email" },
+        { path: "approvedBy", select: "name email" },
+      ])
+      .lean();
 
     return NextResponse.json({
+      contractVersion: APPROVAL_CONTRACT_VERSION,
       message: "Expense approved",
       data: expense,
     });
-  } catch (error) {
-    if (error instanceof NextResponse) return error;
-    console.error("Error approving expense:", error);
-    return NextResponse.json(
-      { error: "Failed to approve expense" },
-      { status: 500 }
-    );
-  }
+  }, "Failed to approve expense");
 }

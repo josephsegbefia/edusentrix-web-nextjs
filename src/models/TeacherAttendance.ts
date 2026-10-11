@@ -27,6 +27,25 @@ export interface ITeacherAttendance {
 
   recordedBy?: Types.ObjectId;
 
+  /**
+   * Present only on rows submitted as a leave request. Set from the session by the leave-request
+   * submit route (or by the audited backfill), never from a request body. Routine attendance rows
+   * marked `on_leave` have no `leaveRequest` and are not approval requests.
+   */
+  leaveRequest?: {
+    submittedBy: Types.ObjectId;
+    submittedAt: Date;
+    source: "leave_request" | "backfill_leave_submitted";
+  };
+
+  /** Decision on an `on_leave` row. Written only by the leave-request decision routes. */
+  leaveDecision?: {
+    status: "approved" | "rejected";
+    decidedBy: Types.ObjectId;
+    decidedAt: Date;
+    reason?: string;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +85,25 @@ const TeacherAttendanceSchema = new Schema<ITeacherAttendance>(
     notes: { type: String },
 
     recordedBy: { type: Schema.Types.ObjectId, ref: "User" },
+
+    leaveRequest: {
+      type: new Schema(
+        {
+          submittedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+          submittedAt: { type: Date, required: true },
+          source: { type: String, enum: ["leave_request", "backfill_leave_submitted"], required: true },
+        },
+        { _id: false }
+      ),
+      required: false,
+    },
+
+    leaveDecision: {
+      status: { type: String, enum: ["approved", "rejected"] },
+      decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      decidedAt: { type: Date },
+      reason: { type: String, trim: true, maxlength: 500 },
+    },
   },
   { timestamps: true }
 );

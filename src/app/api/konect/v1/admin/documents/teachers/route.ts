@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
   ]);
   const teacherIds = rows.map((row) => row.teacherId).filter(Boolean);
   const teachers = await Teacher.find({ _id: { $in: teacherIds }, schoolId }).select("_id userId").populate("userId", "firstName lastName").lean();
-  const names = new Map(teachers.map((teacher) => [String(teacher._id), `${teacher.userId?.firstName || ""} ${teacher.userId?.lastName || ""}`.trim() || "Teacher"]));
+  const names = new Map(teachers.map((teacher) => {
+    const user = teacher.userId as unknown as { firstName?: string; lastName?: string } | null | undefined;
+    return [String(teacher._id), `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Teacher"] as const;
+  }));
   const now = Date.now();
   return NextResponse.json({
     success: true,

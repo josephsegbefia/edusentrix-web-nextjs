@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test --import tsx \"tests/**/*.test.ts\"",
+    "test:konect-admin-integration": "node --test --import tsx \"tests/konect/**/*.test.ts\"",
+    "admin:indexes:check": "tsx scripts/ensure-konect-admin-indexes.ts",
     "test:regression": "node --test --import tsx \"tests/regression/**/*.test.ts\"",
     "seed:banks": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv",
     "seed:banks:drop": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --drop",

@@ -55,6 +55,14 @@ export function canMutateStoredAsset(input: {
       !input.asset.association
     );
   }
+  if (input.asset.kind === "assess_script_page") {
+    if (input.actor.isPlatformOperator) return true;
+    return Boolean(
+      input.actor.userId &&
+        input.asset.uploadedByUserId &&
+        String(input.actor.userId) === String(input.asset.uploadedByUserId)
+    );
+  }
   if (isSchoolAdminOrPlatform(input.actor)) return true;
   if (!input.actor.userId) return false;
   if (!input.asset.uploadedByUserId) return false;
@@ -66,7 +74,10 @@ function sameSchool(actor: StorageActor, asset: ReadableStoredAsset): boolean {
 }
 
 /** Kinds that are never served anonymously, whatever visibility is stored on the asset. */
-const ALWAYS_PRIVATE_KINDS: ReadonlySet<string> = new Set<StorageKind>(["student_avatar"]);
+const ALWAYS_PRIVATE_KINDS: ReadonlySet<string> = new Set<StorageKind>([
+  "student_avatar",
+  "assess_script_page",
+]);
 
 /** The only kinds a special link token (tracker or document request) can unlock. */
 const PUBLIC_TOKEN_READABLE_KINDS: ReadonlySet<string> = new Set<StorageKind>([
@@ -141,6 +152,17 @@ async function authorizeAlwaysPrivateRead(
     return { allowed: false, reason: "unauthorized" };
   }
   if (!sameSchool(actor, asset)) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (asset.kind === "assess_script_page") {
+    if (actor.isPlatformOperator) return { allowed: true };
+    if (
+      actor.userId &&
+      asset.uploadedByUserId &&
+      String(actor.userId) === String(asset.uploadedByUserId)
+    ) {
+      return { allowed: true };
+    }
     return { allowed: false, reason: "unauthorized" };
   }
   if (!actor.learnStudentId && isSchoolAdminOrPlatform(actor)) {
@@ -371,6 +393,17 @@ export function canReadStoredAsset(input: {
     return { allowed: false, reason: "unauthorized" };
   }
   if (!sameSchool(input.actor, input.asset)) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+  if (input.asset.kind === "assess_script_page") {
+    if (input.actor.isPlatformOperator) return { allowed: true };
+    if (
+      input.actor.userId &&
+      input.asset.uploadedByUserId &&
+      String(input.actor.userId) === String(input.asset.uploadedByUserId)
+    ) {
+      return { allowed: true };
+    }
     return { allowed: false, reason: "unauthorized" };
   }
   if (isSchoolAdminOrPlatform(input.actor)) {

@@ -111,6 +111,9 @@ export async function presignUpload(input: PresignUploadInput): Promise<PresignU
     const submission = await ScriptSubmission.findOne({
       _id: assertObjectIdHex(input.association.id, "script submission id"),
       schoolId: input.actor.schoolId,
+      ...(input.actor.isPlatformOperator
+        ? {}
+        : { submittedByUserId: input.actor.userId }),
       status: { $nin: ["received", "cancelled"] },
     })
       .select({ _id: 1 })

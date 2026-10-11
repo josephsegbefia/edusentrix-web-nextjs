@@ -12,7 +12,7 @@ export async function POST(
 ) {
   const ctx = await scannerContext();
   const { submissionId } = await params;
-  const row = await ownSubmission(submissionId, ctx.schoolId);
+  const row = await ownSubmission(submissionId, ctx.schoolId, ctx.userId);
   const cancelled = await cancelSubmission({ submission: row, userId: ctx.userId });
   return NextResponse.json({ success: true, data: serializeSubmission(cancelled) });
 }

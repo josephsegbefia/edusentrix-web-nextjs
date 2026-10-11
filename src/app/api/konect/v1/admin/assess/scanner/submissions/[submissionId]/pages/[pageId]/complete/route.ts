@@ -7,7 +7,7 @@ const schema = z.object({ assetId: z.string().trim().min(1) });
 export async function POST(req: Request, { params }: { params: Promise<{ submissionId: string; pageId: string }> }) {
   const ctx = await scannerContext();
   const { submissionId, pageId } = await params;
-  const row = await ownSubmission(submissionId, ctx.schoolId);
+  const row = await ownSubmission(submissionId, ctx.schoolId, ctx.userId);
   const body = schema.safeParse(await req.json().catch(() => null));
   if (!body.success) return NextResponse.json({ success: false, error: "assetId is required." }, { status: 400 });
   const data = await completePage({ submission: row, pageId, assetId: body.data.assetId, actor: ctx.actor });

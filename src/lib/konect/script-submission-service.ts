@@ -8,11 +8,36 @@ import { FEATURE_KEYS } from "@/lib/subscriptions/feature-keys";
 import { ExamPaper } from "@/models/ExamPaper";
 import { Student } from "@/models/Student";
 import { ScriptSubmission, type IScriptSubmission } from "@/models/ScriptSubmission";
-import { presignUpload, completeUpload } from "@/lib/storage/service";
+import { StoredAsset } from "@/models/StoredAsset";
+import {
+  presignUpload,
+  completeUpload,
+  STORED_ASSET_RECOVERY_DAYS,
+} from "@/lib/storage/service";
+import { enforceKindUploadPolicy } from "@/lib/storage/http";
 import { assertObjectIdHex } from "@/lib/storage/ids";
 import type { StorageActor } from "@/lib/storage/types";
 
 type ScriptSubmissionDocument = HydratedDocument<IScriptSubmission>;
+
+async function retireSubmissionAssets(
+  schoolId: Types.ObjectId,
+  submissionId: Types.ObjectId,
+  at = new Date()
+) {
+  const purgeAfter = new Date(at.getTime() + STORED_ASSET_RECOVERY_DAYS * 24 * 60 * 60 * 1000);
+  const result = await StoredAsset.updateMany(
+    {
+      schoolId,
+      kind: "assess_script_page",
+      "association.type": "scriptSubmission",
+      "association.id": submissionId,
+      status: { $in: ["pending", "ready", "failed"] },
+    },
+    { $set: { status: "deleted", deletedAt: at, purgeAfter } }
+  );
+  return result.modifiedCount;
+}
 
 export const MAX_SCRIPT_PAGES = 40;
 export const MAX_SCRIPT_PAGE_BYTES = 8 * 1024 * 1024;
@@ -89,6 +114,9 @@ export async function createSubmission(input: {
 
   const existing = await ScriptSubmission.findOne({ schoolId: input.schoolId, idempotencyKey: input.idempotencyKey });
   if (existing) {
+    if (String(existing.submittedByUserId) !== String(input.userId)) {
+      throw NextResponse.json({ success: false, error: "Idempotency key is already in use." }, { status: 409 });
+    }
     if (String(existing.examPaperId) !== String(paper._id) || String(existing.studentId) !== String(studentId)) {
       throw NextResponse.json({ success: false, error: "Idempotency key is already bound to another script." }, { status: 409 });
     }
@@ -110,6 +138,9 @@ export async function createSubmission(input: {
     if ((error as { code?: number }).code === 11000) {
       const submission = await ScriptSubmission.findOne({ schoolId: input.schoolId, idempotencyKey: input.idempotencyKey });
       if (submission) {
+        if (String(submission.submittedByUserId) !== String(input.userId)) {
+          throw NextResponse.json({ success: false, error: "Idempotency key is already in use." }, { status: 409 });
+        }
         if (String(submission.examPaperId) !== String(paper._id) || String(submission.studentId) !== String(studentId)) {
           throw NextResponse.json({ success: false, error: "Idempotency key is already bound to another script." }, { status: 409 });
         }
@@ -120,8 +151,12 @@ export async function createSubmission(input: {
   }
 }
 
-export async function ownSubmission(id: string, schoolId: Types.ObjectId) {
-  const submission = await ScriptSubmission.findOne({ _id: parseId(id, "submission id"), schoolId });
+export async function ownSubmission(id: string, schoolId: Types.ObjectId, userId: Types.ObjectId) {
+  const submission = await ScriptSubmission.findOne({
+    _id: parseId(id, "submission id"),
+    schoolId,
+    submittedByUserId: userId,
+  });
   if (!submission) throw NextResponse.json({ success: false, error: "Submission not found." }, { status: 404 });
   return submission;
 }
@@ -145,9 +180,18 @@ export async function initializePage(input: {
   if (!SCRIPT_MIME_TYPES.includes(input.mimeType as (typeof SCRIPT_MIME_TYPES)[number])) {
     throw NextResponse.json({ success: false, error: "Only JPEG, PNG and WebP pages are supported." }, { status: 400 });
   }
+  const actor: StorageActor = {
+    userId: input.userId,
+    schoolId: input.submission.schoolId,
+    roles: ["school_admin"],
+  };
+  await enforceKindUploadPolicy(actor, "assess_script_page", {
+    type: "scriptSubmission",
+    id: String(input.submission._id),
+  });
   const pageId = randomUUID();
   const asset = await presignUpload({
-    actor: { userId: input.userId, schoolId: input.submission.schoolId, roles: ["school_admin"] },
+    actor,
     kind: "assess_script_page",
     fileName: input.fileName,
     mimeType: input.mimeType,
@@ -165,6 +209,7 @@ export async function initializePage(input: {
     { new: true }
   );
   if (!updated) {
+    await retireSubmissionAssets(input.submission.schoolId, input.submission._id);
     throw NextResponse.json({ success: false, error: "Page number is already registered or the submission is locked." }, { status: 409 });
   }
   return { pageId, ...asset };
@@ -178,7 +223,7 @@ export async function completePage(input: { submission: ScriptSubmissionDocument
   if (!page || !page.assetId || String(page.assetId) !== input.assetId) throw NextResponse.json({ success: false, error: "Page upload does not belong to this submission." }, { status: 403 });
   const completed = await completeUpload({ actor: input.actor, assetId: input.assetId });
   if (completed.sizeBytes > MAX_SCRIPT_PAGE_BYTES) throw NextResponse.json({ success: false, error: "Page exceeds the maximum size." }, { status: 400 });
-  await ScriptSubmission.findOneAndUpdate(
+  const updated = await ScriptSubmission.findOneAndUpdate(
     {
       _id: input.submission._id,
       schoolId: input.submission.schoolId,
@@ -191,6 +236,22 @@ export async function completePage(input: { submission: ScriptSubmissionDocument
     },
     { new: true }
   );
+  if (!updated) {
+    const current = await ScriptSubmission.findOne({
+      _id: input.submission._id,
+      schoolId: input.submission.schoolId,
+      submittedByUserId: input.actor.userId,
+    });
+    const currentPage = current?.pages.find((candidate) => candidate.pageId === input.pageId);
+    if (currentPage?.status === "ready" && String(currentPage.assetId) === input.assetId) {
+      return completed;
+    }
+    if (!current || current.status === "received" || current.status === "cancelled") {
+      await retireSubmissionAssets(input.submission.schoolId, input.submission._id);
+      throw NextResponse.json({ success: false, error: "Submission is no longer accepting pages." }, { status: 409 });
+    }
+    throw NextResponse.json({ success: false, error: "Page completion could not be recorded." }, { status: 409 });
+  }
   return completed;
 }
 
@@ -227,7 +288,10 @@ export async function cancelSubmission(input: { submission: ScriptSubmissionDocu
     { $set: { status: "cancelled", cancelledAt: new Date() }, $push: { auditEvents: { type: "cancelled", actorUserId: input.userId, pageId: null } } },
     { new: true }
   );
-  if (cancelled) return cancelled;
+  if (cancelled) {
+    await retireSubmissionAssets(input.submission.schoolId, input.submission._id, cancelled.cancelledAt ?? new Date());
+    return cancelled;
+  }
   const current = await ScriptSubmission.findById(input.submission._id);
   if (current?.status === "cancelled") return current;
   throw NextResponse.json({ success: false, error: "Received submissions cannot be cancelled." }, { status: 409 });
@@ -236,8 +300,28 @@ export async function cancelSubmission(input: { submission: ScriptSubmissionDocu
 /** Marks abandoned, non-finalized drafts as cancelled. It never touches received rows. */
 export async function expireAbandonedSubmissions(now = new Date()) {
   const cutoff = new Date(now.getTime() - SCRIPT_DRAFT_RETENTION_MS);
-  return ScriptSubmission.updateMany(
-    { status: { $in: ["draft", "awaiting_uploads", "upload_incomplete"] }, updatedAt: { $lt: cutoff } },
-    { $set: { status: "cancelled", cancelledAt: now } }
-  );
+  const candidates = await ScriptSubmission.find({
+    status: { $in: ["draft", "awaiting_uploads", "upload_incomplete"] },
+    updatedAt: { $lt: cutoff },
+  })
+    .select({ _id: 1, schoolId: 1 })
+    .limit(500)
+    .lean();
+  let modifiedCount = 0;
+  let assetsMarkedDeleted = 0;
+  for (const candidate of candidates) {
+    const cancelled = await ScriptSubmission.findOneAndUpdate(
+      {
+        _id: candidate._id,
+        status: { $in: ["draft", "awaiting_uploads", "upload_incomplete"] },
+        updatedAt: { $lt: cutoff },
+      },
+      { $set: { status: "cancelled", cancelledAt: now } },
+      { new: true }
+    );
+    if (!cancelled) continue;
+    modifiedCount += 1;
+    assetsMarkedDeleted += await retireSubmissionAssets(candidate.schoolId, candidate._id, now);
+  }
+  return { matchedCount: modifiedCount, modifiedCount, assetsMarkedDeleted };
 }

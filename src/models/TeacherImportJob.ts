@@ -36,6 +36,7 @@ export interface ITeacherImportIssue {
 }
 
 export interface ITeacherImportSubjectResolution {
+  resolutionKey: string;
   sourceValue: string;
   subjectFamily?: string | null;
   subjectOfferingIds: string[];
@@ -115,6 +116,8 @@ export interface ITeacherImportJob {
   mimeType?: string | null;
   fileBytes?: Buffer | null;
   selectedSheetName?: string | null;
+  availableSheets: Array<{ name: string; score: number; rowCount: number; signals: string[] }>;
+  sheetSelectionRequired: boolean;
   columnMappings: ITeacherImportColumnMapping[];
   parsedRows: ITeacherImportParsedRow[];
   subjectResolutions: ITeacherImportSubjectResolution[];
@@ -189,6 +192,7 @@ const parsedRowSchema = new Schema<ITeacherImportParsedRow>(
 
 const subjectResolutionSchema = new Schema<ITeacherImportSubjectResolution>(
   {
+    resolutionKey: { type: String, required: true, maxlength: 500 },
     sourceValue: { type: String, required: true, maxlength: 300 },
     subjectFamily: { type: String, default: null, maxlength: 200 },
     subjectOfferingIds: { type: [String], default: [] },
@@ -253,6 +257,11 @@ const teacherImportJobSchema = new Schema<ITeacherImportJob>(
     mimeType: { type: String, default: null, maxlength: 160 },
     fileBytes: { type: Buffer, default: null },
     selectedSheetName: { type: String, default: null, maxlength: 200 },
+    availableSheets: {
+      type: [{ name: String, score: Number, rowCount: Number, signals: [String] }],
+      default: [],
+    },
+    sheetSelectionRequired: { type: Boolean, default: false },
     columnMappings: { type: [columnMappingSchema], default: [] },
     parsedRows: { type: [parsedRowSchema], default: [] },
     subjectResolutions: { type: [subjectResolutionSchema], default: [] },

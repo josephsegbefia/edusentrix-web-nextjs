@@ -27,6 +27,21 @@ test("student parser scores all worksheets and keeps the selected sheet reviewab
   assert.equal(result.rows[0]?.sourceRowNumber, 2);
 });
 
+test("student parser flags competing roster worksheets for administrator selection", () => {
+  const workbook = XLSX.utils.book_new();
+  for (const name of ["Class A", "Class B"]) {
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([["First Name", "Last Name", "Grade", "Class"], ["Kofi", "Mensah", "Primary 1", name]]),
+      name
+    );
+  }
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const result = parseStudentImportWorkbook(buffer, "students.xlsx");
+  assert.equal(result.sheetSelectionRequired, true);
+  assert.equal(parseStudentImportWorkbook(buffer, "students.xlsx", "Class B").selectedSheetName, "Class B");
+});
+
 test("student parser rejects a worksheet over the hard row limit", () => {
   const rows = [["First Name", "Last Name"]];
   for (let i = 0; i < STUDENT_IMPORT_MAX_ROWS + 1; i += 1) rows.push([`First${i}`, `Last${i}`]);

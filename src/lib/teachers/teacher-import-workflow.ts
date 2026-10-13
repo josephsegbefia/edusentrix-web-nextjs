@@ -49,6 +49,8 @@ export function serializeTeacherImportJob(job: ITeacherImportJob) {
     fileName: job.fileName,
     mimeType: job.mimeType || null,
     selectedSheetName: job.selectedSheetName || null,
+    availableSheets: job.availableSheets || [],
+    sheetSelectionRequired: job.sheetSelectionRequired || false,
     columnMappings: job.columnMappings || [],
     parsedRows: (job.parsedRows || []).map(serializeRow),
     subjectResolutions: job.subjectResolutions || [],
@@ -139,6 +141,73 @@ export async function enqueueTeacherImportCommit(input: {
   }
 }
 
+/** Recreates only a missing staged analysis dispatch; it never invokes legacy work. */
+export async function recoverTeacherImportAnalysisDispatch(input: {
+  schoolId: mongoose.Types.ObjectId;
+  teacherImportJobId: mongoose.Types.ObjectId;
+}) {
+  const domain = await TeacherImportJob.findOne({
+    _id: input.teacherImportJobId,
+    schoolId: input.schoolId,
+    status: { $in: ["uploaded", "analyzing"] },
+    $or: [{ analysisBackgroundJobId: null }, { analysisBackgroundJobId: { $exists: false } }],
+  });
+  if (!domain?.fileBytes?.length) return null;
+  const queued = await enqueueBackgroundJob({
+    kind: "BULK_IMPORT",
+    schoolId: input.schoolId,
+    initiatedByUserId: domain.createdByUserId,
+    notificationTargetUserId: domain.createdByUserId,
+    subjectType: "TeacherImportJob",
+    subjectId: domain._id,
+    idempotencyKey: `teacher-import-analysis-recovery:${String(input.schoolId)}:${String(domain._id)}`,
+    input: { teacherImportJobId: String(domain._id), teacherImportPhase: "analysis" },
+  });
+  await TeacherImportJob.updateOne(
+    {
+      _id: domain._id,
+      schoolId: input.schoolId,
+      $or: [{ analysisBackgroundJobId: null }, { analysisBackgroundJobId: { $exists: false } }],
+    },
+    { $set: { analysisBackgroundJobId: new mongoose.Types.ObjectId(queued.jobId) } }
+  );
+  return queued;
+}
+
+/** Recreates only a missing confirmed-commit dispatch; analysis is never promoted here. */
+export async function recoverTeacherImportCommitDispatch(input: {
+  schoolId: mongoose.Types.ObjectId;
+  teacherImportJobId: mongoose.Types.ObjectId;
+}) {
+  const domain = await TeacherImportJob.findOne({
+    _id: input.teacherImportJobId,
+    schoolId: input.schoolId,
+    status: "committing",
+    approvedAt: { $ne: null },
+    $or: [{ commitBackgroundJobId: null }, { commitBackgroundJobId: { $exists: false } }],
+  });
+  if (!domain) return null;
+  const queued = await enqueueBackgroundJob({
+    kind: "BULK_IMPORT",
+    schoolId: input.schoolId,
+    initiatedByUserId: domain.approvedByUserId || domain.createdByUserId,
+    notificationTargetUserId: domain.approvedByUserId || domain.createdByUserId,
+    subjectType: "TeacherImportJob",
+    subjectId: domain._id,
+    idempotencyKey: `teacher-import-commit-recovery:${String(input.schoolId)}:${String(domain._id)}`,
+    input: { teacherImportJobId: String(domain._id), teacherImportPhase: "commit" },
+  });
+  await TeacherImportJob.updateOne(
+    {
+      _id: domain._id,
+      schoolId: input.schoolId,
+      $or: [{ commitBackgroundJobId: null }, { commitBackgroundJobId: { $exists: false } }],
+    },
+    { $set: { commitBackgroundJobId: new mongoose.Types.ObjectId(queued.jobId) } }
+  );
+  return queued;
+}
+
 export async function executeTeacherImportAnalysis(tracked: TrackedJobContext) {
   const id = typeof tracked.job.input?.teacherImportJobId === "string" ? tracked.job.input.teacherImportJobId : "";
   const importId = asObjectId(id);
@@ -160,10 +229,18 @@ export async function executeTeacherImportAnalysis(tracked: TrackedJobContext) {
   try {
     await tracked.throwIfCancellationRequested();
     await tracked.updateProgress({ progressPercent: 35, progressStage: "resolving_school_data", progressMessage: "Checking classes and subject offerings" });
-    const result = await analyzeTeacherImport({ schoolId: claimed.schoolId, fileName: claimed.fileName, fileBytes: claimed.fileBytes as Buffer });
+    const result = await analyzeTeacherImport({
+      schoolId: claimed.schoolId,
+      fileName: claimed.fileName,
+      fileBytes: claimed.fileBytes as Buffer,
+      selectedSheetName: claimed.selectedSheetName,
+      columnMappings: claimed.columnMappings,
+    });
     await tracked.updateProgress({ progressPercent: 90, progressStage: "saving_preview", progressMessage: "Preparing teacher review" });
     claimed.status = "review_ready";
     claimed.selectedSheetName = result.selectedSheetName;
+    claimed.availableSheets = result.availableSheets;
+    claimed.sheetSelectionRequired = result.sheetSelectionRequired;
     claimed.columnMappings = result.columnMappings;
     claimed.parsedRows = result.parsedRows;
     claimed.subjectResolutions = result.subjectResolutions;
@@ -171,7 +248,6 @@ export async function executeTeacherImportAnalysis(tracked: TrackedJobContext) {
     claimed.analysisSummary = result.analysisSummary;
     claimed.analysisWarnings = result.analysisWarnings;
     claimed.analysisErrors = result.analysisErrors;
-    claimed.fileBytes = null;
     await claimed.save();
     return { teacherImportJobId: id, status: claimed.status, totalRows: claimed.parsedRows.length };
   } catch (error) {
@@ -236,6 +312,8 @@ export async function executeTeacherImportCommit(tracked: TrackedJobContext) {
   if (["completed", "completed_with_errors", "cancelled"].includes(job.status)) return { teacherImportJobId: id, status: job.status, result: job.result };
   if (!job.approvedAt || !["committing", "review_ready"].includes(job.status)) throw new BackgroundJobError({ message: "Teacher import has not been approved", category: "PREREQUISITE_FAILED" });
   job.status = "committing";
+  // The source is retained only through review/reanalysis, never during creation.
+  job.fileBytes = null;
   await job.save();
   const school = await School.findById(job.schoolId).select("name").lean();
   let created = 0;

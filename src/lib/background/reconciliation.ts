@@ -2,6 +2,8 @@ import "server-only";
 
 import { BackgroundJob, type IBackgroundJob } from "@/models/BackgroundJob";
 import { BulkImportJob } from "@/models/BulkImportJob";
+import { TeacherImportJob } from "@/models/TeacherImportJob";
+import { StudentImportJob } from "@/models/StudentImportJob";
 import { ExploreGenerationJob } from "@/models/ExploreGenerationJob";
 import { LessonAiGenerationRequest } from "@/models/LessonAiGenerationRequest";
 import { LessonIllustrationRequest } from "@/models/LessonIllustrationRequest";
@@ -10,10 +12,23 @@ import { SchemeImportJob } from "@/models/SchemeImportJob";
 import { writeBackgroundJobAudit } from "./audit";
 import { MAX_DISPATCH_RECOVERY_ATTEMPTS, redispatchBackgroundJob } from "./enqueue-job";
 import { enqueueLibraryImportBackgroundJob } from "@/lib/library/enqueue-library-import";
-import { requeueBulkImport } from "@/lib/imports/enqueue-bulk-import";
 import { enqueueExploreGenerationWork } from "@/lib/learn/explore/enqueue-explore-generation";
-import { markJobSucceeded } from "./state-machine";
+import {
+  recoverTeacherImportAnalysisDispatch,
+  recoverTeacherImportCommitDispatch,
+} from "@/lib/teachers/teacher-import-workflow";
+import {
+  recoverStudentImportAnalysisDispatch,
+  recoverStudentImportCommitDispatch,
+} from "@/lib/students/student-import-recovery";
+import { markJobFailed, markJobSucceeded } from "./state-machine";
 import { staleHeartbeatMsForKind } from "./stale-jobs";
+import { resolveBulkImportRouting } from "@/lib/imports/bulk-import-routing";
+import {
+  LEGACY_BULK_IMPORT_SUPERSEDED_CODE,
+  LEGACY_BULK_IMPORT_SUPERSEDED_MESSAGE,
+  quarantineLegacyBulkImport,
+} from "@/lib/imports/legacy-bulk-import-quarantine";
 
 export const RECONCILIATION_SCAN_LIMIT = 50;
 export const DISPATCH_RECOVERY_BACKOFF_MS = 2 * 60 * 1000;
@@ -46,8 +61,21 @@ async function domainAlreadySucceeded(job: IBackgroundJob): Promise<boolean> {
     return row?.status === "completed" || row?.status === "completed_with_errors";
   }
   if (job.kind === "BULK_IMPORT") {
-    const row = await BulkImportJob.findOne({ _id: id, schoolId }).select("status").lean();
-    return row?.status === "completed" || row?.status === "completed_with_errors";
+    const routing = resolveBulkImportRouting(job);
+    if (!routing.ok) return false;
+    if (routing.routing.kind === "teacher_staged") {
+      const row = await TeacherImportJob.findOne({ _id: id, schoolId }).select("status").lean();
+      return routing.routing.phase === "analysis"
+        ? ["review_ready", "committing", "completed", "completed_with_errors"].includes(row?.status || "")
+        : ["completed", "completed_with_errors"].includes(row?.status || "");
+    }
+    if (routing.routing.kind === "student_staged") {
+      const row = await StudentImportJob.findOne({ _id: id, schoolId }).select("status").lean();
+      return routing.routing.phase === "analysis"
+        ? ["review_ready", "committing", "completed", "completed_with_errors"].includes(row?.status || "")
+        : ["completed", "completed_with_errors"].includes(row?.status || "");
+    }
+    return false;
   }
   if (job.kind === "SCHEME_IMPORT") {
     const row = await SchemeImportJob.findOne({ _id: id, schoolId }).select("status").lean();
@@ -88,6 +116,10 @@ export async function reconcileStaleAndDispatchFailedJobs(): Promise<Reconciliat
       summary.exhausted += 1;
       continue;
     }
+    if (await quarantineOrRejectUnsafeBulkImportJob(job)) {
+      summary.flagged += 1;
+      continue;
+    }
     if (
       job.lastRecoveryAt &&
       Date.now() - new Date(job.lastRecoveryAt).getTime() < DISPATCH_RECOVERY_BACKOFF_MS
@@ -115,6 +147,10 @@ export async function reconcileStaleAndDispatchFailedJobs(): Promise<Reconciliat
 
   for (const job of running) {
     summary.scanned += 1;
+    if (await quarantineOrRejectUnsafeBulkImportJob(job)) {
+      summary.flagged += 1;
+      continue;
+    }
     if (job.status === "queued" && job.inngestEventId) continue;
     if (job.status !== "queued" && !isHeartbeatStale(job)) continue;
     if (await domainAlreadySucceeded(job)) {
@@ -141,7 +177,7 @@ export async function reconcileStaleAndDispatchFailedJobs(): Promise<Reconciliat
 }
 
 export async function countOrphanDomainJobs(): Promise<number> {
-  const [library, scheme, bulk, lesson, illustration, explore] = await Promise.all([
+  const [library, scheme, teacherAnalysis, teacherCommit, studentAnalysis, studentCommit, lesson, illustration, explore] = await Promise.all([
     LibraryImportJob.countDocuments({
       status: { $in: ["pending", "processing"] },
       $or: [{ backgroundJobId: null }, { backgroundJobId: { $exists: false } }],
@@ -150,10 +186,10 @@ export async function countOrphanDomainJobs(): Promise<number> {
       status: { $in: ["queued", "parsing"] },
       $or: [{ backgroundJobId: null }, { backgroundJobId: { $exists: false } }],
     }),
-    BulkImportJob.countDocuments({
-      status: { $in: ["pending", "processing"] },
-      $or: [{ backgroundJobId: null }, { backgroundJobId: { $exists: false } }],
-    }),
+    TeacherImportJob.countDocuments({ status: { $in: ["uploaded", "analyzing"] }, $or: [{ analysisBackgroundJobId: null }, { analysisBackgroundJobId: { $exists: false } }] }),
+    TeacherImportJob.countDocuments({ status: "committing", $or: [{ commitBackgroundJobId: null }, { commitBackgroundJobId: { $exists: false } }] }),
+    StudentImportJob.countDocuments({ status: { $in: ["uploaded", "analyzing"] }, $or: [{ analysisBackgroundJobId: null }, { analysisBackgroundJobId: { $exists: false } }] }),
+    StudentImportJob.countDocuments({ status: "committing", $or: [{ commitBackgroundJobId: null }, { commitBackgroundJobId: { $exists: false } }] }),
     LessonAiGenerationRequest.countDocuments({
       status: { $in: ["queued", "running"] },
       $or: [{ backgroundJobId: null }, { backgroundJobId: { $exists: false } }],
@@ -167,7 +203,7 @@ export async function countOrphanDomainJobs(): Promise<number> {
       $or: [{ backgroundJobId: null }, { backgroundJobId: { $exists: false } }],
     }),
   ]);
-  return library + scheme + bulk + lesson + illustration + explore;
+  return library + scheme + teacherAnalysis + teacherCommit + studentAnalysis + studentCommit + lesson + illustration + explore;
 }
 
 async function recoverOrphanDomainJobs(): Promise<number> {
@@ -190,12 +226,41 @@ async function recoverOrphanDomainJobs(): Promise<number> {
     $or: [{ backgroundJobId: null }, { backgroundJobId: { $exists: false } }],
   }).limit(10);
   for (const row of bulk) {
-    await requeueBulkImport({
-      schoolId: row.schoolId,
-      bulkImportJobId: row._id,
-      initiatedByUserId: row.createdBy,
-    });
-    enqueued += 1;
+    await quarantineLegacyBulkImport({ bulkImportJobId: row._id, schoolId: row.schoolId });
+  }
+
+  const teacherAnalysis = await TeacherImportJob.find({
+    status: { $in: ["uploaded", "analyzing"] },
+    $or: [{ analysisBackgroundJobId: null }, { analysisBackgroundJobId: { $exists: false } }],
+  }).limit(10);
+  for (const row of teacherAnalysis) {
+    if (await recoverTeacherImportAnalysisDispatch({ schoolId: row.schoolId, teacherImportJobId: row._id })) enqueued += 1;
+  }
+
+  const teacherCommit = await TeacherImportJob.find({
+    status: "committing",
+    approvedAt: { $ne: null },
+    $or: [{ commitBackgroundJobId: null }, { commitBackgroundJobId: { $exists: false } }],
+  }).limit(10);
+  for (const row of teacherCommit) {
+    if (await recoverTeacherImportCommitDispatch({ schoolId: row.schoolId, teacherImportJobId: row._id })) enqueued += 1;
+  }
+
+  const studentAnalysis = await StudentImportJob.find({
+    status: { $in: ["uploaded", "analyzing"] },
+    $or: [{ analysisBackgroundJobId: null }, { analysisBackgroundJobId: { $exists: false } }],
+  }).limit(10);
+  for (const row of studentAnalysis) {
+    if (await recoverStudentImportAnalysisDispatch({ schoolId: row.schoolId, studentImportJobId: row._id })) enqueued += 1;
+  }
+
+  const studentCommit = await StudentImportJob.find({
+    status: "committing",
+    approvedAt: { $ne: null },
+    $or: [{ commitBackgroundJobId: null }, { commitBackgroundJobId: { $exists: false } }],
+  }).limit(10);
+  for (const row of studentCommit) {
+    if (await recoverStudentImportCommitDispatch({ schoolId: row.schoolId, studentImportJobId: row._id })) enqueued += 1;
   }
 
   const explore = await ExploreGenerationJob.find({
@@ -211,4 +276,31 @@ async function recoverOrphanDomainJobs(): Promise<number> {
   }
 
   return enqueued;
+}
+
+/** Returns true when normal recovery must stop rather than mutate through an unsafe route. */
+async function quarantineOrRejectUnsafeBulkImportJob(job: IBackgroundJob): Promise<boolean> {
+  if (job.kind !== "BULK_IMPORT") return false;
+  const routing = resolveBulkImportRouting(job);
+  if (!routing.ok) {
+    await markJobFailed(job._id, {
+      code: routing.code,
+      message: routing.message,
+      category: "PREREQUISITE_FAILED",
+    });
+    return true;
+  }
+  if (routing.routing.kind !== "legacy") return false;
+  if (job.schoolId) {
+    await quarantineLegacyBulkImport({
+      bulkImportJobId: routing.routing.importJobId,
+      schoolId: job.schoolId,
+    });
+  }
+  await markJobFailed(job._id, {
+    code: LEGACY_BULK_IMPORT_SUPERSEDED_CODE,
+    message: LEGACY_BULK_IMPORT_SUPERSEDED_MESSAGE,
+    category: "PERMANENT",
+  });
+  return true;
 }

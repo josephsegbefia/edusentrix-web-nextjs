@@ -16,6 +16,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       return Response.json({ success: false, error: "This import can no longer be cancelled safely." }, { status: 409 });
     }
     job.status = "cancelled";
+    job.fileBytes = null;
     await job.save();
     return Response.json({ success: true, data: { id: String(job._id), status: job.status } });
   } catch (error) {

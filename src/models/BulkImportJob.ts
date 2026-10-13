@@ -6,6 +6,7 @@ export type BulkImportTargetKind = (typeof BULK_IMPORT_TARGET_KINDS)[number];
 export const BULK_IMPORT_STATUSES = [
   "pending",
   "processing",
+  "superseded",
   "completed",
   "completed_with_errors",
   "failed",

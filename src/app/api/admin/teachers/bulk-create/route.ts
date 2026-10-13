@@ -57,10 +57,20 @@ export async function POST(req: NextRequest) {
       { status: 202 }
     );
   } catch (error) {
+    const errorCode = "TEACHER_IMPORT_UPLOAD_FAILED";
+    console.error("teacher_import_upload_failed", {
+      errorCode,
+      route: "/api/admin/teachers/bulk-create",
+      schoolId: String(schoolIdObj),
+      workflow: "teacher_import",
+      phase: "upload_enqueue",
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    });
     return Response.json(
       {
-        error: "Failed to process bulk import",
-        details: error instanceof Error ? error.message : String(error),
+        success: false,
+        errorCode,
+        error: "We could not start the teacher import. Please try again or upload the file again.",
       },
       { status: 500 }
     );

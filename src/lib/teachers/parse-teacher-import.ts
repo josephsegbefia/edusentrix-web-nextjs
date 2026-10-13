@@ -42,8 +42,14 @@ export type TeacherImportSheet = {
 export type ParsedTeacherWorkbook = {
   sheets: TeacherImportSheet[];
   selectedSheetName: string | null;
+  sheetSelectionRequired: boolean;
   columnMappings: ITeacherImportColumnMapping[];
   rows: TeacherImportRow[];
+};
+
+export type TeacherImportParseOptions = {
+  selectedSheetName?: string | null;
+  columnMappings?: ITeacherImportColumnMapping[];
 };
 
 type CellRow = unknown[];
@@ -152,7 +158,7 @@ function parseWorkbookSheets(buffer: Buffer): TeacherImportSheet[] {
   });
 }
 
-function mappingForHeader(header: string): ITeacherImportColumnMapping {
+export function teacherImportMappingForHeader(header: string): ITeacherImportColumnMapping {
   const headerKey = normalizedKey(header);
   for (const field of TEACHER_IMPORT_CANONICAL_FIELDS) {
     if (headerKey === normalizedKey(field)) {
@@ -213,7 +219,54 @@ function canonicalRow(
   };
 }
 
-export function parseTeacherImportWorkbook(buffer: Buffer, fileName: string): ParsedTeacherWorkbook {
+function sheetSelectionIsAmbiguous(sheets: TeacherImportSheet[]) {
+  const ranked = [...sheets].sort((a, b) => b.score - a.score);
+  const [first, second] = ranked;
+  if (!first || !second || first.rows.length === 0 || second.rows.length === 0) return false;
+  // Scores are intentionally coarse. A second sheet within two recognized
+  // columns or 20% of the leading score is a real candidate, not a fallback.
+  return second.score >= Math.max(first.score - 24, Math.ceil(first.score * 0.8));
+}
+
+function mappingsForSheet(
+  sheet: TeacherImportSheet,
+  supplied?: ITeacherImportColumnMapping[]
+) {
+  const defaults = sheet.headers.map(teacherImportMappingForHeader);
+  if (!supplied?.length) return defaults;
+  const suppliedByHeader = new Map(supplied.map((mapping) => [mapping.sourceHeader, mapping]));
+  const usedFields = new Set<string>();
+  return defaults.map((fallback) => {
+    const selected = suppliedByHeader.get(fallback.sourceHeader);
+    if (!selected || usedFields.has(selected.canonicalField || "")) {
+      if (selected?.canonicalField === null) {
+        return {
+          sourceHeader: fallback.sourceHeader,
+          canonicalField: null,
+          source: selected.source,
+          confidence: selected.confidence,
+          status: selected.status,
+        };
+      }
+      if (fallback.canonicalField) usedFields.add(fallback.canonicalField);
+      return fallback;
+    }
+    usedFields.add(selected.canonicalField);
+    return {
+      sourceHeader: fallback.sourceHeader,
+      canonicalField: selected.canonicalField,
+      source: selected.source,
+      confidence: selected.confidence,
+      status: selected.status,
+    };
+  });
+}
+
+export function parseTeacherImportWorkbook(
+  buffer: Buffer,
+  fileName: string,
+  options: TeacherImportParseOptions = {}
+): ParsedTeacherWorkbook {
   const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
   if (!["csv", "txt", "xls", "xlsx"].includes(extension)) {
     throw new Error("Unsupported file type. Upload a CSV, XLS, or XLSX file.");
@@ -226,10 +279,19 @@ export function parseTeacherImportWorkbook(buffer: Buffer, fileName: string): Pa
     throw new Error(`Teacher imports are limited to ${TEACHER_IMPORT_MAX_ROWS} rows.`);
   }
   const ranked = [...sheets].sort((a, b) => b.score - a.score);
-  const selected = ranked[0];
-  const mappings = selected.headers.map(mappingForHeader);
+  const selected = options.selectedSheetName
+    ? sheets.find((sheet) => sheet.name === options.selectedSheetName)
+    : ranked[0];
+  if (!selected) throw new Error("Selected worksheet is not available in this import file.");
+  const mappings = mappingsForSheet(selected, options.columnMappings);
   const rows = selected.rows.map((row) => canonicalRow(row, mappings));
-  return { sheets, selectedSheetName: selected.name, columnMappings: mappings, rows };
+  return {
+    sheets,
+    selectedSheetName: selected.name,
+    sheetSelectionRequired: !options.selectedSheetName && sheetSelectionIsAmbiguous(sheets),
+    columnMappings: mappings,
+    rows,
+  };
 }
 
 /** Backward-compatible deterministic parser used by legacy callers. */

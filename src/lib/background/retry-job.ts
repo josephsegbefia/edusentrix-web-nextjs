@@ -2,7 +2,8 @@ import "server-only";
 
 import mongoose from "mongoose";
 import { BackgroundJob, type IBackgroundJob } from "@/models/BackgroundJob";
-import { BulkImportJob } from "@/models/BulkImportJob";
+import { TeacherImportJob } from "@/models/TeacherImportJob";
+import { StudentImportJob } from "@/models/StudentImportJob";
 import { ExploreGenerationJob } from "@/models/ExploreGenerationJob";
 import { LessonAiGenerationRequest } from "@/models/LessonAiGenerationRequest";
 import { LessonIllustrationRequest } from "@/models/LessonIllustrationRequest";
@@ -14,6 +15,8 @@ import { canRetryBackgroundJob, decideBackgroundJobAccess } from "./authorizatio
 import { writeBackgroundJobAudit } from "./audit";
 import { enqueueBackgroundJob, type EnqueueBackgroundJobResult } from "./enqueue-job";
 import { getBackgroundJobKindPolicy } from "./job-kinds";
+import { resolveBulkImportRouting } from "@/lib/imports/bulk-import-routing";
+import { quarantineLegacyBulkImport } from "@/lib/imports/legacy-bulk-import-quarantine";
 
 export type RetryBackgroundJobResult =
   | { ok: true; created: EnqueueBackgroundJobResult; source: IBackgroundJob }
@@ -58,12 +61,51 @@ async function prepareDomainForRetry(job: IBackgroundJob): Promise<
   }
 
   if (job.kind === "BULK_IMPORT") {
-    const domain = await BulkImportJob.findOne({ _id: subjectId, schoolId });
+    const routing = resolveBulkImportRouting(job);
+    if (!routing.ok) return { ok: false, reason: "domain_not_retryable" };
+    if (routing.routing.kind === "legacy") {
+      await quarantineLegacyBulkImport({
+        bulkImportJobId: routing.routing.importJobId,
+        schoolId,
+      });
+      return { ok: false, reason: "domain_not_retryable" };
+    }
+    if (routing.routing.kind === "teacher_staged") {
+      const domain = await TeacherImportJob.findOne({ _id: subjectId, schoolId });
+      if (!domain) return { ok: false, reason: "domain_missing" };
+      if (routing.routing.phase === "analysis") {
+        if (domain.status !== "failed" || !domain.fileBytes?.length) {
+          return { ok: false, reason: "domain_not_retryable" };
+        }
+        domain.status = "uploaded";
+        domain.analysisErrors = [];
+        await domain.save();
+        return { ok: true, input: { teacherImportJobId: String(domain._id), teacherImportPhase: "analysis" } };
+      }
+      if (domain.status !== "failed" || !domain.approvedAt) {
+        return { ok: false, reason: "domain_not_retryable" };
+      }
+      domain.status = "committing";
+      await domain.save();
+      return { ok: true, input: { teacherImportJobId: String(domain._id), teacherImportPhase: "commit" } };
+    }
+    const domain = await StudentImportJob.findOne({ _id: subjectId, schoolId });
     if (!domain) return { ok: false, reason: "domain_missing" };
-    if (!domain.fileBytes) return { ok: false, reason: "domain_not_retryable" };
-    domain.status = "pending";
+    if (routing.routing.phase === "analysis") {
+      if (domain.status !== "failed" || !domain.fileBytes?.length) {
+        return { ok: false, reason: "domain_not_retryable" };
+      }
+      domain.status = "uploaded";
+      domain.analysisErrors = [];
+      await domain.save();
+      return { ok: true, input: { studentImportJobId: String(domain._id), studentImportPhase: "analysis" } };
+    }
+    if (domain.status !== "failed" || !domain.approvedAt) {
+      return { ok: false, reason: "domain_not_retryable" };
+    }
+    domain.status = "committing";
     await domain.save();
-    return { ok: true, input: { bulkImportJobId: String(domain._id), targetKind: domain.targetKind } };
+    return { ok: true, input: { studentImportJobId: String(domain._id), studentImportPhase: "commit" } };
   }
 
   if (job.kind === "AI_LESSON_GENERATION") {
@@ -188,7 +230,19 @@ async function applyDomainBackgroundJobId(source: IBackgroundJob, jobId: string)
   } else if (source.kind === "SCHEME_IMPORT") {
     await SchemeImportJob.updateOne(filter, { $set: { backgroundJobId: id } });
   } else if (source.kind === "BULK_IMPORT") {
-    await BulkImportJob.updateOne(filter, { $set: { backgroundJobId: id } });
+    const routing = resolveBulkImportRouting(source);
+    if (!routing.ok) return;
+    if (routing.routing.kind === "teacher_staged") {
+      await TeacherImportJob.updateOne(
+        filter,
+        { $set: routing.routing.phase === "analysis" ? { analysisBackgroundJobId: id } : { commitBackgroundJobId: id } }
+      );
+    } else if (routing.routing.kind === "student_staged") {
+      await StudentImportJob.updateOne(
+        filter,
+        { $set: routing.routing.phase === "analysis" ? { analysisBackgroundJobId: id } : { commitBackgroundJobId: id } }
+      );
+    }
   } else if (source.kind === "AI_LESSON_GENERATION") {
     await LessonAiGenerationRequest.updateOne(filter, { $set: { backgroundJobId: id } });
   } else if (source.kind === "AI_LESSON_ILLUSTRATION") {

@@ -17,9 +17,13 @@ import type {
 } from "@/models/TeacherImportJob";
 import {
   parseTeacherImportWorkbook,
+  type TeacherImportParseOptions,
   type TeacherImportRow,
 } from "@/lib/teachers/parse-teacher-import";
-import { suggestTeacherImportSemantics } from "@/lib/teachers/teacher-import-leo";
+import {
+  suggestTeacherImportHeaders,
+  suggestTeacherImportSemantics,
+} from "@/lib/teachers/teacher-import-leo";
 
 type IdLike = mongoose.Types.ObjectId | string;
 
@@ -43,7 +47,7 @@ type OfferingRecord = {
   stage?: string | null;
 };
 
-export type TeacherImportAnalysisResult = Pick<ITeacherImportJob, "selectedSheetName" | "columnMappings" | "parsedRows" | "subjectResolutions" | "classResolutions" | "analysisSummary" | "analysisWarnings" | "analysisErrors">;
+export type TeacherImportAnalysisResult = Pick<ITeacherImportJob, "selectedSheetName" | "availableSheets" | "sheetSelectionRequired" | "columnMappings" | "parsedRows" | "subjectResolutions" | "classResolutions" | "analysisSummary" | "analysisWarnings" | "analysisErrors">;
 
 function asString(value: unknown) {
   return value === null || value === undefined ? "" : String(value);
@@ -70,6 +74,10 @@ function unique<T>(values: T[], key: (value: T) => string) {
     seen.add(id);
     return true;
   });
+}
+
+export function teacherImportResolutionKey(sourceValue: string, gradeId?: string | null) {
+  return `${normalizeTeacherImportLookup(sourceValue)}::${gradeId || "no-grade-context"}`;
 }
 
 function splitTokens(values: string[]) {
@@ -181,13 +189,28 @@ function findClassMatches(
   const source = clean(row.homeroomClass);
   const grade = clean(row.homeroomGrade);
   if (!source && !grade) return [];
-  const candidates = [
-    grade && source ? `${grade} ${source}` : "",
-    source,
-    source.replace(/\s+/g, ""),
-  ].filter(Boolean);
+  // A grade-qualified class must win over a generic section name: "A" can
+  // exist in Primary 1 and Primary 4, while "Primary 1 A" is unambiguous.
+  if (grade && source) {
+    const qualified = dedupeTeacherImportClassMatches(
+      [`${grade} ${source}`, `${grade}${source}`]
+        .flatMap((candidate) => classMap.get(normalizeTeacherImportLookup(candidate)) || [])
+    );
+    if (qualified.length) return qualified;
+  }
+  const candidates = [source, source.replace(/\s+/g, "")].filter(Boolean);
   const matches = candidates.flatMap((candidate) => classMap.get(normalizeTeacherImportLookup(candidate)) || []);
   return dedupeTeacherImportClassMatches(matches);
+}
+
+function restrictToClassOfferings(
+  offerings: OfferingRecord[],
+  classGroup: ClassRecord | null
+) {
+  const assigned = classGroup?.subjectOfferingIds || [];
+  if (!assigned.length) return offerings;
+  const assignedIds = new Set(assigned.map(objectIdString));
+  return offerings.filter((offering) => assignedIds.has(objectIdString(offering._id)));
 }
 
 function matchingGradeId(value: string | null | undefined, grades: GradeRecord[]) {
@@ -203,7 +226,10 @@ export function resolveTeacherImportSubjectToken(
   offerings: OfferingRecord[]
 ) {
   const normalized = normalizeTeacherImportLookup(token);
-  const direct = offerings.filter((offering) => offeringAliases(offering).includes(normalized));
+  const direct = restrictToClassOfferings(
+    offerings.filter((offering) => offeringAliases(offering).includes(normalized)),
+    classGroup
+  );
   const contextual = classGroup
     ? direct.filter((offering) => (offering.gradeIds || []).some((id) => objectIdString(id) === objectIdString(classGroup.gradeId)))
     : direct;
@@ -211,7 +237,10 @@ export function resolveTeacherImportSubjectToken(
   if (direct.length === 1) return { status: "resolved" as const, candidates: direct, source: "alias" as const, note: "Matched a normalized subject offering alias." };
 
   const family = subjectFamilyForToken(token);
-  let familyMatches = offerings.filter((offering) => normalizeTeacherImportLookup(offering.subjectFamily || "") === family);
+  let familyMatches = restrictToClassOfferings(
+    offerings.filter((offering) => normalizeTeacherImportLookup(offering.subjectFamily || "") === family),
+    classGroup
+  );
   if (classGroup) {
     familyMatches = familyMatches.filter((offering) =>
       (offering.gradeIds || []).some((id) => objectIdString(id) === objectIdString(classGroup.gradeId))
@@ -260,8 +289,63 @@ export async function analyzeTeacherImport(input: {
   schoolId: mongoose.Types.ObjectId;
   fileName: string;
   fileBytes: Buffer;
+  selectedSheetName?: string | null;
+  columnMappings?: ITeacherImportColumnMapping[];
 }): Promise<TeacherImportAnalysisResult> {
-  const parsed = parseTeacherImportWorkbook(input.fileBytes, input.fileName);
+  const parseOptions: TeacherImportParseOptions = {
+    selectedSheetName: input.selectedSheetName,
+    columnMappings: input.columnMappings,
+  };
+  let parsed = parseTeacherImportWorkbook(input.fileBytes, input.fileName, parseOptions);
+  let leoUsed = false;
+  let leoUnavailable = false;
+  const unresolvedHeaders = parsed.columnMappings
+    .filter((mapping) => !mapping.canonicalField)
+    .map((mapping) => mapping.sourceHeader);
+  if (unresolvedHeaders.length && !input.columnMappings?.length) {
+    const headerLeo = await suggestTeacherImportHeaders({
+      schoolId: input.schoolId,
+      unresolvedHeaders,
+    });
+    if (headerLeo.ok) {
+      const assignedFields = new Set(
+        parsed.columnMappings
+          .map((mapping) => mapping.canonicalField)
+          .filter((field): field is string => Boolean(field))
+      );
+      const suggestions = new Map(
+        headerLeo.suggestions
+          .filter(
+            (suggestion) =>
+              suggestion.canonicalField &&
+              suggestion.confidence >= 0.75 &&
+              !assignedFields.has(suggestion.canonicalField)
+          )
+          .map((suggestion) => [suggestion.sourceHeader, suggestion])
+      );
+      if (suggestions.size) {
+        const mappings = parsed.columnMappings.map((mapping) => {
+          const suggestion = suggestions.get(mapping.sourceHeader);
+          if (!suggestion?.canonicalField) return mapping;
+          assignedFields.add(suggestion.canonicalField);
+          return {
+            ...mapping,
+            canonicalField: suggestion.canonicalField,
+            source: "leo" as const,
+            confidence: suggestion.confidence,
+            status: "resolved" as const,
+          };
+        });
+        parsed = parseTeacherImportWorkbook(input.fileBytes, input.fileName, {
+          selectedSheetName: input.selectedSheetName,
+          columnMappings: mappings,
+        });
+        leoUsed = true;
+      }
+    } else {
+      leoUnavailable = true;
+    }
+  }
   const [offerings, grades, classes] = await Promise.all([
     SubjectOffering.find({ schoolId: input.schoolId, isActive: true })
       .select("_id subjectId displayName shortName code subjectFamily gradeIds gradeBand stage")
@@ -419,7 +503,10 @@ export async function analyzeTeacherImport(input: {
     }
     for (const token of subjectTokens) {
       const resolved = resolveTeacherImportSubjectToken(token, sourceRow, subjectContextClass, offerings);
-      const key = `${normalizeTeacherImportLookup(token)}|${subjectContextClass ? objectIdString(subjectContextClass.gradeId) : "none"}`;
+      const key = teacherImportResolutionKey(
+        token,
+        subjectContextClass ? objectIdString(subjectContextClass.gradeId) : null
+      );
       const prior = subjectGroups.get(key);
       const manualCandidates = resolved.candidates.length > 0
         ? resolved.candidates
@@ -427,6 +514,7 @@ export async function analyzeTeacherImport(input: {
           ? offerings.filter((offering) => (offering.gradeIds || []).some((id) => objectIdString(id) === objectIdString(subjectContextClass.gradeId)))
           : offerings;
       const group: ITeacherImportSubjectResolution = prior || {
+        resolutionKey: key,
         sourceValue: token,
         subjectFamily: resolved.candidates[0]?.subjectFamily || subjectFamilyForToken(token),
         subjectOfferingIds: [],
@@ -494,8 +582,6 @@ export async function analyzeTeacherImport(input: {
     resolvedNames: unique(group.resolvedNames, String),
   }));
   const classResolutions = [...classGroups.values()];
-  let leoUsed = false;
-  let leoUnavailable = false;
   const unresolvedSubjects = unique(
     subjectResolutions.filter((item) => item.status !== "resolved").map((item) => item.sourceValue),
     normalizeTeacherImportLookup

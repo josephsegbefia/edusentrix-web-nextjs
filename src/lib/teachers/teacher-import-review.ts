@@ -3,6 +3,7 @@ import {
   TEACHER_IMPORT_CANONICAL_FIELDS,
   type TeacherImportCanonicalField,
 } from "@/lib/teachers/parse-teacher-import";
+import { analyzeTeacherImport } from "@/lib/teachers/analyze-teacher-import";
 import type {
   ITeacherImportClassResolution,
   ITeacherImportColumnMapping,
@@ -16,15 +17,6 @@ import { SubjectOffering } from "@/models/SubjectOffering";
 
 function normalize(value: string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
-}
-
-function split(value: string) {
-  return value.split(/[;,|\n]/).map((item) => item.trim()).filter(Boolean);
-}
-
-function splitFullName(value: string) {
-  const parts = value.trim().split(/\s+/).filter(Boolean);
-  return { firstName: parts[0] || "", lastName: parts.slice(1).join(" ") };
 }
 
 function issue(code: string, message: string, field?: string, value?: string): ITeacherImportIssue {
@@ -64,6 +56,7 @@ function normalizedStatus(value: string | null | undefined) {
 }
 
 export type TeacherImportReviewInput = {
+  selectedSheetName?: string | null;
   rows?: Array<{
     sourceRowNumber: number;
     firstName?: string;
@@ -74,11 +67,91 @@ export type TeacherImportReviewInput = {
     status?: string | null;
   }>;
   columnMappings?: Array<{ sourceHeader: string; canonicalField: TeacherImportCanonicalField | null }>;
-  subjectResolutions?: Array<{ sourceValue: string; subjectOfferingIds: string[]; ignored?: boolean }>;
+  subjectResolutions?: Array<{ resolutionKey: string; subjectOfferingIds: string[]; ignored?: boolean }>;
   classResolutions?: Array<{ sourceValue: string; classGroupId?: string | null; homeroomDecision: "keep_existing" | "replace" | "no_assign" }>;
 };
 
+function reviewMappings(
+  job: ITeacherImportJob,
+  mappings: TeacherImportReviewInput["columnMappings"]
+): ITeacherImportColumnMapping[] {
+  const knownHeaders = new Set([
+    ...(job.columnMappings || []).map((mapping) => mapping.sourceHeader),
+    ...job.parsedRows.flatMap((row) => Object.keys(row.sourceValues || {})),
+  ]);
+  const byHeader = new Map((mappings || []).map((mapping) => [mapping.sourceHeader, mapping]));
+  return [...knownHeaders].map((sourceHeader) => {
+    const mapping = byHeader.get(sourceHeader);
+    if (mapping && mapping.canonicalField && !TEACHER_IMPORT_CANONICAL_FIELDS.includes(mapping.canonicalField)) {
+      throw new Error("A selected column mapping is not supported.");
+    }
+    return {
+      sourceHeader,
+      canonicalField: mapping?.canonicalField || null,
+      source: "admin" as const,
+      confidence: mapping?.canonicalField ? 1 : 0,
+      status: mapping?.canonicalField ? "resolved" as const : "needs_review" as const,
+    };
+  });
+}
+
+function mappingsDiffer(
+  current: ITeacherImportColumnMapping[],
+  next: ITeacherImportColumnMapping[]
+) {
+  const fields = (mappings: ITeacherImportColumnMapping[]) =>
+    [...mappings]
+      .map((mapping) => `${mapping.sourceHeader}\u0000${mapping.canonicalField || ""}`)
+      .sort();
+  const left = fields(current);
+  const right = fields(next);
+  return left.length !== right.length || left.some((value, index) => value !== right[index]);
+}
+
+async function reanalyzeForReview(
+  job: ITeacherImportJob,
+  input: TeacherImportReviewInput
+) {
+  const requestedSheet = input.selectedSheetName === undefined
+    ? job.selectedSheetName
+    : input.selectedSheetName;
+  if (input.selectedSheetName !== undefined && !requestedSheet) {
+    throw new Error("Choose a worksheet before reanalysing this import.");
+  }
+  if (requestedSheet && !(job.availableSheets || []).some((sheet) => sheet.name === requestedSheet)) {
+    throw new Error("Selected worksheet is not available in this import.");
+  }
+  const nextMappings = input.columnMappings
+    ? reviewMappings(job, input.columnMappings)
+    : job.columnMappings || [];
+  const needsAnalysis =
+    (input.selectedSheetName !== undefined && requestedSheet !== job.selectedSheetName) ||
+    (input.columnMappings !== undefined && mappingsDiffer(job.columnMappings || [], nextMappings));
+  if (!needsAnalysis) return;
+  if (!job.fileBytes?.length) {
+    throw new Error("The uploaded file is unavailable. Upload it again to change the worksheet or column mappings.");
+  }
+  const result = await analyzeTeacherImport({
+    schoolId: job.schoolId,
+    fileName: job.fileName,
+    fileBytes: job.fileBytes,
+    selectedSheetName: requestedSheet,
+    columnMappings: nextMappings,
+  });
+  job.selectedSheetName = result.selectedSheetName;
+  job.availableSheets = result.availableSheets;
+  job.sheetSelectionRequired = result.sheetSelectionRequired;
+  job.columnMappings = result.columnMappings;
+  job.parsedRows = result.parsedRows;
+  job.subjectResolutions = result.subjectResolutions;
+  job.classResolutions = result.classResolutions;
+  job.analysisSummary = result.analysisSummary;
+  job.analysisWarnings = result.analysisWarnings;
+  job.analysisErrors = result.analysisErrors;
+}
+
 export async function applyTeacherImportReview(job: ITeacherImportJob, input: TeacherImportReviewInput) {
+  await reanalyzeForReview(job, input);
   if (input.rows?.length) {
     for (const update of input.rows) {
       const row = job.parsedRows.find((item) => item.sourceRowNumber === update.sourceRowNumber);
@@ -99,58 +172,15 @@ export async function applyTeacherImportReview(job: ITeacherImportJob, input: Te
       refreshRowStatus(row);
     }
   }
-  if (input.columnMappings?.length) {
-    const knownHeaders = new Set([
-      ...(job.columnMappings || []).map((mapping) => mapping.sourceHeader),
-      ...job.parsedRows.flatMap((row) => Object.keys(row.sourceValues || {})),
-    ]);
-    const mappings: ITeacherImportColumnMapping[] = input.columnMappings
-      .filter((mapping) => knownHeaders.has(mapping.sourceHeader))
-      .map((mapping) => ({
-        sourceHeader: mapping.sourceHeader,
-        canonicalField: mapping.canonicalField,
-        source: "admin" as const,
-        confidence: mapping.canonicalField ? 1 : 0,
-        status: mapping.canonicalField ? "resolved" as const : "needs_review" as const,
-      }));
-    const byField = new Map<string, ITeacherImportColumnMapping>();
-    for (const mapping of mappings) {
-      if (mapping.canonicalField && !TEACHER_IMPORT_CANONICAL_FIELDS.includes(mapping.canonicalField as TeacherImportCanonicalField)) continue;
-      if (mapping.canonicalField && !byField.has(mapping.canonicalField)) byField.set(mapping.canonicalField, mapping);
-    }
-    job.columnMappings = mappings;
-    for (const row of job.parsedRows) {
-      const values = row.sourceValues || {};
-      const read = (field: string) => {
-        const mapping = byField.get(field);
-        return mapping ? String(values[mapping.sourceHeader] || "").trim() : "";
-      };
-      const fullName = read("fullName");
-      const name = fullName ? splitFullName(fullName) : { firstName: "", lastName: "" };
-      row.firstName = read("firstName") || name.firstName;
-      row.lastName = read("lastName") || name.lastName;
-      row.fullName = fullName || null;
-      row.email = read("email").toLowerCase();
-      row.phone = read("phone") || null;
-      row.employeeId = read("employeeId") || null;
-      row.department = read("department") || null;
-      row.status = read("status") || "active";
-      row.subjects = split(read("subjects"));
-      row.homeroomClass = read("homeroomClass") || null;
-      row.homeroomGrade = read("homeroomGrade") || null;
-      row.homeroomClassGroupId = read("homeroomClassGroupId") || null;
-      if (!row.firstName || !row.lastName) row.issues.push(issue("missing_required", "Add a first and last name before confirming this row.", "name"));
-      if (!row.email) row.issues.push(issue("missing_required", "Choose the column containing each teacher's email address.", "email"));
-      refreshRowStatus(row);
-    }
-  }
-
   if (input.subjectResolutions?.length) {
-    const validIds = input.subjectResolutions.flatMap((resolution) => resolution.subjectOfferingIds).filter((value) => mongoose.isValidObjectId(value));
+    const validIds = Array.from(new Set([
+      ...input.subjectResolutions.flatMap((resolution) => resolution.subjectOfferingIds),
+      ...(job.subjectResolutions || []).flatMap((resolution) => resolution.subjectOfferingIds),
+    ])).filter((value) => mongoose.isValidObjectId(value));
     const offerings = await SubjectOffering.find({ _id: { $in: validIds }, schoolId: job.schoolId, isActive: true }).select("_id subjectId displayName subjectFamily").lean();
     const offeringById = new Map(offerings.map((offering) => [String(offering._id), offering]));
     for (const resolutionInput of input.subjectResolutions) {
-      const resolution = (job.subjectResolutions || []).find((item) => normalize(item.sourceValue) === normalize(resolutionInput.sourceValue));
+      const resolution = (job.subjectResolutions || []).find((item) => item.resolutionKey === resolutionInput.resolutionKey);
       if (!resolution) continue;
       const selected = resolutionInput.subjectOfferingIds.map((id) => offeringById.get(id)).filter(Boolean);
       if (!resolutionInput.ignored && selected.length !== resolutionInput.subjectOfferingIds.length) {
@@ -162,6 +192,11 @@ export async function applyTeacherImportReview(job: ITeacherImportJob, input: Te
         resolution.note = "Choose an offering or explicitly ignore this subject.";
         continue;
       }
+      const previousOfferingIds = [...resolution.subjectOfferingIds];
+      const previousSubjectIds = previousOfferingIds
+        .map((id) => offeringById.get(id)?.subjectId)
+        .filter(Boolean)
+        .map(String);
       resolution.source = "admin";
       resolution.status = resolutionInput.ignored ? "ignored" : "resolved";
       resolution.subjectOfferingIds = selected.map((item) => String(item?._id));
@@ -169,11 +204,11 @@ export async function applyTeacherImportReview(job: ITeacherImportJob, input: Te
       resolution.note = resolutionInput.ignored ? "Ignored by administrator; it will not be attached to the teacher." : "Selected by administrator.";
       for (const row of job.parsedRows.filter((item) => resolution.affectedRows.includes(item.sourceRowNumber))) {
         row.subjectOfferingIds = Array.from(new Set([
-          ...row.subjectOfferingIds.filter((id) => !resolution.subjectOfferingIds.includes(id)),
+          ...row.subjectOfferingIds.filter((id) => !previousOfferingIds.includes(id)),
           ...resolution.subjectOfferingIds,
         ]));
         row.subjectIds = Array.from(new Set([
-          ...row.subjectIds.filter((id) => !selected.some((item) => String(item?.subjectId) === id)),
+          ...row.subjectIds.filter((id) => !previousSubjectIds.includes(id)),
           ...selected.map((item) => String(item?.subjectId)),
         ]));
         if (resolutionInput.ignored) {

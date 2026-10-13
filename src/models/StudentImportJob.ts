@@ -146,6 +146,7 @@ export interface IStudentImportJob {
   classConflictPolicy: "review" | "use_target";
   selectedSheetName?: string | null;
   availableSheets: Array<{ name: string; score: number; rowCount: number; signals: string[] }>;
+  sheetSelectionRequired: boolean;
   dateFormat: StudentImportDateFormat;
   dateExamples: IStudentImportDateExample[];
   columnMappings: IStudentImportColumnMapping[];
@@ -227,7 +228,7 @@ const studentImportJobSchema = new Schema<IStudentImportJob>({
   createdByUserId: { type: Schema.Types.ObjectId, ref: "User", required: true }, status: { type: String, enum: STUDENT_IMPORT_STATUSES, default: "uploaded", index: true },
   fileName: { type: String, required: true, maxlength: 400 }, mimeType: { type: String, default: null }, fileBytes: { type: Buffer, default: null },
   placementMode: { type: String, enum: ["school_wide", "class_scoped"], required: true }, fixedClassGroupId: { type: Schema.Types.ObjectId, ref: "ClassGroup", default: null }, fixedGradeId: { type: Schema.Types.ObjectId, ref: "Grade", default: null }, fixedClassLabel: { type: String, default: null }, classConflictPolicy: { type: String, enum: ["review", "use_target"], default: "review" },
-  selectedSheetName: { type: String, default: null }, availableSheets: { type: [{ name: String, score: Number, rowCount: Number, signals: [String] }], default: [] }, dateFormat: { type: String, enum: ["auto", "dmy", "mdy"], default: "auto" }, dateExamples: { type: [dateExampleSchema], default: [] },
+  selectedSheetName: { type: String, default: null }, availableSheets: { type: [{ name: String, score: Number, rowCount: Number, signals: [String] }], default: [] }, sheetSelectionRequired: { type: Boolean, default: false }, dateFormat: { type: String, enum: ["auto", "dmy", "mdy"], default: "auto" }, dateExamples: { type: [dateExampleSchema], default: [] },
   columnMappings: { type: [mappingSchema], default: [] }, unusedColumns: { type: [String], default: [] }, parsedRows: { type: [parsedRowSchema], default: [] }, gradeResolutions: { type: [gradeResolutionSchema], default: [] }, classResolutions: { type: [classResolutionSchema], default: [] }, analysisSummary: { type: Schema.Types.Mixed, default: null }, analysisWarnings: { type: [issueSchema], default: [] }, analysisErrors: { type: [issueSchema], default: [] },
   analysisBackgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null }, commitBackgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null }, approvedByUserId: { type: Schema.Types.ObjectId, ref: "User", default: null }, approvedAt: { type: Date, default: null }, committedAt: { type: Date, default: null }, result: { type: Schema.Types.Mixed, default: null },
 }, { timestamps: true, suppressReservedKeysWarning: true });

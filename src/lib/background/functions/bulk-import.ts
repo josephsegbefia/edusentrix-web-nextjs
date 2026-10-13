@@ -4,9 +4,10 @@ import { finalizeFailedBackgroundJob, runTrackedBackgroundJob } from "../worker-
 import { getBackgroundRetryPolicy, inngestRetriesForPolicy } from "../retry-policies";
 import { IMPORT_INNGEST_CONCURRENCY } from "../operational-concurrency";
 import { executeBulkImport } from "@/lib/imports/execute-bulk-import";
-import { BulkImportJob } from "@/models/BulkImportJob";
 import { TeacherImportJob } from "@/models/TeacherImportJob";
 import { StudentImportJob } from "@/models/StudentImportJob";
+import { resolveBulkImportRouting } from "@/lib/imports/bulk-import-routing";
+import { quarantineLegacyBulkImport } from "@/lib/imports/legacy-bulk-import-quarantine";
 
 const KIND = "BULK_IMPORT" as const;
 
@@ -30,10 +31,21 @@ export function createBulkImportBackgroundJobFunction() {
         const original = event.data.event.data as { jobId?: string } | undefined;
         if (original?.jobId) {
           await finalizeFailedBackgroundJob(original.jobId, error);
-          const teacherImportId = await loadTeacherImportJobId(original.jobId);
-          if (teacherImportId) {
+          const backgroundJob = await loadBulkImportBackgroundJob(original.jobId);
+          if (!backgroundJob) return;
+          const routing = resolveBulkImportRouting(backgroundJob);
+          if (!routing.ok) return;
+          if (routing.routing.kind === "teacher_staged") {
             await TeacherImportJob.updateOne(
-              { _id: teacherImportId, status: { $in: ["uploaded", "analyzing", "committing"] } },
+              {
+                _id: routing.routing.importJobId,
+                status: {
+                  $in:
+                    routing.routing.phase === "analysis"
+                      ? ["uploaded", "analyzing"]
+                      : ["committing"],
+                },
+              },
               {
                 $set: {
                   status: "failed",
@@ -48,10 +60,17 @@ export function createBulkImportBackgroundJobFunction() {
               }
             );
           }
-          const studentImportId = await loadStudentImportJobId(original.jobId);
-          if (studentImportId) {
+          if (routing.routing.kind === "student_staged") {
             await StudentImportJob.updateOne(
-              { _id: studentImportId, status: { $in: ["uploaded", "analyzing", "committing"] } },
+              {
+                _id: routing.routing.importJobId,
+                status: {
+                  $in:
+                    routing.routing.phase === "analysis"
+                      ? ["uploaded", "analyzing"]
+                      : ["committing"],
+                },
+              },
               {
                 $set: {
                   status: "failed",
@@ -66,23 +85,11 @@ export function createBulkImportBackgroundJobFunction() {
               }
             );
           }
-          const requestId = await loadBulkImportJobId(original.jobId);
-          if (requestId) {
-            await BulkImportJob.updateOne(
-              { _id: requestId, status: { $in: ["pending", "processing"] } },
-              {
-                $set: {
-                  status: "failed",
-                  rowErrors: [
-                    {
-                      row: 0,
-                      message:
-                        error instanceof Error ? error.message.slice(0, 500) : "Bulk import failed",
-                    },
-                  ],
-                },
-              }
-            );
+          if (routing.routing.kind === "legacy" && backgroundJob.schoolId) {
+            await quarantineLegacyBulkImport({
+              bulkImportJobId: routing.routing.importJobId,
+              schoolId: backgroundJob.schoolId,
+            });
           }
         }
       },
@@ -104,26 +111,9 @@ export function createBulkImportBackgroundJobFunction() {
   );
 }
 
-async function loadBulkImportJobId(jobId: string) {
+async function loadBulkImportBackgroundJob(jobId: string) {
   const { BackgroundJob } = await import("@/models/BackgroundJob");
-  const job = await BackgroundJob.findById(jobId)
-    .select("input")
-    .lean<{ input?: { bulkImportJobId?: unknown } } | null>();
-  return typeof job?.input?.bulkImportJobId === "string" ? job.input.bulkImportJobId : null;
-}
-
-async function loadTeacherImportJobId(jobId: string) {
-  const { BackgroundJob } = await import("@/models/BackgroundJob");
-  const job = await BackgroundJob.findById(jobId)
-    .select("input")
-    .lean<{ input?: { teacherImportJobId?: unknown } } | null>();
-  return typeof job?.input?.teacherImportJobId === "string" ? job.input.teacherImportJobId : null;
-}
-
-async function loadStudentImportJobId(jobId: string) {
-  const { BackgroundJob } = await import("@/models/BackgroundJob");
-  const job = await BackgroundJob.findById(jobId)
-    .select("input")
-    .lean<{ input?: { studentImportJobId?: unknown } } | null>();
-  return typeof job?.input?.studentImportJobId === "string" ? job.input.studentImportJobId : null;
+  return BackgroundJob.findById(jobId)
+    .select("subjectType subjectId schoolId input")
+    .lean();
 }

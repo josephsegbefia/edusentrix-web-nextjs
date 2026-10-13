@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 type ImportStage = "upload" | "analysing" | "review" | "invitations" | "results";
 type Issue = { code: string; message: string; field?: string | null; value?: string | null };
 type SubjectResolution = {
+  resolutionKey: string;
   sourceValue: string;
   subjectOfferingIds: string[];
   resolvedNames: string[];
@@ -48,6 +49,8 @@ type ImportJob = {
   status: string;
   fileName: string;
   selectedSheetName?: string | null;
+  availableSheets?: Array<{ name: string; score: number; rowCount: number; signals: string[] }>;
+  sheetSelectionRequired?: boolean;
   columnMappings: Array<{ sourceHeader: string; canonicalField: string | null; source: string; status: string }>;
   parsedRows: ImportRow[];
   subjectResolutions: SubjectResolution[];
@@ -106,6 +109,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
   const [busy, setBusy] = React.useState(false);
   const [subjectChoices, setSubjectChoices] = React.useState<Record<string, string[]>>({});
   const [classChoices, setClassChoices] = React.useState<Record<string, { id: string; decision: "keep_existing" | "replace" | "no_assign" }>>({});
+  const [reanalysisPending, setReanalysisPending] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
@@ -115,6 +119,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
       setBusy(false);
       setSubjectChoices({});
       setClassChoices({});
+      setReanalysisPending(false);
     }
   }, [open]);
 
@@ -153,11 +158,12 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
     if (!job) return;
     setBusy(true);
     try {
-      const rows = job.parsedRows.map((row) => ({ sourceRowNumber: row.sourceRowNumber, firstName: row.firstName, lastName: row.lastName, email: row.email, phone: row.phone, employeeId: row.employeeId, status: row.status }));
-      const subjectResolutions = job.subjectResolutions
+      const requiresFreshReview = reanalysisPending;
+      const rows = requiresFreshReview ? [] : job.parsedRows.map((row) => ({ sourceRowNumber: row.sourceRowNumber, firstName: row.firstName, lastName: row.lastName, email: row.email, phone: row.phone, employeeId: row.employeeId, status: row.status }));
+      const subjectResolutions = (requiresFreshReview ? [] : job.subjectResolutions)
         .filter((resolution) => !["resolved", "ignored"].includes(resolution.status))
-        .map((resolution) => ({ sourceValue: resolution.sourceValue, subjectOfferingIds: (subjectChoices[resolution.sourceValue] || []).filter((value) => value !== "__ignore__"), ignored: subjectChoices[resolution.sourceValue]?.includes("__ignore__") || false }));
-      const classResolutions = job.classResolutions
+        .map((resolution) => ({ resolutionKey: resolution.resolutionKey, subjectOfferingIds: (subjectChoices[resolution.resolutionKey] || []).filter((value) => value !== "__ignore__"), ignored: subjectChoices[resolution.resolutionKey]?.includes("__ignore__") || false }));
+      const classResolutions = (requiresFreshReview ? [] : job.classResolutions)
         .filter((resolution) => resolution.status !== "resolved" || resolution.occupiedTeacherName)
         .map((resolution) => ({ sourceValue: resolution.sourceValue, classGroupId: classChoices[resolution.sourceValue]?.id || resolution.classGroupId || null, homeroomDecision: classChoices[resolution.sourceValue]?.decision || resolution.homeroomDecision || "no_assign" as const }));
       const response = await fetch(`/api/admin/teachers/imports/${job.id}`, {
@@ -165,6 +171,7 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rows,
+          selectedSheetName: job.selectedSheetName || null,
           columnMappings: job.columnMappings.map((mapping) => ({ sourceHeader: mapping.sourceHeader, canonicalField: mapping.canonicalField || null })),
           subjectResolutions,
           classResolutions,
@@ -173,7 +180,15 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
       const json = await response.json();
       if (!response.ok || !json.success) throw new Error(json.error || "Could not save review changes");
       setJob(json.data);
+      if (requiresFreshReview) {
+        setReanalysisPending(false);
+        setSubjectChoices({});
+        setClassChoices({});
+        toast.success("Workbook changes were reanalysed. Review the refreshed rows before continuing.");
+        return false;
+      }
       toast.success("Review decisions saved");
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save review changes");
     } finally {
@@ -188,11 +203,22 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
     } : current);
   };
 
+  const updateColumnMapping = (sourceHeader: string, canonicalField: string | null) => {
+    setJob((current) => current ? {
+      ...current,
+      columnMappings: current.columnMappings.map((mapping) =>
+        mapping.sourceHeader === sourceHeader ? { ...mapping, canonicalField } : mapping
+      ),
+    } : current);
+    setReanalysisPending(true);
+  };
+
   const confirm = async () => {
     if (!job) return;
     setBusy(true);
     try {
-      await saveReview();
+      const saved = await saveReview();
+      if (!saved) return;
       const response = await fetch(`/api/admin/teachers/imports/${job.id}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,11 +274,12 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
               <div className="grid gap-3 sm:grid-cols-4"><Stat label="Teachers found" value={summary?.totalRows || 0} /><Stat label="Ready" value={summary?.readyRows || 0} tone="good" /><Stat label="Needs review" value={summary?.needsReviewRows || 0} tone="warn" /><Stat label="Blocked" value={summary?.blockedRows || 0} tone="bad" /></div>
               {summary?.leoUnavailable && <Notice tone="warn">Leo assistance unavailable. Deterministic matching completed; review the remaining items manually.</Notice>}
               {job.selectedSheetName && <p className="text-xs text-(--ws-fg-60)">Selected worksheet: <span className="font-medium text-(--ws-fg)">{job.selectedSheetName}</span>. {summary?.mappedColumns || 0} columns mapped automatically.</p>}
-              {job.columnMappings.some((mapping) => !mapping.canonicalField) && <div className="rounded-xl border border-(--ws-line) p-4"><h3 className="font-medium">Unmapped columns</h3><p className="mt-1 text-xs text-(--ws-fg-60)">Choose a canonical field only when the column truly contains that value.</p><div className="mt-3 space-y-2">{job.columnMappings.filter((mapping) => !mapping.canonicalField).map((mapping) => <div key={mapping.sourceHeader} className="flex items-center gap-3 text-sm"><span className="min-w-0 flex-1 truncate">{mapping.sourceHeader}</span><select className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2" value={mapping.canonicalField || ""} onChange={(event) => setJob({ ...job, columnMappings: job.columnMappings.map((item) => item.sourceHeader === mapping.sourceHeader ? { ...item, canonicalField: event.target.value || null } : item) })}><option value="">Ignore</option>{fields.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>)}</div></div>}
-              {unresolvedSubjects.length > 0 && <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4"><h3 className="font-medium">Subject resolution</h3><p className="mt-1 text-xs text-(--ws-fg-60)">Choose a real active SubjectOffering. The same source value is grouped across affected rows.</p><div className="mt-3 space-y-3">{unresolvedSubjects.map((resolution) => <div key={`${resolution.sourceValue}-${resolution.affectedRows.join("-")}`} className="rounded-lg border border-(--ws-line) p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{resolution.sourceValue}</p><p className="text-xs text-(--ws-fg-60)">{resolution.affectedRows.length} affected row(s) · {resolution.note}</p></div><select className="max-w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm" value={(subjectChoices[resolution.sourceValue] || [])[0] || ""} onChange={(event) => setSubjectChoices({ ...subjectChoices, [resolution.sourceValue]: event.target.value ? [event.target.value] : [] })}><option value="">Leave unresolved</option><option value="__ignore__">Ignore this subject for these rows</option>{(resolution.candidateOptions || []).map((option) => <option key={option.id} value={option.id}>{option.label}{option.gradeBand ? ` · ${option.gradeBand}` : ""}</option>)}</select></div></div>)}</div></div>}
+              {job.sheetSelectionRequired && (job.availableSheets || []).length > 1 && <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4"><h3 className="font-medium">Confirm worksheet</h3><p className="mt-1 text-xs text-(--ws-fg-60)">More than one worksheet looks like teacher data. Choose the intended sheet; saving reruns the full review safely.</p><select className="mt-3 rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm" value={job.selectedSheetName || ""} onChange={(event) => { setJob({ ...job, selectedSheetName: event.target.value || null }); setReanalysisPending(true); }}>{(job.availableSheets || []).map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name} · {sheet.rowCount} rows</option>)}</select></div>}
+              {job.columnMappings.some((mapping) => !mapping.canonicalField) && <div className="rounded-xl border border-(--ws-line) p-4"><h3 className="font-medium">Unmapped columns</h3><p className="mt-1 text-xs text-(--ws-fg-60)">Choose a canonical field only when the column truly contains that value.</p><div className="mt-3 space-y-2">{job.columnMappings.filter((mapping) => !mapping.canonicalField).map((mapping) => <div key={mapping.sourceHeader} className="flex items-center gap-3 text-sm"><span className="min-w-0 flex-1 truncate">{mapping.sourceHeader}</span><select className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2" value={mapping.canonicalField || ""} onChange={(event) => updateColumnMapping(mapping.sourceHeader, event.target.value || null)}><option value="">Ignore</option>{fields.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>)}</div></div>}
+              {unresolvedSubjects.length > 0 && <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4"><h3 className="font-medium">Subject resolution</h3><p className="mt-1 text-xs text-(--ws-fg-60)">Choose a real active SubjectOffering. Identical source text is kept separate when its grade context differs.</p><div className="mt-3 space-y-3">{unresolvedSubjects.map((resolution) => <div key={resolution.resolutionKey} className="rounded-lg border border-(--ws-line) p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{resolution.sourceValue}</p><p className="text-xs text-(--ws-fg-60)">{resolution.affectedRows.length} affected row(s) · {resolution.note}</p></div><select className="max-w-full rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm" value={(subjectChoices[resolution.resolutionKey] || [])[0] || ""} onChange={(event) => setSubjectChoices({ ...subjectChoices, [resolution.resolutionKey]: event.target.value ? [event.target.value] : [] })}><option value="">Leave unresolved</option><option value="__ignore__">Ignore this subject for these rows</option>{(resolution.candidateOptions || []).map((option) => <option key={option.id} value={option.id}>{option.label}{option.gradeBand ? ` · ${option.gradeBand}` : ""}</option>)}</select></div></div>)}</div></div>}
               {unresolvedClasses.length > 0 && <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4"><h3 className="font-medium">Homeroom resolution</h3><div className="mt-3 space-y-3">{unresolvedClasses.map((resolution) => <div key={resolution.sourceValue} className="rounded-lg border border-(--ws-line) p-3"><p className="font-medium">{resolution.sourceValue}</p><p className="text-xs text-(--ws-fg-60)">{resolution.occupiedTeacherName ? `Current homeroom teacher: ${resolution.occupiedTeacherName}` : resolution.note}</p><div className="mt-2 grid gap-2 sm:grid-cols-2"><select className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm" value={classChoices[resolution.sourceValue]?.id || resolution.classGroupId || ""} onChange={(event) => setClassChoices({ ...classChoices, [resolution.sourceValue]: { id: event.target.value, decision: classChoices[resolution.sourceValue]?.decision || "replace" } })}><option value="">Choose class</option>{(resolution.candidateOptions || []).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><select className="rounded-lg border border-(--ws-line) bg-(--ws-fill) px-3 py-2 text-sm" value={classChoices[resolution.sourceValue]?.decision || "no_assign"} onChange={(event) => setClassChoices({ ...classChoices, [resolution.sourceValue]: { id: classChoices[resolution.sourceValue]?.id || resolution.classGroupId || "", decision: event.target.value as "keep_existing" | "replace" | "no_assign" } })}><option value="no_assign">Do not assign homeroom</option><option value="keep_existing">Keep existing teacher</option><option value="replace">Replace with imported teacher</option></select></div></div>)}</div></div>}
               <div className="rounded-xl border border-(--ws-line) p-4"><h3 className="font-medium">Row review</h3><p className="mt-1 text-xs text-(--ws-fg-60)">Names, email addresses, and status values can be corrected before confirmation. The source row number is preserved for audit.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="text-xs text-(--ws-fg-60)"><tr><th className="px-2 py-2">Row</th><th className="px-2 py-2">First name</th><th className="px-2 py-2">Last name</th><th className="px-2 py-2">Email</th><th className="px-2 py-2">Status</th><th className="px-2 py-2">Subjects</th><th className="px-2 py-2">Homeroom</th><th className="px-2 py-2">State</th></tr></thead><tbody>{job.parsedRows.map((row) => <tr key={row.sourceRowNumber} className="border-t border-(--ws-line)"><td className="px-2 py-2 text-(--ws-fg-60)">{row.sourceRowNumber}</td><td className="px-2 py-2"><input className="w-32 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1" value={row.firstName} onChange={(event) => updateRow(row.sourceRowNumber, { firstName: event.target.value })} /></td><td className="px-2 py-2"><input className="w-32 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1" value={row.lastName} onChange={(event) => updateRow(row.sourceRowNumber, { lastName: event.target.value })} /></td><td className="px-2 py-2"><input className="w-56 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1" value={row.email} onChange={(event) => updateRow(row.sourceRowNumber, { email: event.target.value })} /></td><td className="px-2 py-2"><select className="rounded-md border border-(--ws-line) bg-(--ws-fill) px-2 py-1" value={row.status || "active"} onChange={(event) => updateRow(row.sourceRowNumber, { status: event.target.value })}><option value="active">Active</option><option value="inactive">Inactive</option><option value="on_leave">On leave</option><option value="terminated">Terminated</option>{row.status && !["active", "inactive", "on_leave", "terminated"].includes(row.status) && <option value={row.status}>{row.status} — review</option>}</select></td><td className="max-w-[220px] px-2 py-2">{row.subjects.join(", ") || "—"}</td><td className="px-2 py-2">{[row.homeroomGrade, row.homeroomClass].filter(Boolean).join(" ") || "—"}</td><td className="px-2 py-2"><span className={row.resolutionStatus === "resolved" ? "text-emerald-500" : row.resolutionStatus === "blocked" ? "text-rose-500" : "text-amber-500"}>{statusLabel(row)}</span>{row.issues[0] && <p className="mt-1 max-w-[220px] text-xs text-(--ws-fg-60)">{row.issues[0].message}</p>}</td></tr>)}</tbody></table></div></div>
-              <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={saveReview} disabled={busy}>Save review</Button><Button onClick={() => { if (!canConfirm) return toast.error("Resolve blocked and review items before continuing."); setStage("invitations"); }} disabled={busy || !canConfirm}>Continue to invitations</Button></div>
+              <div className="flex flex-wrap justify-between gap-3"><Button variant="outline" onClick={saveReview} disabled={busy}>Save review</Button><Button onClick={() => { if (reanalysisPending) return toast.error("Save the worksheet or column changes and review the refreshed results first."); if (!canConfirm) return toast.error("Resolve blocked and review items before continuing."); setStage("invitations"); }} disabled={busy || !canConfirm || reanalysisPending}>Continue to invitations</Button></div>
             </div>
           )}
           {stage === "invitations" && job && <div className="mx-auto max-w-2xl space-y-5"><h3 className="text-lg font-semibold">Invitation behaviour</h3><p className="text-sm text-(--ws-fg-60)">Choose what happens after each teacher is created. Invitation delivery never rolls back a successful teacher creation.</p><label className="flex cursor-pointer gap-3 rounded-xl border border-(--ws-line) p-4"><input type="radio" checked={invitationMode === "send_now"} onChange={() => setInvitationMode("send_now")} /><span><span className="font-medium">Send invitations after teachers are created</span><span className="mt-1 block text-xs text-(--ws-fg-60)">Uses the existing Clerk and email invitation flow. Delivery may be sent or queued for retry.</span></span></label><label className="flex cursor-pointer gap-3 rounded-xl border border-(--ws-line) p-4"><input type="radio" checked={invitationMode === "create_only"} onChange={() => setInvitationMode("create_only")} /><span><span className="font-medium">Create teachers only</span><span className="mt-1 block text-xs text-(--ws-fg-60)">No invitation is created; invite teachers later from the existing teacher workflow.</span></span></label><div className="flex justify-between"><Button variant="outline" onClick={() => setStage("review")}>Back</Button><Button onClick={() => setStage("results")}>Review confirmation</Button></div></div>}

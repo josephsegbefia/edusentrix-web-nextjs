@@ -4,6 +4,10 @@ Do **not** run `--apply` scripts against production from this Prompt 5 pass. Do 
 
 Production URL: `https://tryedusentrix.app/api/inngest`
 
+Coolify liveness endpoint: `GET /api/health`. Do **not** use `/api/inngest`
+as a container health check: cloud-mode Inngest requests require a valid
+`x-inngest-signature`, so an unsigned probe correctly fails.
+
 ## Environment (no real values)
 
 Required:
@@ -92,7 +96,7 @@ Validation: leftover pending domain rows should have a BackgroundJob; health cou
 2. Apply required Mongo indexes (dry-run, then `--apply`).
 3. Configure Inngest runtime secrets in Coolify.
 4. Deploy the application.
-5. Verify `/api/inngest` registration/signing.
+5. Verify `GET /api/health` returns 200, then verify `/api/inngest` registration/signing through Inngest Cloud (not an unsigned curl or health probe).
 6. Run leftover migration dry-runs; apply only after review.
 7. Smoke-test BackgroundJob, email retry, one AI generation, one import.
 8. Verify Task Center and scheduled functions.

@@ -3,6 +3,7 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import type { IStudentImportJob, IStudentImportParsedRow } from "@/models/StudentImportJob";
 import { parseStudentImportDate } from "@/lib/students/student-import-parse";
+import { analyzeStudentImport } from "@/lib/students/analyze-student-import";
 
 export type StudentImportReviewInput = {
   selectedSheetName?: string | null;
@@ -16,9 +17,18 @@ const validId = (value: unknown) => mongoose.isValidObjectId(String(value || "")
 const normalize = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 
 export async function applyStudentImportReview(job: IStudentImportJob, input: StudentImportReviewInput) {
-  if (input.selectedSheetName) { const selected = (job.availableSheets || []).find((sheet) => sheet.name === input.selectedSheetName); if (!selected) throw new Error("Selected worksheet is not available in this import."); job.selectedSheetName = input.selectedSheetName; }
-  if (input.dateFormat) job.dateFormat = input.dateFormat;
-  if (input.classConflictPolicy) job.classConflictPolicy = input.classConflictPolicy;
+  const selectedSheetName = input.selectedSheetName === undefined ? job.selectedSheetName : input.selectedSheetName;
+  if (selectedSheetName && !(job.availableSheets || []).some((sheet) => sheet.name === selectedSheetName)) throw new Error("Selected worksheet is not available in this import.");
+  const dateFormat = input.dateFormat || job.dateFormat;
+  const classConflictPolicy = input.classConflictPolicy || job.classConflictPolicy;
+  const mustReanalyze = selectedSheetName !== job.selectedSheetName || dateFormat !== job.dateFormat || classConflictPolicy !== job.classConflictPolicy;
+  if (mustReanalyze) {
+    if (!job.fileBytes?.length) throw new Error("The uploaded file is unavailable. Upload it again to change worksheet or import settings.");
+    const result = await analyzeStudentImport({ schoolId: job.schoolId, fileName: job.fileName, fileBytes: job.fileBytes, selectedSheetName, dateFormat, placementMode: job.placementMode, fixedGradeId: job.fixedGradeId, fixedClassGroupId: job.fixedClassGroupId, classConflictPolicy });
+    Object.assign(job, result);
+  }
+  job.dateFormat = dateFormat;
+  job.classConflictPolicy = classConflictPolicy;
   const grades = await Grade.find({ _id: { $in: (input.gradeResolutions || []).map((item) => item.gradeId).filter(validId) }, schoolId: job.schoolId, isActive: true }).select("_id name").lean();
   const classes = await ClassGroup.find({ _id: { $in: (input.classResolutions || []).map((item) => item.classGroupId).filter(validId) }, schoolId: job.schoolId, isActive: true }).select("_id name gradeId capacity").lean();
   const gradeById = new Map(grades.map((item) => [String(item._id), item])); const classById = new Map(classes.map((item) => [String(item._id), item]));

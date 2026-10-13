@@ -1,15 +1,13 @@
 import "server-only";
 
-import mongoose from "mongoose";
 import { BackgroundJobError } from "@/lib/background/errors";
 import type { TrackedJobContext } from "@/lib/background/worker-wrapper";
-import { bulkImportActionUrl } from "@/lib/imports/enqueue-bulk-import";
-import { parseStudentImportFile } from "@/lib/students/student-import-parse";
+import { resolveBulkImportRouting } from "@/lib/imports/bulk-import-routing";
 import {
-  importStudentsFromRows,
-  resolveFixedClassTarget,
-} from "@/lib/students/student-import-service";
-import { importTeachersFromBuffer } from "@/lib/teachers/execute-teacher-bulk-import";
+  LEGACY_BULK_IMPORT_SUPERSEDED_CODE,
+  LEGACY_BULK_IMPORT_SUPERSEDED_MESSAGE,
+  quarantineLegacyBulkImport,
+} from "@/lib/imports/legacy-bulk-import-quarantine";
 import {
   executeTeacherImportAnalysis,
   executeTeacherImportCommit,
@@ -18,220 +16,51 @@ import {
   executeStudentImportAnalysis,
   executeStudentImportCommit,
 } from "@/lib/students/student-import-workflow";
-import { BulkImportJob, type IBulkImportJob } from "@/models/BulkImportJob";
-import type { HydratedDocument } from "mongoose";
 
-type BulkImportDoc = HydratedDocument<IBulkImportJob>;
-
-function notificationFor(job: IBulkImportJob) {
-  return {
-    title: "Bulk import complete",
-    body: "Bulk import complete.",
-    actionUrl: bulkImportActionUrl(job.targetKind),
-  };
-}
-
+/**
+ * The shared Inngest function transports staged teacher and student work, but
+ * must never use the retired direct BulkImportJob executors. Those executors
+ * can create records before an administrator has explicitly confirmed review.
+ */
 export async function executeBulkImport(
   tracked: TrackedJobContext
 ): Promise<Record<string, unknown>> {
-  const studentImportJobId =
-    typeof tracked.job.input?.studentImportJobId === "string"
-      ? tracked.job.input.studentImportJobId
-      : null;
-  if (studentImportJobId) {
-    const phase = tracked.job.input?.studentImportPhase;
-    if (phase === "analysis") return executeStudentImportAnalysis(tracked);
-    if (phase === "commit") return executeStudentImportCommit(tracked);
+  const resolved = resolveBulkImportRouting(tracked.job);
+  if (!resolved.ok) {
     throw new BackgroundJobError({
-      message: "studentImportPhase must be analysis or commit",
-      category: "PREREQUISITE_FAILED",
-    });
-  }
-  const teacherImportJobId =
-    typeof tracked.job.input?.teacherImportJobId === "string"
-      ? tracked.job.input.teacherImportJobId
-      : null;
-  if (teacherImportJobId) {
-    const phase = tracked.job.input?.teacherImportPhase;
-    if (phase === "analysis") return executeTeacherImportAnalysis(tracked);
-    if (phase === "commit") return executeTeacherImportCommit(tracked);
-    throw new BackgroundJobError({
-      message: "teacherImportPhase must be analysis or commit",
-      category: "PREREQUISITE_FAILED",
-    });
-  }
-  const bulkImportJobId =
-    typeof tracked.job.input?.bulkImportJobId === "string"
-      ? tracked.job.input.bulkImportJobId
-      : null;
-  if (!bulkImportJobId || !mongoose.Types.ObjectId.isValid(bulkImportJobId)) {
-    throw new BackgroundJobError({
-      message: "bulkImportJobId is required",
+      code: resolved.code,
+      message: resolved.message,
       category: "PREREQUISITE_FAILED",
     });
   }
 
-  const domain = await BulkImportJob.findById(bulkImportJobId);
-  if (!domain) {
+  const { routing } = resolved;
+  if (routing.kind === "teacher_staged") {
+    return routing.phase === "analysis"
+      ? executeTeacherImportAnalysis(tracked)
+      : executeTeacherImportCommit(tracked);
+  }
+
+  if (routing.kind === "student_staged") {
+    return routing.phase === "analysis"
+      ? executeStudentImportAnalysis(tracked)
+      : executeStudentImportCommit(tracked);
+  }
+
+  if (!tracked.job.schoolId) {
     throw new BackgroundJobError({
-      message: "Bulk import job not found",
+      code: "BULK_IMPORT_ROUTING_INVALID",
+      message: "Legacy bulk import routing is missing its school scope.",
       category: "PREREQUISITE_FAILED",
     });
   }
-  if (String(domain.schoolId) !== String(tracked.job.schoolId)) {
-    throw new BackgroundJobError({
-      message: "Bulk import tenant mismatch",
-      category: "PREREQUISITE_FAILED",
-    });
-  }
-
-  if (["completed", "completed_with_errors", "failed"].includes(domain.status) && !domain.fileBytes) {
-    return {
-      bulkImportJobId,
-      processed: domain.totalRows,
-      succeeded: domain.successfulRows,
-      failed: domain.failedRows,
-      notification: notificationFor(domain),
-    };
-  }
-
-  if (!domain.fileBytes || domain.fileBytes.length === 0) {
-    domain.status = "failed";
-    domain.rowErrors = [{ row: 0, message: "Import file is missing" }];
-    await domain.save();
-    throw new BackgroundJobError({
-      message: "Import file is missing",
-      category: "PERMANENT",
-    });
-  }
-
-  await tracked.throwIfCancellationRequested();
-  domain.status = "processing";
-  await domain.save();
-
-  try {
-    if (domain.targetKind === "students") {
-      await runStudentImport(domain, tracked);
-    } else {
-      await runTeacherImport(domain, tracked);
-    }
-  } catch (error) {
-    if (error instanceof BackgroundJobError) throw error;
-    const message = error instanceof Error ? error.message : "Bulk import failed";
-    const permanent = /unsupported|empty|missing required|no data rows|too large|malformed/i.test(
-      message
-    );
-    if (permanent) {
-      domain.status = "failed";
-      domain.rowErrors = [{ row: 0, message: message.slice(0, 500) }];
-      domain.fileBytes = null;
-      await domain.save();
-    }
-    throw new BackgroundJobError({
-      message,
-      category: permanent ? "PERMANENT" : "RETRYABLE",
-    });
-  }
-
-  return {
-    bulkImportJobId,
-    processed: domain.totalRows,
-    succeeded: domain.successfulRows,
-    failed: domain.failedRows,
-    notification: notificationFor(domain),
-  };
-}
-
-async function runStudentImport(domain: BulkImportDoc, tracked: TrackedJobContext) {
-  const rows = parseStudentImportFile(domain.fileBytes as Buffer, domain.fileName).rows;
-  let fixedClass = null;
-  if (domain.classGroupId) {
-    fixedClass = await resolveFixedClassTarget({
-      schoolId: domain.schoolId,
-      classGroupId: String(domain.classGroupId),
-    });
-  }
-  await tracked.updateProgress({
-    progressPercent: 40,
-    progressStage: "importing",
-    progressMessage: "Importing students",
+  await quarantineLegacyBulkImport({
+    bulkImportJobId: routing.importJobId,
+    schoolId: tracked.job.schoolId,
   });
-  const result = await importStudentsFromRows({
-    schoolId: domain.schoolId,
-    rows,
-    fixedClass,
+  throw new BackgroundJobError({
+    code: LEGACY_BULK_IMPORT_SUPERSEDED_CODE,
+    message: LEGACY_BULK_IMPORT_SUPERSEDED_MESSAGE,
+    category: "PERMANENT",
   });
-
-  const keptErrors: typeof result.errors = [];
-  let created = result.created;
-  let failed = result.failed;
-  for (const error of result.errors) {
-    if (/duplicate admission/i.test(error.message)) {
-      created += 1;
-      failed = Math.max(0, failed - 1);
-      continue;
-    }
-    keptErrors.push(error);
-  }
-
-  domain.totalRows = rows.length;
-  domain.successfulRows = created;
-  domain.failedRows = failed;
-  domain.rowErrors = keptErrors.slice(0, 500);
-  domain.result = { created, failed, errors: domain.rowErrors };
-  domain.status =
-    failed > 0 && created > 0 ? "completed_with_errors" : created > 0 ? "completed" : "failed";
-  domain.fileBytes = null;
-  await domain.save();
-
-  if (domain.status === "failed") {
-    throw new BackgroundJobError({
-      message: domain.rowErrors[0]?.message || "Student import failed",
-      category: /empty|maximum|required|unsupported/i.test(keptErrors[0]?.message || "")
-        ? "PERMANENT"
-        : "RETRYABLE",
-    });
-  }
-}
-
-async function runTeacherImport(domain: BulkImportDoc, tracked: TrackedJobContext) {
-  await tracked.updateProgress({
-    progressPercent: 40,
-    progressStage: "importing",
-    progressMessage: "Importing teachers",
-  });
-  const result = await importTeachersFromBuffer({
-    schoolId: domain.schoolId,
-    adminUserId: domain.createdBy,
-    fileName: domain.fileName,
-    fileBytes: domain.fileBytes as Buffer,
-  });
-  domain.totalRows = result.totalRows;
-  domain.successfulRows = result.successful;
-  domain.failedRows = result.failed;
-  domain.rowErrors = result.results
-    .filter((row) => !row.success && row.error)
-    .map((row) => ({ row: row.row, message: (row.error || "Failed").slice(0, 500) }))
-    .slice(0, 500);
-  domain.result = {
-    totalRows: result.totalRows,
-    successful: result.successful,
-    failed: result.failed,
-    results: result.results.slice(0, 500),
-  };
-  domain.status =
-    result.failed > 0 && result.successful > 0
-      ? "completed_with_errors"
-      : result.successful > 0
-        ? "completed"
-        : "failed";
-  domain.fileBytes = null;
-  await domain.save();
-
-  if (domain.status === "failed") {
-    throw new BackgroundJobError({
-      message: domain.rowErrors[0]?.message || "Teacher import failed",
-      category: "PERMANENT",
-    });
-  }
 }

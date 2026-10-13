@@ -65,6 +65,11 @@ Implemented with `serve` from `inngest/next` (v4 exports `GET`, `POST`, `PUT`).
 
 Clerk middleware allowlists `/api/inngest(.*)` the same way as `/api/cron` and webhooks. There is no custom bypass header. Demo host also allowlists `/api/inngest`.
 
+`/api/inngest` is not a Coolify, Hetzner, or load-balancer health endpoint.
+Use `GET /api/health` for liveness. An unsigned `GET /api/inngest` must keep
+failing signature verification in cloud mode; weakening that validation would
+allow unauthenticated worker control.
+
 Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`. Prompt 3 always registers `AI_LESSON_GENERATION`, `EXPLORE_GENERATION`, and `AI_LESSON_ILLUSTRATION`. Prompt 4 always registers `LIBRARY_IMPORT`, `SCHEME_IMPORT`, `SCHOOL_PROVISIONING`, `COMMUNICATION_OUTBOX`, and `BULK_IMPORT`.
 
 ## Environment variables

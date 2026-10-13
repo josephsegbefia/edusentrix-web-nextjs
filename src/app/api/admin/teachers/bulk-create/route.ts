@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { isAcceptedTeacherImportFilename } from "@/lib/teachers/parse-teacher-import";
 import { TEACHER_IMPORT_MAX_BYTES } from "@/lib/teachers/teacher-import-workflow";
 import {
+  getTeacherImportUploadFailureDetails,
   persistAndEnqueueTeacherImportAnalysis,
   serializeTeacherImportJob,
 } from "@/lib/teachers/teacher-import-workflow";
@@ -58,13 +59,14 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     const errorCode = "TEACHER_IMPORT_UPLOAD_FAILED";
+    const failure = getTeacherImportUploadFailureDetails(error);
     console.error("teacher_import_upload_failed", {
       errorCode,
       route: "/api/admin/teachers/bulk-create",
       schoolId: String(schoolIdObj),
       workflow: "teacher_import",
       phase: "upload_enqueue",
-      errorType: error instanceof Error ? error.name : "UnknownError",
+      ...failure,
     });
     return Response.json(
       {

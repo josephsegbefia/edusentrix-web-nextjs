@@ -25,6 +25,75 @@ export const TEACHER_IMPORT_MAX_BYTES = 5 * 1024 * 1024;
 
 type TeacherImportDoc = HydratedDocument<ITeacherImportJob>;
 
+type TeacherImportUploadWriteStage =
+  | "teacher_import_create"
+  | "background_job_enqueue"
+  | "teacher_import_link";
+
+type MongoErrorShape = {
+  name?: unknown;
+  code?: unknown;
+  codeName?: unknown;
+  keyPattern?: unknown;
+  errorLabels?: unknown;
+};
+
+export type TeacherImportUploadFailureDetails = {
+  writeStage: TeacherImportUploadWriteStage | "unknown";
+  errorType: string;
+  mongoCode: number | string | null;
+  mongoCodeName: string | null;
+  mongoKeyFields: string[];
+  mongoErrorLabels: string[];
+  teacherImportJobId: string | null;
+  backgroundJobId: string | null;
+};
+
+class TeacherImportUploadWriteError extends Error {
+  readonly details: TeacherImportUploadFailureDetails;
+
+  constructor(
+    stage: TeacherImportUploadWriteStage,
+    error: unknown,
+    ids: { teacherImportJobId?: unknown; backgroundJobId?: unknown } = {}
+  ) {
+    super("Teacher import upload persistence failed");
+    this.name = "TeacherImportUploadWriteError";
+    this.details = safeTeacherImportUploadFailureDetails(error, stage, ids);
+  }
+}
+
+function safeTeacherImportUploadFailureDetails(
+  error: unknown,
+  writeStage: TeacherImportUploadFailureDetails["writeStage"] = "unknown",
+  ids: { teacherImportJobId?: unknown; backgroundJobId?: unknown } = {}
+): TeacherImportUploadFailureDetails {
+  const candidate = error && typeof error === "object" ? error as MongoErrorShape : {};
+  const keyPattern = candidate.keyPattern && typeof candidate.keyPattern === "object"
+    ? Object.keys(candidate.keyPattern as Record<string, unknown>).slice(0, 20)
+    : [];
+  return {
+    writeStage,
+    errorType: typeof candidate.name === "string" ? candidate.name : "UnknownError",
+    mongoCode: typeof candidate.code === "number" || typeof candidate.code === "string" ? candidate.code : null,
+    mongoCodeName: typeof candidate.codeName === "string" ? candidate.codeName : null,
+    mongoKeyFields: keyPattern,
+    mongoErrorLabels: Array.isArray(candidate.errorLabels)
+      ? candidate.errorLabels.filter((label): label is string => typeof label === "string").slice(0, 10)
+      : [],
+    teacherImportJobId: ids.teacherImportJobId ? String(ids.teacherImportJobId) : null,
+    backgroundJobId: ids.backgroundJobId ? String(ids.backgroundJobId) : null,
+  };
+}
+
+export function getTeacherImportUploadFailureDetails(
+  error: unknown
+): TeacherImportUploadFailureDetails {
+  return error instanceof TeacherImportUploadWriteError
+    ? error.details
+    : safeTeacherImportUploadFailureDetails(error);
+}
+
 function asObjectId(value: unknown) {
   const stringValue = String(value || "");
   return mongoose.isValidObjectId(stringValue) ? new mongoose.Types.ObjectId(stringValue) : null;
@@ -77,27 +146,47 @@ export async function persistAndEnqueueTeacherImportAnalysis(input: {
   if (!input.fileBytes.length) throw new Error("File is empty");
   if (input.fileBytes.length > TEACHER_IMPORT_MAX_BYTES) throw new Error("File is too large. Maximum size is 5MB.");
 
-  const domain = await TeacherImportJob.create({
-    schoolId: input.schoolId,
-    createdByUserId: input.createdByUserId,
-    status: "uploaded",
-    fileName: input.fileName,
-    mimeType: input.mimeType || null,
-    fileBytes: input.fileBytes,
-    invitationMode: "send_now",
-  });
-  const queued = await enqueueBackgroundJob({
-    kind: "BULK_IMPORT",
-    schoolId: input.schoolId,
-    initiatedByUserId: input.createdByUserId,
-    notificationTargetUserId: input.createdByUserId,
-    subjectType: "TeacherImportJob",
-    subjectId: domain._id,
-    idempotencyKey: `teacher-import-analysis:${String(input.schoolId)}:${String(domain._id)}`,
-    input: { teacherImportJobId: String(domain._id), teacherImportPhase: "analysis" },
-  });
+  let domain: TeacherImportDoc;
+  try {
+    domain = await TeacherImportJob.create({
+      schoolId: input.schoolId,
+      createdByUserId: input.createdByUserId,
+      status: "uploaded",
+      fileName: input.fileName,
+      mimeType: input.mimeType || null,
+      fileBytes: input.fileBytes,
+      invitationMode: "send_now",
+    });
+  } catch (error) {
+    throw new TeacherImportUploadWriteError("teacher_import_create", error);
+  }
+
+  let queued: Awaited<ReturnType<typeof enqueueBackgroundJob>>;
+  try {
+    queued = await enqueueBackgroundJob({
+      kind: "BULK_IMPORT",
+      schoolId: input.schoolId,
+      initiatedByUserId: input.createdByUserId,
+      notificationTargetUserId: input.createdByUserId,
+      subjectType: "TeacherImportJob",
+      subjectId: domain._id,
+      idempotencyKey: `teacher-import-analysis:${String(input.schoolId)}:${String(domain._id)}`,
+      input: { teacherImportJobId: String(domain._id), teacherImportPhase: "analysis" },
+    });
+  } catch (error) {
+    throw new TeacherImportUploadWriteError("background_job_enqueue", error, {
+      teacherImportJobId: domain._id,
+    });
+  }
   domain.analysisBackgroundJobId = new mongoose.Types.ObjectId(queued.jobId);
-  await domain.save();
+  try {
+    await domain.save();
+  } catch (error) {
+    throw new TeacherImportUploadWriteError("teacher_import_link", error, {
+      teacherImportJobId: domain._id,
+      backgroundJobId: queued.jobId,
+    });
+  }
   return { job: domain, jobId: queued.jobId, teacherImportJobId: String(domain._id) };
 }
 

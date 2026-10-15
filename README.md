@@ -597,7 +597,12 @@ Create a `.env.local` file in the root directory with the following variables:
 ```env
 # MongoDB
 MONGODB_URI=mongodb://localhost:27017/edusentrix
-MONGO_DB_NAME=edusentrix
+MONGO_DB_NAME=edusentrix-dev
+
+# Runtime/origin safety
+APP_RUNTIME_MODE=development
+APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
@@ -619,9 +624,11 @@ BREVO_API_KEY=your_brevo_api_key
 BREVO_SENDER_EMAIL=noreply@edusentrix.com
 BREVO_SENDER_NAME=EduSentrix
 
-# Application
-NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+When `APP_RUNTIME_MODE=development`, production EduSentrix origins are rejected
+at server startup. Keep `APP_URL` and `NEXT_PUBLIC_APP_URL` on the same local
+origin so Clerk invitations and bootstrap redirects remain in development.
 
 ### Optional Variables
 
@@ -845,7 +852,17 @@ edusentrix-web-nextjs/
    npm run dev
    ```
 
-3. **Run Linter**:
+3. **Start Inngest Dev Server** in a second terminal:
+
+   ```bash
+   npm run inngest:dev
+   ```
+
+   The local Inngest dashboard is normally available at
+   [http://localhost:8288](http://localhost:8288). It invokes
+   `http://localhost:3000/api/inngest`.
+
+4. **Run Linter**:
    ```bash
    npm run lint
    ```

@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { assertAppOriginConfiguration } from "./src/lib/runtime/app-origin-config";
+
+assertAppOriginConfiguration();
 
 const nextConfig: NextConfig = {
   /* config options here */

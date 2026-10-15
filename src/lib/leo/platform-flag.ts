@@ -9,7 +9,7 @@ const SYNTHETIC: Omit<IPlatformFeatureFlag, "_id" | "createdAt" | "updatedAt"> =
   key: LEO_FEATURE_FLAG_KEY,
   label: DEFAULT_LABEL,
   description: "Unified assistant across EduSentrix (spec LEO v1).",
-  defaultState: "disabled",
+  defaultState: "enabled",
   forcedMode: "none",
   allowSchoolOverride: true,
   allowSchoolSelfService: false,

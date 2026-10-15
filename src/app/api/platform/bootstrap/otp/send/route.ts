@@ -17,6 +17,7 @@ import {
   hashOtpCode,
 } from "@/lib/platform-billing/payout-security";
 import { PlatformBootstrapOtp } from "@/models/PlatformBootstrapOtp";
+import { logPlatformBootstrapFailure } from "@/lib/platform-bootstrap/diagnostics";
 
 export const runtime = "nodejs";
 
@@ -94,13 +95,18 @@ export async function POST(req: NextRequest) {
       data: {
         notifyEmailMasked: maskEmail(notify),
         expiresInSeconds: Math.round(BOOTSTRAP_OTP_TTL_MS / 1000),
-        ...(process.env.NODE_ENV !== "production" ? { _debugCode: code } : {}),
       },
     });
   } catch (error) {
-    console.error("[bootstrap/otp/send]", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to send verification code.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    logPlatformBootstrapFailure({
+      event: "bootstrap_otp_send_failed",
+      route: "/api/platform/bootstrap/otp/send",
+      stage: "otp_send",
+      error,
+    });
+    return NextResponse.json(
+      { success: false, error: "Failed to send verification code." },
+      { status: 500 }
+    );
   }
 }

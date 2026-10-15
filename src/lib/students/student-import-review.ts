@@ -29,16 +29,27 @@ export async function applyStudentImportReview(job: IStudentImportJob, input: St
   }
   job.dateFormat = dateFormat;
   job.classConflictPolicy = classConflictPolicy;
-  const grades = await Grade.find({ _id: { $in: (input.gradeResolutions || []).map((item) => item.gradeId).filter(validId) }, schoolId: job.schoolId, isActive: true }).select("_id name").lean();
+  const grades = await Grade.find({ schoolId: job.schoolId, isActive: true }).select("_id name").lean();
   const classes = await ClassGroup.find({ _id: { $in: (input.classResolutions || []).map((item) => item.classGroupId).filter(validId) }, schoolId: job.schoolId, isActive: true }).select("_id name gradeId capacity").lean();
   const gradeById = new Map(grades.map((item) => [String(item._id), item])); const classById = new Map(classes.map((item) => [String(item._id), item]));
   const gradeMap = new Map((input.gradeResolutions || []).map((item) => [normalize(item.sourceValue), item.gradeId && gradeById.has(item.gradeId) ? item.gradeId : null]));
   const classMap = new Map((input.classResolutions || []).map((item) => [normalize(`${item.gradeId || ""}::${item.sourceValue}`), item.classGroupId && classById.has(item.classGroupId) ? item.classGroupId : null]));
+  const classBySource = new Map((input.classResolutions || []).map((item) => [normalize(item.sourceValue), item.classGroupId && classById.has(item.classGroupId) ? item.classGroupId : null]));
   const rowEdits = new Map((input.rows || []).map((row) => [row.sourceRowNumber, row]));
   for (const row of job.parsedRows) {
     const edit = rowEdits.get(row.sourceRowNumber); if (edit) Object.assign(row, Object.fromEntries(Object.entries(edit).filter(([key]) => key !== "sourceRowNumber" && edit[key as keyof typeof edit] !== undefined)));
     if (job.placementMode === "class_scoped" && job.fixedClassGroupId) { row.classGroupId = String(job.fixedClassGroupId); row.gradeId = String(job.fixedGradeId); if (job.classConflictPolicy === "use_target") { row.className = job.fixedClassLabel || row.className; row.issues = row.issues.filter((item) => item.code !== "fixed_class_conflict"); } }
-    else { if (!row.gradeId && row.gradeName) row.gradeId = gradeMap.get(normalize(row.gradeName)) || null; const classId = row.gradeId && row.className ? classMap.get(normalize(`${row.gradeId}::${row.className}`)) : null; if (classId) row.classGroupId = classId; }
+    else {
+      if (!row.gradeId && row.gradeName) row.gradeId = gradeMap.get(normalize(row.gradeName)) || null;
+      const classId = row.className ? classMap.get(normalize(`${row.gradeId || ""}::${row.className}`)) || classMap.get(normalize(`::${row.className}`)) || classBySource.get(normalize(row.className)) : null;
+      if (classId) row.classGroupId = classId;
+      const selectedClass = row.classGroupId ? classById.get(String(row.classGroupId)) : null;
+      if (selectedClass) {
+        row.gradeId = String(selectedClass.gradeId);
+        if (!row.gradeName) row.gradeName = gradeById.get(String(selectedClass.gradeId))?.name || null;
+        if (!row.className) row.className = selectedClass.name;
+      }
+    }
     const issues = row.issues.filter((item) => !["date_invalid", "date_ambiguous", "sex_review", "status_review", "grade_not_found", "class_not_found", "grade_ambiguous", "class_ambiguous", "fixed_class_conflict", "missing_required", "grade_required", "class_required"].includes(item.code));
     if (!row.firstName?.trim() || !row.lastName?.trim()) issues.push({ code: "missing_required", message: "First name and last name are required.", field: "name", value: null, affectedRows: [row.sourceRowNumber] });
     if (!row.gradeId || !validId(row.gradeId)) issues.push({ code: "grade_required", message: "Choose an active school grade.", field: "gradeName", value: row.gradeName || null, affectedRows: [row.sourceRowNumber] });

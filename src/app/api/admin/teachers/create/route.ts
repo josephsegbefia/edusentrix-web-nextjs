@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Subject, type ISubject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
@@ -35,10 +36,12 @@ type Body = {
   lastName: string;
   email: string;
   phone?: string;
+  employeeId?: string;
+  department?: string;
   photoUrl?: string;
   subjectIds?: string[];
   /** Subject + class group pairs; creates TeacherAssignment for the current (or chosen) academic period */
-  teachingAssignments?: Array<{ subjectId: string; classGroupId: string }>;
+  teachingAssignments?: Array<{ subjectId: string; classGroupId: string; subjectOfferingId?: string }>;
   academicPeriodId?: string;
   homeroomClassGroupId?: string;
   status?: "active" | "inactive";
@@ -191,15 +194,17 @@ export async function POST(req: NextRequest) {
     const teachingAssignmentsDeduped: Array<{
       subjectId: string;
       classGroupId: string;
+      subjectOfferingId?: string;
     }> = [];
     for (const row of rawAssignments) {
       const sid = String(row?.subjectId || "").trim();
       const cid = String(row?.classGroupId || "").trim();
+      const offeringId = String(row?.subjectOfferingId || "").trim();
       if (!sid || !cid) continue;
-      const key = `${sid}|${cid}`;
+      const key = `${sid}|${cid}|${offeringId}`;
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
-      teachingAssignmentsDeduped.push({ subjectId: sid, classGroupId: cid });
+      teachingAssignmentsDeduped.push({ subjectId: sid, classGroupId: cid, ...(offeringId ? { subjectOfferingId: offeringId } : {}) });
     }
 
     const rawResolution = body.teachingAssignmentResolution;
@@ -212,6 +217,8 @@ export async function POST(req: NextRequest) {
       ...body,
       phone: body.phone?.trim() || undefined,
       photoUrl: body.photoUrl?.trim() || undefined,
+      employeeId: body.employeeId?.trim() || undefined,
+      department: body.department?.trim() || undefined,
       homeroomClassGroupId:
         body.homeroomClassGroupId?.trim() || undefined,
       subjectIds:
@@ -321,10 +328,34 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const offeringIdStrings = Array.from(new Set(
+      (normalizedBody.teachingAssignments || [])
+        .map((assignment) => assignment.subjectOfferingId)
+        .filter((id): id is string => Boolean(id))
+    ));
+    const subjectOfferingIds = offeringIdStrings.length
+      ? await SubjectOffering.find({
+          _id: { $in: offeringIdStrings.filter((id) => mongoose.isValidObjectId(id)) },
+          schoolId: schoolIdObj,
+          isActive: true,
+        }).select("_id subjectId").lean()
+      : [];
+    if (subjectOfferingIds.length !== offeringIdStrings.length) {
+      return new Response(JSON.stringify({ error: "One or more subject offerings are invalid or no longer active" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+    const offeringById = new Map(subjectOfferingIds.map((offering) => [String(offering._id), offering]));
+    for (const assignment of normalizedBody.teachingAssignments || []) {
+      if (!assignment.subjectOfferingId) continue;
+      const offering = offeringById.get(assignment.subjectOfferingId);
+      if (!offering || String(offering.subjectId) !== assignment.subjectId) {
+        return new Response(JSON.stringify({ error: "A teaching assignment subject does not match its configured subject offering" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+    }
+
     let academicPeriodObjId: mongoose.Types.ObjectId | null = null;
     let classGroupById: Map<
       string,
-      { _id: mongoose.Types.ObjectId; subjectIds?: unknown; name?: string }
+      { _id: mongoose.Types.ObjectId; subjectIds?: unknown; subjectOfferingIds?: unknown; name?: string }
     > | null = null;
     const assignmentRows = normalizedBody.teachingAssignments || [];
     if (assignmentRows.length > 0) {
@@ -393,7 +424,7 @@ export async function POST(req: NextRequest) {
         schoolId: schoolIdObj,
         isActive: true,
       })
-        .select("_id subjectIds name")
+        .select("_id subjectIds subjectOfferingIds name")
         .lean();
       if (classGroups.length !== classGroupIdStrings.length) {
         return new Response(
@@ -409,6 +440,7 @@ export async function POST(req: NextRequest) {
         (classGroups as Array<{
           _id: mongoose.Types.ObjectId;
           subjectIds?: unknown;
+          subjectOfferingIds?: unknown;
           name?: string;
         }>).map((cg) => [String(cg._id), cg])
       );
@@ -496,6 +528,9 @@ export async function POST(req: NextRequest) {
       schoolId: schoolIdObj,
       userId: teacherIdObj,
       subjectIds: subjectIds,
+      subjectOfferingIds: subjectOfferingIds.map((offering) => offering._id),
+      employeeId: normalizedBody.employeeId || null,
+      department: normalizedBody.department || null,
       homeroomClassGroupId: normalizedBody.homeroomClassGroupId
         ? new mongoose.Types.ObjectId(normalizedBody.homeroomClassGroupId)
         : null,
@@ -513,6 +548,9 @@ export async function POST(req: NextRequest) {
       for (const row of assignmentRows) {
         const subjectObjId = new mongoose.Types.ObjectId(row.subjectId);
         const classGroupObjId = new mongoose.Types.ObjectId(row.classGroupId);
+        const subjectOfferingObjId = row.subjectOfferingId && mongoose.isValidObjectId(row.subjectOfferingId)
+          ? new mongoose.Types.ObjectId(row.subjectOfferingId)
+          : null;
         const cg = classGroupById.get(String(classGroupObjId));
         const cgSubjects = Array.isArray(cg?.subjectIds)
           ? (cg.subjectIds as mongoose.Types.ObjectId[]).map(String)
@@ -555,6 +593,7 @@ export async function POST(req: NextRequest) {
             teacherId: teacherRecord._id,
             academicPeriodId: academicPeriodObjId,
             subjectId: subjectObjId,
+            subjectOfferingId: subjectOfferingObjId,
             classGroupId: classGroupObjId,
             workloadHours: 0,
             status: "active",

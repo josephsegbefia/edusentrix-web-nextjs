@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { TeacherImportJob } from "@/models/TeacherImportJob";
-import { applyTeacherImportReview, type TeacherImportReviewInput } from "@/lib/teachers/teacher-import-review";
+import { applyTeacherImportIssueAction, applyTeacherImportReview, reopenTeacherImportIssue, type TeacherImportIssueAction, type TeacherImportReviewInput } from "@/lib/teachers/teacher-import-review";
 import { serializeTeacherImportJob } from "@/lib/teachers/teacher-import-workflow";
 import { assertTeacherImportId } from "@/lib/teachers/teacher-import-route";
+import { subjectOfferingIdForReviewIssue } from "@/lib/teachers/teacher-import-review-dto";
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -32,7 +33,24 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const job = await TeacherImportJob.findOne({ _id: objectId, schoolId: actor.schoolId });
     if (!job) return Response.json({ success: false, error: "Teacher import not found" }, { status: 404 });
     if (job.status !== "review_ready") return Response.json({ success: false, error: "Only an import waiting for review can be edited." }, { status: 409 });
-    const input = (await req.json()) as TeacherImportReviewInput;
+    const input = (await req.json()) as TeacherImportReviewInput & { issueAction?: TeacherImportIssueAction; reopenIssue?: { issueId: string; expectedUpdatedAt?: string | null } };
+    if (input.issueAction) {
+      const action = input.issueAction.type === "select_subject"
+        ? {
+            ...input.issueAction,
+            subjectOfferingId: subjectOfferingIdForReviewIssue(job, input.issueAction.issueId, input.issueAction.subjectOfferingId) || "",
+          }
+        : input.issueAction;
+      if (action.type === "select_subject" && !action.subjectOfferingId) return Response.json({ success: false, error: "That subject option is no longer available. Refresh the review and choose again." }, { status: 409 });
+      await applyTeacherImportIssueAction(job, action);
+      await job.save();
+      return Response.json({ success: true, data: serializeTeacherImportJob(job) });
+    }
+    if (input.reopenIssue) {
+      reopenTeacherImportIssue(job, input.reopenIssue);
+      await job.save();
+      return Response.json({ success: true, data: serializeTeacherImportJob(job) });
+    }
     await applyTeacherImportReview(job, { ...input, rows: undefined });
     if (input.rows?.length) await applyTeacherImportReview(job, { rows: input.rows });
     await job.save();

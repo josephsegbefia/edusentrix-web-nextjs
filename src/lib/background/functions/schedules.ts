@@ -12,6 +12,7 @@ import { expireStaleLibraryReservationsGlobally } from "@/lib/library/library-re
 import { markExpiredDelegations } from "@/lib/delegations/expireDelegations";
 import { sendDelegationExpiryReminders } from "@/lib/delegations/delegationExpiryReminders";
 import { sendWeeklyDigestsForActiveCycles } from "@/lib/admissions/weekly-digest";
+import { runDatabaseBackedSchedule } from "../scheduled-handler";
 
 const SCHEDULE_CONCURRENCY = { limit: 1 } as const;
 
@@ -27,7 +28,7 @@ function scheduleFunction(
       concurrency: SCHEDULE_CONCURRENCY,
       triggers: [{ cron }],
     },
-    async () => handler()
+    async () => runDatabaseBackedSchedule(handler)
   );
 }
 

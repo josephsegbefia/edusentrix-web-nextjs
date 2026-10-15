@@ -4,6 +4,7 @@ import { Grade } from "@/models/Grade";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
 import type {
   ITeacherImportAnalysisSummary,
   ITeacherImportClassResolution,
@@ -24,10 +25,30 @@ import {
   suggestTeacherImportHeaders,
   suggestTeacherImportSemantics,
 } from "@/lib/teachers/teacher-import-leo";
+import type { ImportLeoMetadata } from "@/lib/leo/import-completion";
+import {
+  assignmentFromResolution,
+  classAliases as understandingClassAliases,
+  gradeBandForGrade,
+  normalizeTeacherUnderstanding,
+  parseTeacherAssignmentText,
+  provenance,
+  resolveClassLabel,
+  resolveGradeLabel,
+  resolveSubjectForContext,
+  type TeacherContext,
+  type TeacherUnderstandingClass,
+  type TeacherUnderstandingGrade,
+  type TeacherUnderstandingOffering,
+} from "@/lib/teachers/teacher-understanding";
+import type { ImportIssueV2, ImportRowReference } from "@/lib/import-intelligence/types";
+import { createImportIssue } from "@/lib/import-intelligence/issues";
+import { normalizeGhanaPhoneForStorage } from "@/lib/phone/ghana";
+import { attentionIssueForSignal, detectTeacherAttentionSignals } from "@/lib/teachers/teacher-attention-review";
 
 type IdLike = mongoose.Types.ObjectId | string;
 
-type GradeRecord = { _id: IdLike; name: string };
+type GradeRecord = TeacherUnderstandingGrade & { _id: IdLike; name: string };
 type ClassRecord = {
   _id: IdLike;
   name: string;
@@ -45,9 +66,15 @@ type OfferingRecord = {
   gradeIds?: IdLike[];
   gradeBand?: string | null;
   stage?: string | null;
+  isActive?: boolean;
 };
 
-export type TeacherImportAnalysisResult = Pick<ITeacherImportJob, "selectedSheetName" | "availableSheets" | "sheetSelectionRequired" | "columnMappings" | "parsedRows" | "subjectResolutions" | "classResolutions" | "analysisSummary" | "analysisWarnings" | "analysisErrors">;
+export type TeacherImportAnalysisResult = Pick<ITeacherImportJob, "selectedSheetName" | "availableSheets" | "sheetSelectionRequired" | "columnMappings" | "parsedRows" | "subjectResolutions" | "classResolutions" | "analysisSummary" | "analysisWarnings" | "analysisErrors"> & { leoAnalysis?: ImportLeoMetadata | null; columnInterpretations?: ITeacherImportJob["columnInterpretations"]; analysisIssues?: ImportIssueV2[] };
+
+type TeacherImportLeoDependencies = {
+  suggestHeaders?: typeof suggestTeacherImportHeaders;
+  suggestSemantics?: typeof suggestTeacherImportSemantics;
+};
 
 function asString(value: unknown) {
   return value === null || value === undefined ? "" : String(value);
@@ -64,6 +91,24 @@ export function normalizeTeacherImportLookup(value: string) {
 
 function clean(value: string | null | undefined) {
   return (value || "").trim();
+}
+
+function headerSignalsForLeo(sheet: { headers: string[]; rows: Array<{ values: Record<string, string> }> } | undefined) {
+  if (!sheet) return [];
+  return sheet.headers.map((sourceHeader) => {
+    const values = sheet.rows.map((row) => clean(row.values[sourceHeader])).filter(Boolean).slice(0, 200);
+    const kinds = new Set<string>();
+    for (const value of values) {
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) kinds.add("email-like");
+      else if (/^[+\d][\d\s().-]{6,}$/.test(value)) kinds.add("phone-like");
+      else if (/^\d+(?:\.\d+)?$/.test(value)) kinds.add("numeric");
+      else if (/[,;|\n]/.test(value)) kinds.add("multi-value text");
+      else if (/\b(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}\b/.test(value)) kinds.add("date-like");
+      else if (value.split(/\s+/).length >= 2) kinds.add("multi-word text");
+      else kinds.add("text");
+    }
+    return { sourceHeader, nonEmptyCount: values.length, valueKinds: [...kinds].sort() };
+  });
 }
 
 function unique<T>(values: T[], key: (value: T) => string) {
@@ -110,7 +155,7 @@ function statusValue(value: string | null | undefined) {
   const mapped = aliases[normalized];
   return mapped
     ? { value: mapped, status: "resolved" as const }
-    : { value: clean(value), status: "needs_review" as const };
+    : { value: null as string | null, status: "needs_review" as const };
 }
 
 function offeringAliases(offering: OfferingRecord) {
@@ -151,7 +196,7 @@ function issue(
 }
 
 function resolutionStatus(issues: ITeacherImportIssue[]): TeacherImportResolutionStatus {
-  if (issues.some((item) => ["blocked", "missing_required", "invalid", "duplicate"].includes(item.code))) return "blocked";
+  if (issues.some((item) => ["blocked", "missing_required", "invalid", "duplicate", "not_found"].includes(item.code))) return "blocked";
   return issues.length > 0 ? "needs_review" : "resolved";
 }
 
@@ -291,57 +336,64 @@ export async function analyzeTeacherImport(input: {
   fileBytes: Buffer;
   selectedSheetName?: string | null;
   columnMappings?: ITeacherImportColumnMapping[];
+  preserved?: {
+    subjectResolutions?: ITeacherImportSubjectResolution[];
+    classResolutions?: ITeacherImportClassResolution[];
+    analysisIssues?: ImportIssueV2[];
+  };
+  /** Test/infrastructure seam for replacing only the external Leo boundary. */
+  leo?: TeacherImportLeoDependencies;
 }): Promise<TeacherImportAnalysisResult> {
+  // The production path is AI-first: every source header is submitted to Leo
+  // before parsing values. The injected dependency exception keeps existing
+  // semantic-only test seams from accidentally calling a real provider.
+  const aiFirstColumnMapping = !input.columnMappings?.length && (!input.leo || Boolean(input.leo.suggestHeaders));
   const parseOptions: TeacherImportParseOptions = {
     selectedSheetName: input.selectedSheetName,
     columnMappings: input.columnMappings,
+    mappingMode: aiFirstColumnMapping ? "leo_first" : "deterministic",
   };
   let parsed = parseTeacherImportWorkbook(input.fileBytes, input.fileName, parseOptions);
   let leoUsed = false;
   let leoUnavailable = false;
-  const unresolvedHeaders = parsed.columnMappings
-    .filter((mapping) => !mapping.canonicalField)
-    .map((mapping) => mapping.sourceHeader);
-  if (unresolvedHeaders.length && !input.columnMappings?.length) {
-    const headerLeo = await suggestTeacherImportHeaders({
+  let leoAnalysis: ImportLeoMetadata | null = null;
+  const headersForLeo = parsed.columnMappings.map((mapping) => mapping.sourceHeader);
+  const selectedSheet = parsed.sheets.find((sheet) => sheet.name === parsed.selectedSheetName);
+  const headerSignals = headerSignalsForLeo(selectedSheet);
+  let headerRationaleByHeader = new Map<string, string>();
+  if (aiFirstColumnMapping && headersForLeo.length) {
+    const headerLeo = await (input.leo?.suggestHeaders || suggestTeacherImportHeaders)({
       schoolId: input.schoolId,
-      unresolvedHeaders,
+      unresolvedHeaders: headersForLeo,
+      headerSignals,
     });
     if (headerLeo.ok) {
-      const assignedFields = new Set(
-        parsed.columnMappings
-          .map((mapping) => mapping.canonicalField)
-          .filter((field): field is string => Boolean(field))
-      );
       const suggestions = new Map(
         headerLeo.suggestions
-          .filter(
-            (suggestion) =>
-              suggestion.canonicalField &&
-              suggestion.confidence >= 0.75 &&
-              !assignedFields.has(suggestion.canonicalField)
-          )
+          .filter((suggestion) => headersForLeo.includes(suggestion.sourceHeader))
           .map((suggestion) => [suggestion.sourceHeader, suggestion])
       );
-      if (suggestions.size) {
-        const mappings = parsed.columnMappings.map((mapping) => {
+      headerRationaleByHeader = new Map(
+        headerLeo.suggestions.map((suggestion) => [suggestion.sourceHeader, suggestion.rationale])
+      );
+      const mappings = parsed.columnMappings.map((mapping) => {
           const suggestion = suggestions.get(mapping.sourceHeader);
-          if (!suggestion?.canonicalField) return mapping;
-          assignedFields.add(suggestion.canonicalField);
+          if (!suggestion) return mapping;
           return {
             ...mapping,
             canonicalField: suggestion.canonicalField,
             source: "leo" as const,
             confidence: suggestion.confidence,
-            status: "resolved" as const,
+            // Leo proposes the mapping; the admin confirms it in the review
+            // surface before a re-analysis is allowed to proceed.
+            status: "needs_review" as const,
           };
         });
-        parsed = parseTeacherImportWorkbook(input.fileBytes, input.fileName, {
-          selectedSheetName: input.selectedSheetName,
-          columnMappings: mappings,
-        });
-        leoUsed = true;
-      }
+      parsed = parseTeacherImportWorkbook(input.fileBytes, input.fileName, {
+        selectedSheetName: input.selectedSheetName,
+        columnMappings: mappings,
+      });
+      leoUsed = true;
     } else {
       leoUnavailable = true;
     }
@@ -350,13 +402,20 @@ export async function analyzeTeacherImport(input: {
     SubjectOffering.find({ schoolId: input.schoolId, isActive: true })
       .select("_id subjectId displayName shortName code subjectFamily gradeIds gradeBand stage")
       .lean<OfferingRecord[]>(),
-    Grade.find({ schoolId: input.schoolId, isActive: true }).select("_id name").lean<GradeRecord[]>(),
+    Grade.find({ schoolId: input.schoolId, isActive: true }).select("_id name code stage order").lean<GradeRecord[]>(),
     ClassGroup.find({ schoolId: input.schoolId, isActive: true })
       .select("_id name gradeId homeroomTeacherId subjectOfferingIds")
       .lean<ClassRecord[]>(),
   ]);
   const gradeNames = new Map(grades.map((grade) => [objectIdString(grade._id), grade.name]));
   const classMap = lookupClasses(classes, gradeNames);
+  const understandingGradeById = new Map((grades as TeacherUnderstandingGrade[]).map((grade) => [objectIdString(grade._id), grade]));
+  for (const classGroup of classes as TeacherUnderstandingClass[]) {
+    for (const alias of understandingClassAliases(classGroup, understandingGradeById.get(objectIdString(classGroup.gradeId)))) {
+      const current = classMap.get(alias) || [];
+      classMap.set(alias, unique([...current, classGroup as ClassRecord], (item) => objectIdString(item._id)));
+    }
+  }
   const existing = await existingTeacherIndexes(parsed.rows, input.schoolId);
   const teacherByUserId = new Map(existing.teachers.map((teacher) => [objectIdString(teacher.userId), teacher]));
   const teacherByEmployeeId = new Map(existing.teachers.filter((teacher) => teacher.employeeId).map((teacher) => [normalizeTeacherImportLookup(String(teacher.employeeId)), teacher]));
@@ -378,6 +437,7 @@ export async function analyzeTeacherImport(input: {
   const classGroups = new Map<string, ITeacherImportClassResolution>();
   const rows: ITeacherImportParsedRow[] = [];
   const seenEmails = new Map<string, number>();
+  const seenPhones = new Map<string, number>();
   const seenEmployeeIds = new Map<string, number>();
 
   for (const sourceRow of parsed.rows) {
@@ -385,10 +445,6 @@ export async function analyzeTeacherImport(input: {
     const status = statusValue(sourceRow.status);
     const currentRowClassMatches = findClassMatches(sourceRow, classes, gradeNames, classMap);
     const classGroup = currentRowClassMatches.length === 1 ? currentRowClassMatches[0] : null;
-    const subjectContextClass = classGroup || (() => {
-      const gradeId = matchingGradeId(sourceRow.homeroomGrade, grades);
-      return gradeId ? { _id: "grade-context", name: "", gradeId } as ClassRecord : null;
-    })();
     if (!sourceRow.firstName || !sourceRow.lastName) {
       issues.push(issue("missing_required", "Add a first and last name before confirming this row.", "name"));
     }
@@ -410,6 +466,12 @@ export async function analyzeTeacherImport(input: {
       const prior = seenEmployeeIds.get(employeeKey);
       if (prior) issues.push(issue("duplicate", `This employee ID is duplicated inside the file (first seen on row ${prior}).`, "employeeId", sourceRow.employeeId));
       else seenEmployeeIds.set(employeeKey, sourceRow.sourceRowNumber);
+    }
+    const normalizedPhone = normalizeGhanaPhoneForStorage(sourceRow.phone);
+    if (normalizedPhone) {
+      const prior = seenPhones.get(normalizedPhone);
+      if (prior) issues.push(issue("duplicate", `This phone number is duplicated inside the file (first seen on row ${prior}).`, "phone", normalizedPhone));
+      else seenPhones.set(normalizedPhone, sourceRow.sourceRowNumber);
     }
     if (status.status === "needs_review") {
       issues.push(issue("status_review", `Employment status "${sourceRow.status}" needs confirmation.`, "status", sourceRow.status || ""));
@@ -487,6 +549,46 @@ export async function analyzeTeacherImport(input: {
       }
     }
 
+    const understandingGrades = grades as TeacherUnderstandingGrade[];
+    const understandingClasses = classes as TeacherUnderstandingClass[];
+    const understandingOfferings = offerings as TeacherUnderstandingOffering[];
+    const gradeById = new Map(understandingGrades.map((grade) => [objectIdString(grade._id), grade]));
+    const gradeScopeIds: string[] = [];
+    const classScopeIds: string[] = [];
+    const classScopeRecords: TeacherUnderstandingClass[] = [];
+    for (const gradeValue of sourceRow.gradeScopes || []) {
+      const matches = resolveGradeLabel(gradeValue, understandingGrades);
+      if (matches.length === 1) gradeScopeIds.push(objectIdString(matches[0]._id));
+      else issues.push(issue("grade_scope_review", matches.length ? `Grade "${gradeValue}" matches multiple school grades.` : `Grade "${gradeValue}" was not found in this school.`, "gradeScopes", gradeValue));
+    }
+    for (const classValue of sourceRow.classScopes || []) {
+      const resolvedScope = resolveClassLabel(classValue, understandingGrades, understandingClasses);
+      if (resolvedScope.candidates.length === 1) {
+        classScopeIds.push(objectIdString(resolvedScope.candidates[0]._id));
+        classScopeRecords.push(resolvedScope.candidates[0]);
+      } else {
+        issues.push(issue("class_scope_review", `${resolvedScope.note} Teaching class "${classValue}" requires review.`, "classScopes", classValue));
+      }
+    }
+    const contexts: TeacherContext[] = [];
+    if (classGroup) {
+      const grade = gradeById.get(objectIdString(classGroup.gradeId));
+      contexts.push({ gradeId: objectIdString(classGroup.gradeId), gradeName: grade?.name || null, gradeBand: grade ? gradeBandForGrade(grade) : null, classGroupId: objectIdString(classGroup._id), classLabel: classLabel(classGroup, gradeNames), source: "homeroom" });
+    }
+    for (const classScope of classScopeRecords) {
+      const grade = gradeById.get(objectIdString(classScope.gradeId));
+      contexts.push({ gradeId: objectIdString(classScope.gradeId), gradeName: grade?.name || null, gradeBand: grade ? gradeBandForGrade(grade) : null, classGroupId: objectIdString(classScope._id), classLabel: `${grade?.name || "Grade"} / ${classScope.name}`, source: "class_scope" });
+    }
+    for (const gradeId of [...new Set(gradeScopeIds)]) {
+      const grade = gradeById.get(gradeId);
+      if (grade) contexts.push({ gradeId, gradeName: grade.name, gradeBand: gradeBandForGrade(grade), source: "grade_scope" });
+    }
+    if (!contexts.length && sourceRow.homeroomGrade) {
+      const matches = resolveGradeLabel(sourceRow.homeroomGrade, understandingGrades);
+      if (matches.length === 1) contexts.push({ gradeId: objectIdString(matches[0]._id), gradeName: matches[0].name, gradeBand: gradeBandForGrade(matches[0]), source: "homeroom" });
+    }
+    const uniqueContexts = unique(contexts, (context) => `${context.classGroupId || ""}:${context.gradeId || ""}`);
+
     const subjectOfferingIds: string[] = [];
     const subjectIds: string[] = [];
     const subjectTokens = splitTokens(sourceRow.subjects);
@@ -501,48 +603,79 @@ export async function analyzeTeacherImport(input: {
       subjectOfferingIds.push(objectIdString(offering._id));
       subjectIds.push(objectIdString(offering.subjectId));
     }
+    const subjectContexts = uniqueContexts.length ? uniqueContexts : [null];
     for (const token of subjectTokens) {
-      const resolved = resolveTeacherImportSubjectToken(token, sourceRow, subjectContextClass, offerings);
-      const key = teacherImportResolutionKey(
-        token,
-        subjectContextClass ? objectIdString(subjectContextClass.gradeId) : null
-      );
-      const prior = subjectGroups.get(key);
-      const manualCandidates = resolved.candidates.length > 0
-        ? resolved.candidates
-        : subjectContextClass
-          ? offerings.filter((offering) => (offering.gradeIds || []).some((id) => objectIdString(id) === objectIdString(subjectContextClass.gradeId)))
-          : offerings;
-      const group: ITeacherImportSubjectResolution = prior || {
-        resolutionKey: key,
-        sourceValue: token,
-        subjectFamily: resolved.candidates[0]?.subjectFamily || subjectFamilyForToken(token),
-        subjectOfferingIds: [],
-        resolvedNames: [],
-        source: resolved.source,
-        status: resolved.status,
-        affectedRows: [],
-        candidateOptions: manualCandidates.map((offering) => ({
-          id: objectIdString(offering._id),
-          label: offering.displayName,
-          gradeBand: offering.gradeBand,
-        })),
-        note: resolved.note,
-      };
-      group.affectedRows = unique([...group.affectedRows, sourceRow.sourceRowNumber], String);
-      if (resolved.status === "resolved") {
-        for (const offering of resolved.candidates) {
-          group.subjectOfferingIds.push(objectIdString(offering._id));
-          group.resolvedNames.push(offering.displayName);
-          subjectOfferingIds.push(objectIdString(offering._id));
-          subjectIds.push(objectIdString(offering.subjectId));
+      for (const context of subjectContexts) {
+        const contextClass = context?.classGroupId ? understandingClasses.find((item) => objectIdString(item._id) === context.classGroupId) || null : null;
+        const resolved = resolveSubjectForContext({ sourceValue: token, context, classGroup: contextClass, offerings: understandingOfferings });
+        const key = teacherImportResolutionKey(token, context?.gradeId || null);
+        const prior = subjectGroups.get(key);
+        const manualCandidates = resolved.candidates.length > 0
+          ? resolved.candidates
+          : context?.gradeId
+            ? understandingOfferings.filter((offering) => (offering.gradeIds || []).some((gradeId) => objectIdString(gradeId) === context.gradeId))
+            : understandingOfferings;
+        const group: ITeacherImportSubjectResolution = prior || {
+          resolutionKey: key,
+          sourceValue: token,
+          subjectFamily: resolved.candidates[0]?.subjectFamily || subjectFamilyForToken(token),
+          subjectOfferingIds: [],
+          resolvedNames: [],
+          source: resolved.source,
+          status: resolved.status,
+          affectedRows: [],
+          candidateOptions: manualCandidates.map((offering) => ({ id: objectIdString(offering._id), label: offering.displayName, gradeBand: offering.gradeBand })),
+          note: resolved.note,
+          contextGradeIds: resolved.contextGradeIds,
+          resolutionClass: resolved.resolutionClass,
+          requiresHumanConfirmation: resolved.requiresHumanConfirmation,
+          provenance: [provenance({ field: "subjects", sourceValue: token, source: resolved.source, note: context?.gradeName ? `Context: ${context.gradeName}` : null })],
+        };
+        group.affectedRows = unique([...group.affectedRows, sourceRow.sourceRowNumber], String);
+        if (resolved.status === "resolved") {
+          for (const offering of resolved.candidates) {
+            group.subjectOfferingIds.push(objectIdString(offering._id));
+            group.resolvedNames.push(offering.displayName);
+            subjectOfferingIds.push(objectIdString(offering._id));
+            subjectIds.push(objectIdString(offering.subjectId));
+          }
+          group.subjectOfferingIds = unique(group.subjectOfferingIds, String);
+          group.resolvedNames = unique(group.resolvedNames, String);
+        } else {
+          // Subject association is intentionally reviewable: no subject
+          // offering should make a valid teacher identity uncommittable.
+          issues.push(issue(resolved.stageMismatch ? "stage_mismatch" : "subject_review", `${resolved.note} Source value: "${token}".`, "subjects", token));
         }
-        group.subjectOfferingIds = unique(group.subjectOfferingIds, String);
-        group.resolvedNames = unique(group.resolvedNames, String);
-      } else {
-        issues.push(issue(resolved.status === "blocked" ? "not_found" : "ambiguous", `${resolved.note} Source value: "${token}".`, "subjects", token));
+        subjectGroups.set(key, group);
       }
-      subjectGroups.set(key, group);
+    }
+
+    const explicitAssignments = sourceRow.explicitAssignments.flatMap((assignment) => {
+      const parsedAssignments: Array<{ sourceValue: string; subjectValue: string; classValue: string; gradeValue?: string }> = assignment.subjectValue
+        ? [{ sourceValue: assignment.sourceValue, subjectValue: assignment.subjectValue, classValue: assignment.classValue || "", gradeValue: assignment.gradeValue || undefined }]
+        : parseTeacherAssignmentText(assignment.sourceValue).map((parsed) => ({
+          ...parsed,
+        }));
+      return parsedAssignments.map((parsed) => {
+        const classResolution = resolveClassLabel(parsed.classValue, understandingGrades, understandingClasses);
+        const classCandidate = classResolution.candidates.length === 1 ? classResolution.candidates[0] : null;
+        const grade = classCandidate ? gradeById.get(objectIdString(classCandidate.gradeId)) : null;
+        const subjectResolution = resolveSubjectForContext({
+          sourceValue: parsed.subjectValue,
+          context: classCandidate ? { gradeId: objectIdString(classCandidate.gradeId), gradeName: grade?.name || null, gradeBand: grade ? gradeBandForGrade(grade) : null, classGroupId: objectIdString(classCandidate._id), source: "assignment" } : null,
+          classGroup: classCandidate,
+          offerings: understandingOfferings,
+        });
+        return assignmentFromResolution({
+          parsed,
+          classResolution,
+          subjectResolution,
+          provenance: assignment.provenance || [provenance({ field: "explicitAssignments", sourceValue: parsed.sourceValue, source: assignment.source })],
+        });
+      });
+    });
+    for (const assignment of explicitAssignments) {
+      if (assignment.status !== "resolved") issues.push(issue(assignment.issueCode || "assignment_review", `Explicit teaching assignment "${assignment.sourceValue}" needs review. ${assignment.note || ""}`.trim(), "explicitAssignments", assignment.sourceValue));
     }
 
     const normalizedEmail = sourceRow.email.toLowerCase();
@@ -553,16 +686,23 @@ export async function analyzeTeacherImport(input: {
     const statusResult = matchedTeacher ? "resolved" : resolutionStatus(issues.filter((item) => item.code !== "existing"));
     rows.push({
       sourceRowNumber: sourceRow.sourceRowNumber,
+      rowRef: `T${String(sourceRow.sourceRowNumber).padStart(3, "0")}`,
       sourceValues: sourceRow.sourceValues,
       firstName: sourceRow.firstName,
+      middleNames: sourceRow.middleNames,
       lastName: sourceRow.lastName,
       fullName: sourceRow.fullName,
       email: normalizedEmail,
-      phone: sourceRow.phone,
+      phone: normalizedPhone,
       employeeId: sourceRow.employeeId,
       department: sourceRow.department,
       status: status.value,
       subjects: subjectTokens,
+      gradeScopes: sourceRow.gradeScopes,
+      gradeScopeIds: unique(gradeScopeIds, String),
+      classScopes: sourceRow.classScopes,
+      classScopeIds: unique(classScopeIds, String),
+      explicitAssignments,
       subjectOfferingIds: unique(subjectOfferingIds, String),
       subjectIds: unique(subjectIds, String),
       homeroomClass: sourceRow.homeroomClass,
@@ -573,6 +713,10 @@ export async function analyzeTeacherImport(input: {
       issues,
       teacherId: matchedTeacher ? objectIdString(matchedTeacher._id) : null,
       invitation: { status: "not_requested", warning: null, invitationId: null },
+      provenance: [
+        provenance({ field: "firstName", sourceValue: sourceRow.firstName, source: sourceRow.fullName ? "inferred" : "exact" }),
+        provenance({ field: "lastName", sourceValue: sourceRow.lastName, source: sourceRow.fullName ? "inferred" : "exact" }),
+      ],
     });
   }
 
@@ -582,19 +726,117 @@ export async function analyzeTeacherImport(input: {
     resolvedNames: unique(group.resolvedNames, String),
   }));
   const classResolutions = [...classGroups.values()];
+  for (const identityField of ["email", "phone", "employeeId"] as const) {
+    const groups = new Map<string, ITeacherImportParsedRow[]>();
+    for (const row of rows) {
+      const raw = identityField === "employeeId" ? row.employeeId : row[identityField];
+      const key = normalizeTeacherImportLookup(raw || "");
+      if (!key) continue;
+      groups.set(key, [...(groups.get(key) || []), row]);
+    }
+    for (const affected of groups.values()) {
+      if (affected.length < 2) continue;
+      const rowNumbers = affected.map((row) => row.sourceRowNumber);
+      for (const row of affected) {
+        if (!row.issues.some((item) => item.code === "duplicate" && item.field === identityField)) {
+          row.issues.push(issue("duplicate", `This ${identityField} is duplicated inside the file. Confirm the affected teacher records before continuing.`, identityField, identityField === "employeeId" ? row.employeeId || "" : row[identityField] || "", rowNumbers));
+        }
+        if (row.rowState !== "existing") {
+          row.resolutionStatus = resolutionStatus(row.issues);
+          row.rowState = rowState(row.resolutionStatus, false);
+        }
+      }
+    }
+  }
+  const sourceTeacherIdentityGroups = new Map<string, ITeacherImportParsedRow[]>();
+  for (const row of rows) {
+    const identity = normalizeTeacherImportLookup([row.firstName, ...row.middleNames, row.lastName].filter(Boolean).join(" "));
+    if (!identity) continue;
+    sourceTeacherIdentityGroups.set(identity, [...(sourceTeacherIdentityGroups.get(identity) || []), row]);
+  }
+  for (const affected of sourceTeacherIdentityGroups.values()) {
+    if (affected.length < 2) continue;
+    const rowNumbers = affected.map((row) => row.sourceRowNumber);
+    for (const row of affected) {
+      row.issues.push(issue("duplicate_source_teacher", "The same teacher name appears more than once in this import. Confirm whether these are duplicate records or distinct people.", "name", [row.firstName, ...row.middleNames, row.lastName].join(" "), rowNumbers));
+      row.resolutionStatus = resolutionStatus(row.issues);
+      row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+    }
+  }
+  // A homeroom is a single-valued relationship. Multiple import rows naming
+  // the same class must remain visible to the administrator, even when the
+  // rows represent legitimate co-teaching for subjects.
+  const homeroomRows = new Map<string, ITeacherImportParsedRow[]>();
+  for (const row of rows) {
+    if (!row.homeroomClassGroupId || row.rowState === "existing") continue;
+    const current = homeroomRows.get(row.homeroomClassGroupId) || [];
+    current.push(row);
+    homeroomRows.set(row.homeroomClassGroupId, current);
+  }
+  for (const [classGroupId, affected] of homeroomRows) {
+    if (affected.length < 2) continue;
+    const rowNumbers = affected.map((row) => row.sourceRowNumber);
+    const conflict = issue("duplicate_homeroom", "More than one new teacher claims this homeroom class. Choose one homeroom teacher; subject profiles remain separate.", "homeroomClassGroupId", classGroupId, rowNumbers);
+    for (const row of affected) {
+      row.issues.push(conflict);
+      row.resolutionStatus = resolutionStatus(row.issues);
+      row.rowState = rowState(row.resolutionStatus, false);
+    }
+  }
+
+  const explicitAssignmentRows = rows.flatMap((row) => row.explicitAssignments.map((assignment) => ({ row, assignment })));
+  const duplicateAssignmentGroups = new Map<string, Array<{ row: ITeacherImportParsedRow; assignment: typeof explicitAssignmentRows[number]["assignment"] }>>();
+  for (const entry of explicitAssignmentRows) {
+    if (entry.assignment.status !== "resolved" || !entry.assignment.classGroupId || !entry.assignment.subjectOfferingId) continue;
+    const key = `${entry.assignment.classGroupId}:${entry.assignment.subjectOfferingId}`;
+    duplicateAssignmentGroups.set(key, [...(duplicateAssignmentGroups.get(key) || []), entry]);
+  }
+  for (const affected of duplicateAssignmentGroups.values()) {
+    if (affected.length < 2) continue;
+    const rowNumbers = affected.map((item) => item.row.sourceRowNumber);
+    for (const item of affected) {
+      item.row.issues.push(issue("duplicate_explicit_assignment", "The same explicit teaching assignment appears more than once in this import.", "explicitAssignments", item.assignment.sourceValue, rowNumbers));
+      item.assignment.status = "needs_review";
+      item.assignment.issueCode = "duplicate_explicit_assignment";
+      item.assignment.note = "Review the repeated assignment; co-teaching may be intentional.";
+      item.row.resolutionStatus = resolutionStatus(item.row.issues);
+      item.row.rowState = rowState(item.row.resolutionStatus, item.row.rowState === "existing");
+    }
+  }
+  if (explicitAssignmentRows.length) {
+    const classIds = [...new Set(explicitAssignmentRows.map((item) => item.assignment.classGroupId).filter((value): value is string => Boolean(value)))];
+    const offeringIds = [...new Set(explicitAssignmentRows.map((item) => item.assignment.subjectOfferingId).filter((value): value is string => Boolean(value)))];
+    const existingAssignments = await TeacherAssignment.find({
+      schoolId: input.schoolId,
+      status: "active",
+      classGroupId: { $in: classIds },
+      subjectOfferingId: { $in: offeringIds },
+    }).select("teacherId classGroupId subjectOfferingId").lean();
+    for (const entry of explicitAssignmentRows) {
+      if (entry.assignment.status !== "resolved") continue;
+      const overlap = existingAssignments.find((existing) => objectIdString(existing.classGroupId) === entry.assignment.classGroupId && objectIdString(existing.subjectOfferingId) === entry.assignment.subjectOfferingId);
+      if (!overlap) continue;
+      entry.assignment.status = "needs_review";
+      entry.assignment.issueCode = "assignment_overlap";
+      entry.assignment.note = "Another active teacher already has this class and subject offering. Co-teaching may be intentional.";
+      entry.row.issues.push(issue("assignment_overlap", "Another teacher is already assigned to this subject in this class. Review whether co-teaching is intentional.", "explicitAssignments", entry.assignment.sourceValue, [entry.row.sourceRowNumber]));
+      entry.row.resolutionStatus = resolutionStatus(entry.row.issues);
+      entry.row.rowState = rowState(entry.row.resolutionStatus, entry.row.rowState === "existing");
+    }
+  }
   const unresolvedSubjects = unique(
     subjectResolutions.filter((item) => item.status !== "resolved").map((item) => item.sourceValue),
     normalizeTeacherImportLookup
   );
   const unresolvedClasses = unique(
     rows
-      .filter((row) => row.issues.some((item) => ["not_found", "ambiguous"].includes(item.code) && item.field === "homeroomClass"))
-      .map((row) => [clean(row.homeroomGrade), clean(row.homeroomClass)].filter(Boolean).join(" "))
+      .filter((row) => row.issues.some((item) => ["not_found", "ambiguous", "class_scope_review"].includes(item.code) && ["homeroomClass", "classScopes"].includes(item.field || "")))
+      .flatMap((row) => [[clean(row.homeroomGrade), clean(row.homeroomClass)].filter(Boolean).join(" "), ...row.classScopes])
       .filter(Boolean),
     normalizeTeacherImportLookup
   );
-  if (unresolvedSubjects.length || unresolvedClasses.length) {
-    const leo = await suggestTeacherImportSemantics({
+  {
+    const leo = await (input.leo?.suggestSemantics || suggestTeacherImportSemantics)({
       schoolId: input.schoolId,
       unresolvedSubjects,
       unresolvedClasses,
@@ -610,7 +852,12 @@ export async function analyzeTeacherImport(input: {
         gradeName: gradeNames.get(objectIdString(classGroup.gradeId)) || "",
         className: classGroup.name,
       })),
+      subjectValues: unique(rows.flatMap((row) => row.subjects), normalizeTeacherImportLookup),
+      gradeValues: unique(rows.flatMap((row) => [...row.gradeScopes, row.homeroomGrade || ""]), normalizeTeacherImportLookup).filter(Boolean),
+      classValues: unique(rows.flatMap((row) => [...row.classScopes, row.homeroomClass || ""]), normalizeTeacherImportLookup).filter(Boolean),
+      issueTypes: unique(rows.flatMap((row) => row.issues.map((item) => item.code)), (value) => value),
     });
+    leoAnalysis = leo.metadata || null;
     if (leo.ok) {
       leoUsed = true;
       for (const suggestion of leo.suggestions.subjectSuggestions) {
@@ -618,6 +865,28 @@ export async function analyzeTeacherImport(input: {
           const family = normalizeTeacherImportLookup(suggestion.suggestedSubjectFamily || "");
           if (!family) continue;
           const candidates = offerings.filter((offering) => normalizeTeacherImportLookup(offering.subjectFamily || "") === family);
+          const sourceFamily = normalizeTeacherImportLookup(resolution.subjectFamily || subjectFamilyForToken(resolution.sourceValue));
+          if (sourceFamily && family !== sourceFamily) {
+            const compatibleCandidates = candidates.filter((offering) =>
+              !(resolution.contextGradeIds || []).length ||
+              (offering.gradeIds || []).some((gradeId) => resolution.contextGradeIds?.includes(objectIdString(gradeId)))
+            );
+            resolution.candidateOptions = compatibleCandidates.map((offering) => ({ id: objectIdString(offering._id), label: offering.displayName, gradeBand: offering.gradeBand }));
+            resolution.note = `Leo suggested a different subject family (${suggestion.suggestedSubjectFamily}); this semantic substitution requires administrator confirmation.`;
+            resolution.source = "leo";
+            resolution.status = "needs_review";
+            resolution.resolutionClass = "REVIEW";
+            resolution.requiresHumanConfirmation = true;
+            for (const row of rows.filter((item) => resolution.affectedRows.includes(item.sourceRowNumber))) {
+              row.issues = row.issues.filter((item) => !(["not_found", "subject_review"].includes(item.code) && item.field === "subjects" && normalizeTeacherImportLookup(item.value || "") === normalizeTeacherImportLookup(resolution.sourceValue)));
+              if (!row.issues.some((item) => item.code === "semantic_substitution_review" && item.value === resolution.sourceValue)) {
+                row.issues.push(issue("semantic_substitution_review", `Leo suggested "${suggestion.suggestedSubjectFamily}" for "${resolution.sourceValue}", but this is not an automatic subject substitution.`, "subjects", resolution.sourceValue, [row.sourceRowNumber]));
+              }
+              row.resolutionStatus = resolutionStatus(row.issues);
+              row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+            }
+            continue;
+          }
           const contextual = unique(
             resolution.affectedRows.flatMap((rowNumber) => {
               const row = rows.find((item) => item.sourceRowNumber === rowNumber);
@@ -645,6 +914,36 @@ export async function analyzeTeacherImport(input: {
               row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
             }
           }
+        }
+      }
+      for (const suggestion of leo.suggestions.semanticSubstitutionSuggestions || []) {
+        for (const resolution of subjectResolutions.filter((item) => normalizeTeacherImportLookup(item.sourceValue) === normalizeTeacherImportLookup(suggestion.sourceValue) && item.status !== "resolved")) {
+          const candidates = offerings.filter((offering) => normalizeTeacherImportLookup(offering.subjectFamily || "") === normalizeTeacherImportLookup(suggestion.candidateSubjectFamily));
+          if (!candidates.length) continue;
+          const compatibleCandidates = candidates.filter((offering) =>
+            !(resolution.contextGradeIds || []).length ||
+            (offering.gradeIds || []).some((gradeId) => resolution.contextGradeIds?.includes(objectIdString(gradeId)))
+          );
+          resolution.candidateOptions = compatibleCandidates.map((offering) => ({ id: objectIdString(offering._id), label: offering.displayName, gradeBand: offering.gradeBand }));
+          resolution.note = `${suggestion.rationale} This is a semantic substitution and requires administrator confirmation.`;
+          resolution.source = "leo";
+          resolution.status = "needs_review";
+          resolution.resolutionClass = "REVIEW";
+          resolution.requiresHumanConfirmation = true;
+          for (const row of rows.filter((item) => resolution.affectedRows.includes(item.sourceRowNumber))) {
+            row.issues = row.issues.filter((item) => !(["not_found", "subject_review"].includes(item.code) && item.field === "subjects" && normalizeTeacherImportLookup(item.value || "") === normalizeTeacherImportLookup(resolution.sourceValue)));
+            row.issues.push(issue("semantic_substitution_review", `Leo suggested "${suggestion.candidateSubjectFamily}" for "${suggestion.sourceValue}", but this is not an automatic subject substitution.`, "subjects", suggestion.sourceValue, [row.sourceRowNumber]));
+            row.resolutionStatus = resolutionStatus(row.issues);
+            row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+          }
+        }
+      }
+      for (const suggestion of leo.suggestions.stageMismatchSuggestions || []) {
+        for (const row of rows.filter((item) => suggestion.rowRefs.includes(`T${String(item.sourceRowNumber).padStart(3, "0")}`))) {
+          if (row.issues.some((item) => item.code === "stage_mismatch" && item.value === suggestion.sourceValue)) continue;
+          row.issues.push(issue("stage_mismatch", suggestion.rationale, "subjects", suggestion.sourceValue, [row.sourceRowNumber]));
+          row.resolutionStatus = resolutionStatus(row.issues);
+          row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
         }
       }
       for (const suggestion of leo.suggestions.classSuggestions) {
@@ -679,13 +978,224 @@ export async function analyzeTeacherImport(input: {
       leoUnavailable = true;
     }
   }
-  const analysisWarnings = rows.flatMap((row) => row.issues.filter((item) => ["existing", "name_split_review", "occupied_homeroom", "status_review"].includes(item.code)));
+  for (const previous of input.preserved?.subjectResolutions || []) {
+    if (previous.source !== "admin" || previous.status !== "resolved") continue;
+    const next = subjectGroups.get(previous.resolutionKey);
+    if (!next) continue;
+    const valid = previous.subjectOfferingIds.every((offeringId) => next.candidateOptions?.some((candidate) => candidate.id === offeringId) || next.subjectOfferingIds.includes(offeringId));
+    if (valid) {
+      next.subjectOfferingIds = [...previous.subjectOfferingIds];
+      next.resolvedNames = [...previous.resolvedNames];
+      next.source = "admin";
+      next.status = "resolved";
+      next.resolutionClass = "AUTO";
+      next.requiresHumanConfirmation = false;
+      for (const row of rows.filter((item) => previous.affectedRows.includes(item.sourceRowNumber))) {
+        row.subjectOfferingIds = unique([...row.subjectOfferingIds, ...previous.subjectOfferingIds], String);
+        row.issues = row.issues.filter((item) => !(item.field === "subjects" && normalizeTeacherImportLookup(item.value || "") === normalizeTeacherImportLookup(previous.sourceValue)));
+        row.resolutionStatus = resolutionStatus(row.issues);
+        row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+      }
+    } else {
+      for (const row of rows.filter((item) => previous.affectedRows.includes(item.sourceRowNumber))) {
+        row.issues.push(issue("admin_decision_invalidated", `A previous administrator selection for "${previous.sourceValue}" is no longer valid against the current school catalog.`, "subjects", previous.sourceValue, [row.sourceRowNumber]));
+        row.resolutionStatus = resolutionStatus(row.issues);
+        row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+      }
+    }
+  }
+  for (const previous of input.preserved?.classResolutions || []) {
+    if (previous.source !== "admin" || previous.status !== "resolved") continue;
+    const next = classGroups.get(normalizeTeacherImportLookup(previous.sourceValue));
+    if (!next) continue;
+    const valid = !previous.classGroupId || classes.some((classGroup) => objectIdString(classGroup._id) === previous.classGroupId);
+    if (valid) {
+      next.classGroupId = previous.classGroupId;
+      next.gradeId = previous.gradeId;
+      next.resolvedLabel = previous.resolvedLabel;
+      next.source = "admin";
+      next.status = "resolved";
+      next.homeroomDecision = previous.homeroomDecision;
+      for (const row of rows.filter((item) => previous.affectedRows.includes(item.sourceRowNumber))) {
+        row.homeroomClassGroupId = previous.homeroomDecision === "replace" ? previous.classGroupId || null : null;
+        row.issues = row.issues.filter((item) => !(item.field === "homeroomClass" && normalizeTeacherImportLookup(item.value || "") === normalizeTeacherImportLookup(previous.sourceValue)));
+        row.resolutionStatus = resolutionStatus(row.issues);
+        row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+      }
+    } else {
+      for (const row of rows.filter((item) => previous.affectedRows.includes(item.sourceRowNumber))) {
+        row.issues.push(issue("admin_decision_invalidated", `A previous administrator homeroom selection for "${previous.sourceValue}" is no longer valid.`, "homeroomClass", previous.sourceValue, [row.sourceRowNumber]));
+        row.resolutionStatus = resolutionStatus(row.issues);
+        row.rowState = rowState(row.resolutionStatus, row.rowState === "existing");
+      }
+    }
+  }
+  const analysisWarnings = rows.flatMap((row) => row.issues.filter((item) => ["existing", "name_split_review", "occupied_homeroom", "status_review", "subject_review", "stage_mismatch", "semantic_substitution_review", "assignment_overlap", "duplicate_explicit_assignment", "duplicate_source_teacher", "grade_scope_review", "class_scope_review", "assignment_review", "admin_decision_invalidated"].includes(item.code)));
   if (leoUnavailable) {
-    analysisWarnings.push(issue("leo_unavailable", "Leo assistance unavailable. Deterministic matching completed; review the remaining items manually."));
+    analysisWarnings.push(issue("leo_unavailable", "Leo column mapping or vocabulary assistance was unavailable. Any unmapped columns must be mapped manually before confirmation."));
   }
   const analysisErrors = rows
     .filter((row) => row.rowState !== "existing")
-    .flatMap((row) => row.issues.filter((item) => ["blocked", "missing_required", "invalid", "duplicate", "not_found", "ambiguous"].includes(item.code)));
+    .flatMap((row) => row.issues.filter((item) => ["blocked", "missing_required", "invalid", "duplicate", "not_found"].includes(item.code)));
+  const analysisIssueMap = new Map<string, ImportIssueV2>();
+  for (const row of rows) {
+    for (const item of row.issues) {
+      // Subject review decisions are represented once below, with all of the
+      // equivalent rows linked back to that group. Keep individual row issues
+      // as provenance, but do not make twelve identical admin decisions.
+      if (["subject_review", "semantic_substitution_review"].includes(item.code) && item.field === "subjects") continue;
+      const blocking = ["missing_required", "invalid", "duplicate", "not_found", "blocked"].includes(item.code);
+      const v2 = createImportIssue({
+        domain: "teacher",
+        issueType: item.code,
+        scope: "row",
+        rowRefs: [`T${String(row.sourceRowNumber).padStart(3, "0")}`],
+        fieldKey: item.field || null,
+        severity: blocking ? "blocking" : "warning",
+        sourceValues: item.value ? [item.value] : [],
+        explanation: item.message,
+        recommendedAction: blocking ? "Provide or select a valid value before confirming this row." : "Review the suggested interpretation before confirming this row.",
+        resolutionClass: blocking ? "BLOCKING" : "REVIEW",
+        requiresHumanConfirmation: true,
+      });
+      analysisIssueMap.set(v2.issueId, v2);
+    }
+  }
+  const groupedSubjectReviews = new Map<string, {
+    issueType: string;
+    sourceValue: string;
+    gradeBand: string | null;
+    gradeIds: string[];
+    candidateOfferingIds: string[];
+    rowNumbers: number[];
+  }>();
+  for (const resolution of subjectResolutions.filter((item) => item.status === "needs_review" && item.resolutionClass === "REVIEW")) {
+    const affectedRows = rows.filter((row) => resolution.affectedRows.includes(row.sourceRowNumber));
+    const sourceKey = normalizeTeacherImportLookup(resolution.sourceValue);
+    const hasSemanticSuggestion = affectedRows.some((row) => row.issues.some((item) => item.code === "semantic_substitution_review" && item.field === "subjects" && normalizeTeacherImportLookup(item.value || "") === sourceKey));
+    const hasUnresolvedSubject = affectedRows.some((row) => row.issues.some((item) => item.code === "subject_review" && item.field === "subjects" && normalizeTeacherImportLookup(item.value || "") === sourceKey));
+    if (!hasSemanticSuggestion && !hasUnresolvedSubject) continue;
+    const gradeIds = unique((resolution.contextGradeIds || []).filter(Boolean), String).sort();
+    const gradeBands = unique(
+      gradeIds.map((gradeId) => understandingGradeById.get(gradeId)).filter((grade): grade is TeacherUnderstandingGrade => Boolean(grade)).map(gradeBandForGrade),
+      (value) => value || "unscoped"
+    ).sort();
+    const gradeBand = gradeBands.length === 1 ? gradeBands[0] : gradeBands.join(",") || null;
+    const candidateOfferingIds = unique((resolution.candidateOptions || []).map((candidate) => candidate.id), String).sort();
+    const issueType = hasSemanticSuggestion ? "semantic_substitution_review" : "subject_unresolved";
+    // Candidate set and grade band are both part of the grouping boundary: a
+    // decision for lower-primary History must never spill into upper primary.
+    const groupKey = [issueType, sourceKey, gradeBand || "unscoped", candidateOfferingIds.join(",")].join("::");
+    const existingGroup = groupedSubjectReviews.get(groupKey) || {
+      issueType,
+      sourceValue: resolution.sourceValue,
+      gradeBand,
+      gradeIds: [],
+      candidateOfferingIds,
+      rowNumbers: [],
+    };
+    existingGroup.gradeIds = unique([...existingGroup.gradeIds, ...gradeIds], String).sort();
+    existingGroup.rowNumbers = unique([...existingGroup.rowNumbers, ...resolution.affectedRows], String).sort((left, right) => left - right);
+    groupedSubjectReviews.set(groupKey, existingGroup);
+  }
+  for (const group of groupedSubjectReviews.values()) {
+    const rowRefs = group.rowNumbers.map((rowNumber) => `T${String(rowNumber).padStart(3, "0")}` as ImportRowReference);
+    const groupedIssue = createImportIssue({
+      domain: "teacher",
+      issueType: group.issueType,
+      scope: "group",
+      rowRefs,
+      fieldKey: "subjects",
+      severity: "warning",
+      sourceValues: [group.sourceValue],
+      explanation: group.issueType === "semantic_substitution_review"
+        ? `Leo suggested a semantic alternative for "${group.sourceValue}". Confirm a compatible offering for the ${group.gradeBand || "resolved"} context, or ignore the source subject.`
+        : `"${group.sourceValue}" has no unique active offering for the ${group.gradeBand || "resolved"} context. Choose a compatible offering, accept a validated Leo recommendation, or ignore it.`,
+      recommendedAction: "Choose one compatible offering for these rows, or explicitly ignore the source subject.",
+      resolutionClass: "REVIEW",
+      requiresHumanConfirmation: true,
+      context: {
+        gradeBand: group.gradeBand,
+        gradeIds: group.gradeIds,
+        candidateOfferingIds: group.candidateOfferingIds,
+      },
+      affectedCount: group.rowNumbers.length,
+    });
+    analysisIssueMap.set(groupedIssue.issueId, groupedIssue);
+    const sourceKey = normalizeTeacherImportLookup(group.sourceValue);
+    for (const row of rows.filter((item) => group.rowNumbers.includes(item.sourceRowNumber))) {
+      row.issues = row.issues.map((item) => (
+        item.field === "subjects" &&
+        ["subject_review", "semantic_substitution_review"].includes(item.code) &&
+        normalizeTeacherImportLookup(item.value || "") === sourceKey
+          ? { ...item, groupedIssueId: groupedIssue.issueId }
+          : item
+      ));
+      if (!(row.provenance || []).some((item) => item.field === "subjects" && item.note === `Review group: ${groupedIssue.issueId}`)) {
+        row.provenance = [
+          ...(row.provenance || []),
+          provenance({
+            field: "subjects",
+            sourceValue: group.sourceValue,
+            source: "inferred",
+            note: `Review group: ${groupedIssue.issueId}`,
+          }),
+        ];
+      }
+    }
+  }
+  for (const previous of input.preserved?.analysisIssues || []) {
+    if (previous.status !== "resolved" || !["admin", "admin_via_leo", "admin_apply_similar"].includes(previous.resolvedBy || "")) continue;
+    const current = analysisIssueMap.get(previous.issueId);
+    if (current) analysisIssueMap.set(previous.issueId, { ...current, status: "resolved", resolvedAction: previous.resolvedAction || null, resolvedBy: previous.resolvedBy, updatedAt: new Date().toISOString() });
+  }
+  const subjectLabelsById = new Map<string, string>();
+  for (const resolution of subjectResolutions) {
+    resolution.subjectOfferingIds.forEach((offeringId, index) => subjectLabelsById.set(String(offeringId), resolution.resolvedNames[index] || resolution.sourceValue));
+  }
+  const attentionSignals = detectTeacherAttentionSignals({ rows, subjectLabelsById });
+  for (const signal of attentionSignals) {
+    if (!["possible_primary_class_teacher_pattern", "cross_stage_subject_profile", "assignment_subject_profile_gap", "possible_duplicate_subject_profile", "unusual_class_load", "homeroom_conflict"].includes(signal.type)) continue;
+    const existing = [...analysisIssueMap.values()].find((candidate) => candidate.status === "open" && candidate.rowRefs.includes(signal.rowRef as ImportRowReference));
+    if (existing) {
+      if (signal.type === "possible_primary_class_teacher_pattern" || signal.type === "subjects_without_teaching_context") {
+        existing.explanation = `${existing.explanation} ${signal.explanation}`;
+        existing.recommendedAction = "Review the complete teacher relationship picture with Leo before continuing.";
+      }
+      continue;
+    }
+    const attentionIssue = attentionIssueForSignal(signal);
+    const previous = input.preserved?.analysisIssues?.find((candidate) => candidate.issueId === attentionIssue.issueId);
+    const sameConfirmedPattern = previous?.context?.similarityKey === attentionIssue.context?.similarityKey;
+    if (sameConfirmedPattern && previous?.status === "resolved" && ["admin", "admin_via_leo", "admin_apply_similar"].includes(previous.resolvedBy || "")) {
+      analysisIssueMap.set(attentionIssue.issueId, { ...attentionIssue, status: "resolved", resolvedAction: previous.resolvedAction || null, resolvedBy: previous.resolvedBy, updatedAt: new Date().toISOString() });
+      continue;
+    }
+    analysisIssueMap.set(attentionIssue.issueId, attentionIssue);
+    const target = rows.find((row) => (row.rowRef || `T${String(row.sourceRowNumber).padStart(3, "0")}`) === signal.rowRef);
+    if (target && target.resolutionStatus === "resolved") {
+      target.resolutionStatus = "needs_review";
+      target.rowState = "pending";
+      target.issues.push({ code: attentionIssue.issueType, message: signal.explanation, field: "teacherRelationships", value: signal.label, affectedRows: [target.sourceRowNumber], groupedIssueId: attentionIssue.issueId });
+    }
+  }
+  for (const [classGroupId, affected] of homeroomRows) {
+    if (affected.length < 2) continue;
+    const v2 = createImportIssue({
+      domain: "teacher",
+      issueType: "duplicate_homeroom",
+      scope: "group",
+      rowRefs: affected.map((row) => `T${String(row.sourceRowNumber).padStart(3, "0")}` as ImportRowReference),
+      fieldKey: "homeroomClassGroupId",
+      severity: "warning",
+      sourceValues: [classGroupId],
+      explanation: "More than one imported teacher claims the same homeroom. Choose one homeroom teacher; teaching subjects remain separate.",
+      recommendedAction: "Keep one homeroom assignment or remove the homeroom from the other rows.",
+      resolutionClass: "REVIEW",
+      requiresHumanConfirmation: true,
+    });
+    analysisIssueMap.set(v2.issueId, v2);
+  }
   const analysisSummary: ITeacherImportAnalysisSummary = {
     totalRows: rows.length,
     readyRows: rows.filter((row) => row.rowState === "ready").length,
@@ -699,10 +1209,20 @@ export async function analyzeTeacherImport(input: {
     errors: analysisErrors.length,
     leoUsed,
     leoUnavailable,
+    autoResolutionCount: subjectResolutions.filter((item) => item.status === "resolved").length + classResolutions.filter((item) => item.status === "resolved").length,
+    reviewCount: rows.filter((row) => row.resolutionStatus === "needs_review").length,
+    blockedCount: rows.filter((row) => row.resolutionStatus === "blocked").length,
+    conflictCount: rows.reduce((count, row) => count + row.issues.filter((item) => ["duplicate_homeroom", "assignment_overlap", "duplicate_explicit_assignment", "duplicate_source_teacher", "occupied_homeroom"].includes(item.code)).length, 0),
+    leoAssistedCount: parsed.columnMappings.filter((mapping) => mapping.source === "leo").length + subjectResolutions.filter((item) => item.source === "leo").length,
+    reviewIssues: [...analysisIssueMap.values()].filter((item) => item.status === "open" && item.resolutionClass === "REVIEW").length,
+    groupedReviewIssues: [...analysisIssueMap.values()].filter((item) => item.status === "open" && item.scope === "group" && item.resolutionClass === "REVIEW").length,
+    blockingIssues: [...analysisIssueMap.values()].filter((item) => item.status === "open" && item.resolutionClass === "BLOCKING").length,
   };
 
   return {
     selectedSheetName: parsed.selectedSheetName,
+    availableSheets: parsed.sheets.map((sheet) => ({ name: sheet.name, score: sheet.score, rowCount: sheet.rows.length, signals: sheet.signals })),
+    sheetSelectionRequired: parsed.sheetSelectionRequired,
     columnMappings: parsed.columnMappings,
     parsedRows: rows,
     subjectResolutions,
@@ -710,5 +1230,18 @@ export async function analyzeTeacherImport(input: {
     analysisSummary,
     analysisWarnings,
     analysisErrors,
+    leoAnalysis,
+    analysisIssues: [...analysisIssueMap.values()],
+      columnInterpretations: parsed.columnMappings.map((mapping) => ({
+      sourceColumn: mapping.sourceHeader,
+      sourceColumnKey: normalizeTeacherUnderstanding(mapping.sourceHeader),
+      proposedCanonicalField: mapping.canonicalField,
+      source: mapping.source === "exact" ? "exact" : mapping.source === "alias" ? "deterministic_alias" : mapping.source === "structural" ? "structural" : mapping.source === "leo" ? "leo" : "admin",
+      confidenceBand: mapping.confidence >= 0.9 ? "high" : mapping.confidence >= 0.7 ? "medium" : "low",
+      requiresConfirmation: mapping.status !== "resolved" || mapping.confidence < 0.9,
+      explanation: headerRationaleByHeader.get(mapping.sourceHeader) || (mapping.canonicalField ? `Interpreted as ${mapping.canonicalField}.` : "The column meaning remains unresolved."),
+      contributesTo: mapping.canonicalField === "subjects" ? ["subjects"] : mapping.canonicalField === "gradeScopes" ? ["gradeScopes"] : mapping.canonicalField === "classScopes" ? ["classScopes"] : undefined,
+      transformation: mapping.canonicalField === "fullName" ? "split_name" : ["subjects", "gradeScopes", "classScopes"].includes(mapping.canonicalField || "") ? "expand_list" : "normalize_value",
+    })),
   };
 }

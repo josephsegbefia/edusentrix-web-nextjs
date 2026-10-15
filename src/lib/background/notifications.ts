@@ -65,7 +65,7 @@ function defaultSuccessTitle(kind: string, fallback: string): string {
   if (kind === "LIBRARY_IMPORT") return "Library import completed";
   if (kind === "SCHEME_IMPORT") return "Scheme import ready";
   if (kind === "SCHOOL_PROVISIONING") return "Payment provisioning completed";
-  if (kind === "BULK_IMPORT") return "Bulk import complete";
+  if (kind === "BULK_IMPORT") return "Bulk import ready for review";
   return `${fallback} completed`;
 }
 
@@ -76,7 +76,7 @@ function defaultSuccessBody(kind: string, fallback: string): string {
   if (kind === "LIBRARY_IMPORT") return "Library import complete.";
   if (kind === "SCHEME_IMPORT") return "Scheme import is ready for review.";
   if (kind === "SCHOOL_PROVISIONING") return "School payment provisioning completed.";
-  if (kind === "BULK_IMPORT") return "Bulk import complete.";
+  if (kind === "BULK_IMPORT") return "Your staged import is ready for administrator review.";
   return `${fallback} finished successfully.`;
 }
 

@@ -4,6 +4,8 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { isAcceptedTeacherImportFilename } from "@/lib/teachers/parse-teacher-import";
 import { TEACHER_IMPORT_MAX_BYTES } from "@/lib/teachers/teacher-import-workflow";
+import { importDomainFromActiveDraftError } from "@/lib/import-intelligence/active-draft";
+import { TeacherImportJob } from "@/models/TeacherImportJob";
 import {
   getTeacherImportUploadFailureDetails,
   persistAndEnqueueTeacherImportAnalysis,
@@ -58,6 +60,23 @@ export async function POST(req: NextRequest) {
       { status: 202 }
     );
   } catch (error) {
+    const activeDraft = importDomainFromActiveDraftError(error);
+    if (activeDraft) {
+      const existing = await TeacherImportJob.findOne({
+        _id: activeDraft.importJobId,
+        schoolId: schoolIdObj,
+        createdByUserId: userIdObj,
+      });
+      return Response.json(
+        {
+          success: false,
+          errorCode: activeDraft.code,
+          error: "You already have an unfinished teacher import. Continue it or start over before uploading another file.",
+          data: existing ? { job: serializeTeacherImportJob(existing) } : { importJobId: activeDraft.importJobId },
+        },
+        { status: 409 }
+      );
+    }
     const errorCode = "TEACHER_IMPORT_UPLOAD_FAILED";
     const failure = getTeacherImportUploadFailureDetails(error);
     console.error("teacher_import_upload_failed", {

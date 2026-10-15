@@ -232,6 +232,7 @@ export default function TeachersPage() {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
+  const [hasResumableTeacherImport, setHasResumableTeacherImport] = React.useState(false);
   const [editTeacherId, setEditTeacherId] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
@@ -485,6 +486,19 @@ export default function TeachersPage() {
     ? teachers.find((t) => t.id === updateLeaveTeacherId)
     : null;
 
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/teachers/imports?active=1", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((json) => {
+        if (!cancelled) setHasResumableTeacherImport(Boolean(json?.success && Array.isArray(json.data) && json.data.some((item: { workflow?: string }) => item.workflow === "identity_setup_v1")));
+      })
+      .catch(() => {
+        if (!cancelled) setHasResumableTeacherImport(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -666,6 +680,18 @@ export default function TeachersPage() {
               <Upload className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
               <span>Import CSV</span>
             </Button>
+            {hasResumableTeacherImport ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 border-amber-400/30 bg-amber-400/10 text-(--ws-amber) hover:bg-amber-400/20"
+                onClick={() => setImportOpen(true)}
+              >
+                <ArrowRight className="h-4 w-4" />
+                <span>Resume teacher setup</span>
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="sm"

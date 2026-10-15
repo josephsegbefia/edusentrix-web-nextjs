@@ -3,27 +3,271 @@ import * as XLSX from "xlsx";
 import { isAcceptedStudentImportFilename } from "@/lib/students/student-import-file-types";
 
 export { isAcceptedStudentImportFilename };
-export const STUDENT_IMPORT_MAX_ROWS = 500;
-export const STUDENT_IMPORT_CANONICAL_FIELDS = ["firstName","middleName","lastName","fullName","admissionNo","sex","dateOfBirth","gradeName","gradeId","className","classGroupId","status","enrolledAt","gesIndexNumber","gesSchoolCode"] as const;
-export type StudentImportCanonicalField = (typeof STUDENT_IMPORT_CANONICAL_FIELDS)[number];
-export type StudentImportColumnMapping = { sourceHeader: string; canonicalField: StudentImportCanonicalField | null; source: "exact" | "alias" | "inferred" | "leo" | "admin"; confidence: number; status: "resolved" | "needs_review" | "blocked" | "ignored" };
-export type StudentImportParsedRow = { sourceRowNumber:number; sourceSheetName:string; sourceValues:Record<string,string>; firstName:string; middleName?:string|null; lastName:string; fullName?:string|null; admissionNo?:string|null; sex?:"male"|"female"|null; rawSex?:string|null; dateOfBirth?:string|null; enrolledAt?:string|null; gradeName?:string|null; className?:string|null; status:"active"|"inactive"|"withdrawn"|"graduated"; rawStatus?:string|null; gesIndexNumber?:string|null; gesSchoolCode?:string|null };
-export type StudentImportSheet = { name:string; score:number; rowCount:number; signals:string[]; headers:string[]; rows:Array<{rowNumber:number; values:string[]}> };
-export type ParsedStudentWorkbook = { sheets:StudentImportSheet[]; selectedSheetName:string|null; sheetSelectionRequired:boolean; columnMappings:StudentImportColumnMapping[]; unusedColumns:string[]; rows:StudentImportParsedRow[] };
 
-const aliases: Record<StudentImportCanonicalField,string[]> = {
-  firstName:["firstname","givenname","forename","first"], middleName:["middlename","othername","othernames","middle"], lastName:["lastname","surname","familyname","family"], fullName:["fullname","studentname","learnername","name"], admissionNo:["admissionno","admissionnumber","admno","studentno","studentnumber","indexno"], sex:["sex","gender"], dateOfBirth:["dateofbirth","dob","birthdate"], gradeName:["gradename","gradelevel","grade","form","yeargroup","year"], gradeId:["gradeid"], className:["classname","classgroup","class","stream","section"], classGroupId:["classgroupid","classid"], status:["status","studentstatus","enrollmentstatus","enrolmentstatus"], enrolledAt:["enrolledat","enrollmentdate","enrolmentdate","enrolldate","dateenrolled"], gesIndexNumber:["gesindexnumber","gesindexno","gesindex","gesnumber"], gesSchoolCode:["gesschoolcode","gesschool","schoolcode","gescode"],
+export const STUDENT_IMPORT_MAX_ROWS = 500;
+export const STUDENT_IMPORT_CANONICAL_FIELDS = [
+  "firstName",
+  "middleName",
+  "lastName",
+  "fullName",
+  "admissionNo",
+  "sex",
+  "dateOfBirth",
+  "gradeName",
+  "gradeId",
+  "className",
+  "classGroupId",
+  "status",
+  "enrolledAt",
+  "gesIndexNumber",
+  "gesSchoolCode",
+] as const;
+export type StudentImportCanonicalField = (typeof STUDENT_IMPORT_CANONICAL_FIELDS)[number];
+
+export type StudentImportColumnMapping = {
+  sourceHeader: string;
+  canonicalField: StudentImportCanonicalField | null;
+  source: "exact" | "alias" | "inferred" | "leo" | "admin";
+  confidence: number;
+  status: "resolved" | "needs_review" | "blocked" | "ignored";
 };
-function key(value:string){return value.replace(/^\uFEFF/,"").toLowerCase().replace(/[^a-z0-9]/g,"");}
-function clean(value:unknown){return String(value??"").replace(/^\uFEFF/,"").trim();}
-function mappingForHeader(header:string):StudentImportColumnMapping { const normalized=key(header); const exact=STUDENT_IMPORT_CANONICAL_FIELDS.find((field)=>key(field)===normalized); if(exact)return{sourceHeader:header,canonicalField:exact,source:"exact",confidence:1,status:"resolved"}; const matches=STUDENT_IMPORT_CANONICAL_FIELDS.filter((field)=>aliases[field].includes(normalized)); if(matches.length===1)return{sourceHeader:header,canonicalField:matches[0],source:"alias",confidence:.95,status:"resolved"}; return{sourceHeader:header,canonicalField:null,source:"alias",confidence:0,status:"ignored"}; }
-function splitFullName(value:string){const parts=value.split(/\s+/).filter(Boolean); if(parts.length<2)return{firstName:value,middleName:null,lastName:""}; return{firstName:parts[0],middleName:parts.length>2?parts.slice(1,-1).join(" "):null,lastName:parts.at(-1)||""};}
-function toRecord(headers:string[],values:string[]){return Object.fromEntries(headers.map((header,index)=>[header,clean(values[index])]));}
-function canonicalRow(sheetName:string,rowNumber:number,headers:string[],values:string[]):StudentImportParsedRow { const mappings=headers.map(mappingForHeader); const get=(field:StudentImportCanonicalField)=>{const index=mappings.findIndex((mapping)=>mapping.canonicalField===field); return index<0?"":clean(values[index]);}; const fullName=get("fullName"); const split=fullName?splitFullName(fullName):null; return{sourceRowNumber:rowNumber,sourceSheetName:sheetName,sourceValues:toRecord(headers,values),firstName:get("firstName")||split?.firstName||"",middleName:get("middleName")||split?.middleName||null,lastName:get("lastName")||split?.lastName||"",fullName:fullName||null,admissionNo:get("admissionNo")||null,rawSex:get("sex")||null,dateOfBirth:get("dateOfBirth")||null,enrolledAt:get("enrolledAt")||null,gradeName:get("gradeName")||null,className:get("className")||null,rawStatus:get("status")||null,status:"active",gesIndexNumber:get("gesIndexNumber")||null,gesSchoolCode:get("gesSchoolCode")||null}; }
-function scoreSheet(headers:string[],rows:string[][]){const mappings=headers.map(mappingForHeader); const mapped=mappings.filter((mapping)=>mapping.canonicalField).length; const nonEmpty=rows.filter((row)=>row.some((value)=>clean(value))).length; return{score:mapped*10+Math.min(nonEmpty,10),signals:mappings.filter((mapping)=>mapping.canonicalField).map((mapping)=>mapping.canonicalField as string)};}
-function sheetsFromWorkbook(buffer:Buffer,filename:string):StudentImportSheet[]{const ext=filename.split(".").pop()?.toLowerCase(); if(ext==="csv"||ext==="txt"){const text=buffer.toString("utf8").replace(/^\uFEFF/,""); const delimiter=ext==="txt"&&text.split(/\r?\n/,1)[0]?.includes("\t")?"\t":","; const records=parse(text,{bom:true,delimiter,relax_column_count:true,skip_empty_lines:true,trim:true}) as string[][]; if(!records.length)return[]; const headers=(records[0]||[]).map(clean); const rows=records.slice(1).map((values,index)=>({rowNumber:index+2,values:values.map(clean)})); const score=scoreSheet(headers,rows.map((row)=>row.values)); return[{name:"Sheet1",score:score.score,rowCount:rows.length,signals:score.signals,headers,rows}]; } const workbook=XLSX.read(buffer,{type:"buffer",cellDates:true,raw:false}); return workbook.SheetNames.map((name)=>{const grid=XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name],{header:1,defval:"",raw:false}); const headers=(grid[0]||[]).map(clean); const rows=grid.slice(1).map((values,index)=>({rowNumber:index+2,values:(values||[]).map(clean)})); const score=scoreSheet(headers,rows.map((row)=>row.values)); return{name,score:score.score,rowCount:rows.length,signals:score.signals,headers,rows};});}
-export function parseStudentImportWorkbook(buffer:Buffer,filename:string,selectedSheetName?:string|null):ParsedStudentWorkbook {if(!isAcceptedStudentImportFilename(filename))throw new Error("Unsupported student import file type."); const sheets=sheetsFromWorkbook(buffer,filename); const populated=sheets.filter((sheet)=>sheet.headers.some(Boolean)||sheet.rowCount>0); if(!populated.length)throw new Error("The uploaded file is empty."); const overLimit=populated.find((sheet)=>sheet.rowCount>STUDENT_IMPORT_MAX_ROWS); if(overLimit)throw new Error(`Worksheet ${overLimit.name} contains more than ${STUDENT_IMPORT_MAX_ROWS} data rows.`); const ranked=[...populated].sort((a,b)=>b.score-a.score); const selected=populated.find((sheet)=>sheet.name===selectedSheetName)||ranked[0]; const next=ranked[1]; const sheetSelectionRequired=!selectedSheetName&&Boolean(next&&selected.rowCount>0&&next.rowCount>0&&next.score>=Math.max(selected.score-24,Math.ceil(selected.score*.8))); const columnMappings=selected.headers.map(mappingForHeader); const rows=selected.rows.map((row)=>canonicalRow(selected.name,row.rowNumber,selected.headers,row.values)); return{ sheets:populated,selectedSheetName:selected.name,sheetSelectionRequired,columnMappings,unusedColumns:columnMappings.filter((mapping)=>!mapping.canonicalField).map((mapping)=>mapping.sourceHeader),rows}; }
-export function parseStudentImportFile(buffer:Buffer,filename:string,selectedSheetName?:string|null){return parseStudentImportWorkbook(buffer,filename,selectedSheetName);}
-export function parseStudentImportCsvText(text:string){return parseStudentImportWorkbook(Buffer.from(text),"students.csv").rows;}
-export function parseStudentImportXlsxBuffer(buffer:Buffer,selectedSheetName?:string|null){return parseStudentImportWorkbook(buffer,"students.xlsx",selectedSheetName).rows;}
-export function parseStudentImportDate(value:string|undefined,format:"auto"|"dmy"|"mdy"="auto"){const raw=clean(value); if(!raw)return null; if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){const[year,month,day]=raw.split("-").map(Number);const result=new Date(Date.UTC(year,month-1,day));return result.getUTCFullYear()===year&&result.getUTCMonth()===month-1&&result.getUTCDate()===day?result:null;} const parts=raw.split(/[\/\.\-]/).map(Number); if(parts.length===3&&parts.every(Number.isFinite)){let[first,second,year]=parts;if(year<100)year+=year>=50?1900:2000; if(format==="auto"&&first<=12&&second<=12&&first!==second)return null; const day=format==="mdy"?second:first; const month=format==="mdy"?first:second; const result=new Date(Date.UTC(year,month-1,day)); return result.getUTCFullYear()===year&&result.getUTCMonth()===month-1&&result.getUTCDate()===day?result:null;} return null;}
+
+export type StudentImportParsedRow = {
+  sourceRowNumber: number;
+  sourceSheetName: string;
+  sourceValues: Record<string, string>;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
+  fullName?: string | null;
+  admissionNo?: string | null;
+  sex?: "male" | "female" | null;
+  rawSex?: string | null;
+  dateOfBirth?: string | null;
+  enrolledAt?: string | null;
+  gradeName?: string | null;
+  className?: string | null;
+  status: "active" | "inactive" | "withdrawn" | "graduated";
+  rawStatus?: string | null;
+  gesIndexNumber?: string | null;
+  gesSchoolCode?: string | null;
+};
+
+export type StudentImportSheet = {
+  name: string;
+  score: number;
+  rowCount: number;
+  signals: string[];
+  headers: string[];
+  rows: Array<{ rowNumber: number; values: string[] }>;
+};
+
+export type ParsedStudentWorkbook = {
+  sheets: StudentImportSheet[];
+  selectedSheetName: string | null;
+  sheetSelectionRequired: boolean;
+  columnMappings: StudentImportColumnMapping[];
+  unusedColumns: string[];
+  rows: StudentImportParsedRow[];
+};
+
+const aliases: Record<StudentImportCanonicalField, string[]> = {
+  firstName: ["firstname", "givenname", "forename", "first"],
+  middleName: ["middlename", "othername", "othernames", "middle"],
+  lastName: ["lastname", "surname", "familyname", "family"],
+  fullName: ["fullname", "studentfullname", "studentname", "learnerfullname", "learnername", "pupilname", "pupilfullname", "name"],
+  admissionNo: ["admissionno", "admissionnumber", "admno", "studentno", "studentnumber", "indexno"],
+  sex: ["sex", "gender"],
+  dateOfBirth: ["dateofbirth", "dob", "birthdate", "birth"],
+  gradeName: ["gradename", "gradelevel", "grade", "form", "yeargroup", "year", "level"],
+  gradeId: ["gradeid"],
+  className: ["classname", "classgroup", "classgroupname", "class", "stream", "section", "group", "homeroom", "homeroomclass", "gradeclass", "classlabel"],
+  classGroupId: ["classgroupid", "classid"],
+  status: ["status", "studentstatus", "enrollmentstatus", "enrolmentstatus"],
+  enrolledAt: ["enrolledat", "enrollmentdate", "enrolmentdate", "enrolldate", "dateenrolled"],
+  gesIndexNumber: ["gesindexnumber", "gesindexno", "gesindex", "gesnumber"],
+  gesSchoolCode: ["gesschoolcode", "gesschool", "schoolcode", "gescode"],
+};
+
+const identityFields = new Set<StudentImportCanonicalField>([
+  "firstName",
+  "middleName",
+  "lastName",
+  "fullName",
+  "dateOfBirth",
+  "gradeName",
+  "className",
+]);
+
+function key(value: string) {
+  return value.replace(/^\uFEFF/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function clean(value: unknown) {
+  return String(value ?? "").replace(/^\uFEFF/, "").trim();
+}
+
+function mappingForHeader(header: string): StudentImportColumnMapping {
+  const normalized = key(header);
+  const exact = STUDENT_IMPORT_CANONICAL_FIELDS.find((field) => key(field) === normalized);
+  if (exact) return { sourceHeader: header, canonicalField: exact, source: "exact", confidence: 1, status: "resolved" };
+
+  const matches = STUDENT_IMPORT_CANONICAL_FIELDS.filter((field) => aliases[field].includes(normalized));
+  if (matches.length === 1) return { sourceHeader: header, canonicalField: matches[0], source: "alias", confidence: 0.95, status: "resolved" };
+  return { sourceHeader: header, canonicalField: null, source: "alias", confidence: 0, status: "ignored" };
+}
+
+function splitFullName(value: string) {
+  const parts = value.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return { firstName: value, middleName: null, lastName: "" };
+  return { firstName: parts.slice(0, -1).join(" "), middleName: null, lastName: parts.at(-1) || "" };
+}
+
+function sourceValuesForIdentity(headers: string[], values: string[], mappings: StudentImportColumnMapping[]) {
+  return Object.fromEntries(
+    headers
+      .map((header, index) => ({ header, index, mapping: mappings[index] }))
+      .filter(({ mapping }) => Boolean(mapping?.canonicalField && identityFields.has(mapping.canonicalField)))
+      .map(({ header, index }) => [header, clean(values[index])])
+  );
+}
+
+function canonicalRow(sheetName: string, rowNumber: number, headers: string[], values: string[]): StudentImportParsedRow {
+  const mappings = headers.map(mappingForHeader);
+  const get = (field: StudentImportCanonicalField) => {
+    const index = mappings.findIndex((mapping) => mapping.canonicalField === field);
+    return index < 0 ? "" : clean(values[index]);
+  };
+
+  const fullName = get("fullName");
+  const split = fullName ? splitFullName(fullName) : null;
+  const firstName = split?.firstName || [get("firstName"), get("middleName")].filter(Boolean).join(" ");
+  const lastName = split?.lastName || get("lastName");
+
+  return {
+    sourceRowNumber: rowNumber,
+    sourceSheetName: sheetName,
+    sourceValues: sourceValuesForIdentity(headers, values, mappings),
+    firstName,
+    middleName: null,
+    lastName,
+    fullName: fullName || [firstName, lastName].filter(Boolean).join(" ") || null,
+    admissionNo: null,
+    rawSex: null,
+    dateOfBirth: get("dateOfBirth") || null,
+    enrolledAt: null,
+    gradeName: get("gradeName") || null,
+    className: get("className") || null,
+    rawStatus: null,
+    status: "active",
+    gesIndexNumber: null,
+    gesSchoolCode: null,
+  };
+}
+
+function scoreSheet(headers: string[], rows: string[][]) {
+  const mappings = headers.map(mappingForHeader);
+  const mapped = mappings.filter((mapping) => mapping.canonicalField && identityFields.has(mapping.canonicalField)).length;
+  const nonEmpty = rows.filter((row) => row.some((value) => clean(value))).length;
+  return {
+    score: mapped * 10 + Math.min(nonEmpty, 10),
+    signals: mappings.filter((mapping) => mapping.canonicalField && identityFields.has(mapping.canonicalField)).map((mapping) => mapping.canonicalField as string),
+  };
+}
+
+function sheetsFromWorkbook(buffer: Buffer, filename: string): StudentImportSheet[] {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  if (ext === "csv" || ext === "txt") {
+    const text = buffer.toString("utf8").replace(/^\uFEFF/, "");
+    const delimiter = ext === "txt" && text.split(/\r?\n/, 1)[0]?.includes("\t") ? "\t" : ",";
+    const records = parse(text, { bom: true, delimiter, relax_column_count: true, skip_empty_lines: true, trim: true }) as string[][];
+    if (!records.length) return [];
+    const headers = (records[0] || []).map(clean);
+    const rows = records.slice(1).map((values, index) => ({ rowNumber: index + 2, values: values.map(clean) }));
+    const score = scoreSheet(headers, rows.map((row) => row.values));
+    return [{ name: "Sheet1", score: score.score, rowCount: rows.length, signals: score.signals, headers, rows }];
+  }
+
+  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true, raw: false });
+  return workbook.SheetNames.map((name) => {
+    const grid = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[name], { header: 1, defval: "", raw: false });
+    const headers = (grid[0] || []).map(clean);
+    const rows = grid.slice(1).map((values, index) => ({ rowNumber: index + 2, values: (values || []).map(clean) }));
+    const score = scoreSheet(headers, rows.map((row) => row.values));
+    return { name, score: score.score, rowCount: rows.length, signals: score.signals, headers, rows };
+  });
+}
+
+export function parseStudentImportWorkbook(buffer: Buffer, filename: string, selectedSheetName?: string | null): ParsedStudentWorkbook {
+  if (!isAcceptedStudentImportFilename(filename)) throw new Error("Unsupported student import file type.");
+  const sheets = sheetsFromWorkbook(buffer, filename);
+  const populated = sheets.filter((sheet) => sheet.headers.some(Boolean) || sheet.rowCount > 0);
+  if (!populated.length) throw new Error("The uploaded file is empty.");
+  const overLimit = populated.find((sheet) => sheet.rowCount > STUDENT_IMPORT_MAX_ROWS);
+  if (overLimit) throw new Error(`Worksheet ${overLimit.name} contains more than ${STUDENT_IMPORT_MAX_ROWS} data rows.`);
+  const ranked = [...populated].sort((a, b) => b.score - a.score);
+  const selected = populated.find((sheet) => sheet.name === selectedSheetName) || ranked[0];
+  const next = ranked[1];
+  const sheetSelectionRequired = !selectedSheetName && Boolean(next && selected.rowCount > 0 && next.rowCount > 0 && next.score >= Math.max(selected.score - 24, Math.ceil(selected.score * 0.8)));
+  const columnMappings = selected.headers.map(mappingForHeader);
+  const rows = selected.rows.map((row) => canonicalRow(selected.name, row.rowNumber, selected.headers, row.values));
+  return { sheets: populated, selectedSheetName: selected.name, sheetSelectionRequired, columnMappings, unusedColumns: columnMappings.filter((mapping) => !mapping.canonicalField || !identityFields.has(mapping.canonicalField)).map((mapping) => mapping.sourceHeader), rows };
+}
+
+export function parseStudentImportFile(buffer: Buffer, filename: string, selectedSheetName?: string | null) {
+  return parseStudentImportWorkbook(buffer, filename, selectedSheetName);
+}
+
+export function parseStudentImportCsvText(text: string) {
+  return parseStudentImportWorkbook(Buffer.from(text), "students.csv").rows;
+}
+
+export function parseStudentImportXlsxBuffer(buffer: Buffer, selectedSheetName?: string | null) {
+  return parseStudentImportWorkbook(buffer, "students.xlsx", selectedSheetName).rows;
+}
+
+const monthNumbers: Record<string, number> = { jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12 };
+
+function validDate(year: number, month: number, day: number) {
+  const result = new Date(Date.UTC(year, month - 1, day));
+  return result.getUTCFullYear() === year && result.getUTCMonth() === month - 1 && result.getUTCDate() === day ? result : null;
+}
+
+function expandYear(value: number) {
+  return value < 100 ? (value >= 50 ? 1900 + value : 2000 + value) : value;
+}
+
+function namedDate(raw: string) {
+  const normalized = raw.replace(/,/g, " ").replace(/(\d{1,2})(st|nd|rd|th)\b/gi, "$1").replace(/\s+/g, " ").trim();
+  const dayFirst = normalized.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{2,4})$/);
+  const monthFirst = normalized.match(/^([A-Za-z]+)\s+(\d{1,2})\s+(\d{2,4})$/);
+  if (dayFirst) {
+    const month = monthNumbers[dayFirst[2].toLowerCase()];
+    return month ? validDate(expandYear(Number(dayFirst[3])), month, Number(dayFirst[1])) : null;
+  }
+  if (monthFirst) {
+    const month = monthNumbers[monthFirst[1].toLowerCase()];
+    return month ? validDate(expandYear(Number(monthFirst[3])), month, Number(monthFirst[2])) : null;
+  }
+  return null;
+}
+
+export function parseStudentImportDate(value: string | undefined, format: "auto" | "dmy" | "mdy" = "auto") {
+  const raw = clean(value);
+  if (!raw) return null;
+  const named = namedDate(raw);
+  if (named) return named;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split("-").map(Number);
+    return validDate(year, month, day);
+  }
+  const parts = raw.split(/[\/\.\-]/).map(Number);
+  if (parts.length !== 3 || !parts.every(Number.isFinite)) return null;
+  let [first, second, year] = parts;
+  if (first > 31) return validDate(expandYear(first), second, year);
+  year = expandYear(year);
+  if (format === "auto" && first <= 12 && second <= 12 && first !== second) return null;
+  const day = format === "mdy" ? second : first;
+  const month = format === "mdy" ? first : second;
+  return validDate(year, month, day);
+}

@@ -19,6 +19,7 @@ import {
   tryDeterministicAssignments,
   type OfferingMatchLite,
 } from "@/lib/leo/parse-teacher-assignment-hint";
+import { interpretTeacherTeachingRelationships } from "@/lib/leo/teacher-relationship-interpreter";
 
 const BodySchema = z.object({
   hint: z.string().trim().min(3).max(2000),
@@ -309,6 +310,32 @@ export async function POST(req: NextRequest) {
 
     let leoSummary =
       "I matched your note to the closest subject offerings and class groups in your school.";
+
+    if (assignmentRows.length === 0) {
+      const sharedInterpretation = await interpretTeacherTeachingRelationships({
+        hint,
+        context: {
+          grades: gradeRows,
+          subjectOfferings: offerings.map((offering) => ({
+            id: offering.id,
+            displayName: offering.displayName,
+            shortName: offering.shortName,
+            code: offering.code,
+            gradeBand: offering.gradeBand,
+            gradeNames: offering.gradeIds.map((id) => gradeNameById.get(id)).filter((name): name is string => Boolean(name)),
+          })),
+          classGroups: classGroupRows.map((group) => ({
+            stream: group.name,
+            gradeName: gradeNameById.get(group.gradeId) || "",
+          })),
+        },
+        useDeterministicFirst: false,
+      });
+      if (sharedInterpretation.assignments.length > 0) {
+        leoSummary = sharedInterpretation.explanation || leoSummary;
+        assignmentRows = sharedInterpretation.assignments.filter((row) => row.subject && row.grade && row.stream);
+      }
+    }
 
     if (assignmentRows.length === 0) {
       if (!process.env.OPENAI_API_KEY) {

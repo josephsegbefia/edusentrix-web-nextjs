@@ -15,6 +15,7 @@ import {
 import { hashOtpCode } from "@/lib/platform-billing/payout-security";
 import { PlatformBootstrapOtp } from "@/models/PlatformBootstrapOtp";
 import { PlatformBootstrapSession } from "@/models/PlatformBootstrapSession";
+import { logPlatformBootstrapFailure } from "@/lib/platform-bootstrap/diagnostics";
 
 export const runtime = "nodejs";
 
@@ -100,7 +101,12 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    console.error("[bootstrap/otp/verify]", error);
+    logPlatformBootstrapFailure({
+      event: "bootstrap_otp_verify_failed",
+      route: "/api/platform/bootstrap/otp/verify",
+      stage: "otp_verify",
+      error,
+    });
     return NextResponse.json(
       { success: false, error: "Verification failed." },
       { status: 500 }

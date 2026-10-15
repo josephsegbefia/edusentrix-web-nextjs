@@ -1,4 +1,6 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
+import type { ImportLeoMetadata } from "@/lib/leo/import-types";
+import type { ImportColumnInterpretation, ImportIssueV2, ImportNaturalLanguageResolution, ImportWorkbookInspection } from "@/lib/import-intelligence/types";
 
 export const STUDENT_IMPORT_STATUSES = [
   "uploaded",
@@ -163,6 +165,13 @@ export interface IStudentImportJob {
   approvedAt?: Date | null;
   committedAt?: Date | null;
   result?: Record<string, unknown> | null;
+  leoAnalysis?: ImportLeoMetadata | null;
+  importSchemaVersion?: number | null;
+  analysisVersion?: string | null;
+  workbookInspection?: ImportWorkbookInspection | null;
+  columnInterpretations?: ImportColumnInterpretation[];
+  analysisIssues?: ImportIssueV2[];
+  naturalLanguageResolutions?: ImportNaturalLanguageResolution[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -230,7 +239,7 @@ const studentImportJobSchema = new Schema<IStudentImportJob>({
   placementMode: { type: String, enum: ["school_wide", "class_scoped"], required: true }, fixedClassGroupId: { type: Schema.Types.ObjectId, ref: "ClassGroup", default: null }, fixedGradeId: { type: Schema.Types.ObjectId, ref: "Grade", default: null }, fixedClassLabel: { type: String, default: null }, classConflictPolicy: { type: String, enum: ["review", "use_target"], default: "review" },
   selectedSheetName: { type: String, default: null }, availableSheets: { type: [{ name: String, score: Number, rowCount: Number, signals: [String] }], default: [] }, sheetSelectionRequired: { type: Boolean, default: false }, dateFormat: { type: String, enum: ["auto", "dmy", "mdy"], default: "auto" }, dateExamples: { type: [dateExampleSchema], default: [] },
   columnMappings: { type: [mappingSchema], default: [] }, unusedColumns: { type: [String], default: [] }, parsedRows: { type: [parsedRowSchema], default: [] }, gradeResolutions: { type: [gradeResolutionSchema], default: [] }, classResolutions: { type: [classResolutionSchema], default: [] }, analysisSummary: { type: Schema.Types.Mixed, default: null }, analysisWarnings: { type: [issueSchema], default: [] }, analysisErrors: { type: [issueSchema], default: [] },
-  analysisBackgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null }, commitBackgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null }, approvedByUserId: { type: Schema.Types.ObjectId, ref: "User", default: null }, approvedAt: { type: Date, default: null }, committedAt: { type: Date, default: null }, result: { type: Schema.Types.Mixed, default: null },
+  analysisBackgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null }, commitBackgroundJobId: { type: Schema.Types.ObjectId, ref: "BackgroundJob", default: null }, approvedByUserId: { type: Schema.Types.ObjectId, ref: "User", default: null }, approvedAt: { type: Date, default: null }, committedAt: { type: Date, default: null }, result: { type: Schema.Types.Mixed, default: null }, leoAnalysis: { type: Schema.Types.Mixed, default: null }, importSchemaVersion: { type: Number, default: null }, analysisVersion: { type: String, default: null }, workbookInspection: { type: Schema.Types.Mixed, default: null }, columnInterpretations: { type: [Schema.Types.Mixed], default: [] }, analysisIssues: { type: [Schema.Types.Mixed], default: [] }, naturalLanguageResolutions: { type: [Schema.Types.Mixed], default: [] },
 }, { timestamps: true, suppressReservedKeysWarning: true });
 
 studentImportJobSchema.index({ schoolId: 1, createdAt: -1 });

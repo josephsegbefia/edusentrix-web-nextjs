@@ -59,6 +59,29 @@ Optional: set `INNGEST_DEV=1` or `INNGEST_DEV=http://127.0.0.1:8288` so the SDK 
 
 Do not hardcode cloud URLs in application code.
 
+## Scheduled function database boundary
+
+Every registered cron handler is database-backed. The common schedule execution
+boundary calls the cached `connectToDatabase()` helper before invoking the
+handler. A connection failure therefore fails the Inngest invocation before any
+Mongoose query runs; buffering timeouts are not hidden or extended.
+
+| Function ID | UTC schedule | Uses MongoDB | Connection before shared boundary | Current guarantee |
+| --- | --- | --- | --- | --- |
+| `background-job-reconciliation` | `*/5 * * * *` | Yes | No | Shared boundary |
+| `imap-recovery` | `*/10 * * * *` | Yes | Yes, handler | Shared boundary plus idempotent handler call |
+| `subscription-renewal-notices` | `0 8 * * *` | Yes | No | Shared boundary |
+| `subscription-plan-changes` | `15 0 * * *` | Yes | No | Shared boundary |
+| `finance-reconciliation` | `0 */6 * * *` | Yes | Yes, handler | Shared boundary plus idempotent handler call |
+| `library-loans-overdue` | `0 2 * * *` | Yes | No | Shared boundary |
+| `library-loans-due-soon` | `0 9 * * *` | Yes | No | Shared boundary |
+| `library-reservation-expiry` | `0 3 * * *` | Yes | No | Shared boundary |
+| `delegations-expiry` | `30 6 * * *` | Yes | Yes, handlers | Shared boundary plus idempotent handler calls |
+| `admissions-weekly-digest` | `0 7 * * 1` | Yes | Yes, handler | Shared boundary plus idempotent handler call |
+
+`PUT /api/inngest 200` is expected during local function synchronization. It is
+not evidence that a particular cron invocation or MongoDB dependency succeeded.
+
 ## `/api/inngest`
 
 Implemented with `serve` from `inngest/next` (v4 exports `GET`, `POST`, `PUT`).
@@ -69,6 +92,10 @@ Clerk middleware allowlists `/api/inngest(.*)` the same way as `/api/cron` and w
 Use `GET /api/health` for liveness. An unsigned `GET /api/inngest` must keep
 failing signature verification in cloud mode; weakening that validation would
 allow unauthenticated worker control.
+
+`GET` and `HEAD /api/health` are process liveness checks only. They deliberately
+do not connect to MongoDB, so a 200 response does not establish database
+readiness. No dependency-readiness endpoint is currently defined.
 
 Prompt 1 registers `SYSTEM_BACKGROUND_SMOKE` only when `NODE_ENV !== "production"` or `INNGEST_ALLOW_SMOKE=true`. Prompt 2 always registers `EMAIL_DISPATCH`. Prompt 3 always registers `AI_LESSON_GENERATION`, `EXPLORE_GENERATION`, and `AI_LESSON_ILLUSTRATION`. Prompt 4 always registers `LIBRARY_IMPORT`, `SCHEME_IMPORT`, `SCHOOL_PROVISIONING`, `COMMUNICATION_OUTBOX`, and `BULK_IMPORT`.
 

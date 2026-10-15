@@ -21,6 +21,7 @@ import {
 import { hashOtpCode } from "@/lib/platform-billing/payout-security";
 import { PlatformBootstrapSession } from "@/models/PlatformBootstrapSession";
 import { User } from "@/models/User";
+import { logPlatformBootstrapFailure } from "@/lib/platform-bootstrap/diagnostics";
 
 export const runtime = "nodejs";
 
@@ -37,7 +38,10 @@ export async function POST(req: NextRequest) {
     const rawToken = req.cookies.get(BOOTSTRAP_SESSION_COOKIE)?.value;
     if (!rawToken) {
       return NextResponse.json(
-        { success: false, error: "Session expired. Verify the email code again." },
+        {
+          success: false,
+          error: "Your verified bootstrap session expired. Please verify the OTP again.",
+        },
         { status: 401 }
       );
     }
@@ -69,7 +73,10 @@ export async function POST(req: NextRequest) {
 
     if (!session) {
       return NextResponse.json(
-        { success: false, error: "Session expired or invalid. Verify the email code again." },
+        {
+          success: false,
+          error: "Your verified bootstrap session expired. Please verify the OTP again.",
+        },
         { status: 401 }
       );
     }
@@ -101,25 +108,45 @@ export async function POST(req: NextRequest) {
 
     const redirectUrl = withInvitedEmail(getInvitationRedirectUrl(), email);
 
-    const clerk = await clerkClient();
-    const invitation = (await clerk.invitations.createInvitation({
-      emailAddress: email,
-      redirectUrl,
-      notify: false,
-      publicMetadata: {
-        role: "platform_admin",
-      },
-      ignoreExisting: true,
-    })) as Invitation;
+    let invitation: Invitation;
+    try {
+      const clerk = await clerkClient();
+      invitation = (await clerk.invitations.createInvitation({
+        emailAddress: email,
+        redirectUrl,
+        notify: false,
+        publicMetadata: {
+          role: "platform_admin",
+        },
+        ignoreExisting: true,
+      })) as Invitation;
+    } catch (error) {
+      logPlatformBootstrapFailure({
+        event: "bootstrap_clerk_invitation_failed",
+        route: "/api/platform/bootstrap/create",
+        stage: "clerk_invitation",
+        error,
+      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to create the Clerk invitation. Verify the Clerk development configuration and try again.",
+        },
+        { status: 502 }
+      );
+    }
 
     /** Required: generic /sign-in does not include the invitation ticket — Clerk returns 404-style "account not found" until this link is used. */
     let acceptUrl: string;
     try {
       acceptUrl = requireInvitationAcceptUrl(invitation, email);
-    } catch {
-      console.error(
-        "[bootstrap/create] Clerk invitation missing url — check SDK / API version."
-      );
+    } catch (error) {
+      logPlatformBootstrapFailure({
+        event: "bootstrap_clerk_invitation_failed",
+        route: "/api/platform/bootstrap/create",
+        stage: "clerk_invitation_accept_url",
+        error,
+      });
       return NextResponse.json(
         {
           success: false,
@@ -172,9 +199,15 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    console.error("[bootstrap/create]", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to create platform administrator.";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    logPlatformBootstrapFailure({
+      event: "bootstrap_create_failed",
+      route: "/api/platform/bootstrap/create",
+      stage: "create",
+      error,
+    });
+    return NextResponse.json(
+      { success: false, error: "Failed to create platform administrator." },
+      { status: 500 }
+    );
   }
 }

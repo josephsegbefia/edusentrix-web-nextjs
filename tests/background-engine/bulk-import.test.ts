@@ -40,29 +40,28 @@ beforeEach(async () => {
 });
 
 describe("BULK_IMPORT", () => {
-  test("persist-and-enqueue does not put file bytes in the event", async () => {
+  test("legacy persist-and-enqueue fails closed without creating transport or domain state", async () => {
     const schoolId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
     const { persistAndEnqueueBulkImport } = await import(
       "../../src/lib/imports/enqueue-bulk-import"
     );
-    const queued = await persistAndEnqueueBulkImport({
-      schoolId,
-      createdBy: userId,
-      targetKind: "students",
-      fileName: "students.csv",
-      fileBytes: Buffer.from("First Name,Last Name\nAma,Mensah\n"),
-    });
-    assert.ok(queued.bulkImportJobId);
-    const payload = JSON.stringify(sendCalls[0]?.data);
-    assert.doesNotMatch(payload, /Ama|Mensah|fileBytes/);
+    await assert.rejects(
+      persistAndEnqueueBulkImport({
+        schoolId,
+        createdBy: userId,
+        targetKind: "students",
+        fileName: "students.csv",
+        fileBytes: Buffer.from("First Name,Last Name\nAma,Mensah\n"),
+      }),
+      /Legacy BulkImportJob creation is disabled/
+    );
+    assert.equal(sendCalls.length, 0);
     const { BulkImportJob } = await import("../../src/models/BulkImportJob");
-    const domain = await BulkImportJob.findById(queued.bulkImportJobId);
-    assert.equal(domain?.status, "pending");
-    assert.ok(domain?.fileBytes?.length);
+    assert.equal(await BulkImportJob.countDocuments({}), 0);
   });
 
-  test("malformed teacher file is permanent", async () => {
+  test("legacy teacher work is quarantined instead of executing the pre-review importer", async () => {
     const schoolId = new mongoose.Types.ObjectId();
     const userId = new mongoose.Types.ObjectId();
     const { BulkImportJob } = await import("../../src/models/BulkImportJob");
@@ -79,6 +78,8 @@ describe("BULK_IMPORT", () => {
       kind: "BULK_IMPORT",
       schoolId,
       tenantKey: `school:${String(schoolId)}`,
+      subjectType: "BulkImportJob",
+      subjectId: domain._id,
       status: "running",
       queuedAt: new Date(),
       input: { bulkImportJobId: String(domain._id), targetKind: "teachers" },
@@ -92,13 +93,14 @@ describe("BULK_IMPORT", () => {
           isCancellationRequested: async () => false,
           throwIfCancellationRequested: async () => undefined,
         }),
-      /Missing required columns|no data rows|permanent|failed/i
+      /superseded by the staged import workflow/i
     );
     const fresh = await BulkImportJob.findById(domain._id);
-    assert.equal(fresh?.status, "failed");
+    assert.equal(fresh?.status, "superseded");
+    assert.equal(fresh?.result?.errorCode, "LEGACY_IMPORT_SUPERSEDED");
   });
 
-  test("worker refuses a tenant mismatch", async () => {
+  test("legacy quarantine remains tenant-scoped", async () => {
     const schoolId = new mongoose.Types.ObjectId();
     const other = new mongoose.Types.ObjectId();
     const { BulkImportJob } = await import("../../src/models/BulkImportJob");
@@ -115,6 +117,8 @@ describe("BULK_IMPORT", () => {
       kind: "BULK_IMPORT",
       schoolId: other,
       tenantKey: `school:${String(other)}`,
+      subjectType: "BulkImportJob",
+      subjectId: domain._id,
       status: "running",
       queuedAt: new Date(),
       input: { bulkImportJobId: String(domain._id) },
@@ -128,7 +132,9 @@ describe("BULK_IMPORT", () => {
           isCancellationRequested: async () => false,
           throwIfCancellationRequested: async () => undefined,
         }),
-      /tenant mismatch/
+      /superseded by the staged import workflow/i
     );
+    const fresh = await BulkImportJob.findById(domain._id);
+    assert.equal(fresh?.status, "pending");
   });
 });

@@ -8,6 +8,11 @@ Coolify liveness endpoint: `GET /api/health`. Do **not** use `/api/inngest`
 as a container health check: cloud-mode Inngest requests require a valid
 `x-inngest-signature`, so an unsigned probe correctly fails.
 
+`/api/health` is liveness-only and does not prove MongoDB is reachable. Keep
+Coolify liveness independent from external dependencies so a temporary database
+incident does not trigger a container restart loop. This repository does not
+currently expose a dedicated dependency-readiness endpoint.
+
 ## Environment (no real values)
 
 Required:

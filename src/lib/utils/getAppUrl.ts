@@ -1,4 +1,6 @@
 // src/lib/utils/getAppUrl.ts
+import { assertAppOriginConfiguration } from "@/lib/runtime/app-origin-config";
+
 /**
  * Get the application URL for redirects, verification links, etc.
  * Priority:
@@ -10,6 +12,8 @@
  * 6. Development: http://localhost:3000 (or PORT)
  */
 export function getAppUrl(): string {
+  assertAppOriginConfiguration();
+
   const appUrl = process.env.APP_URL?.trim().replace(/\/$/, "");
   if (appUrl) {
     return appUrl;

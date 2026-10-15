@@ -124,7 +124,7 @@ export async function markJobSucceeded(
   }
   const now = new Date();
   return BackgroundJob.findOneAndUpdate(
-    { _id: jobId, status: { $in: ["queued", "running", "waiting", "cancel_requested"] } },
+    { _id: jobId, status: { $in: ["queued", "running", "waiting"] } },
     {
       $set: {
         status: "succeeded",
@@ -151,7 +151,7 @@ export async function markJobFailed(
   return BackgroundJob.findOneAndUpdate(
     {
       _id: jobId,
-      status: { $in: ["queued", "dispatch_failed", "running", "waiting", "cancel_requested"] },
+      status: { $in: ["queued", "dispatch_failed", "running", "waiting"] },
     },
     {
       $set: {

@@ -12,7 +12,6 @@ import { AdminDelegatePathGuard } from "@/components/auth/admin-delegate-path-gu
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 import { AdminContextualDelegateBar } from "@/components/delegations/AdminContextualDelegateBar";
-import { AdminLeoEntry } from "@/components/leo/AdminLeoEntry";
 import { AssistedAccessBanner } from "@/components/platform/assisted-access/AssistedAccessBanner";
 import type { AppRole } from "@/lib/roles";
 
@@ -90,7 +89,7 @@ export default async function AdminLayout({
             {children}
           </AdminMainContent>
         </div>
-        <AdminLeoEntry />
+        {/* Global Ask Leo entry intentionally hidden during BI.0 discovery. */}
       </SidebarProvider>
     </>
   );

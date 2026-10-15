@@ -25,6 +25,7 @@ describe("Prompt 5 scheduled functions", () => {
     assert.match(schedules, /concurrency:\s*SCHEDULE_CONCURRENCY/);
     assert.match(schedules, /limit:\s*1/);
     assert.match(schedules, /triggers:\s*\[\{\s*cron/);
+    assert.match(schedules, /runDatabaseBackedSchedule\(handler\)/);
     assert.match(registry, /getRegisteredScheduleFunctions\(\)/);
   });
 

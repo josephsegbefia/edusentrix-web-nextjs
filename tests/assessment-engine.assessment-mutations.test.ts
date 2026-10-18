@@ -6,6 +6,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { Types } from "mongoose";
 import {
   parseCreateAssessmentItemBody,
   parseUpdateAssessmentItemBody,
@@ -17,6 +18,8 @@ import {
   validateScoreValue,
   resolveScoreStatus,
   canMutateAssessmentScore,
+  hasDuplicateStudentIds,
+  buildConditionalAssessmentScoreFilter,
 } from "../src/lib/academics/assessment-engine/assessment-score-service";
 import type {
   AcademicGradingPolicyDTO,
@@ -192,5 +195,32 @@ describe("assessment score helpers", () => {
   it("blocks locked score mutation", () => {
     assert.equal(canMutateAssessmentItem({ status: "locked" }), false);
     assert.equal(canMutateAssessmentScore("locked"), false);
+  });
+
+  it("rejects duplicate student ids before a bulk write", () => {
+    assert.equal(
+      hasDuplicateStudentIds([
+        { studentId: "507f1f77bcf86cd799439021" },
+        { studentId: "507f1f77bcf86cd799439021" },
+      ]),
+      true
+    );
+    assert.equal(
+      hasDuplicateStudentIds([
+        { studentId: "507f1f77bcf86cd799439021" },
+        { studentId: "507f1f77bcf86cd799439022" },
+      ]),
+      false
+    );
+  });
+
+  it("requires the score to remain unlocked at the database write", () => {
+    const schoolId = new Types.ObjectId();
+    const assessmentItemId = new Types.ObjectId();
+    const studentId = new Types.ObjectId();
+    assert.deepEqual(
+      buildConditionalAssessmentScoreFilter({ schoolId, assessmentItemId, studentId }),
+      { schoolId, assessmentItemId, studentId, status: { $ne: "locked" } }
+    );
   });
 });

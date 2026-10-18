@@ -5,6 +5,8 @@ import { ProposalListClient } from "@/components/platform/proposals/ProposalList
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Proposal } from "@/models/Proposal";
 
+export const dynamic = "force-dynamic";
+
 export default async function PlatformProposalsPage() {
   await connectToDatabase();
   const [total, sent, dueFollowUp, accepted] = await Promise.all([

@@ -133,6 +133,151 @@ describe("P1.12A Administrator schema and index integration", () => {
 });
 
 describe("P1.12A scanner persistence and ownership", () => {
+  test("concurrent page initialization retires only the losing asset and preserves siblings", async () => {
+    const [{ ScriptSubmission }, { StoredAsset }, { initializePage }] = await Promise.all([
+      import("@/models/ScriptSubmission"),
+      import("@/models/StoredAsset"),
+      import("@/lib/konect/script-submission-service"),
+    ]);
+    const schoolId = new Types.ObjectId();
+    const userId = new Types.ObjectId();
+    const submission = await ScriptSubmission.create(script({ schoolId, submittedByUserId: userId }));
+    const siblingAsset = await StoredAsset.create({
+      schoolId,
+      ownerUserId: userId,
+      uploadedByUserId: userId,
+      provider: "r2",
+      storageKey: `assess/${new Types.ObjectId()}.jpg`,
+      fileName: "sibling.jpg",
+      extension: "jpg",
+      mimeType: "image/jpeg",
+      sizeBytes: 0,
+      kind: "assess_script_page",
+      visibility: "private",
+      status: "pending",
+      association: { type: "scriptSubmission", id: submission._id },
+    });
+    await ScriptSubmission.updateOne(
+      { _id: submission._id },
+      { $push: { pages: {
+        pageId: "sibling-page",
+        assetId: siblingAsset._id,
+        pageNumber: 1,
+        mimeType: "image/jpeg",
+        sizeBytes: null,
+        status: "pending",
+        createdAt: new Date(),
+        completedAt: null,
+      } } }
+    );
+
+    let presignCount = 0;
+    const presignUploadFn = async () => {
+      presignCount += 1;
+      const asset = await StoredAsset.create({
+        schoolId,
+        ownerUserId: userId,
+        uploadedByUserId: userId,
+        provider: "r2",
+        storageKey: `assess/${new Types.ObjectId()}.jpg`,
+        fileName: "page.jpg",
+        extension: "jpg",
+        mimeType: "image/jpeg",
+        sizeBytes: 0,
+        kind: "assess_script_page",
+        visibility: "private",
+        status: "pending",
+        association: { type: "scriptSubmission", id: submission._id },
+      });
+      await new Promise((resolve) => setTimeout(resolve, presignCount === 1 ? 10 : 0));
+      return {
+        assetId: String(asset._id),
+        uploadUrl: `https://uploads.test/${asset._id}`,
+        headers: {},
+        expiresInSeconds: 60,
+        assetUrl: `https://assets.test/${asset._id}`,
+      };
+    };
+    const dependencies = {
+      presignUploadFn,
+      enforceKindUploadPolicyFn: async () => undefined,
+    };
+    const first = await ScriptSubmission.findById(submission._id);
+    const second = await ScriptSubmission.findById(submission._id);
+    assert.ok(first && second);
+
+    const outcomes = await Promise.allSettled([
+      initializePage({ submission: first, userId, fileName: "page.jpg", mimeType: "image/jpeg", pageNumber: 2 }, dependencies),
+      initializePage({ submission: second, userId, fileName: "page.jpg", mimeType: "image/jpeg", pageNumber: 2 }, dependencies),
+    ]);
+    assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
+    assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 1);
+
+    const stored = await ScriptSubmission.findById(submission._id).lean();
+    assert.equal(stored?.pages.length, 2);
+    const assets = await StoredAsset.find({ schoolId, "association.id": submission._id }).lean();
+    assert.equal(assets.filter((asset) => asset.status === "pending").length, 2);
+    assert.equal(assets.filter((asset) => asset.status === "deleted").length, 1);
+    assert.equal((await StoredAsset.findById(siblingAsset._id).lean())?.status, "pending");
+  });
+
+  test("asset retirement remains school and submission scoped", async () => {
+    const [{ ScriptSubmission }, { StoredAsset }, { retireSubmissionAsset }] = await Promise.all([
+      import("@/models/ScriptSubmission"),
+      import("@/models/StoredAsset"),
+      import("@/lib/konect/script-submission-service"),
+    ]);
+    const schoolId = new Types.ObjectId();
+    const otherSchoolId = new Types.ObjectId();
+    const submission = await ScriptSubmission.create(script({ schoolId }));
+    const asset = await StoredAsset.create({
+      schoolId,
+      ownerUserId: submission.submittedByUserId,
+      uploadedByUserId: submission.submittedByUserId,
+      provider: "r2",
+      storageKey: `assess/${new Types.ObjectId()}.jpg`,
+      fileName: "page.jpg",
+      extension: "jpg",
+      mimeType: "image/jpeg",
+      sizeBytes: 0,
+      kind: "assess_script_page",
+      visibility: "private",
+      status: "pending",
+      association: { type: "scriptSubmission", id: submission._id },
+    });
+    await retireSubmissionAsset(otherSchoolId, submission._id, asset._id);
+    assert.equal((await StoredAsset.findById(asset._id).lean())?.status, "pending");
+    await retireSubmissionAsset(schoolId, submission._id, asset._id);
+    assert.equal((await StoredAsset.findById(asset._id).lean())?.status, "deleted");
+  });
+
+  test("failed presigning marks the owned asset failed instead of leaving it pending", async () => {
+    const [{ ScriptSubmission }, { StoredAsset }, { presignUpload }] = await Promise.all([
+      import("@/models/ScriptSubmission"),
+      import("@/models/StoredAsset"),
+      import("@/lib/storage/service"),
+    ]);
+    const schoolId = new Types.ObjectId();
+    const userId = new Types.ObjectId();
+    const submission = await ScriptSubmission.create(script({ schoolId, submittedByUserId: userId }));
+    const actor = { userId, schoolId, roles: ["school_admin"] as StorageActor["roles"] };
+
+    await assert.rejects(() => presignUpload({
+      actor,
+      kind: "assess_script_page",
+      fileName: "page.jpg",
+      mimeType: "image/jpeg",
+      association: { type: "scriptSubmission", id: String(submission._id) },
+      r2: {
+        createPresignedPut: async () => { throw new Error("provider unavailable"); },
+      } as never,
+    }));
+
+    const failed = await StoredAsset.findOne({ schoolId, "association.id": submission._id }).lean();
+    assert.equal(failed?.status, "failed");
+    assert.equal(failed?.failureCode, "presign_failed");
+  });
+
   test("denies another administrator and another school the submission", async () => {
     const { ScriptSubmission } = await import("@/models/ScriptSubmission");
     const { ownSubmission } = await import("@/lib/konect/script-submission-service");

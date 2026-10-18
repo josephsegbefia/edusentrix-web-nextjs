@@ -65,6 +65,7 @@ export const PLAN_ENTITLEMENTS: Record<PlanCode, PlanEntitlementRow> = {
     // Assessment
     [FEATURE_KEYS.ASSESSMENT_EXAMINATIONS]: "OPTIONAL",
     [FEATURE_KEYS.ASSESSMENT_QUESTION_BANK]: "OPTIONAL",
+    [FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION]: "NO",
 
     // AI
     [FEATURE_KEYS.AI_LEO]: "OPTIONAL",
@@ -133,6 +134,7 @@ export const PLAN_ENTITLEMENTS: Record<PlanCode, PlanEntitlementRow> = {
     // Assessment
     [FEATURE_KEYS.ASSESSMENT_EXAMINATIONS]: "NO",
     [FEATURE_KEYS.ASSESSMENT_QUESTION_BANK]: "NO",
+    [FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION]: "NO",
 
     // AI — excluded
     [FEATURE_KEYS.AI_LEO]: "NO",
@@ -201,6 +203,7 @@ export const PLAN_ENTITLEMENTS: Record<PlanCode, PlanEntitlementRow> = {
     // Assessment — basic
     [FEATURE_KEYS.ASSESSMENT_EXAMINATIONS]: "LIMITED",  // basic exams
     [FEATURE_KEYS.ASSESSMENT_QUESTION_BANK]: "LIMITED", // basic question bank
+    [FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION]: "NO", // advanced Assess publication is Premium
 
     // AI — limited credits
     [FEATURE_KEYS.AI_LEO]: "LIMITED",           // up to leoCreditsPerTerm (500)
@@ -269,6 +272,7 @@ export const PLAN_ENTITLEMENTS: Record<PlanCode, PlanEntitlementRow> = {
     // Assessment
     [FEATURE_KEYS.ASSESSMENT_EXAMINATIONS]: "YES",
     [FEATURE_KEYS.ASSESSMENT_QUESTION_BANK]: "YES",
+    [FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION]: "YES",
 
     // AI — higher credits
     [FEATURE_KEYS.AI_LEO]: "LIMITED",           // 2,500 credits per term

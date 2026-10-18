@@ -259,6 +259,31 @@ const navSections: NavSection[] = [
             icon: Library,
           },
           {
+            label: "Assess overview",
+            href: "/admin/assessments",
+            icon: BarChart3,
+          },
+          {
+            label: "Paper exams",
+            href: "/admin/assessments/paper",
+            icon: ClipboardList,
+          },
+          {
+            label: "Evidence & reconciliation",
+            href: "/admin/assessments/paper#evidence",
+            icon: ScanLine,
+          },
+          {
+            label: "Marking & moderation",
+            href: "/admin/assessments/paper#marking",
+            icon: ClipboardCheck,
+          },
+          {
+            label: "Approved results",
+            href: "/admin/assessments/paper#approved-results",
+            icon: FileSearch,
+          },
+          {
             label: "Exam Sessions",
             href: "/admin/exams/sessions",
             icon: CalendarRange,

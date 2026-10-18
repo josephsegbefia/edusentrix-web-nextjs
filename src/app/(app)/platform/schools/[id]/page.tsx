@@ -146,6 +146,7 @@ export default function PlatformSchoolDetailPage() {
   const [activateOpen, setActivateOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [lifecycleBusy, setLifecycleBusy] = React.useState(false);
+  const [activationReason, setActivationReason] = React.useState("");
   const [deletePhrase, setDeletePhrase] = React.useState("");
   const [deleteNameConfirm, setDeleteNameConfirm] = React.useState("");
   const [reviewNote, setReviewNote] = React.useState("");
@@ -309,21 +310,32 @@ export default function PlatformSchoolDetailPage() {
   }
 
   async function activateSchool() {
-    if (!schoolId) return;
+    if (!schoolId || !data) return;
+    if (activationReason.trim().length < 8) {
+      toast.error("Add a short administrative reason before activating this school.");
+      return;
+    }
+    const isReactivation = data.status === "deactivated";
     try {
       setLifecycleBusy(true);
-      const res = await fetch(`/api/platform/schools/${schoolId}/activate`, {
+      const res = await fetch(
+        `/api/platform/schools/${schoolId}/${isReactivation ? "reactivate" : "activate"}`,
+        {
         method: "POST",
-      });
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: activationReason.trim() }),
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || "Failed to reactivate school");
+        throw new Error(json?.error || "Failed to update school lifecycle");
       }
-      toast.success("School reactivated.");
+      toast.success(isReactivation ? "School reactivated." : "School activated.");
       setActivateOpen(false);
+      setActivationReason("");
       await loadData();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to reactivate school");
+      toast.error(e instanceof Error ? e.message : "Failed to update school lifecycle");
     } finally {
       setLifecycleBusy(false);
     }
@@ -578,9 +590,27 @@ export default function PlatformSchoolDetailPage() {
                   size="sm"
                   className="bg-emerald-600 text-white hover:bg-emerald-500"
                   disabled={lifecycleBusy}
-                  onClick={() => setActivateOpen(true)}
+                  onClick={() => {
+                    setActivationReason("");
+                    setActivateOpen(true);
+                  }}
                 >
                   Reactivate school
+                </Button>
+              ) : null}
+              {data.status === "pending" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-emerald-600 text-white hover:bg-emerald-500"
+                  disabled={lifecycleBusy}
+                  onClick={() => {
+                    setActivationReason("");
+                    setActivateOpen(true);
+                  }}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Activate school
                 </Button>
               ) : null}
               <Button
@@ -631,11 +661,53 @@ export default function PlatformSchoolDetailPage() {
           <Dialog open={activateOpen} onOpenChange={setActivateOpen}>
             <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Reactivate this school?</DialogTitle>
+                <DialogTitle>
+                  {data.status === "pending" ? "Activate this school?" : "Reactivate this school?"}
+                </DialogTitle>
                 <DialogDescription className="text-white/65">
-                  Staff and families will be able to sign in again according to their roles.
+                  {data.status === "pending"
+                    ? "Activation is independent of setup completion. It will not complete onboarding, configure payments, change the subscription, or grant roles."
+                    : "Staff and families will be able to sign in again according to their roles. This does not change subscription access mode or payment setup."}
                 </DialogDescription>
               </DialogHeader>
+              {data.status === "pending" ? (
+                <div className="space-y-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm text-white/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Current status</span>
+                    <span className="font-semibold text-emerald-200">{data.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Setup completion</span>
+                    <span className="font-semibold text-white">{data.setupProgress.percent}%</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Remaining setup items</p>
+                    {data.setupProgress.items.filter((item) => !item.complete).length === 0 ? (
+                      <p className="mt-1 text-xs text-white/60">No incomplete setup items.</p>
+                    ) : (
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-white/60">
+                        {data.setupProgress.items
+                          .filter((item) => !item.complete)
+                          .map((item) => <li key={item.key}>{item.label}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+              <div className="space-y-2 py-2">
+                <Label htmlFor="activation-reason" className="text-white/80">
+                  Administrative reason
+                </Label>
+                <Textarea
+                  id="activation-reason"
+                  value={activationReason}
+                  onChange={(event) => setActivationReason(event.target.value)}
+                  className="min-h-24 border-white/15 bg-white/5 text-white placeholder:text-white/35"
+                  placeholder="Example: Platform-approved launch before setup completion."
+                  maxLength={1000}
+                />
+                <p className="text-xs text-white/45">This reason is recorded in the platform audit history.</p>
+              </div>
               <DialogFooter className="gap-2 sm:justify-end">
                 <Button type="button" variant="ghost" onClick={() => setActivateOpen(false)}>
                   Cancel
@@ -647,7 +719,7 @@ export default function PlatformSchoolDetailPage() {
                   onClick={() => void activateSchool()}
                 >
                   {lifecycleBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Reactivate
+                  {data.status === "pending" ? "Activate school" : "Reactivate school"}
                 </Button>
               </DialogFooter>
             </DialogContent>

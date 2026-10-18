@@ -857,6 +857,14 @@ export function ExamPaperDetailPage({ role, examPaperId }: Props) {
               <Printer className="h-4 w-4" />
               Print PDF
             </Button>
+            {role === "admin" && ["approved", "completed"].includes(detail.paper.status) ? (
+              <Button asChild variant="outline" className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
+                <Link href={`/admin/assessments/paper?sourceExamPaperId=${detail.paper.id}&focus=paper-delivery#paper-delivery`}>
+                  <ClipboardCheck className="h-4 w-4" />
+                  Prepare in Assess
+                </Link>
+              </Button>
+            ) : null}
             {canSubmit ? (
               <Button
                 onClick={() => lifecycleMutation.mutate("submit")}

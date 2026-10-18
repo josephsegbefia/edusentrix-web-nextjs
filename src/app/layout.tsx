@@ -1,15 +1,12 @@
 import { ToastProvider } from "@/providers/toast-provider";
 import "./globals.css";
 import "@livekit/components-styles";
-import { Inter } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NetworkHealthWatcher } from "@/components/system/NetworkHealthWatcher";
 import { NetworkAccessibilityAnnouncer } from "@/components/system/NetworkAccessibilityAnnouncer";
 import { EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const viewport = {
   themeColor: "#f8fafc",
@@ -36,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body>
         <ClerkProvider>
           <ThemeProvider>

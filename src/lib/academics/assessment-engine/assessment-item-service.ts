@@ -77,6 +77,11 @@ export type TeacherMarksMutationContext = TeacherGradebookAccessContext & {
   userId: mongoose.Types.ObjectId;
 };
 
+export const MUTABLE_ASSESSMENT_ITEM_STATUSES: readonly IAssessmentItem["status"][] =
+  ASSESSMENT_ITEM_STATUSES.filter(
+    (status) => status !== "locked" && status !== "archived"
+  );
+
 function parseDate(value?: string | null) {
   if (value == null || value === "") return null;
   const parsed = new Date(value);
@@ -184,7 +189,7 @@ export function resolveContributionFlags(input: {
 }
 
 export function canMutateAssessmentItem(item: Pick<IAssessmentItem, "status">) {
-  return item.status !== "locked" && item.status !== "archived";
+  return MUTABLE_ASSESSMENT_ITEM_STATUSES.includes(item.status);
 }
 
 export function parseCreateAssessmentItemBody(

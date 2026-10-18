@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:sanitized": "node scripts/run-sanitized-next-build.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "node --test --import tsx \"tests/**/*.test.ts\"",

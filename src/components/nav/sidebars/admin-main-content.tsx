@@ -40,6 +40,8 @@ export function AdminMainContent({
     pathname.startsWith("/admin/learn") ||
     pathname.startsWith("/admin/community") ||
     pathname === "/admin/examinations" ||
+    pathname === "/admin/assessments" ||
+    pathname.startsWith("/admin/assessments/") ||
     pathname === "/admin/question-bank" ||
     pathname === "/admin/admissions" ||
     pathname === "/admin/curricula" ||

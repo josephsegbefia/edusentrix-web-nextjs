@@ -144,6 +144,11 @@ const navSections: NavSection[] = [
         icon: CalendarCheck2,
       },
       {
+        label: "Digital marking",
+        href: "/teacher/assess/marking",
+        icon: ClipboardSignature,
+      },
+      {
         label: "Attendance",
         href: "/teacher/attendance",
         icon: CalendarDays,

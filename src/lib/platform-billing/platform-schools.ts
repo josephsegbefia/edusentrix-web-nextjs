@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { resolveTransactionFeeConfigForSchool } from "@/lib/billing/transaction-fees";
 import { maskAccountNumber } from "@/lib/platform-billing/payout-security";
 import { School } from "@/models/School";
+import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { UsageMetric } from "@/models/UsageMetric";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
 import { User } from "@/models/User";
@@ -120,7 +121,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   }
 
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const [school, usageMetrics, latestProvisioningJob, setupProgress, adminMembership, legacyAdminUser] =
+  const [school, subscription, usageMetrics, latestProvisioningJob, setupProgress, adminMembership, legacyAdminUser] =
     await Promise.all([
     School.findById(schoolIdObj)
       .select(
@@ -184,6 +185,13 @@ export async function getPlatformSchoolDetail(schoolId: string) {
             updatedAt?: Date | null;
           };
         };
+      } | null>(),
+    SchoolSubscription.findOne({ schoolId: schoolIdObj })
+      .select("tierName status effectivePriceMinor")
+      .lean<{
+        tierName?: string | null;
+        status?: string | null;
+        effectivePriceMinor?: number | null;
       } | null>(),
     UsageMetric.find({ schoolId: schoolIdObj })
       .sort({ updatedAt: -1 })
@@ -354,7 +362,14 @@ export async function getPlatformSchoolDetail(schoolId: string) {
       updatedAt: school.billing?.transactionFees?.updatedAt?.toISOString?.() || null,
     },
     effectiveTransactionFee: feeConfig,
-    subscription: null,
+    subscription: subscription
+      ? {
+          tierName: subscription.tierName || null,
+          status: subscription.status || "draft",
+          effectivePriceMinor: Math.max(0, Math.round(Number(subscription.effectivePriceMinor || 0))),
+          discountExposureMinor: 0,
+        }
+      : null,
     usage: {
       totalEstimatedCostMinor,
       metricsCount: usageMetrics.length,

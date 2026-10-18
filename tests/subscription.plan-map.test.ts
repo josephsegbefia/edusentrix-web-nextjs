@@ -16,6 +16,7 @@ import { FEATURE_KEYS } from "../src/lib/subscriptions/feature-keys";
 import { PLAN_ENTITLEMENTS, getPlanAccess } from "../src/lib/subscriptions/plan-entitlements";
 import { PLAN_CODES } from "../src/lib/subscriptions/plan-codes";
 import { getDefaultFeaturesForPlan } from "../src/lib/subscriptions/plan-defaults";
+import { evaluateAssessPremiumPublicationEntitlement } from "../src/lib/subscriptions/assess-premium-policy";
 
 const ALL_PLAN_CODES = Object.values(PLAN_CODES);
 const ALL_FEATURE_KEYS = Object.values(FEATURE_KEYS);
@@ -100,6 +101,25 @@ describe("plan-entitlements map", () => {
     assert.ok(level === "YES" || level === "LIMITED", "Growth should include schemes");
   });
 
+  it("only Enterprise includes Premium assessment publication", () => {
+    assert.equal(
+      PLAN_ENTITLEMENTS.pilot[FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION],
+      "NO"
+    );
+    assert.equal(
+      PLAN_ENTITLEMENTS.starter[FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION],
+      "NO"
+    );
+    assert.equal(
+      PLAN_ENTITLEMENTS.growth[FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION],
+      "NO"
+    );
+    assert.equal(
+      PLAN_ENTITLEMENTS.enterprise[FEATURE_KEYS.ASSESSMENT_PREMIUM_PUBLICATION],
+      "YES"
+    );
+  });
+
   it("Growth does not give unlimited advanced analytics (must be LIMITED or NO)", () => {
     const level = PLAN_ENTITLEMENTS.growth[FEATURE_KEYS.ANALYTICS_ADVANCED];
     assert.notEqual(level, "YES", "Growth should not have full YES advanced analytics");
@@ -118,6 +138,43 @@ describe("plan-entitlements map", () => {
   it("Enterprise includes priority support", () => {
     const level = PLAN_ENTITLEMENTS.enterprise[FEATURE_KEYS.SUPPORT_PRIORITY];
     assert.equal(level, "YES", "Enterprise must have priority support");
+  });
+
+  it("Premium Assess publication is fail-closed unless the explicit gate and school policy are valid", () => {
+    const base = {
+      enforcementEnabled: true,
+      apiGatesEnabled: true,
+      schoolStatus: "active",
+      planCode: "enterprise",
+      accessMode: "full" as const,
+      featureEnabled: true,
+    };
+
+    assert.equal(evaluateAssessPremiumPublicationEntitlement(base).allowed, true);
+    assert.equal(
+      evaluateAssessPremiumPublicationEntitlement({ ...base, enforcementEnabled: false }).allowed,
+      false
+    );
+    assert.equal(
+      evaluateAssessPremiumPublicationEntitlement({ ...base, apiGatesEnabled: false }).allowed,
+      false
+    );
+    assert.equal(
+      evaluateAssessPremiumPublicationEntitlement({ ...base, schoolStatus: "deactivated" }).allowed,
+      false
+    );
+    assert.equal(
+      evaluateAssessPremiumPublicationEntitlement({ ...base, planCode: "growth" }).allowed,
+      false
+    );
+    assert.equal(
+      evaluateAssessPremiumPublicationEntitlement({ ...base, featureEnabled: false }).allowed,
+      false
+    );
+    assert.equal(
+      evaluateAssessPremiumPublicationEntitlement({ ...base, accessMode: "restricted_read_only" }).allowed,
+      false
+    );
   });
 
   it("Growth includes priority support", () => {
@@ -150,6 +207,6 @@ describe("plan-entitlements map", () => {
     assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.PILOT).length, 0);
     assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.STARTER).length, 20);
     assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.GROWTH).length, 35);
-    assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.ENTERPRISE).length, 39);
+    assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.ENTERPRISE).length, 40);
   });
 });

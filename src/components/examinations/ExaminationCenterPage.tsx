@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRight,
   BookOpenCheck,
   Brain,
   ClipboardList,
   FileQuestion,
   LibraryBig,
+  MoreHorizontal,
   Plus,
   Printer,
   Search,
@@ -27,14 +29,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import {
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { AssessWorkspaceNav } from "@/components/admin/assess/AssessWorkspaceNav";
+import { glassPrimaryButtonClass, glassSecondaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { cn } from "@/lib/utils";
 
 type ExamPaperRow = {
@@ -89,6 +102,7 @@ type CreatePaperState = {
   subjectId: string;
   totalMarks: string;
   durationMinutes: string;
+  scheduledExamDate: string;
   candidateInstructions: string;
 };
 
@@ -126,6 +140,7 @@ function CreateExamPaperDialog({ role }: Props) {
     subjectId: "",
     totalMarks: "100",
     durationMinutes: "120",
+    scheduledExamDate: "",
     candidateInstructions: "Answer all questions in the answer booklet provided.",
   });
 
@@ -221,6 +236,7 @@ function CreateExamPaperDialog({ role }: Props) {
           subjectId: state.subjectId,
           totalMarks: Number(state.totalMarks) || 0,
           durationMinutes: state.durationMinutes ? Number(state.durationMinutes) : null,
+          scheduledExamDate: state.scheduledExamDate || null,
           candidateInstructions: state.candidateInstructions.trim() || null,
           sourceMode: "manual",
         }),
@@ -290,63 +306,63 @@ function CreateExamPaperDialog({ role }: Props) {
 
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Exam type</span>
-                <Select value={state.examTypeId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, examTypeId: value }))}>
-                  <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
-                    <SelectValue placeholder="Choose exam type" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={state.examTypeId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, examTypeId: value }))}>
+                  <PremiumSelectTrigger className="w-full">
+                    <PremiumSelectValue placeholder="Choose exam type" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {(options?.examTypes ?? []).map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{labelFor(item)}</SelectItem>
+                      <PremiumSelectItem key={item.id} value={item.id}>{labelFor(item)}</PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </label>
 
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Academic period</span>
-                <Select value={state.academicPeriodId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, academicPeriodId: value }))}>
-                  <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
-                    <SelectValue placeholder="Choose period" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={state.academicPeriodId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, academicPeriodId: value }))}>
+                  <PremiumSelectTrigger className="w-full">
+                    <PremiumSelectValue placeholder="Choose period" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {(options?.periods ?? []).map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{labelFor(item)}</SelectItem>
+                      <PremiumSelectItem key={item.id} value={item.id}>{labelFor(item)}</PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </label>
 
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Grade</span>
-                <Select
+                <PremiumSelect
                   value={state.gradeId || undefined}
                   onValueChange={(value) =>
                     setState((prev) => ({ ...prev, gradeId: value, classGroupIds: [], subjectId: "" }))
                   }
                 >
-                  <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
-                    <SelectValue placeholder="Choose grade" />
-                  </SelectTrigger>
-                  <SelectContent>
+                  <PremiumSelectTrigger className="w-full">
+                    <PremiumSelectValue placeholder="Choose grade" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {(options?.grades ?? []).map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{labelFor(item)}</SelectItem>
+                      <PremiumSelectItem key={item.id} value={item.id}>{labelFor(item)}</PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </label>
 
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Subject</span>
-                <Select value={state.subjectId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, subjectId: value }))}>
-                  <SelectTrigger className="w-full border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
-                    <SelectValue placeholder="Choose subject" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={state.subjectId || undefined} onValueChange={(value) => setState((prev) => ({ ...prev, subjectId: value }))}>
+                  <PremiumSelectTrigger className="w-full">
+                    <PremiumSelectValue placeholder="Choose subject" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {availableSubjects.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{labelFor(item)}</SelectItem>
+                      <PremiumSelectItem key={item.id} value={item.id}>{labelFor(item)}</PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </label>
             </div>
 
@@ -412,7 +428,7 @@ function CreateExamPaperDialog({ role }: Props) {
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Duration minutes</span>
+                <span className="text-xs font-semibold text-(--ws-fg-70)">Time allowed in minutes</span>
                 <Input
                   value={state.durationMinutes}
                   onChange={(event) => setState((prev) => ({ ...prev, durationMinutes: event.target.value }))}
@@ -420,6 +436,20 @@ function CreateExamPaperDialog({ role }: Props) {
                   className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)"
                 />
               </label>
+              <CustomDatePicker
+                label="Exam date (optional)"
+                surface="theme"
+                value={state.scheduledExamDate ? new Date(`${state.scheduledExamDate}T12:00:00`) : null}
+                onChange={(date) => setState((prev) => ({
+                  ...prev,
+                  scheduledExamDate: date
+                    ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+                    : "",
+                }))}
+                placeholder="Choose the planned exam date"
+                triggerAriaLabel="Exam date"
+                className="space-y-2"
+              />
               <label className="space-y-2 md:col-span-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-70)">Candidate instructions</span>
                 <Textarea
@@ -454,6 +484,8 @@ function CreateExamPaperDialog({ role }: Props) {
 export function ExaminationCenterPage({ role }: Props) {
   const [paperSearch, setPaperSearch] = React.useState("");
   const [bankSearch, setBankSearch] = React.useState("");
+  const [paperStatusFilter, setPaperStatusFilter] = React.useState("all");
+  const [paperScopeFilter, setPaperScopeFilter] = React.useState("all");
   const paperEndpoint = role === "admin" ? "/api/admin/examinations" : "/api/teacher/examinations";
 
   const papersQuery = useQuery({
@@ -485,33 +517,24 @@ export function ExaminationCenterPage({ role }: Props) {
   const papers = papersQuery.data ?? [];
   const bankItems = bankQuery.data ?? [];
   const basePath = role === "admin" ? "/admin" : "/teacher";
+  const filteredPapers = papers.filter((paper) =>
+    (paperStatusFilter === "all" || paper.status === paperStatusFilter) &&
+    (paperScopeFilter === "all" || paper.scope === paperScopeFilter)
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
-      <section className="rounded-3xl border border-(--ws-line) bg-linear-to-br from-(--ws-panel-from) via-(--ws-panel-via) to-(--ws-panel-to) p-5 shadow-[var(--ws-shadow)] sm:p-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-cyan)">
-              <BookOpenCheck className="h-3.5 w-3.5" />
-              Examinations
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-(--ws-fg) md:text-4xl">
-              Exam papers and question bank
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-(--ws-fg-70)">
-              Set formal exam papers, review readiness, print question-only PDFs, and reuse
-              school-owned questions without mixing them into classroom assignments.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <CreateExamPaperDialog role={role} />
-            <Link href={`${basePath}/question-bank`}>
-              <Button variant="outline" className="gap-2 border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
-                <LibraryBig className="h-4 w-4" />
-                Question bank
-              </Button>
-            </Link>
-          </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        title="Examinations"
+        subtitle="Author the Core examination that remains the source for ordinary marks, grading and report cards."
+        icon={BookOpenCheck}
+        actions={<div className="flex flex-wrap gap-2"><CreateExamPaperDialog role={role} /><Link href={`${basePath}/question-bank`}><Button variant="outline" className={cn("gap-2", glassSecondaryButtonClass)}><LibraryBig className="h-4 w-4" /> Question bank</Button></Link></div>}
+      />
+      {role === "admin" ? <AssessWorkspaceNav /> : null}
+      <section className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 shadow-[var(--ws-shadow)] sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-(--ws-fg-50)">Core authoring</p><p className="mt-1 text-sm leading-6 text-(--ws-fg-70)">Prepare question-only student papers here. Premium Assess publication is an explicit next step after Core review and completion.</p></div>
+          {role === "admin" ? <Link href="/admin/assessments" className="inline-flex items-center gap-1 text-sm font-medium text-(--ws-violet) hover:underline">Open Assess overview <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link> : null}
         </div>
       </section>
 
@@ -551,12 +574,37 @@ export function ExaminationCenterPage({ role }: Props) {
               className="border-0 bg-transparent text-(--ws-fg) placeholder:text-(--ws-fg-40) focus-visible:ring-0"
             />
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm text-(--ws-fg-70)">
+              <span className="mb-1.5 block text-xs font-medium">Status</span>
+              <PremiumSelect value={paperStatusFilter} onValueChange={setPaperStatusFilter}>
+                <PremiumSelectTrigger><PremiumSelectValue /></PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="all">All statuses</PremiumSelectItem>
+                  <PremiumSelectItem value="draft">Draft</PremiumSelectItem>
+                  <PremiumSelectItem value="submitted">Submitted</PremiumSelectItem>
+                  <PremiumSelectItem value="approved">Approved</PremiumSelectItem>
+                  <PremiumSelectItem value="completed">Completed</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
+            </label>
+            <label className="text-sm text-(--ws-fg-70)">
+              <span className="mb-1.5 block text-xs font-medium">Paper scope</span>
+              <PremiumSelect value={paperScopeFilter} onValueChange={setPaperScopeFilter}>
+                <PremiumSelectTrigger><PremiumSelectValue /></PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="all">All scopes</PremiumSelectItem>
+                  <PremiumSelectItem value="grade_wide">Grade-wide</PremiumSelectItem>
+                  <PremiumSelectItem value="class_group">Single class group</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
+            </label>
+          </div>
           <div className="grid gap-3">
-            {papers.map((paper) => (
-              <Link key={paper.id} href={`${basePath}/examinations/${paper.id}`} className="group">
-                <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) transition hover:border-cyan-300/35 hover:bg-(--ws-fill-strong)">
+            {filteredPapers.map((paper) => (
+                <Card key={paper.id} className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) transition hover:border-cyan-300/35 hover:bg-(--ws-fill-strong)">
                   <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-                    <div>
+                    <Link href={`${basePath}/examinations/${paper.id}`} className="group min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="font-semibold">{paper.title}</h2>
                         <Badge className={cn("border", statusTone(paper.status))}>{paper.status.replace("_", " ")}</Badge>
@@ -568,15 +616,23 @@ export function ExaminationCenterPage({ role }: Props) {
                         {paper.totalMarks} marks
                         {paper.durationMinutes ? ` · ${paper.durationMinutes} minutes` : ""} · {formatDate(paper.updatedAt)}
                       </p>
+                    </Link>
+                    <div className="flex items-center gap-2 self-end md:self-auto">
+                      <Button asChild size="sm" variant="outline" className={glassSecondaryButtonClass}><Link href={`${basePath}/examinations/${paper.id}`}>Open</Link></Button>
+                      <PremiumDropdownMenu>
+                        <PremiumDropdownMenuTrigger asChild>
+                          <button type="button" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-(--ws-line) bg-(--ws-fill) text-(--ws-fg-70) hover:bg-(--ws-fill-strong)" aria-label={`Actions for ${paper.title}`}><MoreHorizontal className="h-4 w-4" aria-hidden="true" /></button>
+                        </PremiumDropdownMenuTrigger>
+                        <PremiumDropdownMenuContent align="end">
+                          <PremiumDropdownMenuItem asChild><Link href={`${basePath}/examinations/${paper.id}`}>Open examination</Link></PremiumDropdownMenuItem>
+                          {role === "admin" && ["approved", "completed"].includes(paper.status) ? <PremiumDropdownMenuItem asChild><Link href={`/admin/assessments/paper?sourceExamPaperId=${paper.id}&focus=paper-delivery#paper-delivery`}>Prepare in Assess</Link></PremiumDropdownMenuItem> : null}
+                        </PremiumDropdownMenuContent>
+                      </PremiumDropdownMenu>
                     </div>
-                    <Button size="sm" variant="outline" className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg) hover:bg-(--ws-fill-strong)">
-                      Open
-                    </Button>
                   </CardContent>
                 </Card>
-              </Link>
             ))}
-            {!papersQuery.isLoading && papers.length === 0 ? (
+            {!papersQuery.isLoading && filteredPapers.length === 0 ? (
               <Card className="border-(--ws-line) bg-(--ws-fill) text-(--ws-fg)">
                 <CardContent className="p-6 text-sm text-(--ws-fg-50)">No exam papers yet.</CardContent>
               </Card>
@@ -627,12 +683,12 @@ export function ExaminationCenterPage({ role }: Props) {
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-(--ws-fg-70) md:grid-cols-2">
-              <p>Generate blueprints, draft questions, estimate difficulty, and check paper readiness.</p>
-              <p>Leo never approves or prints papers automatically. Student PDFs remain question-only.</p>
+              <p>Leo guidance is available as a planned assistant surface for blueprints, draft questions, difficulty estimates and readiness checks.</p>
+              <p>No generation or approval action is available in this workspace. Student PDFs remain question-only.</p>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </WorkspacePageShell>
   );
 }

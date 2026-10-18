@@ -6,7 +6,8 @@ export type AssessmentMarksAuditAction =
   | "assessment_item.archived"
   | "assessment_scores.bulk_updated"
   | "subject_results.submitted"
-  | "studio.gradebook_linked";
+  | "studio.gradebook_linked"
+  | "studio.gradebook_link_conflict";
 
 export interface IAssessmentMarksAuditLog {
   _id: Types.ObjectId;
@@ -55,6 +56,7 @@ const assessmentMarksAuditLogSchema = new Schema<IAssessmentMarksAuditLog>(
         "assessment_scores.bulk_updated",
         "subject_results.submitted",
         "studio.gradebook_linked",
+        "studio.gradebook_link_conflict",
       ],
     },
     entityType: {

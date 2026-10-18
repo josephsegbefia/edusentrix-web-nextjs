@@ -13,6 +13,8 @@ import { serializeProposal } from "@/lib/proposals/serialize";
 import { PlatformPageHeader } from "@/components/platform/platform-page-primitives";
 import { ProposalPreviewClient } from "@/components/platform/proposals/ProposalPreviewClient";
 
+export const dynamic = "force-dynamic";
+
 function getLogoDataUri(): string | null {
   const candidates = [
     path.join(process.cwd(), "public", "logo", "edusentrix-logo-transparent.png"),

@@ -7,6 +7,7 @@ import { ExamType } from "@/models/ExamType";
 import { ExamQuestion } from "@/models/ExamQuestion";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { School } from "@/models/School";
 
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
@@ -22,20 +23,43 @@ type DrawContext = {
   y: number;
 };
 
+function plainText(value: string | null | undefined) {
+  return String(value ?? "")
+    .replace(/<br\s*\/?>(\s*)/gi, "\n")
+    .replace(/<\/p\s*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
-  const words = text.replace(/\s+/g, " ").trim().split(" ");
+  const paragraphs = text.split("\n");
   const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const next = current ? `${current} ${word}` : word;
-    if (font.widthOfTextAtSize(next, size) <= maxWidth) {
-      current = next;
-      continue;
+  for (const paragraph of paragraphs) {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) { lines.push(""); continue; }
+    let current = "";
+    for (const word of words) {
+      const next = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(next, size) <= maxWidth) { current = next; continue; }
+      if (current) lines.push(current);
+      if (font.widthOfTextAtSize(word, size) <= maxWidth) { current = word; continue; }
+      let chunk = "";
+      for (const character of word) {
+        const candidate = chunk + character;
+        if (font.widthOfTextAtSize(candidate, size) > maxWidth && chunk) { lines.push(chunk); chunk = character; }
+        else chunk = candidate;
+      }
+      current = chunk;
     }
     if (current) lines.push(current);
-    current = word;
   }
-  if (current) lines.push(current);
   return lines.length > 0 ? lines : [""];
 }
 
@@ -90,8 +114,9 @@ export async function buildExamPaperQuestionPdf(input: {
   }).lean();
   if (!paper) return null;
 
-  const [examType, grade, subject, classGroups, sections, questions] =
+  const [school, examType, grade, subject, classGroups, sections, questions] =
     await Promise.all([
+      School.findOne({ _id: paper.schoolId }).select("name").lean(),
       ExamType.findOne({ _id: paper.examTypeId, schoolId: input.schoolId }).lean(),
       Grade.findOne({ _id: paper.gradeId, schoolId: input.schoolId }).lean(),
       Subject.findOne({ _id: paper.subjectId, schoolId: input.schoolId }).lean(),
@@ -117,7 +142,8 @@ export async function buildExamPaperQuestionPdf(input: {
     y: PAGE_HEIGHT - MARGIN_TOP,
   };
 
-  drawWrappedText(ctx, paper.title, { size: 17, font: bold, gap: 6 });
+  if (school?.name) drawWrappedText(ctx, school.name, { size: 14, font: bold, gap: 4 });
+  drawWrappedText(ctx, plainText(paper.title), { size: 17, font: bold, gap: 6 });
   drawWrappedText(ctx, examType?.name || "Exam Paper", { size: 11.5, font: bold });
 
   const classLabel =
@@ -135,7 +161,7 @@ export async function buildExamPaperQuestionPdf(input: {
 
   if (paper.candidateInstructions || paper.instructions) {
     drawWrappedText(ctx, "Instructions", { size: 11.5, font: bold });
-    drawWrappedText(ctx, paper.candidateInstructions || paper.instructions || "", {
+    drawWrappedText(ctx, plainText(paper.candidateInstructions || paper.instructions || ""), {
       size: 10,
     });
     ctx.y -= 6;
@@ -166,17 +192,17 @@ export async function buildExamPaperQuestionPdf(input: {
         font: bold,
       });
       if (section.instructions) {
-        drawWrappedText(ctx, section.instructions, { size: 9.5 });
+        drawWrappedText(ctx, plainText(section.instructions), { size: 9.5 });
       }
       ctx.y -= 4;
     }
 
     for (const question of sectionQuestions) {
       const label = `${questionNumber}. (${question.marks} mark${question.marks === 1 ? "" : "s"})`;
-      drawWrappedText(ctx, `${label} ${question.prompt}`, { size: 10.5 });
+      drawWrappedText(ctx, `${label} ${plainText(question.plainTextPrompt || question.prompt)}`, { size: 10.5 });
 
       for (const option of question.options || []) {
-        drawWrappedText(ctx, `${option.label}. ${option.text}`, {
+        drawWrappedText(ctx, `${option.label}. ${plainText(option.text)}`, {
           size: 10,
           indent: 18,
         });
@@ -185,13 +211,13 @@ export async function buildExamPaperQuestionPdf(input: {
       for (const subQuestion of question.subQuestions || []) {
         drawWrappedText(
           ctx,
-          `${subQuestion.label}. ${subQuestion.prompt} (${subQuestion.marks} marks)`,
+          `${subQuestion.label}. ${plainText(subQuestion.prompt)} (${subQuestion.marks} marks)`,
           { size: 10, indent: 18 }
         );
       }
 
       for (const attachment of question.attachments || []) {
-        const caption = attachment.caption || attachment.fileName || attachment.url;
+        const caption = attachment.caption || attachment.fileName || "resource";
         drawWrappedText(ctx, `[${attachment.type}: ${caption}]`, {
           size: 9,
           indent: 18,

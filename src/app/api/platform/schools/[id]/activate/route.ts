@@ -1,57 +1,71 @@
 import mongoose from "mongoose";
-import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
-import { School } from "@/models/School";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
+import {
+  SchoolActiveTransitionError,
+  transitionSchoolToActive,
+} from "@/lib/platform/schools/transition-to-active";
+
+const ActivationSchema = z.object({
+  reason: z.string().trim().min(8, "Activation reason is required.").max(1000),
+});
 
 export async function POST(
-  _req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const gate = await requirePlatformAdmin();
+    const gate = await requirePlatformPermission("platform.schools.activate");
     if (!gate.ok) return gate.res;
 
     const { id: schoolIdParam } = await context.params;
     if (!mongoose.Types.ObjectId.isValid(schoolIdParam)) {
       return NextResponse.json({ success: false, error: "Invalid school id" }, { status: 400 });
     }
-    const schoolId = new mongoose.Types.ObjectId(schoolIdParam);
+    const parsed = ActivationSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message ?? "Activation reason is required." },
+        { status: 400 },
+      );
+    }
 
-    await connectToDatabase();
-    const updated = await School.findOneAndUpdate(
-      { _id: schoolId, status: "deactivated" },
-      { $set: { status: "active" } },
-      { new: true }
-    )
-      .select("_id status")
-      .lean();
+    const result = await transitionSchoolToActive({
+      req,
+      schoolId: new mongoose.Types.ObjectId(schoolIdParam),
+      actor: { userId: gate.actor.userId, email: gate.actor.email },
+      reason: parsed.data.reason,
+      kind: "activation",
+    });
 
-    if (!updated) {
-      const exists = await School.findById(schoolId).select("status").lean();
-      if (!exists) {
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof SchoolActiveTransitionError) {
+      if (error.code === "SCHOOL_NOT_FOUND") {
         return NextResponse.json({ success: false, error: "School not found." }, { status: 404 });
       }
       return NextResponse.json(
         {
           success: false,
-          error: "School is not suspended. Only deactivated schools can be reactivated this way.",
-          code: "NOT_SUSPENDED",
+          error:
+            error.currentStatus === "deactivated"
+              ? "This school is deactivated. Use the reactivation workflow after reviewing the restriction."
+              : "This school cannot be activated from its current lifecycle state.",
+          code: error.currentStatus === "deactivated" ? "REACTIVATION_REQUIRED" : "INVALID_LIFECYCLE_STATE",
+          currentStatus: error.currentStatus ?? null,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
-
-    return NextResponse.json({
-      success: true,
-      data: { schoolId: schoolIdParam, status: updated.status },
-    });
-  } catch (error) {
     console.error("platform school activate:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to activate school",
+        error: "School activation could not be completed. No lifecycle change was committed.",
       },
       { status: 500 }
     );

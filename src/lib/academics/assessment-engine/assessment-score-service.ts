@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { type ClientSession } from "mongoose";
 import { z } from "zod";
 import { ASSESSMENT_SCORE_STATUSES } from "@/constants/academics/assessment-engine";
 import { AssessmentItem } from "@/models/AssessmentItem";
@@ -32,6 +32,10 @@ export type BulkAssessmentScoresBody = z.infer<typeof bulkAssessmentScoresBodySc
 export type TeacherMarksMutationContext = TeacherGradebookAccessContext & {
   userId: mongoose.Types.ObjectId;
 };
+
+export function hasDuplicateStudentIds(records: Pick<BulkAssessmentScoresBody["records"][number], "studentId">[]) {
+  return new Set(records.map((record) => record.studentId)).size !== records.length;
+}
 
 export function parseBulkAssessmentScoresBody(
   body: unknown
@@ -76,6 +80,21 @@ export function canMutateAssessmentScore(
   return existingStatus !== "locked";
 }
 
+export function buildConditionalAssessmentScoreFilter(input: {
+  schoolId: mongoose.Types.ObjectId;
+  assessmentItemId: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  existingId?: mongoose.Types.ObjectId;
+}) {
+  return {
+    ...(input.existingId ? { _id: input.existingId } : {}),
+    schoolId: input.schoolId,
+    assessmentItemId: input.assessmentItemId,
+    studentId: input.studentId,
+    status: { $ne: "locked" as const },
+  };
+}
+
 function computePercentage(score: number | null, maxScore: number) {
   if (score == null || maxScore <= 0) return null;
   return (score / maxScore) * 100;
@@ -83,12 +102,98 @@ function computePercentage(score: number | null, maxScore: number) {
 
 export { computePercentage };
 
+export class AssessmentScoreWriteConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AssessmentScoreWriteConflictError";
+  }
+}
+
+/**
+ * Canonical Core score write used by an authorized Premium handoff.
+ *
+ * The caller owns the MongoDB transaction. This boundary deliberately refuses
+ * to mutate an existing score: ordinary teacher/admin gradebook writers retain
+ * their existing conditional-update behavior, while an approved Premium
+ * result must never overwrite an official Core value.
+ */
+export async function writeAssessmentScoreFromAuthorizedHandoff(input: {
+  session: ClientSession;
+  schoolId: mongoose.Types.ObjectId;
+  assessmentItemId: mongoose.Types.ObjectId;
+  assessmentPlanId: mongoose.Types.ObjectId;
+  academicPeriodId: mongoose.Types.ObjectId;
+  classGroupId: mongoose.Types.ObjectId;
+  subjectId: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  teacherId: mongoose.Types.ObjectId;
+  actorUserId: mongoose.Types.ObjectId;
+  score: number;
+  maxScore: number;
+}) {
+  if (!Number.isFinite(input.score) || !Number.isFinite(input.maxScore)) {
+    throw new AssessmentScoreWriteConflictError("Core score values must be finite numbers.");
+  }
+  if (Math.abs(input.score * 100 - Math.round(input.score * 100)) > 1e-9) {
+    throw new AssessmentScoreWriteConflictError("Core score precision is limited to two decimal places.");
+  }
+  const validation = validateScoreValue(input.score, input.maxScore);
+  if (!validation.ok) throw new AssessmentScoreWriteConflictError(validation.error);
+
+  const identityFilter = {
+    schoolId: input.schoolId,
+    assessmentItemId: input.assessmentItemId,
+    studentId: input.studentId,
+  };
+  const existing = await AssessmentScore.findOne(identityFilter)
+    .session(input.session)
+    .select("_id status score maxScoreSnapshot")
+    .lean();
+  if (existing) {
+    throw new AssessmentScoreWriteConflictError(
+      "A Core score already exists for this student and assessment item; no score was overwritten."
+    );
+  }
+
+  const now = new Date();
+  try {
+    const [created] = await AssessmentScore.create(
+      [{
+        ...identityFilter,
+        academicPeriodId: input.academicPeriodId,
+        assessmentPlanId: input.assessmentPlanId,
+        classGroupId: input.classGroupId,
+        subjectId: input.subjectId,
+        teacherId: input.teacherId,
+        score: input.score,
+        maxScoreSnapshot: input.maxScore,
+        percentage: computePercentage(input.score, input.maxScore),
+        status: "recorded",
+        remarks: null,
+        gradedAt: now,
+        recordedBy: input.actorUserId,
+        updatedBy: input.actorUserId,
+        sourceSubmissionId: null,
+      }],
+      { session: input.session }
+    );
+    return created;
+  } catch (error: unknown) {
+    if ((error as { code?: number }).code === 11000) {
+      throw new AssessmentScoreWriteConflictError(
+        "A concurrent Core score already exists for this student and assessment item; no score was overwritten."
+      );
+    }
+    throw error;
+  }
+}
+
 export async function bulkUpsertAssessmentScores(
   context: TeacherMarksMutationContext,
   body: BulkAssessmentScoresBody
 ): Promise<
   | { ok: true; data: AssessmentScoreDTO[]; updatedCount: number }
-  | { ok: false; error: string; status: 400 | 403 | 404 }
+  | { ok: false; error: string; status: 400 | 403 | 404 | 409 }
 > {
   const item = await AssessmentItem.findOne({
     _id: new mongoose.Types.ObjectId(body.assessmentItemId),
@@ -127,6 +232,14 @@ export async function bulkUpsertAssessmentScores(
   const studentIds = body.records.map(
     (record) => new mongoose.Types.ObjectId(record.studentId)
   );
+
+  if (hasDuplicateStudentIds(body.records)) {
+    return {
+      ok: false,
+      error: "Each student may appear only once in a bulk score request.",
+      status: 400,
+    };
+  }
 
   const students = await Student.find({
     _id: { $in: studentIds },
@@ -174,45 +287,92 @@ export async function bulkUpsertAssessmentScores(
   }
 
   const now = new Date();
-  const operations = body.records.map((record) => {
+  const scoreUpdates = body.records.map((record) => {
     const status = resolveScoreStatus(record.score, record.status);
     const percentage = computePercentage(record.score, item.maxScore);
 
     return {
-      updateOne: {
-        filter: {
+      record,
+      studentId: new mongoose.Types.ObjectId(record.studentId),
+      existing: existingByStudentId.get(record.studentId),
+      update: {
+        $set: {
+          score: record.score,
+          maxScoreSnapshot: item.maxScore,
+          percentage,
+          status,
+          remarks: record.remarks ?? null,
+          gradedAt: record.score == null ? null : now,
+          recordedBy: context.userId,
+          updatedBy: context.userId,
+        },
+        $setOnInsert: {
           schoolId: context.schoolId,
+          academicPeriodId: item.academicPeriodId,
+          assessmentPlanId: item.assessmentPlanId,
+          classGroupId: item.classGroupId,
+          subjectId: item.subjectId,
+          teacherId: context.teacherId,
           assessmentItemId: item._id,
           studentId: new mongoose.Types.ObjectId(record.studentId),
         },
-        update: {
-          $set: {
-            score: record.score,
-            maxScoreSnapshot: item.maxScore,
-            percentage,
-            status,
-            remarks: record.remarks ?? null,
-            gradedAt: record.score == null ? null : now,
-            recordedBy: context.userId,
-            updatedBy: context.userId,
-          },
-          $setOnInsert: {
-            schoolId: context.schoolId,
-            academicPeriodId: item.academicPeriodId,
-            assessmentPlanId: item.assessmentPlanId,
-            classGroupId: item.classGroupId,
-            subjectId: item.subjectId,
-            teacherId: context.teacherId,
-            assessmentItemId: item._id,
-            studentId: new mongoose.Types.ObjectId(record.studentId),
-          },
-        },
-        upsert: true,
       },
     };
   });
 
-  await AssessmentScore.bulkWrite(operations, { ordered: false });
+  let writtenCount = 0;
+  const failures: string[] = [];
+  for (const scoreUpdate of scoreUpdates) {
+    const keyFilter = {
+      schoolId: context.schoolId,
+      assessmentItemId: item._id,
+      studentId: scoreUpdate.studentId,
+    };
+    const conditionalFilter = buildConditionalAssessmentScoreFilter({
+      ...keyFilter,
+      existingId: scoreUpdate.existing?._id,
+    });
+
+    try {
+      const result = await AssessmentScore.updateOne(
+        conditionalFilter,
+        scoreUpdate.update,
+        { upsert: !scoreUpdate.existing }
+      );
+      if (result.matchedCount > 0 || result.upsertedCount > 0) {
+        writtenCount += 1;
+        continue;
+      }
+
+      const current = await AssessmentScore.findOne(keyFilter).select("status").lean();
+      failures.push(
+        current?.status === "locked"
+          ? `${scoreUpdate.record.studentId}: score is locked`
+          : `${scoreUpdate.record.studentId}: conditional score update did not match`
+      );
+    } catch (error: unknown) {
+      if ((error as { code?: number }).code === 11000 && !scoreUpdate.existing) {
+        const retry = await AssessmentScore.updateOne(
+          buildConditionalAssessmentScoreFilter(keyFilter),
+          { $set: scoreUpdate.update.$set },
+          { upsert: false }
+        );
+        if (retry.matchedCount > 0) {
+          writtenCount += 1;
+          continue;
+        }
+      }
+      failures.push(`${scoreUpdate.record.studentId}: score write failed`);
+    }
+  }
+
+  if (failures.length > 0) {
+    return {
+      ok: false,
+      error: `${failures.length} score update(s) were not applied; ${writtenCount} prior update(s) may have been saved. ${failures.join("; ")}`,
+      status: 409,
+    };
+  }
 
   const savedScores = await AssessmentScore.find({
     schoolId: context.schoolId,

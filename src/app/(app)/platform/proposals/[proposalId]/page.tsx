@@ -10,6 +10,8 @@ import { serializeProposal, serializeProposalActivity, serializeProposalSendLog 
 import { PlatformPageHeader } from "@/components/platform/platform-page-primitives";
 import { ProposalDetailClient } from "@/components/platform/proposals/ProposalDetailClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function PlatformProposalDetailPage({
   params,
 }: {

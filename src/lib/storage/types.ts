@@ -62,6 +62,7 @@ export const STORAGE_ASSOCIATION_TYPES = [
   "homework",
   "submission",
   "scriptSubmission",
+  "assessmentEvidencePage",
   "lesson",
   "resource",
   "notice",

@@ -26,6 +26,7 @@ import {
   StorageNotFoundError,
   StorageValidationError,
   type R2Port,
+  type PresignedPutResult,
   type StorageActor,
   type StorageAssociation,
   type StorageKind,
@@ -155,11 +156,27 @@ export async function presignUpload(input: PresignUploadInput): Promise<PresignU
       : null,
   });
 
-  const signed = await port(input.r2).createPresignedPut({
-    key: built.storageKey,
-    contentType: mimeType,
-    expiresInSeconds: signedTtlSeconds(),
-  });
+  let signed: PresignedPutResult;
+  try {
+    signed = await port(input.r2).createPresignedPut({
+      key: built.storageKey,
+      contentType: mimeType,
+      expiresInSeconds: signedTtlSeconds(),
+    });
+  } catch (error) {
+    try {
+      await StoredAsset.updateOne(
+        { _id: asset._id, status: "pending" },
+        { $set: { status: "failed", failedAt: new Date(), failureCode: "presign_failed" } }
+      );
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        "Storage presign failed and the pending asset could not be reconciled"
+      );
+    }
+    throw error;
+  }
 
   return {
     assetId: String(asset._id),

@@ -51,6 +51,7 @@ export const FEATURE_KEYS = {
   // Assessment
   ASSESSMENT_EXAMINATIONS: "assessment.examinations",
   ASSESSMENT_QUESTION_BANK: "assessment.question_bank",
+  ASSESSMENT_PREMIUM_PUBLICATION: "assessment.premium_publication",
 
   // AI features
   AI_LEO: "ai.leo",
@@ -294,6 +295,13 @@ export const FEATURE_DEFINITIONS: Record<FeatureKey, FeatureDefinition> = {
     description: "Maintain a reusable question bank.",
     module: "assessment",
     allowedForRoles: ["school_admin", "teacher"],
+  },
+  "assessment.premium_publication": {
+    key: "assessment.premium_publication",
+    label: "Premium Assessment Publication",
+    description: "Publish immutable, versioned assessment definitions for advanced Assess delivery.",
+    module: "assessment",
+    allowedForRoles: ["school_admin"],
   },
 
   // AI

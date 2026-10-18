@@ -6,6 +6,20 @@ const globalWithMongo = globalThis as typeof globalThis & {
 	_mongooseKey?: string;
 };
 
+export const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
+
+/**
+ * Database access is a runtime operation. A Next production build must never
+ * use the application's configured school database while statically rendering
+ * a route. Keeping this check here also protects future server components that
+ * accidentally omit their dynamic declaration.
+ */
+export function isDatabaseAccessBlockedForBuild(
+	environment: NodeJS.ProcessEnv = process.env,
+) {
+	return environment.NEXT_PHASE === NEXT_PRODUCTION_BUILD_PHASE;
+}
+
 function getDatabaseNameFromUri(uri: string | undefined) {
 	if (!uri) return undefined;
 	try {
@@ -31,6 +45,12 @@ function resolveMongoDatabaseName(uri: string | undefined, databaseName?: string
 }
 
 export async function connectToDatabase(uri?: string, databaseName?: string) {
+	if (isDatabaseAccessBlockedForBuild()) {
+		throw new Error(
+			"Database access is disabled during the Next production build phase. Use a disposable runtime database for integration verification.",
+		);
+	}
+
 	const mongoUri = uri ?? process.env.MONGODB_URI;
 	const mongoDatabaseName = resolveMongoDatabaseName(mongoUri, databaseName);
 

@@ -444,15 +444,22 @@ export async function submitSubjectResults(
   const subjectResultIds: string[] = [];
 
   for (const student of previewStudents) {
-    const upserted = await SubjectResult.findOneAndUpdate(
-      {
-        schoolId: context.schoolId,
-        academicPeriodId: dataset.scope.academicPeriodId,
-        classGroupId: dataset.scope.classGroupId,
-        subjectId: dataset.scope.subjectId,
-        studentId: new mongoose.Types.ObjectId(student.studentId),
-      },
-      {
+    const identityFilter = {
+      schoolId: context.schoolId,
+      academicPeriodId: dataset.scope.academicPeriodId,
+      classGroupId: dataset.scope.classGroupId,
+      subjectId: dataset.scope.subjectId,
+      studentId: new mongoose.Types.ObjectId(student.studentId),
+    };
+    const existingId = student.subjectResultId
+      ? new mongoose.Types.ObjectId(student.subjectResultId)
+      : undefined;
+    const writeFilter = {
+      ...identityFilter,
+      ...(existingId ? { _id: existingId } : {}),
+      status: { $nin: [...LOCKED_SUBJECT_RESULT_STATUSES] },
+    };
+    const update = {
         $set: {
           assessmentPlanId: new mongoose.Types.ObjectId(dataset.assessmentPlan._id),
           gradingPolicyId: new mongoose.Types.ObjectId(dataset.gradingPolicy._id),
@@ -483,9 +490,31 @@ export async function submitSubjectResults(
           returnedAt: null,
           returnReason: null,
         },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    ).lean();
+      };
+
+    let upserted;
+    try {
+      upserted = await SubjectResult.findOneAndUpdate(
+        writeFilter,
+        update,
+        { upsert: !existingId, new: true, setDefaultsOnInsert: true }
+      ).lean();
+    } catch (error: unknown) {
+      if ((error as { code?: number }).code !== 11000 || existingId) throw error;
+      upserted = await SubjectResult.findOneAndUpdate(
+        { ...identityFilter, status: { $nin: [...LOCKED_SUBJECT_RESULT_STATUSES] } },
+        update,
+        { new: true, setDefaultsOnInsert: true }
+      ).lean();
+    }
+
+    if (!upserted) {
+      return {
+        ok: false,
+        error: `Subject result for student ${student.studentId} became locked during submission; ${subjectResultIds.length} result(s) may already have been submitted.`,
+        status: 409,
+      };
+    }
 
     subjectResultIds.push(String(upserted._id));
   }

@@ -39,6 +39,27 @@ async function retireSubmissionAssets(
   return result.modifiedCount;
 }
 
+export async function retireSubmissionAsset(
+  schoolId: Types.ObjectId,
+  submissionId: Types.ObjectId,
+  assetId: Types.ObjectId,
+  at = new Date()
+) {
+  const purgeAfter = new Date(at.getTime() + STORED_ASSET_RECOVERY_DAYS * 24 * 60 * 60 * 1000);
+  const result = await StoredAsset.updateOne(
+    {
+      _id: assetId,
+      schoolId,
+      kind: "assess_script_page",
+      "association.type": "scriptSubmission",
+      "association.id": submissionId,
+      status: { $in: ["pending", "ready", "failed"] },
+    },
+    { $set: { status: "deleted", deletedAt: at, purgeAfter } }
+  );
+  return result.modifiedCount;
+}
+
 export const MAX_SCRIPT_PAGES = 40;
 export const MAX_SCRIPT_PAGE_BYTES = 8 * 1024 * 1024;
 export const SCRIPT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -167,7 +188,10 @@ export async function initializePage(input: {
   fileName: string;
   mimeType: string;
   pageNumber: number;
-}) {
+}, dependencies: {
+  presignUploadFn?: typeof presignUpload;
+  enforceKindUploadPolicyFn?: typeof enforceKindUploadPolicy;
+} = {}) {
   if (input.submission.status === "received" || input.submission.status === "cancelled") {
     throw NextResponse.json({ success: false, error: "Finalized submissions cannot be changed." }, { status: 409 });
   }
@@ -185,12 +209,12 @@ export async function initializePage(input: {
     schoolId: input.submission.schoolId,
     roles: ["school_admin"],
   };
-  await enforceKindUploadPolicy(actor, "assess_script_page", {
+  await (dependencies.enforceKindUploadPolicyFn ?? enforceKindUploadPolicy)(actor, "assess_script_page", {
     type: "scriptSubmission",
     id: String(input.submission._id),
   });
   const pageId = randomUUID();
-  const asset = await presignUpload({
+  const asset = await (dependencies.presignUploadFn ?? presignUpload)({
     actor,
     kind: "assess_script_page",
     fileName: input.fileName,
@@ -209,7 +233,7 @@ export async function initializePage(input: {
     { new: true }
   );
   if (!updated) {
-    await retireSubmissionAssets(input.submission.schoolId, input.submission._id);
+    await retireSubmissionAsset(input.submission.schoolId, input.submission._id, page.assetId);
     throw NextResponse.json({ success: false, error: "Page number is already registered or the submission is locked." }, { status: 409 });
   }
   return { pageId, ...asset };
@@ -247,7 +271,11 @@ export async function completePage(input: { submission: ScriptSubmissionDocument
       return completed;
     }
     if (!current || current.status === "received" || current.status === "cancelled") {
-      await retireSubmissionAssets(input.submission.schoolId, input.submission._id);
+      await retireSubmissionAsset(
+        input.submission.schoolId,
+        input.submission._id,
+        new Types.ObjectId(input.assetId)
+      );
       throw NextResponse.json({ success: false, error: "Submission is no longer accepting pages." }, { status: 409 });
     }
     throw NextResponse.json({ success: false, error: "Page completion could not be recorded." }, { status: 409 });

@@ -57,6 +57,9 @@ export function canMutateStoredAsset(input: {
   }
   if (input.asset.kind === "assess_script_page") {
     if (input.actor.isPlatformOperator) return true;
+    if (input.asset.association?.type === "assessmentEvidencePage") {
+      return Boolean(input.actor.userId && isSchoolAdminOrPlatform(input.actor));
+    }
     return Boolean(
       input.actor.userId &&
         input.asset.uploadedByUserId &&
@@ -156,6 +159,9 @@ async function authorizeAlwaysPrivateRead(
   }
   if (asset.kind === "assess_script_page") {
     if (actor.isPlatformOperator) return { allowed: true };
+    if (asset.association?.type === "assessmentEvidencePage") {
+      return isSchoolAdminOrPlatform(actor) ? { allowed: true } : { allowed: false, reason: "unauthorized" };
+    }
     if (
       actor.userId &&
       asset.uploadedByUserId &&

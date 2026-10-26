@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   gateFinanceStaffRoles,
+  gatePersonalTeacherAccess,
   gateParentApiAccess,
   gatePlatformAdminUser,
   gateSchoolAdminRoles,
@@ -61,6 +62,17 @@ test("gateTeacherApiAccess: teacher or school_admin passes", () => {
   });
   assert.deepEqual(gateTeacherApiAccess(["teacher"]), { ok: true });
   assert.deepEqual(gateTeacherApiAccess(["school_admin"]), { ok: true });
+});
+
+test("gatePersonalTeacherAccess: only explicit teacher role passes", () => {
+  assert.deepEqual(gatePersonalTeacherAccess(["school_admin"]), {
+    ok: false,
+    status: 403,
+    error: "Active teacher access required",
+  });
+  assert.deepEqual(gatePersonalTeacherAccess(["school_admin", "teacher"]), {
+    ok: true,
+  });
 });
 
 test("gateStudentApiAccess: only student passes", () => {

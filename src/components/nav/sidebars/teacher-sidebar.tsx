@@ -69,6 +69,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolIdentity";
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
+import { WorkspaceSwitcher } from "@/components/auth/WorkspaceSwitcher";
 import { useSidebar } from "@/providers/sidebar-provider";
 
 type NavSection = {
@@ -751,6 +752,7 @@ function DesktopSidebar() {
               collapsed={collapsed}
               className={cn(!collapsed && "min-w-0")}
             />
+            <WorkspaceSwitcher current="teacher" collapsed={collapsed} />
           </div>
         </div>
 
@@ -797,6 +799,7 @@ function MobileSidebar({
               role="teacher"
               className="min-w-0 flex-1"
             />
+            <WorkspaceSwitcher current="teacher" />
             <Button
               variant="ghost"
               size="icon"

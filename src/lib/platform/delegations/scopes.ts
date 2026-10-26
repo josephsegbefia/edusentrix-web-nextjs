@@ -1,6 +1,7 @@
 export const PLATFORM_DELEGATION_SCOPES = [
   "school_implementation",
   "school_assisted_admin_access",
+  "school_admin_role_management",
   "payment_setup_review",
   "support_case",
   "billing_follow_up",

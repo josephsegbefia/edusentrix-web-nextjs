@@ -27,6 +27,7 @@ import {
 } from "@/lib/auth/active-school-context";
 import type { AppRole, MembershipRole } from "@/lib/roles";
 import { User } from "@/models/User";
+import { Teacher } from "@/models/Teacher";
 
 type MeAuthCode =
   | "ME_AUTH_NO_BEARER_OR_SESSION"
@@ -68,6 +69,16 @@ async function buildActiveSchoolUser(context: ActiveSchoolContext) {
   const user = await User.findById(context.userId)
     .select("email name firstName lastName avatarUrl pendingOnboarding termsAccepted privacyAccepted termsVersion privacyVersion createdAt updatedAt")
     .lean();
+  const activeTeacher =
+    context.source === "assisted_access"
+      ? null
+      : await Teacher.findOne({
+          userId: context.userId,
+          schoolId: context.schoolId,
+          status: "active",
+        })
+          .select("_id")
+          .lean();
   const name =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
     user?.name ||
@@ -92,6 +103,10 @@ async function buildActiveSchoolUser(context: ActiveSchoolContext) {
     privacyVersion: user?.privacyVersion ?? undefined,
     createdAt: user?.createdAt,
     updatedAt: user?.updatedAt,
+    workspaces: {
+      admin: context.roles.includes("school_admin"),
+      teacher: context.roles.includes("teacher") && Boolean(activeTeacher),
+    },
   };
 }
 

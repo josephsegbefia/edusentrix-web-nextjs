@@ -51,6 +51,7 @@ export const PLATFORM_ROLE_PRESETS: Record<
       "platform.schools.read",
       "platform.schools.create",
       "platform.schools.update",
+      "platform.schools.manageAdminRoles",
       "platform.schools.activate",
       "platform.schools.suspend",
       "platform.implementation.read",

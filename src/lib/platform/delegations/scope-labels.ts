@@ -3,6 +3,7 @@ import type { PlatformDelegationScope } from "@/lib/platform/delegations/scopes"
 export const PLATFORM_DELEGATION_SCOPE_LABELS: Record<PlatformDelegationScope, string> = {
   school_implementation: "School Implementation",
   school_assisted_admin_access: "Assisted School Admin Access",
+  school_admin_role_management: "School Administrator Role Management",
   payment_setup_review: "Payment Setup Review",
   support_case: "Support Case",
   billing_follow_up: "Billing Follow-up",
@@ -15,6 +16,7 @@ export const PLATFORM_DELEGATION_SCOPE_LABELS: Record<PlatformDelegationScope, s
 export const PLATFORM_DELEGATION_SCOPE_DESCRIPTIONS: Record<PlatformDelegationScope, string> = {
   school_implementation: "General setup and onboarding work for a delegated school.",
   school_assisted_admin_access: "Time-bound access to assist a school as a school admin.",
+  school_admin_role_management: "Manage school administrator teaching access for a delegated school.",
   payment_setup_review: "Review payout, payment setup, and provider readiness.",
   support_case: "Support handling for a specific school or operational issue.",
   billing_follow_up: "Billing and subscription follow-up for a delegated school.",

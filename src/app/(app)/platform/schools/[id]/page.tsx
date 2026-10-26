@@ -42,6 +42,7 @@ import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import { formatMoney } from "@/lib/fees/money";
 import { PHRASE_DELETE_SCHOOL_PERMANENTLY } from "@/lib/platform/school-lifecycle-constants";
 import { cn } from "@/lib/utils";
+import { AdministratorTeachingAccessPanel } from "@/components/platform/schools/AdministratorTeachingAccessPanel";
 
 type SchoolDetail = {
   id: string;
@@ -601,6 +602,8 @@ export default function PlatformSchoolDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {schoolId ? <AdministratorTeachingAccessPanel schoolId={schoolId} /> : null}
 
           <Dialog open={suspendOpen} onOpenChange={setSuspendOpen}>
             <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Clock, Loader2, LogOut, ShieldAlert } from "lucide-react";
+import Link from "next/link";
+import { Clock, Loader2, LogOut, Settings2, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +13,7 @@ type AssistedAccessState = {
   actorEmail?: string;
   reason?: string;
   expiresAt?: string;
+  canManageAdminRoles?: boolean;
 };
 
 export function AssistedAccessBanner() {
@@ -98,6 +100,20 @@ export function AssistedAccessBanner() {
           {ending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
           Exit assisted access
         </Button>
+        {session.canManageAdminRoles && session.schoolId ? (
+          <Button
+            asChild
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-fit border-cyan-300/30 bg-cyan-300/10 text-cyan-50 hover:bg-cyan-300/20"
+          >
+            <Link href={`/platform/schools/${session.schoolId}?section=admin-access`}>
+              <Settings2 className="mr-2 h-4 w-4" />
+              Manage administrator teaching access
+            </Link>
+          </Button>
+        ) : null}
       </div>
     </div>
   );

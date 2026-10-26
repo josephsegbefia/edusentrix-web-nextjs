@@ -80,6 +80,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolIdentity";
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
+import { WorkspaceSwitcher } from "@/components/auth/WorkspaceSwitcher";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
@@ -1008,6 +1009,7 @@ function DesktopSidebar() {
               collapsed={collapsed}
               className={cn(!collapsed && "min-w-0")}
             />
+            <WorkspaceSwitcher current="admin" collapsed={collapsed} />
           </div>
         </div>
 
@@ -1065,6 +1067,7 @@ function MobileSidebar({
               role="school_admin"
               className="min-w-0 flex-1"
             />
+            <WorkspaceSwitcher current="admin" />
             <Button
               variant="ghost"
               size="icon"

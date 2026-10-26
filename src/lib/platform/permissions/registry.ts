@@ -17,6 +17,7 @@ export const PLATFORM_PERMISSION_KEYS = [
   "platform.schools.read",
   "platform.schools.create",
   "platform.schools.update",
+  "platform.schools.manageAdminRoles",
   "platform.schools.activate",
   "platform.schools.suspend",
   "platform.schools.delete",
@@ -101,6 +102,14 @@ export const PLATFORM_PERMISSION_REGISTRY: Record<
     description: "Edit school profile, contact details, operational metadata, and setup information.",
     category: "Schools",
     riskLevel: "medium",
+    assignable: true,
+  },
+  "platform.schools.manageAdminRoles": {
+    key: "platform.schools.manageAdminRoles",
+    label: "Manage Administrator Teaching Access",
+    description: "Enable or disable teaching access for school administrators while preserving school-admin access.",
+    category: "Schools",
+    riskLevel: "high",
     assignable: true,
   },
   "platform.schools.activate": {

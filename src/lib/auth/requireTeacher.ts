@@ -10,7 +10,7 @@ import {
   type Permission,
   type TeacherSubrole,
 } from "@/lib/rbac";
-import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
+import { gatePersonalTeacherAccess, gateTeacherApiAccess } from "@/lib/auth/role-gates";
 import { assertActiveSchoolEnabled } from "@/lib/auth/assert-active-school-enabled";
 import { resolveActiveSchoolContext } from "@/lib/auth/active-school-context";
 
@@ -28,6 +28,8 @@ export interface TeacherContext {
 
 type RequireTeacherOptions = {
   mode?: "api" | "page";
+  /** Keep this only for explicitly admin-compatible support helpers. */
+  allowSchoolAdmin?: boolean;
 };
 
 function handleFailure(
@@ -61,7 +63,13 @@ export async function requireTeacher(
 
   const roles = active.context.roles;
   const isAdmin = roles.includes("school_admin");
-  const teacherGate = gateTeacherApiAccess(roles);
+  if (active.context.source === "assisted_access") {
+    handleFailure(mode, 403, "Assisted platform access cannot use a personal Teacher workspace");
+  }
+
+  const teacherGate = options.allowSchoolAdmin
+    ? gateTeacherApiAccess(roles)
+    : gatePersonalTeacherAccess(roles);
   if (!teacherGate.ok) {
     handleFailure(mode, teacherGate.status, teacherGate.error);
   }
@@ -74,11 +82,15 @@ export async function requireTeacher(
     userId: active.context.userId,
     schoolId: active.context.schoolId,
   })
-    .select("_id homeroomClassGroupId subroles")
+    .select("_id homeroomClassGroupId subroles status")
     .lean();
 
   if (!teacher) {
     handleFailure(mode, 404, "Teacher record not found");
+  }
+
+  if ((teacher as { status?: string }).status !== "active") {
+    handleFailure(mode, 403, "Active teacher access required");
   }
 
   const membershipSubroles = (active.context.subroles || []) as TeacherSubrole[];

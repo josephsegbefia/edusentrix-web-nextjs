@@ -49,6 +49,19 @@ export function gateTeacherApiAccess(roles: MembershipRole[]): GateSuccess | Gat
   return { ok: true };
 }
 
+/**
+ * Personal Teacher workspace access is narrower than admin-compatible teacher
+ * reads: the user must explicitly hold the teacher membership role.
+ */
+export function gatePersonalTeacherAccess(
+  roles: MembershipRole[]
+): GateSuccess | GateFailure {
+  if (!roles.includes("teacher")) {
+    return { ok: false, status: 403, error: "Active teacher access required" };
+  }
+  return { ok: true };
+}
+
 export function gateStudentApiAccess(roles: MembershipRole[]): GateSuccess | GateFailure {
   if (!roles.includes("student")) {
     return { ok: false, status: 403, error: "Student role required" };

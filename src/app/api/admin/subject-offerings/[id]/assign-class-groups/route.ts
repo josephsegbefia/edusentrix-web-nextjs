@@ -10,6 +10,13 @@ function objectId(value: string): mongoose.Types.ObjectId | null {
   return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
 }
 
+function referencedId(value: unknown): string {
+  if (value && typeof value === "object" && "_id" in value) {
+    return String((value as { _id: unknown })._id);
+  }
+  return String(value);
+}
+
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("subjects");
@@ -43,7 +50,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       );
     }
     const compatibleGradeIds = new Set((offering.gradeIds || []).map(String));
-    const incompatible = classes.filter((classGroup) => !compatibleGradeIds.has(String(classGroup.gradeId)));
+    const incompatible = classes.filter(
+      (classGroup) => !compatibleGradeIds.has(referencedId(classGroup.gradeId))
+    );
 
     const allowIncompatible = body.allowIncompatible === true;
 

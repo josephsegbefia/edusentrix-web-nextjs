@@ -775,7 +775,7 @@ function GradeDetailContent() {
                         setActiveTab("overview");
                         return;
                       }
-                      router.push(`/admin/subjects?setup=1&gradeId=${encodeURIComponent(gradeId)}`);
+                      router.push(`/admin/subjects?setup=1&mode=add&gradeId=${encodeURIComponent(gradeId)}`);
                     }}
                     className="gap-1.5 border-(--ws-line)"
                   >

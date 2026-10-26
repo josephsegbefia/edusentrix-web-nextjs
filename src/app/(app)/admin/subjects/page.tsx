@@ -148,6 +148,7 @@ export default function SubjectsPage() {
   const [assignClassesModalOpen, setAssignClassesModalOpen] = React.useState(false);
   const [createSubjectModalOpen, setCreateSubjectModalOpen] = React.useState(false);
   const [setupOpen, setSetupOpen] = React.useState(false);
+  const [setupMode, setSetupMode] = React.useState<"initial" | "add">("initial");
   const [gradeBandFilter, setGradeBandFilter] = React.useState(
     searchParams.get("gradeBand") === "preschool"
       ? "all"
@@ -172,6 +173,9 @@ export default function SubjectsPage() {
     gradeBand: gradeBandFilter,
     category: categoryFilter,
   });
+  const { data: allActiveOfferingsData, isLoading: allActiveOfferingsLoading } =
+    useSubjectOfferings({ isActive: true });
+  const hasConfiguredOfferings = (allActiveOfferingsData?.data.length ?? 0) > 0;
 
   const offerings = (data?.data || []).filter(
     (offering) => offering.gradeBand !== "preschool"
@@ -224,6 +228,7 @@ export default function SubjectsPage() {
 
   React.useEffect(() => {
     if (searchParams.get("setup") === "1") {
+      setSetupMode(searchParams.get("mode") === "add" ? "add" : "initial");
       setSetupOpen(true);
     }
   }, [searchParams]);
@@ -275,7 +280,7 @@ export default function SubjectsPage() {
       description: `This will remove "${offering?.displayName ?? "this subject"}" from active subject offering lists. Existing historical records are preserved.`,
       confirmLabel: "Delete subject",
       cancelLabel: "Cancel",
-      intent: "danger",
+      intent: "destructive",
     });
     if (decision !== "confirm") return;
     await deactivateOffering.mutateAsync(subjectOfferingId);
@@ -332,10 +337,28 @@ export default function SubjectsPage() {
 
           <div className="flex items-center gap-2 self-start md:self-auto">
             <Button
+              variant="outline"
               onClick={() => {
+                setSetupMode("add");
                 setSetupOpen(true);
               }}
-              className="group h-9 gap-2 rounded-xl bg-linear-to-r from-amber-300 to-orange-400 px-4 text-xs text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-200 hover:to-orange-300 sm:h-10 sm:text-sm"
+              className="h-9 gap-2 rounded-xl border-(--ws-line) bg-(--ws-fill) px-4 text-xs text-(--ws-fg) hover:bg-(--ws-fill-strong) sm:h-10 sm:text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add subject</span>
+            </Button>
+            <Button
+              disabled={allActiveOfferingsLoading || hasConfiguredOfferings}
+              onClick={() => {
+                setSetupMode("initial");
+                setSetupOpen(true);
+              }}
+              title={
+                hasConfiguredOfferings
+                  ? "Initial subject offerings are already set up. Use Add subject for another offering."
+                  : undefined
+              }
+              className="group h-9 gap-2 rounded-xl bg-linear-to-r from-amber-300 to-orange-400 px-4 text-xs text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-200 hover:to-orange-300 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:text-sm"
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               <span>Set Up Offerings</span>
@@ -560,7 +583,10 @@ export default function SubjectsPage() {
                 </p>
               </div>
               <Button
-                onClick={() => setSetupOpen(true)}
+                onClick={() => {
+                  setSetupMode("initial");
+                  setSetupOpen(true);
+                }}
                 className="bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
               >
                 Set Up Offerings
@@ -674,6 +700,7 @@ export default function SubjectsPage() {
         open={setupOpen}
         onOpenChange={setSetupOpen}
         initialGradeId={setupGradeId}
+        mode={setupMode}
       />
 
       <CreateSubjectModal
@@ -719,14 +746,18 @@ function SetupSubjectOfferingsDialog({
   open,
   onOpenChange,
   initialGradeId,
+  mode,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialGradeId?: string;
+  mode: "initial" | "add";
 }) {
   const { data: gradesData } = useGrades(true);
+  const { data: classesData } = useClasses({ isActive: true });
   const setupMutation = useSetupSubjectOfferingsFromCurriculum();
   const createCustomOffering = useCreateCustomSubjectOffering();
+  const assignOfferingToClasses = useAssignSubjectOfferingToClasses();
   const [curriculumCode, setCurriculumCode] = React.useState("ghana_nacca");
   const [autoAssign, setAutoAssign] = React.useState(true);
   const [customForm, setCustomForm] = React.useState({
@@ -761,6 +792,7 @@ function SetupSubjectOfferingsDialog({
   );
   const [selectedGradeIds, setSelectedGradeIds] = React.useState<string[]>([]);
   const [selectedCodes, setSelectedCodes] = React.useState<string[]>([]);
+  const [selectedClassGroupIds, setSelectedClassGroupIds] = React.useState<string[]>([]);
   const gradeIdsForBand = React.useCallback(
     (band: string) =>
       grades
@@ -773,12 +805,39 @@ function SetupSubjectOfferingsDialog({
       ? selectedGradeIds
       : gradeIdsForBand(customForm.gradeBand);
 
+  const classes = classesData?.data ?? [];
+  const classesForSelectedGrades = React.useMemo(
+    () => classes.filter((classGroup) => selectedGradeIds.includes(classGroup.grade.id)),
+    [classes, selectedGradeIds]
+  );
+
   React.useEffect(() => {
     if (!open) return;
-    setSelectedGradeIds(initialGradeId ? [initialGradeId] : grades.map((grade) => grade.id));
-    setSelectedCodes(templates.filter((template) => template.isDefault).map((template) => template.code));
+    setSelectedGradeIds(
+      mode === "add"
+        ? initialGradeId
+          ? [initialGradeId]
+          : []
+        : initialGradeId
+          ? [initialGradeId]
+          : grades.map((grade) => grade.id)
+    );
+    setSelectedCodes(
+      mode === "add"
+        ? []
+        : templates.filter((template) => template.isDefault).map((template) => template.code)
+    );
+    setSelectedClassGroupIds([]);
     setCreatedCustomOfferings([]);
-  }, [open, grades, templates, initialGradeId]);
+  }, [open, grades, templates, initialGradeId, mode]);
+
+  React.useEffect(() => {
+    setSelectedClassGroupIds((current) =>
+      current.filter((classGroupId) =>
+        classesForSelectedGrades.some((classGroup) => classGroup.id === classGroupId)
+      )
+    );
+  }, [classesForSelectedGrades]);
 
   const groupedTemplates = React.useMemo(() => {
     return templates.reduce<Record<string, CurriculumSubjectOfferingTemplate[]>>((acc, template) => {
@@ -840,9 +899,19 @@ function SetupSubjectOfferingsDialog({
       category: customForm.category,
       lessonNoteTemplateVariant: "custom",
       reportCardGroup: customForm.category === "elective" ? "Electives" : "Custom",
-      autoAssignToMatchingClassGroups: autoAssign,
+      autoAssignToMatchingClassGroups: mode === "initial" ? autoAssign : false,
     });
     if (result.success) {
+      if (mode === "add" && selectedClassGroupIds.length > 0) {
+        await assignOfferingToClasses.mutateAsync({
+          subjectOfferingId: result.data.id,
+          classGroupIds: selectedClassGroupIds,
+        });
+      }
+      if (mode === "add") {
+        onOpenChange(false);
+        return;
+      }
       const gradeNameMap = new Map(grades.map((grade) => [grade.id, grade.name]));
       setCreatedCustomOfferings((current) => [
         {
@@ -871,6 +940,9 @@ function SetupSubjectOfferingsDialog({
   const canCreateTemplateOfferings = selectedCodes.length > 0 && selectedGradeIds.length > 0;
   const canFinishAfterCustomOnly =
     selectedCodes.length === 0 && createdCustomOfferings.length > 0;
+  const isAddingSubject = mode === "add";
+  const isCreatingCustom =
+    createCustomOffering.isPending || assignOfferingToClasses.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -885,10 +957,13 @@ function SetupSubjectOfferingsDialog({
                     <WandSparkles className="size-5 text-(--ws-amber)" />
                   </div>
                   <div>
-                    <DialogTitle>Set up subject offerings</DialogTitle>
+                    <DialogTitle>
+                      {isAddingSubject ? "Add subject offering" : "Set up subject offerings"}
+                    </DialogTitle>
                     <DialogDescription className="mt-1 max-w-2xl text-(--ws-fg-70)">
-                      Generate curriculum-aware offerings, tie them to matching grades,
-                      and optionally assign them to class groups in those grades.
+                      {isAddingSubject
+                        ? "Add a subject after initial setup, choose its grades, and optionally target specific class groups."
+                        : "Generate curriculum-aware offerings, tie them to matching grades, and optionally assign them to class groups in those grades."}
                     </DialogDescription>
                   </div>
                 </div>
@@ -896,7 +971,7 @@ function SetupSubjectOfferingsDialog({
             </div>
 
             <div className="space-y-5 overflow-y-auto p-6 lg:p-7">
-              <div className="grid gap-4 md:grid-cols-3">
+              {!isAddingSubject && <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
                     Curriculum
@@ -925,7 +1000,7 @@ function SetupSubjectOfferingsDialog({
                     </span>
                   </label>
                 </div>
-              </div>
+              </div>}
 
               <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -951,7 +1026,7 @@ function SetupSubjectOfferingsDialog({
                 </div>
               </div>
 
-              <div className="space-y-4">
+              {!isAddingSubject && <div className="space-y-4">
                 {setupBands.map((band) => {
                   const items = groupedTemplates[band] || [];
                   const customItems = customOfferingsByBand[band] || [];
@@ -1006,14 +1081,75 @@ function SetupSubjectOfferingsDialog({
                     </div>
                   );
                 })}
-              </div>
+              </div>}
+
+              {isAddingSubject && selectedGradeIds.length > 0 && (
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-(--ws-fg)">Class groups (optional)</p>
+                      <p className="text-xs leading-relaxed text-(--ws-fg-70)">
+                        Leave these unselected to create the offering without assigning it to a class yet.
+                      </p>
+                    </div>
+                    {classesForSelectedGrades.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setSelectedClassGroupIds(
+                            selectedClassGroupIds.length === classesForSelectedGrades.length
+                              ? []
+                              : classesForSelectedGrades.map((classGroup) => classGroup.id)
+                          )
+                        }
+                        className="h-7 shrink-0 text-xs text-(--ws-amber) hover:text-(--ws-amber)"
+                      >
+                        {selectedClassGroupIds.length === classesForSelectedGrades.length
+                          ? "Clear all"
+                          : "Select all"}
+                      </Button>
+                    )}
+                  </div>
+                  {classesForSelectedGrades.length === 0 ? (
+                    <p className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs text-(--ws-amber)">
+                      No active class groups exist in the selected grades. The offering will remain available for later assignment.
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {classesForSelectedGrades.map((classGroup) => (
+                        <label
+                          key={classGroup.id}
+                          className="flex cursor-pointer items-center gap-2 rounded-xl border border-(--ws-line) bg-(--ws-fill) p-3 text-sm text-(--ws-fg-70)"
+                        >
+                          <Checkbox
+                            checked={selectedClassGroupIds.includes(classGroup.id)}
+                            onCheckedChange={() =>
+                              setSelectedClassGroupIds((current) =>
+                                current.includes(classGroup.id)
+                                  ? current.filter((id) => id !== classGroup.id)
+                                  : [...current, classGroup.id]
+                              )
+                            }
+                          />
+                          <span>{classGroup.fullLabel}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4">
                 <div className="mb-4 flex flex-col gap-1">
-                  <p className="text-sm font-semibold text-(--ws-fg)">Add a custom subject offering</p>
+                  <p className="text-sm font-semibold text-(--ws-fg)">
+                    {isAddingSubject ? "Subject details" : "Add a custom subject offering"}
+                  </p>
                   <p className="text-xs text-(--ws-fg-70)">
-                    Use this when a school teaches a subject outside the default NaCCA list.
-                    Select one grade for a grade-specific offering, or multiple grades for a grade-band offering.
+                    {isAddingSubject
+                      ? "This subject becomes available in the selected grades and class groups."
+                      : "Use this when a school teaches a subject outside the default NaCCA list. Select one grade for a grade-specific offering, or multiple grades for a grade-band offering."}
                   </p>
                 </div>
                 <div className="grid gap-3 lg:grid-cols-4">
@@ -1078,15 +1214,17 @@ function SetupSubjectOfferingsDialog({
                 </div>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs text-(--ws-fg-70)">
-                    {customForm.gradeBand === "custom"
-                      ? "Custom offering will use the selected grades above and can be assigned to matching class groups automatically."
-                      : `Custom offering will use ${formatOfferingLabel(customForm.gradeBand)} grades only and can be assigned to matching class groups automatically.`}
+                    {isAddingSubject
+                      ? "The offering will use the selected grades above. Class-group assignment is optional."
+                      : customForm.gradeBand === "custom"
+                        ? "Custom offering will use the selected grades above and can be assigned to matching class groups automatically."
+                        : `Custom offering will use ${formatOfferingLabel(customForm.gradeBand)} grades only and can be assigned to matching class groups automatically.`}
                   </p>
                   <Button
                     type="button"
                     variant="outline"
                     disabled={
-                      createCustomOffering.isPending ||
+                      isCreatingCustom ||
                       !customForm.subjectFamily.trim() ||
                       !customForm.code.trim() ||
                       customGradeIds.length === 0
@@ -1094,7 +1232,7 @@ function SetupSubjectOfferingsDialog({
                     onClick={handleCreateCustom}
                     className="border-amber-300/20 bg-amber-300/10 text-(--ws-amber) hover:bg-amber-300/15"
                   >
-                    Add custom offering
+                    {isAddingSubject ? "Add subject offering" : "Add custom offering"}
                   </Button>
                 </div>
               </div>
@@ -1108,10 +1246,14 @@ function SetupSubjectOfferingsDialog({
                 className="bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
                 disabled={
                   setupMutation.isPending ||
-                  createCustomOffering.isPending ||
-                  (!canCreateTemplateOfferings && !canFinishAfterCustomOnly)
+                  isCreatingCustom ||
+                  (!isAddingSubject && !canCreateTemplateOfferings && !canFinishAfterCustomOnly)
                 }
                 onClick={() => {
+                  if (isAddingSubject) {
+                    onOpenChange(false);
+                    return;
+                  }
                   if (canCreateTemplateOfferings) {
                     void handleSubmit();
                     return;
@@ -1119,7 +1261,11 @@ function SetupSubjectOfferingsDialog({
                   onOpenChange(false);
                 }}
               >
-                {canCreateTemplateOfferings ? "Create offerings" : "Done"}
+                {isAddingSubject
+                  ? "Close"
+                  : canCreateTemplateOfferings
+                    ? "Create offerings"
+                    : "Done"}
               </Button>
             </DialogFooter>
           </div>

@@ -4,6 +4,7 @@ export type UnallocatedGapFillRow = {
   startTime: string;
   endTime: string;
   presetCode: string;
+  customLabel: string | null;
   updatedAt: string | null;
 };
 
@@ -41,6 +42,8 @@ export function useSaveUnallocatedGapFill(classId: string) {
       endTime: string;
       /** null clears */
       presetCode: string | null;
+      /** When provided, persists a free-text label instead of a preset. */
+      customLabel?: string | null;
     }) => {
       const res = await fetch(
         `/api/admin/classes/${encodeURIComponent(classId)}/timetable/unallocated-gap-fills`,
@@ -52,6 +55,7 @@ export function useSaveUnallocatedGapFill(classId: string) {
             startTime: input.startTime,
             endTime: input.endTime,
             presetCode: input.presetCode,
+            customLabel: input.customLabel ?? null,
           }),
         }
       );

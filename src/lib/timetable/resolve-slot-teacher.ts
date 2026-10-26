@@ -2,7 +2,11 @@ import { Types } from "mongoose";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 
 export type SlotTeacherResolution =
-  | { ok: true; teacherId: Types.ObjectId; source: "explicit" | "assignment" }
+  | {
+      ok: true;
+      teacherId: Types.ObjectId | null;
+      source: "explicit" | "assignment" | "unassigned";
+    }
   | {
       ok: false;
       code: "MISSING_TEACHER" | "TEACHER_NOT_ASSIGNED_TO_SUBJECT_CLASS";
@@ -16,6 +20,7 @@ export async function resolveTeacherForTimetableSlot(args: {
   subjectId: Types.ObjectId;
   subjectOfferingId?: Types.ObjectId | null;
   explicitTeacherId?: Types.ObjectId | null;
+  allowUnassignedTeacher?: boolean;
 }): Promise<SlotTeacherResolution> {
   const baseQuery = {
     schoolId: args.schoolId,
@@ -54,6 +59,14 @@ export async function resolveTeacherForTimetableSlot(args: {
     .lean<{ teacherId?: Types.ObjectId } | null>();
 
   if (!assignment?.teacherId) {
+    if (args.allowUnassignedTeacher) {
+      return {
+        ok: true,
+        teacherId: null,
+        source: "unassigned",
+      };
+    }
+
     return {
       ok: false,
       code: "MISSING_TEACHER",

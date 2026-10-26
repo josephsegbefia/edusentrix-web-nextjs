@@ -23,6 +23,13 @@ const schoolUnallocatedGapFillSchema = new Schema(
       required: true,
       enum: [...UNALLOCATED_GAP_PRESET_CODES],
     },
+    /** Set when presetCode is `custom`; kept separate so preset reporting remains stable. */
+    customLabel: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      default: null,
+    },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true }

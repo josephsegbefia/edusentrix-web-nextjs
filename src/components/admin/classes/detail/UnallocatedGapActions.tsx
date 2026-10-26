@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles, Loader2, X } from "lucide-react";
+import { Check, Sparkles, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DAY_NAMES, formatTimeLabel } from "@/components/admin/timetable/types";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/premium-select";
 
 const CLEAR_VALUE = "__none__";
+const CUSTOM_VALUE = "__custom__";
 
 type UnallocatedGapActionsProps = {
   classId: string;
@@ -60,13 +61,20 @@ export function UnallocatedGapActions({
   const { data, isLoading } = useUnallocatedGapFills(classId);
   const save = useSaveUnallocatedGapFill(classId);
 
-  const selectValue = findFillForGap(data?.fills, dayOfWeek, startTime, endTime)?.presetCode ?? CLEAR_VALUE;
+  const fill = findFillForGap(data?.fills, dayOfWeek, startTime, endTime);
+  const selectValue = fill?.customLabel ? CUSTOM_VALUE : fill?.presetCode ?? CLEAR_VALUE;
 
   const [leoText, setLeoText] = React.useState<string | null>(null);
   const [leoLoading, setLeoLoading] = React.useState(false);
+  const [customLabel, setCustomLabel] = React.useState("");
+
+  React.useEffect(() => {
+    setCustomLabel(fill?.customLabel || "");
+  }, [fill?.customLabel, dayOfWeek, startTime, endTime]);
 
   const onPresetChange = async (v: string) => {
     if (v === selectValue) return;
+    if (v === CUSTOM_VALUE) return;
     if (v === CLEAR_VALUE) {
       try {
         await save.mutateAsync({
@@ -74,7 +82,9 @@ export function UnallocatedGapActions({
           startTime,
           endTime,
           presetCode: null,
+          customLabel: null,
         });
+        setCustomLabel("");
         toast.success("Cleared label for this gap");
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not clear");
@@ -87,10 +97,28 @@ export function UnallocatedGapActions({
         startTime,
         endTime,
         presetCode: v,
+        customLabel: null,
       });
+      setCustomLabel("");
       toast.success("Saved for this grade & day");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save");
+    }
+  };
+
+  const onCustomLabelSave = async () => {
+    const label = customLabel.trim();
+    try {
+      await save.mutateAsync({
+        dayOfWeek,
+        startTime,
+        endTime,
+        presetCode: null,
+        customLabel: label || null,
+      });
+      toast.success(label ? "Custom label saved" : "Cleared label for this gap");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save custom label");
     }
   };
 
@@ -165,6 +193,16 @@ export function UnallocatedGapActions({
                 <PremiumSelectItem value={CLEAR_VALUE} className="text-xs text-(--ws-fg-70)">
                   Not set
                 </PremiumSelectItem>
+                {fill?.customLabel ? (
+                  <PremiumSelectItem value={CUSTOM_VALUE} className="text-left text-xs">
+                    <span className="block font-medium text-(--ws-fg-90)">
+                      Custom: {fill.customLabel}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] text-(--ws-fg-50)">
+                      Saved free-text label
+                    </span>
+                  </PremiumSelectItem>
+                ) : null}
                 {UNALLOCATED_GAP_PRESET_OPTIONS.map((o) => (
                   <PremiumSelectItem key={o.code} value={o.code} className="text-left text-xs">
                     <span className="block font-medium text-(--ws-fg-90)">{o.label}</span>
@@ -174,6 +212,31 @@ export function UnallocatedGapActions({
               </PremiumSelectContent>
             </PremiumSelect>
           )}
+          <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center">
+            <label htmlFor={`custom-gap-label-${dayOfWeek}-${startTime}`} className="sr-only">
+              Custom label for this unallocated period
+            </label>
+            <input
+              id={`custom-gap-label-${dayOfWeek}-${startTime}`}
+              value={customLabel}
+              onChange={(event) => setCustomLabel(event.target.value)}
+              maxLength={80}
+              placeholder="Or type a custom use…"
+              className="h-8 min-w-0 flex-1 rounded-md border border-(--ws-line) bg-(--ws-fill) px-2.5 text-xs text-(--ws-fg) outline-none placeholder:text-(--ws-fg-40) focus:border-(--ws-cyan)"
+              disabled={save.isPending}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 shrink-0 border-(--ws-line) text-xs text-(--ws-fg-80) hover:bg-(--ws-fill-strong)"
+              onClick={onCustomLabelSave}
+              disabled={save.isPending}
+            >
+              {save.isPending ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Check className="mr-1.5 h-3 w-3" />}
+              Save custom
+            </Button>
+          </div>
         </div>
       </div>
 

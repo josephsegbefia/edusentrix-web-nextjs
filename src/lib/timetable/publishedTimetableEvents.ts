@@ -66,7 +66,7 @@ export function buildPublishedTimetableEvents(
     const isCurrent =
       nowMs !== null && start.getTime() <= nowMs && nowMs < end.getTime();
     out.push({
-      id: `gap-${g.dayOfWeek}-${g.startTime}-${g.endTime}-${g.presetCode}-${i}`,
+      id: `gap-${g.dayOfWeek}-${g.startTime}-${g.endTime}-${g.presetCode}-${g.customLabel || ""}-${i}`,
       title: g.label,
       start,
       end,

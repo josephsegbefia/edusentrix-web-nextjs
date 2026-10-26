@@ -117,8 +117,10 @@ export type CreateClassSlotInput = {
   endTime: string;
   subjectOfferingId?: string | null;
   subjectId: string;
-  /** Required so teacher conflicts can be checked before saving. */
-  teacherId: string;
+  /** Null when the subject is intentionally placed before a teacher is assigned. */
+  teacherId: string | null;
+  /** Must be true when creating an intentionally unassigned lesson. */
+  allowUnassignedTeacher?: boolean;
 };
 
 export function useCreateClassSlot(classId: string) {

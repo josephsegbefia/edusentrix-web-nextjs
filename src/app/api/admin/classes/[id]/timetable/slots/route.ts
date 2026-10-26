@@ -57,8 +57,9 @@ const CreateSlotSchema = z.object({
   endTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/),
   subjectOfferingId: z.string().length(24).optional(),
   subjectId: z.string().length(24).optional(),
-  /** Required so every dropped lesson can be checked for teacher conflicts before saving. */
-  teacherId: z.string().length(24),
+  /** Null when the editor explicitly accepts an unassigned teacher. */
+  teacherId: z.union([z.string().length(24), z.null()]),
+  allowUnassignedTeacher: z.boolean().optional().default(false),
 });
 
 function toSlotDto(slot: {
@@ -278,7 +279,9 @@ export async function POST(
 
     const input = parsed.data;
     const academicPeriodId = new mongoose.Types.ObjectId(input.academicPeriodId);
-    const explicitTeacherId = new mongoose.Types.ObjectId(input.teacherId);
+    const explicitTeacherId = input.teacherId
+      ? new mongoose.Types.ObjectId(input.teacherId)
+      : null;
     const gradeId = (classGroup as { gradeId: mongoose.Types.ObjectId }).gradeId;
     let subjectId = input.subjectId ? new mongoose.Types.ObjectId(input.subjectId) : null;
     let subjectOfferingId: mongoose.Types.ObjectId | null = null;
@@ -336,6 +339,7 @@ export async function POST(
       subjectId,
       subjectOfferingId,
       explicitTeacherId,
+      allowUnassignedTeacher: input.allowUnassignedTeacher,
     });
 
     if (!teacherResolution.ok) {
@@ -501,7 +505,7 @@ export async function POST(
       action: "slot_created",
       actorId: userIdObj,
       entityId: created._id,
-      after: buildTimetableSlotSnapshot(created),
+      after: buildTimetableSlotSnapshot(created.toObject()),
     });
 
     await recomputeConflictsForVersion({ schoolId: schoolIdObj, versionId });
@@ -513,7 +517,7 @@ export async function POST(
       entityId: created._id,
       action: "created",
       affectedClassGroupIds: [classObjId],
-      affectedTeacherIds: [teacherId],
+      affectedTeacherIds: teacherId ? [teacherId] : [],
       affectedSubjectIds: [subjectId],
       affectedRoomIds: roomId ? [roomId] : [],
       createdBy: userIdObj,

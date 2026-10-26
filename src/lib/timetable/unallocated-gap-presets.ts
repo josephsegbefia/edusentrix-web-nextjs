@@ -12,6 +12,7 @@ export const UNALLOCATED_GAP_PRESET_CODES = [
   "buffer",
   "intervention",
   "other",
+  "custom",
 ] as const;
 
 export type UnallocatedGapPresetCode = (typeof UNALLOCATED_GAP_PRESET_CODES)[number];
@@ -41,6 +42,7 @@ export function isUnallocatedGapPresetCode(s: string): s is UnallocatedGapPreset
 
 export function unallocatedGapPresetLabel(code: string | null | undefined): string {
   if (!code) return "";
+  if (code === "custom") return "Custom label";
   const hit = UNALLOCATED_GAP_PRESET_OPTIONS.find((o) => o.code === code);
   return hit?.label || code;
 }

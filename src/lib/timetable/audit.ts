@@ -83,7 +83,7 @@ export interface TimetableSlotSnapshotInput {
   gradeId: ObjectIdLike;
   subjectId: ObjectIdLike;
   subjectOfferingId?: ObjectIdLike | null;
-  teacherId: ObjectIdLike | null | undefined;
+  teacherId?: ObjectIdLike | null;
   roomId?: ObjectIdLike | null;
   dayOfWeek: number;
   startTime: string;

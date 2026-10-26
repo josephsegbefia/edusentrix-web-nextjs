@@ -336,9 +336,19 @@ export function ClassTimetableGridBoard({
         toast.error("Invalid subject.");
         return;
       }
+      let allowUnassignedTeacher = false;
       if (!teacherId) {
-        toast.error("Assign a teacher to this subject before placing it on the timetable.");
-        return;
+        const decision = await confirm({
+          title: "Place subject without a teacher?",
+          description:
+            "No teacher is assigned to this subject for this class yet. You can place it now as a draft, but it will remain flagged for teacher allocation before publishing.",
+          confirmLabel: "Place without teacher",
+          cancelLabel: "Cancel",
+          intent: "warning",
+          zIndexClass: "z-[100]",
+        });
+        if (decision !== "confirm") return;
+        allowUnassignedTeacher = true;
       }
       const contactKey = subjectTeacherKey(subjectId, subjectOfferingId, teacherId);
       const contactPlan = contactHourPlanByKey?.get(contactKey);
@@ -370,6 +380,7 @@ export function ClassTimetableGridBoard({
           subjectOfferingId,
           subjectId,
           teacherId,
+          allowUnassignedTeacher,
         });
         if (added) {
           toast.success("Lesson added");
@@ -686,7 +697,7 @@ export function ClassTimetableGridBoard({
                   <DraggablePaletteCard
                     key={row.subjectOfferingId || row.subjectId}
                     id={dragId}
-                    disabled={busy || !primaryTeacher}
+                    disabled={busy}
                     label={label}
                     warnNoTeacher={!primaryTeacher}
                   />

@@ -88,6 +88,29 @@ test("detectTimetableConflicts does not count boundary-touching slots as overlap
   assert.equal(conflicts.length, 0);
 });
 
+test("detectTimetableConflicts skips teacher overlap checks for unassigned slots", () => {
+  const conflicts = detectTimetableConflicts([
+    {
+      _id: oid("c3"),
+      teacherId: null,
+      classGroupId: oid("111111"),
+      dayOfWeek: 1,
+      startTime: "08:00",
+      endTime: "09:00",
+    },
+    {
+      _id: oid("c4"),
+      teacherId: null,
+      classGroupId: oid("222222"),
+      dayOfWeek: 1,
+      startTime: "08:30",
+      endTime: "09:30",
+    },
+  ]);
+
+  assert.equal(conflicts.length, 0);
+});
+
 test("detectTimetableConflicts ignores invalid slot shapes", () => {
   const teacherId = oid("555555");
   const classId = oid("ffffff");

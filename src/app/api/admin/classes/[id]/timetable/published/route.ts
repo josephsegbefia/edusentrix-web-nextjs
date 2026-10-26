@@ -71,11 +71,15 @@ export type PublishedGapFillDTO = {
   startTime: string;
   endTime: string;
   presetCode: string;
+  customLabel: string | null;
   label: string;
   description: string;
 };
 
 function presetMeta(code: string): { label: string; description: string } {
+  if (code === "custom") {
+    return { label: "Custom label", description: "Custom label" };
+  }
   const hit = UNALLOCATED_GAP_PRESET_OPTIONS.find((o) => o.code === code);
   return {
     label: hit?.label || code,
@@ -111,18 +115,21 @@ async function loadGapFills(
   gradeId: mongoose.Types.ObjectId
 ): Promise<PublishedGapFillDTO[]> {
   const rows = await SchoolUnallocatedGapFill.find({ schoolId, gradeId })
-    .select("dayOfWeek startTime endTime presetCode")
+    .select("dayOfWeek startTime endTime presetCode customLabel")
     .sort({ dayOfWeek: 1, startTime: 1 })
     .lean();
   return rows.map((r) => {
-    const m = presetMeta(String((r as { presetCode: string }).presetCode));
+    const row = r as { presetCode: string; customLabel?: string | null };
+    const m = presetMeta(String(row.presetCode));
+    const customLabel = row.customLabel?.trim() || null;
     return {
       dayOfWeek: (r as { dayOfWeek: number }).dayOfWeek,
       startTime: (r as { startTime: string }).startTime,
       endTime: (r as { endTime: string }).endTime,
-      presetCode: String((r as { presetCode: string }).presetCode),
-      label: m.label,
-      description: m.description,
+      presetCode: String(row.presetCode),
+      customLabel,
+      label: customLabel || m.label,
+      description: customLabel ? "Custom label" : m.description,
     };
   });
 }

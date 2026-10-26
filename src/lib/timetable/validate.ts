@@ -28,6 +28,7 @@ export interface TimetableSlotValidationInput {
   subjectId: Types.ObjectId;
   /** Null when no subject–teacher assignment exists yet. */
   teacherId: Types.ObjectId | null;
+  roomId?: Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;

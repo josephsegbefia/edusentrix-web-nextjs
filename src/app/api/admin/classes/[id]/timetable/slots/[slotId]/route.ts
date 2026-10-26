@@ -50,6 +50,7 @@ const PatchSlotSchema = z.object({
   subjectOfferingId: z.string().length(24).optional(),
   subjectId: z.string().length(24).optional(),
   teacherId: z.union([z.string().length(24), z.null()]).optional(),
+  allowUnassignedTeacher: z.boolean().optional().default(false),
   dayOfWeek: z.number().min(0).max(6).optional(),
   startTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
   endTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
@@ -256,6 +257,9 @@ export async function PATCH(
       subjectId,
       subjectOfferingId,
       explicitTeacherId,
+      allowUnassignedTeacher:
+        input.allowUnassignedTeacher === true ||
+        (input.teacherId === undefined && !existing.teacherId),
     });
 
     if (!teacherResolution.ok) {
@@ -378,7 +382,7 @@ export async function PATCH(
       );
     }
 
-    const beforeSnapshot = buildTimetableSlotSnapshot(existing);
+    const beforeSnapshot = buildTimetableSlotSnapshot(existing.toObject());
 
     existing.subjectId = subjectId;
     existing.subjectOfferingId = subjectOfferingId;
@@ -400,7 +404,7 @@ export async function PATCH(
       actorId: userIdObj,
       entityId: existing._id,
       before: beforeSnapshot,
-      after: buildTimetableSlotSnapshot(existing),
+      after: buildTimetableSlotSnapshot(existing.toObject()),
     });
 
     const conflictSummary = await recomputeConflictsForVersion({
@@ -415,7 +419,7 @@ export async function PATCH(
       entityId: existing._id,
       action: "updated",
       affectedClassGroupIds: [classObjId],
-      affectedTeacherIds: [teacherId],
+      affectedTeacherIds: teacherId ? [teacherId] : [],
       affectedSubjectIds: [subjectId],
       affectedRoomIds: roomId ? [roomId] : [],
       createdBy: userIdObj,
@@ -500,7 +504,7 @@ export async function DELETE(
       );
     }
 
-    const beforeSnapshot = buildTimetableSlotSnapshot(existing);
+    const beforeSnapshot = buildTimetableSlotSnapshot(existing.toObject());
 
     await TimetableSlot.deleteOne({
       _id: slotObjId,

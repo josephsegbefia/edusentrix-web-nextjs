@@ -27,6 +27,7 @@ export type PublishedGapFillDTO = {
   startTime: string;
   endTime: string;
   presetCode: string;
+  customLabel: string | null;
   label: string;
   description: string;
 };

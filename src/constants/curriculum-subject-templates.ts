@@ -148,8 +148,8 @@ export const CURRICULUM_SUBJECT_TEMPLATES: Record<
     { name: "Creative Arts", code: "ART", category: "core", stages: [...NACCA_BASIC_STAGES] },
     { name: "Religious and Moral Education", code: "RME", category: "core", stages: [...NACCA_BASIC_STAGES] },
     { name: "Physical Education", code: "PE", category: "core", stages: [...NACCA_BASIC_STAGES] },
-    { name: "History", code: "HIST", category: "core", stages: ["Primary", "JHS"] },
-    { name: "Our World Our People", code: "OWOP", category: "core", stages: ["Primary", "JHS"] },
+    { name: "History", code: "HIST", category: "core", stages: ["Primary"] },
+    { name: "Our World Our People", code: "OWOP", category: "core", stages: ["Primary"] },
     { name: "Computing", code: "ICT", category: "core", stages: ["Primary", "JHS"] },
     { name: "French", code: "FRE", category: "elective", stages: ["Primary", "JHS"] },
     { name: "Basic Design and Technology", code: "BDT", category: "elective", stages: ["JHS"] },
@@ -329,6 +329,12 @@ function naccaTemplate(input: Omit<CurriculumSubjectOfferingTemplate, "curriculu
   return { curriculumCode: "ghana_nacca", isDefault: input.isDefault ?? true, ...input };
 }
 
+function catalogTemplate(
+  input: Omit<CurriculumSubjectOfferingTemplate, "isDefault">
+): CurriculumSubjectOfferingTemplate {
+  return { ...input, isDefault: true };
+}
+
 export const CURRICULUM_SUBJECT_OFFERING_TEMPLATES: CurriculumSubjectOfferingTemplate[] = [
   naccaTemplate({
     subjectFamily: "Communication & Language",
@@ -373,7 +379,7 @@ export const CURRICULUM_SUBJECT_OFFERING_TEMPLATES: CurriculumSubjectOfferingTem
     ["Our World and Our People", "Our World and Our People", "OWOP"],
     ["Religious and Moral Education", "Religious and Moral Education", "RME"],
     ["Creative Arts", "Creative Arts", "CARTS"],
-    ["Computing", "Computing", "COMP"],
+    ["History", "History", "HIST"],
     ["Ghanaian Language", "Ghanaian Language", "GHL"],
     ["Physical Education", "Physical Education", "PE"],
   ].map(([family, name, code]) =>
@@ -395,6 +401,7 @@ export const CURRICULUM_SUBJECT_OFFERING_TEMPLATES: CurriculumSubjectOfferingTem
     ["Mathematics", "Mathematics", "MATH"],
     ["Science", "Science", "SCI"],
     ["Our World and Our People", "Our World and Our People", "OWOP"],
+    ["History", "History", "HIST"],
     ["Religious and Moral Education", "Religious and Moral Education", "RME"],
     ["Creative Arts", "Creative Arts", "CARTS"],
     ["Computing", "Computing", "COMP"],
@@ -427,6 +434,7 @@ export const CURRICULUM_SUBJECT_OFFERING_TEMPLATES: CurriculumSubjectOfferingTem
     ["Ghanaian Language", "Ghanaian Language", "GHL"],
     ["Physical Education and Health", "Physical Education and Health", "PEH"],
     ["French", "French", "FRE", "elective"],
+    ["Arabic", "Arabic", "ARABIC", "elective"],
   ].map(([family, name, code, category]) =>
     naccaTemplate({
       subjectFamily: family,
@@ -471,6 +479,125 @@ export const CURRICULUM_SUBJECT_OFFERING_TEMPLATES: CurriculumSubjectOfferingTem
       reportCardGroup: "Core",
       isDefault: true,
     }))
+  ),
+  ...[
+    ["IB PYP", "ib_pyp", ["PYP1", "PYP2", "PYP3", "PYP4", "PYP5", "PYP6", "YEAR1", "YEAR2", "YEAR3", "YEAR4", "YEAR5", "YEAR6"]],
+  ].flatMap(([label, curriculumCode, gradeCodes]) =>
+    [
+      ["Language", "LANG"],
+      ["Mathematics", "MATH"],
+      ["Science", "SCI"],
+      ["Social Studies", "SOC"],
+      ["Arts", "ART"],
+      ["Personal, Social & Physical Education", "PSPE"],
+    ].map(([subject, code]) =>
+      catalogTemplate({
+        curriculumCode: curriculumCode as CurriculumCode,
+        subjectFamily: subject,
+        displayName: `${label} ${subject}`,
+        shortName: subject,
+        code: `IB-PYP-${code}`,
+        stage: "ib_pyp",
+        gradeBand: "custom",
+        gradeCodes: [...(gradeCodes as string[])],
+        category: "transdisciplinary_theme",
+        lessonNoteTemplateVariant: "classic",
+        reportCardGroup: "PYP Learning Areas",
+      })
+    )
+  ),
+  ...[
+    ["IB MYP", "ib_myp", ["MYP1", "MYP2", "MYP3", "MYP4", "MYP5", "YEAR7", "YEAR8", "YEAR9", "YEAR10", "YEAR11"]],
+  ].flatMap(([label, curriculumCode, gradeCodes]) =>
+    [
+      ["Language & Literature", "LL"],
+      ["Language Acquisition", "LA"],
+      ["Individuals & Societies", "IS"],
+      ["Sciences", "SCI"],
+      ["Mathematics", "MATH"],
+      ["Arts", "ART"],
+      ["Physical & Health Education", "PHE"],
+      ["Design", "DES"],
+    ].map(([subject, code]) =>
+      catalogTemplate({
+        curriculumCode: curriculumCode as CurriculumCode,
+        subjectFamily: subject,
+        displayName: `${label} ${subject}`,
+        shortName: subject,
+        code: `IB-MYP-${code}`,
+        stage: "ib_myp",
+        gradeBand: "custom",
+        gradeCodes: [...(gradeCodes as string[])],
+        category: "subject_group",
+        lessonNoteTemplateVariant: "classic",
+        reportCardGroup: "MYP Subject Groups",
+      })
+    )
+  ),
+  ...[
+    ["British Key Stage 1", "british_key_stage_1", ["KS1", "YEAR1", "YEAR2"]],
+    ["British Key Stage 2", "british_key_stage_2", ["KS2", "YEAR3", "YEAR4", "YEAR5", "YEAR6"]],
+    ["British Key Stage 3", "british_key_stage_3", ["KS3", "YEAR7", "YEAR8", "YEAR9"]],
+  ].flatMap(([label, stage, gradeCodes]) =>
+    [
+      ["English", "ENG", "core"],
+      ["Mathematics", "MATH", "core"],
+      ["Science", "SCI", "core"],
+      ["History", "HIST", "foundation"],
+      ["Geography", "GEO", "foundation"],
+      ["Art & Design", "ART", "foundation"],
+      ["Music", "MUS", "foundation"],
+      ["Physical Education", "PE", "foundation"],
+      ["Computing", "ICT", "foundation"],
+      ["Design & Technology", "DT", "foundation"],
+      ["Modern Foreign Languages", "MFL", "foundation"],
+      ["Religious Education", "RE", "foundation"],
+    ].map(([subject, code, category]) =>
+      catalogTemplate({
+        curriculumCode: "british_nc",
+        subjectFamily: subject,
+        displayName: `${subject} - ${label}`,
+        shortName: subject,
+        code: `BRITISH-${String(stage).replace("british_key_stage_", "KS")}-${code}`,
+        stage: stage as SubjectOfferingStage,
+        gradeBand: "custom",
+        gradeCodes: [...(gradeCodes as string[])],
+        category: category as SubjectCategory,
+        lessonNoteTemplateVariant: "classic",
+        reportCardGroup: category === "core" ? "Core" : "Foundation",
+      })
+    )
+  ),
+  ...[
+    ["American Elementary", "american_elementary", ["ELEMENTARY1", "ELEMENTARY2", "ELEMENTARY3", "ELEMENTARY4", "ELEMENTARY5", "GRADE1", "GRADE2", "GRADE3", "GRADE4", "GRADE5"]],
+    ["American Middle", "american_middle", ["MIDDLE1", "MIDDLE2", "MIDDLE3", "GRADE6", "GRADE7", "GRADE8"]],
+  ].flatMap(([label, stage, gradeCodes]) =>
+    [
+      ["English Language Arts", "ELA", "core"],
+      ["Mathematics", "MATH", "core"],
+      ["Science", "SCI", "core"],
+      ["Social Studies", "SOC", "core"],
+      ["Physical Education", "PE", "core"],
+      ["Art", "ART", "elective"],
+      ["Music", "MUS", "elective"],
+      ["World Languages", "WL", "elective"],
+      ["Technology", "TECH", "elective"],
+      ["Health", "HLT", "elective"],
+    ].map(([subject, code, category]) =>
+      catalogTemplate({
+        curriculumCode: "american",
+        subjectFamily: subject,
+        displayName: `${subject} - ${label}`,
+        shortName: subject,
+        code: `AMERICAN-${String(stage).replace("american_", "").toUpperCase()}-${code}`,
+        stage: stage as SubjectOfferingStage,
+        gradeBand: "custom",
+        gradeCodes: [...(gradeCodes as string[])],
+        category: category as SubjectCategory,
+        lessonNoteTemplateVariant: "classic",
+        reportCardGroup: category === "core" ? "Core" : "Electives",
+      })
+    )
   ),
 ];
 

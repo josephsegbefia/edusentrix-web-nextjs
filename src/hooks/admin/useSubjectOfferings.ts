@@ -99,6 +99,8 @@ export function useSetupSubjectOfferingsFromCurriculum() {
       queryClient.invalidateQueries({ queryKey: ["subject-offerings"] });
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
     },
     onError: (error: unknown) => {
       busy.error(error instanceof Error ? error.message : "Failed to set up subject offerings");
@@ -134,15 +136,17 @@ export function useCreateCustomSubjectOffering() {
       if (!res.ok) throw new Error(json?.error || "Failed to create custom subject offering");
       return json as { success: boolean; data: { id: string } };
     },
-    onMutate: () => busy.toast("Creating custom offering..."),
+    onMutate: () => busy.toast("Creating subject offering..."),
     onSuccess: () => {
-      busy.success("Custom subject offering created");
+      busy.success("Subject offering created");
       queryClient.invalidateQueries({ queryKey: ["subject-offerings"] });
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
     },
     onError: (error: unknown) => {
-      busy.error(error instanceof Error ? error.message : "Failed to create custom offering");
+      busy.error(error instanceof Error ? error.message : "Failed to create subject offering");
     },
   });
 }
@@ -174,6 +178,8 @@ export function useAssignSubjectOfferingToClasses() {
       queryClient.invalidateQueries({ queryKey: ["subject-offerings"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["grade-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
     },
   });
 }
@@ -197,6 +203,50 @@ export function useDeactivateSubjectOffering() {
     },
     onError: (error: unknown) => {
       busy.error(error instanceof Error ? error.message : "Failed to deactivate offering");
+    },
+  });
+}
+
+export function useClearSubjectOfferings() {
+  const queryClient = useQueryClient();
+  const busy = useBusyToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/subject-offerings/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error || "Failed to clear subject offering setup");
+      return json as {
+        success: boolean;
+        data: {
+          deactivatedOfferings: number;
+          clearedClassGroups: number;
+          deactivatedTeacherAssignments: number;
+          clearedTimetableSlots: number;
+          archivedTimetableVersions: number;
+          academicPeriod: { yearLabel: string; term: string } | null;
+        };
+      };
+    },
+    onMutate: () => busy.toast("Clearing subject offering setup..."),
+    onSuccess: ({ data }) => {
+      busy.success(
+        `Cleared ${data.deactivatedOfferings} offering${data.deactivatedOfferings === 1 ? "" : "s"} and ${data.clearedTimetableSlots} timetable slot${data.clearedTimetableSlots === 1 ? "" : "s"}`
+      );
+      queryClient.invalidateQueries({ queryKey: ["subject-offerings"] });
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
+      queryClient.invalidateQueries({ queryKey: ["timetable-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["timetable"] });
+    },
+    onError: (error: unknown) => {
+      busy.error(error instanceof Error ? error.message : "Failed to clear subject offering setup");
     },
   });
 }

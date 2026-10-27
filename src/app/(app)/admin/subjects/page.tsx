@@ -26,6 +26,7 @@ import { notifyComingSoon } from "@/lib/ui/feature-notices";
 import { cn } from "@/lib/utils";
 import {
   useAssignSubjectOfferingToClasses,
+  useClearSubjectOfferings,
   useCreateCustomSubjectOffering,
   useDeactivateSubjectOffering,
   useSetupSubjectOfferingsFromCurriculum,
@@ -38,6 +39,12 @@ import {
   getSubjectOfferingTemplatesForCurriculum,
   type CurriculumSubjectOfferingTemplate,
 } from "@/constants/curriculum-subject-templates";
+import { gradeMatchesTemplateCode, stageFromGradeBand } from "@/lib/subject-offerings/grade-bands";
+import type {
+  CurriculumCode,
+  SubjectOfferingGradeBand,
+  SubjectOfferingStage,
+} from "@/models/SubjectOffering";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -65,6 +72,112 @@ const gradeBandOrder = [
   "jhs",
   "custom",
 ] as const;
+
+const curriculumOptions: Array<{
+  value: CurriculumCode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "ghana_nacca",
+    label: "Ghana NaCCA",
+    description: "Ghana basic-school curriculum, grouped by grade band.",
+  },
+  {
+    value: "cambridge",
+    label: "Cambridge",
+    description: "Cambridge Primary and Lower Secondary subject catalog.",
+  },
+  {
+    value: "ib_pyp",
+    label: "IB PYP",
+    description: "IB Primary Years Programme learning areas.",
+  },
+  {
+    value: "ib_myp",
+    label: "IB MYP",
+    description: "IB Middle Years Programme subject groups.",
+  },
+  {
+    value: "british_nc",
+    label: "British National Curriculum",
+    description: "British National Curriculum subject catalog.",
+  },
+  {
+    value: "american",
+    label: "American",
+    description: "American elementary and middle-school subjects.",
+  },
+  {
+    value: "montessori",
+    label: "Montessori",
+    description: "Add school-defined Montessori subjects or areas.",
+  },
+  {
+    value: "custom",
+    label: "Custom / school-defined",
+    description: "A subject outside the built-in curriculum catalogs.",
+  },
+];
+
+const subjectCategoryOptions = [
+  ["core", "Core"],
+  ["elective", "Elective"],
+  ["foundation", "Foundation"],
+  ["optional", "Optional"],
+  ["learning_area", "Learning area"],
+  ["co_curricular", "Co-curricular"],
+  ["transdisciplinary_theme", "Transdisciplinary theme"],
+  ["subject_group", "Subject group"],
+  ["custom", "Custom"],
+] as const;
+
+function suggestedStageForCurriculum(
+  curriculumCode: CurriculumCode,
+  gradeBand: SubjectOfferingGradeBand
+): SubjectOfferingStage {
+  if (curriculumCode === "cambridge") {
+    return gradeBand === "jhs" ? "cambridge_lower_secondary" : "cambridge_primary";
+  }
+  if (curriculumCode === "british_nc") {
+    if (gradeBand === "jhs") return "british_key_stage_3";
+    if (gradeBand === "upper_primary") return "british_key_stage_2";
+    return "british_key_stage_1";
+  }
+  if (curriculumCode === "ib_pyp") return "ib_pyp";
+  if (curriculumCode === "ib_myp") return "ib_myp";
+  if (curriculumCode === "american") {
+    return gradeBand === "jhs" ? "american_middle" : "american_elementary";
+  }
+  if (curriculumCode === "custom" || curriculumCode === "montessori" || curriculumCode === "hybrid") {
+    return "custom";
+  }
+  return stageFromGradeBand(gradeBand);
+}
+
+function suggestedSubjectCode(
+  curriculumCode: CurriculumCode,
+  gradeBand: SubjectOfferingGradeBand,
+  subjectFamily: string
+): string {
+  const curriculumPrefix = curriculumCode === "ghana_nacca"
+    ? "NACCA"
+    : curriculumCode === "custom"
+      ? "CUSTOM"
+      : curriculumCode.toUpperCase().replace(/[^A-Z0-9]+/g, "-");
+  const bandPrefix =
+    gradeBand === "lower_primary"
+      ? "LP"
+      : gradeBand === "upper_primary"
+        ? "UP"
+        : gradeBand === "jhs"
+          ? "JHS"
+          : gradeBand === "shs"
+            ? "SHS"
+            : "SUBJECT";
+  const subjectToken = subjectFamily.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `${curriculumPrefix}-${bandPrefix}-${subjectToken || "NEW"}`.slice(0, 80);
+}
 
 function gradeBandHeading(value: string) {
   if (value === "lower_primary") return "Lower Primary";
@@ -161,6 +274,7 @@ export default function SubjectsPage() {
   const [subjectForEdit, setSubjectForEdit] = React.useState<SubjectDTO | null>(null);
   const [selectedClassId, setSelectedClassId] = React.useState<string | undefined>();
   const deactivateOffering = useDeactivateSubjectOffering();
+  const clearSubjectOfferings = useClearSubjectOfferings();
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -287,6 +401,21 @@ export default function SubjectsPage() {
     setActiveFilter(true);
   };
 
+  const handleClearSetup = async () => {
+    const decision = await confirm({
+      title: "Clear subject offering setup?",
+      description:
+        "This will deactivate every active subject offering for this school, remove those offerings from class groups, deactivate current-period teacher assignments, and clear current-period timetable slots. Subject records and historical timetable records remain preserved.",
+      confirmLabel: "Clear offering setup",
+      cancelLabel: "Keep setup",
+      intent: "destructive",
+      className: "sm:max-w-xl",
+    });
+    if (decision !== "confirm") return;
+    await clearSubjectOfferings.mutateAsync();
+    setActiveFilter(true);
+  };
+
   const handleExport = () => {
     notifyComingSoon("Export subjects");
   };
@@ -362,6 +491,19 @@ export default function SubjectsPage() {
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               <span>Set Up Offerings</span>
+            </Button>
+            <Button
+              variant="outline"
+              disabled={allActiveOfferingsLoading || !hasConfiguredOfferings || clearSubjectOfferings.isPending}
+              onClick={() => void handleClearSetup()}
+              title={
+                hasConfiguredOfferings
+                  ? "Clear active offerings and the current academic-period timetable setup."
+                  : "There are no active subject offerings to clear."
+              }
+              className="h-9 rounded-xl border-rose-400/25 bg-rose-500/10 px-3 text-xs text-(--ws-rose) hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:text-sm"
+            >
+              {clearSubjectOfferings.isPending ? "Clearing…" : "Clear setup"}
             </Button>
           </div>
         </div>
@@ -758,7 +900,7 @@ function SetupSubjectOfferingsDialog({
   const setupMutation = useSetupSubjectOfferingsFromCurriculum();
   const createCustomOffering = useCreateCustomSubjectOffering();
   const assignOfferingToClasses = useAssignSubjectOfferingToClasses();
-  const [curriculumCode, setCurriculumCode] = React.useState("ghana_nacca");
+  const [curriculumCode, setCurriculumCode] = React.useState<CurriculumCode>("ghana_nacca");
   const [autoAssign, setAutoAssign] = React.useState(true);
   const [customForm, setCustomForm] = React.useState({
     subjectFamily: "",
@@ -767,7 +909,7 @@ function SetupSubjectOfferingsDialog({
     code: "",
     gradeBand: "custom",
     stage: "custom",
-    category: "custom",
+    category: "core",
   });
   const [createdCustomOfferings, setCreatedCustomOfferings] = React.useState<
     CreatedCustomOffering[]
@@ -778,21 +920,31 @@ function SetupSubjectOfferingsDialog({
   const initialGrade = initialGradeId
     ? grades.find((grade) => grade.id === initialGradeId)
     : null;
-  const initialGradeBand = React.useMemo(() => {
-    if (!initialGrade) return null;
-    return gradeBandForGrade(initialGrade);
-  }, [initialGrade]);
-  const templates = React.useMemo(
-    () =>
-      getSubjectOfferingTemplatesForCurriculum(curriculumCode as "ghana_nacca").filter((template) => {
-        if (template.gradeBand === "preschool") return false;
-        return !initialGradeBand || template.gradeBand === initialGradeBand;
-      }),
-    [curriculumCode, initialGradeBand]
-  );
   const [selectedGradeIds, setSelectedGradeIds] = React.useState<string[]>([]);
   const [selectedCodes, setSelectedCodes] = React.useState<string[]>([]);
   const [selectedClassGroupIds, setSelectedClassGroupIds] = React.useState<string[]>([]);
+  const selectedGrades = React.useMemo(
+    () => grades.filter((grade) => selectedGradeIds.includes(grade.id)),
+    [grades, selectedGradeIds]
+  );
+  const templates = React.useMemo(() => {
+    const selectedGradeRows = selectedGrades.length > 0 ? selectedGrades : grades;
+    return getSubjectOfferingTemplatesForCurriculum(curriculumCode).filter((template) => {
+      if (template.gradeBand === "preschool") return false;
+      return selectedGradeRows.some((grade) => gradeMatchesTemplateCode(grade, template.gradeCodes));
+    });
+  }, [curriculumCode, grades, selectedGrades]);
+  const defaultTemplateCodes = React.useMemo(() => {
+    const availableGrades = initialGrade ? [initialGrade] : grades;
+    return getSubjectOfferingTemplatesForCurriculum(curriculumCode)
+      .filter(
+        (template) =>
+          template.gradeBand !== "preschool" &&
+          availableGrades.some((grade) => gradeMatchesTemplateCode(grade, template.gradeCodes))
+      )
+      .filter((template) => template.isDefault)
+      .map((template) => template.code);
+  }, [curriculumCode, grades, initialGrade]);
   const gradeIdsForBand = React.useCallback(
     (band: string) =>
       grades
@@ -825,11 +977,20 @@ function SetupSubjectOfferingsDialog({
     setSelectedCodes(
       mode === "add"
         ? []
-        : templates.filter((template) => template.isDefault).map((template) => template.code)
+        : defaultTemplateCodes
     );
     setSelectedClassGroupIds([]);
     setCreatedCustomOfferings([]);
-  }, [open, grades, templates, initialGradeId, mode]);
+    setCustomForm({
+      subjectFamily: "",
+      displayName: "",
+      shortName: "",
+      code: "",
+      gradeBand: "custom",
+      stage: suggestedStageForCurriculum(curriculumCode, "custom"),
+      category: curriculumCode === "custom" ? "custom" : "core",
+    });
+  }, [open, grades, initialGradeId, mode, curriculumCode, defaultTemplateCodes]);
 
   React.useEffect(() => {
     setSelectedClassGroupIds((current) =>
@@ -871,6 +1032,23 @@ function SetupSubjectOfferingsDialog({
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   };
 
+  const applyCatalogTemplate = (template: CurriculumSubjectOfferingTemplate) => {
+    const matchingGradeIds = grades
+      .filter((grade) => gradeMatchesTemplateCode(grade, template.gradeCodes))
+      .map((grade) => grade.id);
+    const selectedMatchingGradeIds = selectedGradeIds.filter((id) => matchingGradeIds.includes(id));
+    setSelectedGradeIds(selectedMatchingGradeIds.length > 0 ? selectedMatchingGradeIds : matchingGradeIds);
+    setCustomForm({
+      subjectFamily: template.subjectFamily,
+      displayName: template.displayName,
+      shortName: template.shortName,
+      code: template.code,
+      gradeBand: template.gradeBand,
+      stage: template.stage,
+      category: template.category,
+    });
+  };
+
   async function handleSubmit() {
     const result = await setupMutation.mutateAsync({
       curriculumCode,
@@ -892,13 +1070,20 @@ function SetupSubjectOfferingsDialog({
       displayName,
       shortName,
       code,
-      curriculumCode: "custom",
+      curriculumCode,
       stage: customForm.stage,
       gradeBand: customForm.gradeBand,
       gradeIds: customGradeIds,
       category: customForm.category,
-      lessonNoteTemplateVariant: "custom",
-      reportCardGroup: customForm.category === "elective" ? "Electives" : "Custom",
+      lessonNoteTemplateVariant:
+        curriculumCode === "ghana_nacca"
+          ? customForm.gradeBand === "jhs"
+            ? "nacca_jhs"
+            : "nacca_primary"
+          : curriculumCode === "custom"
+            ? "custom"
+            : "classic",
+      reportCardGroup: customForm.category === "elective" ? "Electives" : customForm.category === "core" ? "Core" : "Other",
       autoAssignToMatchingClassGroups: mode === "initial" ? autoAssign : false,
     });
     if (result.success) {
@@ -931,8 +1116,8 @@ function SetupSubjectOfferingsDialog({
         shortName: "",
         code: "",
         gradeBand: "custom",
-        stage: "custom",
-        category: "custom",
+        stage: suggestedStageForCurriculum(curriculumCode, "custom"),
+        category: curriculumCode === "custom" ? "custom" : "core",
       });
     }
   }
@@ -943,6 +1128,11 @@ function SetupSubjectOfferingsDialog({
   const isAddingSubject = mode === "add";
   const isCreatingCustom =
     createCustomOffering.isPending || assignOfferingToClasses.isPending;
+  const suggestedCode = suggestedSubjectCode(
+    curriculumCode,
+    customForm.gradeBand as SubjectOfferingGradeBand,
+    customForm.subjectFamily
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -971,36 +1161,61 @@ function SetupSubjectOfferingsDialog({
             </div>
 
             <div className="space-y-5 overflow-y-auto p-6 lg:p-7">
-              {!isAddingSubject && <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-(--ws-fg-70)">
-                    Curriculum
+                    Curriculum source
                   </p>
-                  <PremiumSelect value={curriculumCode} onValueChange={setCurriculumCode}>
+                  <PremiumSelect
+                    value={curriculumCode}
+                    onValueChange={(value) => {
+                      const nextCurriculum = value as CurriculumCode;
+                      setCurriculumCode(nextCurriculum);
+                      setCustomForm((current) => ({
+                        ...current,
+                        stage: suggestedStageForCurriculum(nextCurriculum, current.gradeBand as SubjectOfferingGradeBand),
+                        category: nextCurriculum === "custom" ? "custom" : current.category === "custom" ? "core" : current.category,
+                      }));
+                    }}
+                  >
                     <PremiumSelectTrigger>
                       <PremiumSelectValue />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
-                      <PremiumSelectItem value="ghana_nacca" description="NaCCA grouped by lower primary, upper primary, and JHS for Basic schools.">
-                        Ghana NaCCA
-                      </PremiumSelectItem>
+                      {curriculumOptions.map((option) => (
+                        <PremiumSelectItem key={option.value} value={option.value} description={option.description}>
+                          {option.label}
+                        </PremiumSelectItem>
+                      ))}
                     </PremiumSelectContent>
                   </PremiumSelect>
+                  <p className="text-xs leading-relaxed text-(--ws-fg-70)">
+                    Use the curriculum the subject belongs to. If it is approved but missing from the catalog, add it here and keep this curriculum selected.
+                  </p>
                 </div>
-                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 md:col-span-2">
-                  <label className="flex cursor-pointer items-start gap-3">
-                    <Checkbox checked={autoAssign} onCheckedChange={(checked) => setAutoAssign(Boolean(checked))} />
-                    <span>
-                      <span className="block text-sm font-medium text-(--ws-fg)">Assign to matching class groups</span>
-                  <span className="mt-1 block text-xs leading-relaxed text-(--ws-fg-70)">
-                        {initialGrade
-                          ? `This setup is currently scoped to ${initialGrade.name}.`
-                          : "For example, Mathematics - JHS will be assigned to every class group inside JHS 1, JHS 2, and JHS 3."}
+                {isAddingSubject ? (
+                  <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 md:col-span-2">
+                    <p className="text-sm font-medium text-(--ws-fg)">Add from the catalog or add a curriculum-approved subject</p>
+                    <p className="mt-1 text-xs leading-relaxed text-(--ws-fg-70)">
+                      Catalog suggestions use the selected curriculum and grades. You can still enter a new approved subject manually when the catalog has not caught up.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4 md:col-span-2">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <Checkbox checked={autoAssign} onCheckedChange={(checked) => setAutoAssign(Boolean(checked))} />
+                      <span>
+                        <span className="block text-sm font-medium text-(--ws-fg)">Assign to matching class groups</span>
+                        <span className="mt-1 block text-xs leading-relaxed text-(--ws-fg-70)">
+                          {initialGrade
+                            ? `This setup is currently scoped to ${initialGrade.name}.`
+                            : "For example, Mathematics - JHS will be assigned to every class group inside JHS 1, JHS 2, and JHS 3."}
+                        </span>
                       </span>
-                    </span>
-                  </label>
-                </div>
-              </div>}
+                    </label>
+                  </div>
+                )}
+              </div>
 
               <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -1025,6 +1240,37 @@ function SetupSubjectOfferingsDialog({
                   ))}
                 </div>
               </div>
+
+              {isAddingSubject && selectedGradeIds.length > 0 && templates.length > 0 && (
+                <div className="rounded-2xl border border-(--ws-line) bg-(--ws-fill) p-4">
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-(--ws-fg)">Catalog suggestions</p>
+                    <p className="text-xs leading-relaxed text-(--ws-fg-70)">
+                      These subjects match the selected curriculum and grades. Choose one to fill the subject details below, then review the values before adding it.
+                    </p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {templates.map((template) => (
+                      <button
+                        key={template.code}
+                        type="button"
+                        onClick={() => applyCatalogTemplate(template)}
+                        className={cn(
+                          "rounded-xl border p-3 text-left transition",
+                          customForm.code === template.code
+                            ? "border-amber-300/45 bg-amber-300/10"
+                            : "border-(--ws-line) bg-(--ws-fill) hover:border-amber-300/25 hover:bg-amber-300/5"
+                        )}
+                      >
+                        <span className="block text-sm font-medium text-(--ws-fg)">{template.displayName}</span>
+                        <span className="mt-1 block text-[10px] uppercase tracking-[0.1em] text-(--ws-fg-70)">
+                          {template.code} · {template.category.replace(/_/g, " ")}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {!isAddingSubject && <div className="space-y-4">
                 {setupBands.map((band) => {
@@ -1144,16 +1390,21 @@ function SetupSubjectOfferingsDialog({
               <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4">
                 <div className="mb-4 flex flex-col gap-1">
                   <p className="text-sm font-semibold text-(--ws-fg)">
-                    {isAddingSubject ? "Subject details" : "Add a custom subject offering"}
+                    {isAddingSubject
+                      ? "Subject details"
+                      : curriculumCode === "custom"
+                        ? "Add a custom subject offering"
+                        : "Add a curriculum subject offering"}
                   </p>
                   <p className="text-xs text-(--ws-fg-70)">
                     {isAddingSubject
-                      ? "This subject becomes available in the selected grades and class groups."
-                      : "Use this when a school teaches a subject outside the default NaCCA list. Select one grade for a grade-specific offering, or multiple grades for a grade-band offering."}
+                      ? "This subject becomes available in the selected grades and optionally selected class groups."
+                      : "Use this when a school teaches a subject that is not in the current catalog. Keep the curriculum source selected so the offering remains correctly classified."}
                   </p>
                 </div>
-                <div className="grid gap-3 lg:grid-cols-4">
+                <div className="grid gap-3 lg:grid-cols-5">
                   <input
+                    aria-label="Subject family"
                     value={customForm.subjectFamily}
                     onChange={(event) =>
                       setCustomForm((current) => ({
@@ -1167,6 +1418,7 @@ function SetupSubjectOfferingsDialog({
                     className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />
                   <input
+                    aria-label="Display name"
                     value={customForm.displayName}
                     onChange={(event) =>
                       setCustomForm((current) => ({
@@ -1178,6 +1430,7 @@ function SetupSubjectOfferingsDialog({
                     className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />
                   <input
+                    aria-label="Subject code"
                     value={customForm.code}
                     onChange={(event) =>
                       setCustomForm((current) => ({
@@ -1185,16 +1438,17 @@ function SetupSubjectOfferingsDialog({
                         code: event.target.value,
                       }))
                     }
-                    placeholder="Code, e.g. CUSTOM-P4-ROB"
+                    placeholder={suggestedCode}
                     className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm uppercase text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />
                   <PremiumSelect
                     value={customForm.gradeBand}
                     onValueChange={(value) => {
+                      const nextGradeBand = value as SubjectOfferingGradeBand;
                       setCustomForm((current) => ({
                         ...current,
-                        gradeBand: value,
-                        stage: value,
+                        gradeBand: nextGradeBand,
+                        stage: suggestedStageForCurriculum(curriculumCode, nextGradeBand),
                       }));
                       if (value !== "custom") {
                         setSelectedGradeIds(gradeIdsForBand(value));
@@ -1211,6 +1465,44 @@ function SetupSubjectOfferingsDialog({
                       <PremiumSelectItem value="custom">Custom / selected grades</PremiumSelectItem>
                     </PremiumSelectContent>
                   </PremiumSelect>
+                  <PremiumSelect
+                    value={customForm.category}
+                    onValueChange={(value) =>
+                      setCustomForm((current) => ({ ...current, category: value }))
+                    }
+                  >
+                    <PremiumSelectTrigger>
+                      <PremiumSelectValue placeholder="Category" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      {subjectCategoryOptions.map(([value, label]) => (
+                        <PremiumSelectItem key={value} value={value}>
+                          {label}
+                        </PremiumSelectItem>
+                      ))}
+                    </PremiumSelectContent>
+                  </PremiumSelect>
+                </div>
+                <div className="mt-3 grid gap-2 text-xs text-(--ws-fg-70) sm:grid-cols-2">
+                  <p>
+                    <span className="font-medium text-(--ws-fg)">Subject family:</span> the academic subject used for grouping, for example Arabic or Robotics.
+                  </p>
+                  <p>
+                    <span className="font-medium text-(--ws-fg)">Display name:</span> the name teachers and timetable users will see.
+                  </p>
+                  <p>
+                    <span className="font-medium text-(--ws-fg)">Code:</span> a short unique identifier. Suggested value: <span className="font-mono text-(--ws-amber)">{suggestedCode}</span>{" "}
+                    <button
+                      type="button"
+                      className="text-(--ws-cyan) underline underline-offset-2 hover:text-(--ws-fg)"
+                      onClick={() => setCustomForm((current) => ({ ...current, code: suggestedCode }))}
+                    >
+                      use suggestion
+                    </button>
+                  </p>
+                  <p>
+                    <span className="font-medium text-(--ws-fg)">Grade band and category:</span> these guide reporting, lesson-note templates, and where the offering is suggested.
+                  </p>
                 </div>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs text-(--ws-fg-70)">
@@ -1218,7 +1510,7 @@ function SetupSubjectOfferingsDialog({
                       ? "The offering will use the selected grades above. Class-group assignment is optional."
                       : customForm.gradeBand === "custom"
                         ? "Custom offering will use the selected grades above and can be assigned to matching class groups automatically."
-                        : `Custom offering will use ${formatOfferingLabel(customForm.gradeBand)} grades only and can be assigned to matching class groups automatically.`}
+                        : `${curriculumCode === "custom" ? "Custom" : "Curriculum"} offering will use ${formatOfferingLabel(customForm.gradeBand)} grades only and can be assigned to matching class groups automatically.`}
                   </p>
                   <Button
                     type="button"
@@ -1232,7 +1524,11 @@ function SetupSubjectOfferingsDialog({
                     onClick={handleCreateCustom}
                     className="border-amber-300/20 bg-amber-300/10 text-(--ws-amber) hover:bg-amber-300/15"
                   >
-                    {isAddingSubject ? "Add subject offering" : "Add custom offering"}
+                    {isAddingSubject
+                      ? "Add subject offering"
+                      : curriculumCode === "custom"
+                        ? "Add custom offering"
+                        : "Add curriculum offering"}
                   </Button>
                 </div>
               </div>

@@ -35,6 +35,18 @@ export async function POST(req: NextRequest) {
       schoolType: typeof body.schoolType === "string" ? body.schoolType : undefined,
     });
 
+    if (result.createdOfferings === 0 && result.skippedExisting === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "No subject offerings were created because none of the selected subjects matched the selected active grades. Check the grade names or codes, then try again.",
+          data: result,
+        },
+        { status: 422 }
+      );
+    }
+
     return NextResponse.json({ success: true, data: result });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to set up subject offerings";

@@ -53,22 +53,29 @@ export function gradeMatchesTemplateCode(
   grade: Pick<IGrade, "code" | "name" | "stage" | "order">,
   templateGradeCodes: string[]
 ): boolean {
-  const normalized = normalizeGradeCode(grade);
-  const aliases = new Set([normalized, deriveGradeBand(grade).toUpperCase()]);
-  const basicMatch = normalized.match(/^BASIC([1-9])$/);
-  const primaryMatch = normalized.match(/^PRIMARY([1-9])$/);
-  const gradeMatch = normalized.match(/^GRADE([1-9])$/);
-  const pMatch = normalized.match(/^P([1-9])$/);
-  const bMatch = normalized.match(/^B([1-9])$/);
-  const numeric = basicMatch?.[1] ?? primaryMatch?.[1] ?? gradeMatch?.[1] ?? pMatch?.[1] ?? bMatch?.[1];
-  if (numeric) {
-    aliases.add(`P${numeric}`);
-    aliases.add(`B${numeric}`);
-    aliases.add(`BASIC${numeric}`);
-    aliases.add(`PRIMARY${numeric}`);
-    aliases.add(`GRADE${numeric}`);
+  const aliases = new Set([deriveGradeBand(grade).toUpperCase()]);
+  const gradeIdentifiers = [grade.code, grade.name, grade.stage]
+    .map((value) => normalizeGradeCode({ code: value }))
+    .filter(Boolean);
+
+  for (const normalized of gradeIdentifiers) {
+    aliases.add(normalized);
+    const basicMatch = normalized.match(/^BASIC([1-9])$/);
+    const primaryMatch = normalized.match(/^PRIMARY([1-9])$/);
+    const gradeMatch = normalized.match(/^GRADE([1-9])$/);
+    const pMatch = normalized.match(/^P([1-9])$/);
+    const bMatch = normalized.match(/^B([1-9])$/);
+    const numeric = basicMatch?.[1] ?? primaryMatch?.[1] ?? gradeMatch?.[1] ?? pMatch?.[1] ?? bMatch?.[1];
+    if (numeric) {
+      aliases.add(`P${numeric}`);
+      aliases.add(`B${numeric}`);
+      aliases.add(`BASIC${numeric}`);
+      aliases.add(`PRIMARY${numeric}`);
+      aliases.add(`GRADE${numeric}`);
+    }
+    if (normalized === "KINDERGARTEN1") aliases.add("KG1");
+    if (normalized === "KINDERGARTEN2") aliases.add("KG2");
   }
-  if (normalized === "KINDERGARTEN1") aliases.add("KG1");
-  if (normalized === "KINDERGARTEN2") aliases.add("KG2");
+
   return templateGradeCodes.some((code) => aliases.has(normalizeGradeCode({ code })));
 }

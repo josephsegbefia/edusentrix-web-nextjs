@@ -911,11 +911,14 @@ function SetupSubjectOfferingsDialog({
     stage: "custom",
     category: "core",
   });
+  const [displayNameWasEdited, setDisplayNameWasEdited] = React.useState(false);
   const [createdCustomOfferings, setCreatedCustomOfferings] = React.useState<
     CreatedCustomOffering[]
   >([]);
-  const grades = (gradesData?.data ?? []).filter(
-    (grade) => !isPreschoolGradeOption(grade)
+  const gradeRows = gradesData?.data;
+  const grades = React.useMemo(
+    () => (gradeRows ?? []).filter((grade) => !isPreschoolGradeOption(grade)),
+    [gradeRows]
   );
   const initialGrade = initialGradeId
     ? grades.find((grade) => grade.id === initialGradeId)
@@ -957,7 +960,8 @@ function SetupSubjectOfferingsDialog({
       ? selectedGradeIds
       : gradeIdsForBand(customForm.gradeBand);
 
-  const classes = classesData?.data ?? [];
+  const classRows = classesData?.data;
+  const classes = React.useMemo(() => classRows ?? [], [classRows]);
   const classesForSelectedGrades = React.useMemo(
     () => classes.filter((classGroup) => selectedGradeIds.includes(classGroup.grade.id)),
     [classes, selectedGradeIds]
@@ -981,6 +985,7 @@ function SetupSubjectOfferingsDialog({
     );
     setSelectedClassGroupIds([]);
     setCreatedCustomOfferings([]);
+    setDisplayNameWasEdited(false);
     setCustomForm({
       subjectFamily: "",
       displayName: "",
@@ -1047,6 +1052,7 @@ function SetupSubjectOfferingsDialog({
       stage: template.stage,
       category: template.category,
     });
+    setDisplayNameWasEdited(false);
   };
 
   async function handleSubmit() {
@@ -1119,6 +1125,7 @@ function SetupSubjectOfferingsDialog({
         stage: suggestedStageForCurriculum(curriculumCode, "custom"),
         category: curriculumCode === "custom" ? "custom" : "core",
       });
+      setDisplayNameWasEdited(false);
     }
   }
 
@@ -1410,8 +1417,10 @@ function SetupSubjectOfferingsDialog({
                       setCustomForm((current) => ({
                         ...current,
                         subjectFamily: event.target.value,
-                        displayName: current.displayName || event.target.value,
-                        shortName: current.shortName || event.target.value,
+                        displayName: displayNameWasEdited
+                          ? current.displayName
+                          : event.target.value,
+                        shortName: event.target.value,
                       }))
                     }
                     placeholder="Subject family, e.g. Robotics"
@@ -1420,12 +1429,14 @@ function SetupSubjectOfferingsDialog({
                   <input
                     aria-label="Display name"
                     value={customForm.displayName}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const displayName = event.target.value;
                       setCustomForm((current) => ({
                         ...current,
-                        displayName: event.target.value,
-                      }))
-                    }
+                        displayName,
+                      }));
+                      setDisplayNameWasEdited(displayName !== customForm.subjectFamily);
+                    }}
                     placeholder="Display name"
                     className="h-11 rounded-xl border border-(--ws-line) bg-(--ws-fill) px-3 text-sm text-(--ws-fg) placeholder:text-(--ws-fg-50) outline-none focus:border-amber-300/35"
                   />

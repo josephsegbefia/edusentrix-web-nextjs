@@ -93,9 +93,20 @@ export function useSetupSubjectOfferingsFromCurriculum() {
     },
     onMutate: () => busy.toast("Setting up subject offerings..."),
     onSuccess: ({ data }) => {
-      busy.success(
-        `Created ${data.createdOfferings} offering${data.createdOfferings === 1 ? "" : "s"}`
-      );
+      if (data.createdOfferings > 0) {
+        busy.success(
+          `Created ${data.createdOfferings} offering${data.createdOfferings === 1 ? "" : "s"}`
+        );
+      } else {
+        busy.success(
+          `${data.skippedExisting} selected offering${data.skippedExisting === 1 ? " is" : "s are"} already set up`
+        );
+      }
+      if (data.warnings.length > 0) {
+        busy.warning(
+          `${data.warnings.length} selected offering${data.warnings.length === 1 ? " needs" : "s need"} attention`
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["subject-offerings"] });
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
